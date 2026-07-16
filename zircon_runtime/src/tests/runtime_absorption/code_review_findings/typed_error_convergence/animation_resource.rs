@@ -9,16 +9,16 @@ fn review_f5_animation_manager_uses_animation_error() {
     let sequence_apply = include_str!("../../../../animation/sequence/apply.rs");
     let sequence_conversion = include_str!("../../../../animation/sequence/conversion.rs");
     let review_findings = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
     let runtime_15_plan = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
     let runtime_index = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let convention = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let animation_doc = include_str!("../../../../../../docs/zircon_runtime/animation/runtime.md");
     let framework_doc =
@@ -110,16 +110,16 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
     let core_mod = include_str!("../../../../core/mod.rs");
     let resource_tests = include_str!("../../../../core/resource/tests.rs");
     let review_findings = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
     let runtime_02_plan = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/02/2026-07-09-core-spine-and-root-surface-output-records.md"
     );
     let runtime_index = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let convention = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let resource_doc = include_str!("../../../../../../docs/zircon_runtime/core/resource.md");
 
@@ -134,8 +134,8 @@ fn review_f6_core_resource_registry_rename_uses_core_error() {
         );
     }
     assert!(
-        core_mod.contains("pub use framework::error::{CoreError, CoreResult, ZirconError};"),
-        "CoreResult should be exported beside CoreError"
+        core_mod.contains("pub use framework::error::{CoreError, CoreResult};"),
+        "CoreResult should be exported beside the single CoreError surface"
     );
     for forbidden in [
         ") -> Result<ResourceRecord, String>",

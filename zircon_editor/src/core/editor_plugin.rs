@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
 use zircon_runtime::{
-    core::framework::platform::RuntimeTargetMode, plugin::PluginModuleManifest,
-    plugin::PluginPackageManifest,
+    core::framework::platform::RuntimeTargetMode, plugin::PluginEventConsumerManifest,
+    plugin::PluginModuleManifest, plugin::PluginPackageManifest,
 };
 use zircon_runtime_interface::RegistrationDiagnostic;
 
@@ -12,6 +12,7 @@ use crate::core::editor_plugin_sdk::lifecycle::{
     EditorPluginLifecycleError, EditorPluginLifecycleEvent, EditorPluginLifecycleRecord,
     EditorPluginLifecycleReport, EditorPluginLifecycleStage,
 };
+use crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct EditorPluginDescriptor {
@@ -20,6 +21,7 @@ pub struct EditorPluginDescriptor {
     pub crate_name: String,
     pub category: String,
     pub capabilities: Vec<String>,
+    pub event_consumers: Vec<PluginEventConsumerManifest>,
 }
 
 impl EditorPluginDescriptor {
@@ -34,6 +36,7 @@ impl EditorPluginDescriptor {
             crate_name: crate_name.into(),
             category: "uncategorized".to_string(),
             capabilities: Vec::new(),
+            event_consumers: Vec::new(),
         }
     }
 
@@ -47,13 +50,21 @@ impl EditorPluginDescriptor {
         self
     }
 
+    pub fn with_event_consumer(mut self, consumer: PluginEventConsumerManifest) -> Self {
+        self.event_consumers.push(consumer);
+        self.event_consumers
+            .sort_by(|left, right| left.consumer_id.cmp(&right.consumer_id));
+        self
+    }
+
     pub fn attach_to_package(&self, manifest: PluginPackageManifest) -> PluginPackageManifest {
         manifest.with_editor_module(
             PluginModuleManifest::editor(
                 format!("{}.editor", self.package_id),
                 self.crate_name.clone(),
             )
-            .with_capabilities(self.capabilities.iter().cloned()),
+            .with_capabilities(self.capabilities.iter().cloned())
+            .with_event_consumers(self.event_consumers.iter().cloned()),
         )
     }
 
@@ -87,6 +98,10 @@ pub trait EditorPlugin {
         Ok(())
     }
 
+    fn runtime_event_consumers(&self) -> EditorRuntimeEventConsumerRegistry {
+        EditorRuntimeEventConsumerRegistry::default()
+    }
+
     fn on_lifecycle_event(
         &self,
         _event: &EditorPluginLifecycleEvent,
@@ -107,6 +122,7 @@ pub struct EditorPluginRegistrationReport {
     pub capabilities: Vec<String>,
     pub extensions: EditorExtensionRegistry,
     pub lifecycle: EditorPluginLifecycleReport,
+    pub runtime_event_consumers: EditorRuntimeEventConsumerRegistry,
     pub diagnostics: Vec<String>,
 }
 
@@ -124,6 +140,15 @@ impl EditorPluginRegistrationReport {
         if let Err(error) = plugin.register_editor_extensions(&mut extensions) {
             diagnostics.push(error.to_string());
         }
+        let runtime_event_consumers = plugin.runtime_event_consumers();
+        if runtime_event_consumers.manifests().as_slice()
+            != plugin.descriptor().event_consumers.as_slice()
+        {
+            diagnostics.push(format!(
+                "editor plugin `{}` runtime event consumer registry does not match its descriptor",
+                plugin.descriptor().package_id
+            ));
+        }
         record_lifecycle_stage(
             plugin,
             EditorPluginLifecycleStage::Enabled,
@@ -135,6 +160,7 @@ impl EditorPluginRegistrationReport {
             capabilities: plugin.editor_capabilities().to_vec(),
             extensions,
             lifecycle,
+            runtime_event_consumers,
             diagnostics,
         }
     }

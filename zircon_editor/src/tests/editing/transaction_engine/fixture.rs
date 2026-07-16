@@ -6,16 +6,33 @@ use crate::core::editing::engine::{
     CommandExecutionError, EditCommand, EditCommandError, EditContext, MergeOutcome,
     SelectionSnapshot,
 };
+use crate::core::gateway::EditorRuntimeGatewayHandle;
 
-#[derive(Default)]
 pub(super) struct FixtureContext {
     pub(super) value: i32,
     pub(super) selection: u64,
     pub(super) trace: Vec<&'static str>,
     pub(super) fail_selection_restore: Option<u64>,
+    pub(super) gateway: EditorRuntimeGatewayHandle,
+}
+
+impl Default for FixtureContext {
+    fn default() -> Self {
+        Self {
+            value: 0,
+            selection: 0,
+            trace: Vec::new(),
+            fail_selection_restore: None,
+            gateway: EditorRuntimeGatewayHandle::detached(),
+        }
+    }
 }
 
 impl EditContext for FixtureContext {
+    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle {
+        &self.gateway
+    }
+
     fn selection_snapshot(&self) -> SelectionSnapshot {
         SelectionSnapshot::from_json(serde_json::json!(self.selection))
     }

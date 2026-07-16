@@ -3,10 +3,10 @@ use std::collections::BTreeSet;
 use zircon_runtime_interface::reflect::{ReflectFieldValue, ReflectTypeRegistration};
 
 use crate::core::framework::scene::ComponentTypeDescriptor;
-use crate::scene::components::{default_render_layer_mask, Mobility, NodeRecord, SceneNode};
+use crate::scene::components::{Mobility, NodeRecord, SceneNode, default_render_layer_mask};
 use crate::scene::{EntityId, World};
 
-use super::{DynamicScene, DYNAMIC_SCENE_FORMAT_VERSION};
+use super::DynamicScene;
 use crate::scene::dynamic_scene::{
     DynamicComponent, DynamicEntity, DynamicResource, DynamicSceneError,
 };
@@ -25,7 +25,6 @@ pub(super) fn dynamic_scene_from_world(world: &World) -> Result<DynamicScene, Dy
 
     Ok(DynamicScene {
         payload_header: crate::scene::dynamic_scene::document::current_dynamic_scene_header(),
-        format_version: DYNAMIC_SCENE_FORMAT_VERSION,
         component_types,
         entities,
         resources,

@@ -15,10 +15,10 @@ fn runtime_15_ssr_gpu_context_tests_are_child_owner_split() {
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let post_process_docs = read_repo("docs/zircon_runtime/core/framework/render/post_process.md");
     let render_product_submit = read_repo("docs/zircon_runtime/graphics/render-product-submit.md");

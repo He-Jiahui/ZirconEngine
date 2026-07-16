@@ -73,7 +73,7 @@ fn runtime_09_ui_architecture_mirror_docs_match_structure_audit_counts() {
     );
     let numbered_status = concat!(
         include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
     );
     let mirror_docs = [
         ("Runtime 09 plan", runtime_09_plan),

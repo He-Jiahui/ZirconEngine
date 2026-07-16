@@ -63,8 +63,6 @@ pub(super) fn expected_date_for_slice(slice: &str) -> Option<&'static str> {
         Some("2026-06-24")
     } else if slice == "Runtime 15 M3 script VM registry lock poison recovery" {
         Some("2026-06-24")
-    } else if slice == "Runtime 15 M3 ZrVM real backend runtime lock poison recovery" {
-        Some("2026-06-27")
     } else if slice == "Runtime 15 M3 VM plugin manager selected-backend lock poison recovery" {
         Some("2026-06-24")
     } else {

@@ -478,6 +478,7 @@ impl ResourceStreamer {
                 pbr_clearcoat: descriptor.advanced_features.uses_clearcoat(),
                 pbr_anisotropy: descriptor.advanced_features.uses_anisotropy(),
                 pbr_transmission: descriptor.advanced_features.uses_transmission(),
+                volumetric_fog: false,
             },
             readiness_report: readiness,
         };

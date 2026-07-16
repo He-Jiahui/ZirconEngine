@@ -25,7 +25,7 @@ SESSION_TICK_ANCHORS = (
     "fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>",
     ".tick_time(self.profile.max_fixed_steps_per_frame())",
     ".tick(&self.runtime.handle(), advance)",
-    "self.input_manager.begin_frame();",
+    "self.resolve_input_manager()",
     "DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8",
 )
 TIME_HANDOFF_ANCHORS = (

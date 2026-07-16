@@ -4,14 +4,12 @@ use super::*;
 fn sdf_draw_plan_creates_one_textured_quad_per_glyph() {
     let text = text_batch("AB", UiFrame::new(8.0, 12.0, 64.0, 20.0));
     let plan = plan_sdf_atlas(std::slice::from_ref(&text));
-    let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    let (_, _, asset_manager, atlas_bake) = bake_atlas(&plan);
 
     let vertices = build_sdf_vertices(
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -51,8 +49,6 @@ fn sdf_draw_plan_snaps_text_origin_but_preserves_glyph_subpixel_phase() {
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -138,16 +134,12 @@ fn sdf_draw_plan_carries_atlas_page_index_for_array_texture_sampling() {
     let text = text_batch("A", UiFrame::new(8.0, 12.0, 64.0, 20.0));
     let plan = synthetic_layered_plan(1);
     let atlas_bake = synthetic_layered_bake(&plan);
-    let mut font_bake = SdfFontBakeCache::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
 
     let vertices = build_sdf_vertices(
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -197,8 +189,6 @@ fn sdf_draw_plan_skips_whitespace_quads_but_preserves_advance() {
         &[text],
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -239,8 +229,6 @@ fn sdf_draw_plan_zeroes_format_control_advances_without_slots() {
         &[text],
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );

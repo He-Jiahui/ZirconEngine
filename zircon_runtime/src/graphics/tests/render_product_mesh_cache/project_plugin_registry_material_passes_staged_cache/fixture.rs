@@ -133,7 +133,7 @@ fn submit_registry_material_passes_with_shading_model(
 
     let framework = match plugin_shading_model {
         Some(plugin_shading_model) => {
-            WgpuRenderFramework::new_with_plugin_render_extensions_and_shading_models(
+            WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_shading_models(
                 asset_manager,
                 Vec::new(),
                 Vec::new(),
@@ -144,7 +144,7 @@ fn submit_registry_material_passes_with_shading_model(
                 Vec::new(),
             )
         }
-        None => WgpuRenderFramework::new(asset_manager),
+        None => WgpuRenderFramework::new_for_test(asset_manager),
     }
     .expect("WGPU framework");
     framework.replace_shader_variant_disk_cache_for_tests(

@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 import json
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
 from typing import Any
 
 from .config import CoordinatorConfig
+
+
+_PENDING_ACTION_STATUSES = frozenset({"previewed", "executing"})
+_ACTION_POLL_INTERVAL_SECONDS = 0.25
 
 
 class CoordinatorClientError(RuntimeError):
@@ -25,6 +30,7 @@ class CoordinatorClient:
     base_url: str
     token: str
     timeout_seconds: float = 3.0
+    control_timeout_seconds: float = 30.0
     command_timeout_seconds: float = 300.0
 
     @classmethod
@@ -34,19 +40,36 @@ class CoordinatorClient:
             host = str(runtime["host"])
             port = int(runtime["port"])
         except (OSError, ValueError, KeyError, TypeError) as error:
-            raise CoordinatorClientError("offline", "Coordinator runtime descriptor is unavailable") from error
+            raise CoordinatorClientError(
+                "offline",
+                "Coordinator runtime descriptor is unavailable",
+                details={"transport": "descriptor_absent"},
+            ) from error
         return cls(base_url=f"http://{host}:{port}", token="")
 
     def health(self) -> dict[str, Any]:
         return self._request("GET", "/health")
 
     def command(self, command: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
-        return self._request(
-            "POST",
-            "/command",
-            {"command": command, "arguments": arguments or {}},
-            timeout_seconds=self.command_timeout_seconds,
-        )
+        try:
+            return self._request(
+                "POST",
+                "/command",
+                {"command": command, "arguments": arguments or {}},
+                timeout_seconds=self.command_timeout_seconds,
+            )
+        except CoordinatorClientError as error:
+            if error.code != "command_timeout":
+                raise
+            details = dict(error.details)
+            details.update(
+                {
+                    "command": command,
+                    "timeoutSeconds": self.command_timeout_seconds,
+                    "recovery": "query health and the typed job/session status before retrying",
+                }
+            )
+            raise CoordinatorClientError(error.code, error.message, details=details) from error
 
     def shutdown(self) -> dict[str, Any]:
         preview = self.control_request(
@@ -115,6 +138,22 @@ class CoordinatorClient:
             raise CoordinatorClientError(
                 "invalid_response", "Coordinator action confirmation omitted its result"
             )
+        deadline = time.monotonic() + self.command_timeout_seconds
+        while action.get("status") in _PENDING_ACTION_STATUSES:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise CoordinatorClientError(
+                    "command_timeout",
+                    "Coordinator action did not reach a terminal state before its deadline",
+                    details={"actionId": action_id, "kind": kind},
+                )
+            time.sleep(min(_ACTION_POLL_INTERVAL_SECONDS, remaining))
+            detail = self.control_request("GET", f"/control/v1/actions/{action_id}")
+            action = detail.get("action")
+            if not isinstance(action, dict):
+                raise CoordinatorClientError(
+                    "invalid_response", "Coordinator action detail omitted its action record"
+                )
         return action
 
     def issue_elevation_grant(
@@ -138,7 +177,12 @@ class CoordinatorClient:
         path: str,
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        envelope = self._request(method, path, payload)
+        envelope = self._request(
+            method,
+            path,
+            payload,
+            timeout_seconds=self.control_timeout_seconds,
+        )
         if envelope.get("ok") is not True or not isinstance(envelope.get("data"), dict):
             raise CoordinatorClientError(
                 "invalid_response", "Coordinator returned an invalid control envelope"
@@ -180,7 +224,28 @@ class CoordinatorClient:
                 raise CoordinatorClientError("http_error", str(error.reason)) from error
             finally:
                 error.close()
-        except (urllib.error.URLError, TimeoutError, OSError) as error:
+        except TimeoutError as error:
+            raise CoordinatorClientError(
+                "command_timeout",
+                "Coordinator request exceeded its deadline; the service may still be processing it",
+            ) from error
+        except urllib.error.URLError as error:
+            if isinstance(error.reason, TimeoutError):
+                raise CoordinatorClientError(
+                    "command_timeout",
+                    "Coordinator request exceeded its deadline; the service may still be processing it",
+                ) from error
+            transport = (
+                "connection_refused"
+                if isinstance(error.reason, ConnectionRefusedError)
+                else "connection_uncertain"
+            )
+            raise CoordinatorClientError(
+                "offline",
+                "Coordinator service is offline",
+                details={"transport": transport},
+            ) from error
+        except OSError as error:
             raise CoordinatorClientError("offline", "Coordinator service is offline") from error
         if not isinstance(body, dict):
             raise CoordinatorClientError("invalid_response", "Coordinator returned a non-object response")

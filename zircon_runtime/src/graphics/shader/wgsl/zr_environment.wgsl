@@ -87,20 +87,12 @@ fn zr_environment_rotated_direction(direction: vec3<f32>) -> vec3<f32> {
 
 fn zr_environment_fix_cube_lookup_for_face_size(
     direction: vec3<f32>,
-    lod: f32,
-    face_size: f32,
+    _lod: f32,
+    _face_size: f32,
 ) -> vec3<f32> {
-    var adjusted = direction;
-    let scale = clamp(1.0 - exp2(max(lod, 0.0)) / max(face_size, 1.0), 0.0, 1.0);
-    let axis = abs(adjusted);
-    if (axis.x > axis.y && axis.x > axis.z) {
-        adjusted = vec3<f32>(adjusted.x, adjusted.y * scale, adjusted.z * scale);
-    } else if (axis.y > axis.z) {
-        adjusted = vec3<f32>(adjusted.x * scale, adjusted.y, adjusted.z * scale);
-    } else {
-        adjusted = vec3<f32>(adjusted.x * scale, adjusted.y * scale, adjusted.z);
-    }
-    return adjusted;
+    // WGPU cube sampling filters across face edges natively. Do not apply the
+    // legacy cmft/OpenGL edge warp to a direction before lookup.
+    return direction;
 }
 
 fn zr_environment_fix_source_cube_lookup(direction: vec3<f32>, lod: f32) -> vec3<f32> {

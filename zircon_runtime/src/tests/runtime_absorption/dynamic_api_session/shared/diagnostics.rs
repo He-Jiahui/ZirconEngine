@@ -20,11 +20,11 @@ pub(in super::super) const EXPECTED_RUNTIME_10_RUNTIME_DIAGNOSTICS_ANCHORS: &[(&
         "RuntimeSceneAssetReloadDiagnostics",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/ffi.rs",
         "ProfileControlCommand::RuntimeDiagnosticsSnapshot",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/ffi.rs",
         "runtime_diagnostics_response(session)",
     ),
     (
@@ -66,15 +66,15 @@ pub(in super::super) const EXPECTED_RUNTIME_10_SCENE_ASSET_RELOAD_DIAGNOSTIC_PAT
     &str,
 )] = &[
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "queue.tick_into_level(self.runtime.handle().scheduler(), &self.level)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "record_scene_asset_reload_frame_report(&self.runtime, &report)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "self.last_scene_asset_reload_report = Some(report)",
     ),
     (

@@ -22,7 +22,7 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
 
     for operation in [&open, &validate, &compile, &create, &tool, &timeline_open] {
         registry
-            .register_command(EditorCommandDescriptor::pending_operation(
+            .register_command(EditorCommandDescriptor::operation(
                 operation.clone(),
                 operation.as_str(),
             ))
@@ -31,11 +31,8 @@ fn authoring_descriptors_register_and_preserve_capability_gates() {
     let schema_operation = EditorOperationPath::parse("authoring.material.schema_compile").unwrap();
     registry
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                schema_operation.clone(),
-                "Compile With Schema",
-            )
-            .with_payload_schema_id("material_editor.compile_graph.v1"),
+            EditorCommandDescriptor::operation(schema_operation.clone(), "Compile With Schema")
+                .with_payload_schema_id("material_editor.compile_graph.v1"),
         )
         .unwrap();
     registry
@@ -181,14 +178,14 @@ fn authoring_registry_rejects_invalid_operation_payload_schema_ids() {
     let operation = EditorOperationPath::parse("authoring.material.compile").unwrap();
     let error = registry
         .register_command(
-            EditorCommandDescriptor::pending_operation(operation, "Compile Material")
+            EditorCommandDescriptor::operation(operation, "Compile Material")
                 .with_payload_schema_id("material_editor. compile.v1"),
         )
         .unwrap_err();
 
     assert!(error
         .to_string()
-        .contains("operation payload schema id `material_editor. compile.v1` is invalid"));
+        .contains("editor command payload schema id `material_editor. compile.v1` is invalid"));
 }
 
 #[test]

@@ -14,7 +14,7 @@
 
 - Modify `zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/scene_world_property_access.rs`: align the collider-shape child anchor with the current macro implementation while retaining all semantic variant checks.
 - Verify `zircon_runtime/src/tests/runtime_absorption/structure_convention/render_graph_execution_record.rs`: keep the current parent/child routing that reads `compute_workload/tests.rs`; no edit unless a newly compiled harness contradicts the current source.
-- Verify the six current owner roots and their child modules under `zircon_runtime/src/graphics/scene/scene_renderer` and `zircon_runtime/src/graphics/text/layout`: no reconstruction or duplicate split.
+- Verify the six current owner roots and their child modules under `zircon_runtime/src/graphics/scene/scene_renderer` and `zircon_runtime/src/text/layout`: no reconstruction or duplicate split.
 - Create temporarily and delete `tools/.tmp_runtime02_structure_harness.rs`: restore the crate module path required to compile the current structure-convention sources standalone.
 - Create temporarily and delete `tools/.tmp_runtime02_review_harness.rs`: compile the current code-review-findings sources standalone.
 - Update `docs/plans/zircon_runtime/runtime/02/2026-07-11-runtime02-current-cargo-baseline.md`: append one canonical current-state evidence record only after coordinator authorization and successful validation.

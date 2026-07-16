@@ -25,7 +25,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
         opacity,
     ));
 
-    if matches!(kind, DialogKind::ConfirmDialog) {
+    if kind.uses_severity_chrome() {
         commands.push(HostPaintCommand::quad(
             layout::severity_mark_rect(rect),
             Some(clip.clone()),

@@ -5,18 +5,14 @@ use thiserror::Error;
 
 use std::time::Duration;
 
-#[derive(Debug, Error)]
-pub enum ZirconError {
-    #[error("channel send failed: {0}")]
-    ChannelSend(String),
-    #[error("thread spawn failed: {0}")]
-    ThreadSpawn(String),
-}
-
 pub type CoreResult<T> = std::result::Result<T, CoreError>;
 
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum CoreError {
+    #[error("channel send failed: {0}")]
+    ChannelSend(String),
+    #[error("thread spawn failed: {0}")]
+    ThreadSpawn(String),
     #[error("invalid registry name: {0}")]
     InvalidRegistryName(String),
     #[error("invalid module name: {0}")]
@@ -27,8 +23,12 @@ pub enum CoreError {
     MissingModule(String),
     #[error("service already registered: {0}")]
     DuplicateService(String),
+    #[error("registered service identity index space is exhausted")]
+    ServiceIdentityIndexExhausted,
     #[error("service not found: {0}")]
     MissingService(String),
+    #[error("service is not available in the current module lifecycle: {0}")]
+    ServiceUnavailable(String),
     #[error("service owner mismatch for {name}: expected module {expected}, found {actual}")]
     ServiceOwnerMismatch {
         name: String,
@@ -89,6 +89,16 @@ pub enum CoreError {
     RuntimeModuleLifecycleBlocked(String),
     #[error("service downcast failed for {0}")]
     ServiceDowncast(String),
+    #[error(
+        "stale service handle for {name}: expected identity {expected_index}:{expected_generation}, found {actual_index}:{actual_generation}"
+    )]
+    StaleServiceHandle {
+        name: String,
+        expected_index: u32,
+        expected_generation: u32,
+        actual_index: u32,
+        actual_generation: u32,
+    },
     #[error("missing resource record for locator {locator}")]
     MissingResourceRecordForLocator { locator: String },
     #[error("missing resource record for id {id}")]

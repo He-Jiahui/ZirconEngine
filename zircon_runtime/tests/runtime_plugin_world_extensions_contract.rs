@@ -49,9 +49,6 @@ fn installed_world_extensions_reach_new_levels() {
         .register()
         .expect("valid native scene system");
 
-    runtime
-        .install_world_runtime_extensions(&registry)
-        .expect("install world extensions");
     for module_name in [
         foundation::FOUNDATION_MODULE_NAME,
         asset::ASSET_MODULE_NAME,
@@ -60,9 +57,15 @@ fn installed_world_extensions_reach_new_levels() {
         runtime.activate_module(module_name).unwrap();
     }
 
-    let level = scene::create_default_level(&runtime.handle()).unwrap();
-    level.with_world_mut(|world| {
-        world.run_native_scene_systems_for_stage(SystemStage::Update);
+    let core = runtime.handle();
+    let plan = registry
+        .world_runtime_extension_plan()
+        .expect("build world extension plan");
+    scene::install_world_runtime_extension_plan(&core, plan).expect("install world extensions");
+
+    let level = scene::create_default_level(&core).unwrap();
+    level.tick(&core, runtime.tick_time(4)).unwrap();
+    level.with_world(|world| {
         assert_eq!(world.resource::<InstalledCounter>(), &InstalledCounter(8));
         assert!(world.events::<InstalledEvent>().is_some());
     });

@@ -13,6 +13,13 @@ const ICON_BUTTON_ATLAS_BACKGROUND: [u8; 4] = [17, 20, 22, 255];
 #[test]
 fn icon_button_component_visual_paints_context_sizes_and_pressed_offset() {
     let bytes = icon_button_component_bytes();
+    let toolbar_panel = pixel_at(&bytes, 30, 92);
+
+    assert_eq!(
+        pixel_at(&bytes, 56, 132),
+        toolbar_panel,
+        "a normal toolbar icon button must stay quiet instead of painting an input-like background"
+    );
 
     assert!(
         changed_pixel_count(&bytes, 64, 138, 32, 32) > 0,
@@ -29,6 +36,11 @@ fn icon_button_component_visual_paints_context_sizes_and_pressed_offset() {
     assert!(
         changed_pixel_count(&bytes, 640, 144, 32, 32) > 0,
         "pressed toolbar icon button should paint its lowered glyph region"
+    );
+    assert_ne!(
+        pixel_at(&bytes, 676, 136),
+        pixel_at(&bytes, 746, 136),
+        "pressed toolbar icon button should retain its rounded selection surface while disabled stays quiet"
     );
 }
 
@@ -311,6 +323,16 @@ fn changed_pixel_count(bytes: &[u8], x: u32, y: u32, width: u32, height: u32) ->
         }
     }
     changed
+}
+
+fn pixel_at(bytes: &[u8], x: u32, y: u32) -> [u8; 4] {
+    let index = ((y as usize * ICON_BUTTON_ATLAS_WIDTH as usize) + x as usize) * 4;
+    [
+        bytes[index],
+        bytes[index + 1],
+        bytes[index + 2],
+        bytes[index + 3],
+    ]
 }
 
 fn visual_layout_output_dir() -> PathBuf {

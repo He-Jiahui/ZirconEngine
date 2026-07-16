@@ -2,6 +2,8 @@ use std::sync::{Arc, Mutex, MutexGuard, RwLock};
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::core::framework::channel::ChannelSender;
+use zircon_runtime::core::manager::{ManagerResolver, ManagerServiceHandle};
+use zircon_runtime::core::{CoreError, CoreHandle};
 
 use super::super::EditorAssetChangeRecord;
 
@@ -22,8 +24,14 @@ pub(super) use editor_asset_state::EditorAssetState;
 #[derive(Clone, Debug)]
 pub struct DefaultEditorAssetManager {
     pub(super) state: Arc<RwLock<EditorAssetState>>,
-    project_asset_manager: Option<Arc<ProjectAssetManager>>,
+    project_asset_manager: Option<ProjectAssetManagerAccess>,
     change_subscribers: Arc<Mutex<Vec<ChannelSender<EditorAssetChangeRecord>>>>,
+}
+
+#[derive(Clone, Debug)]
+struct ProjectAssetManagerAccess {
+    resolver: ManagerResolver,
+    handle: ManagerServiceHandle<ProjectAssetManager>,
 }
 
 impl Default for DefaultEditorAssetManager {
@@ -49,23 +57,29 @@ impl DefaultEditorAssetManager {
         }
     }
 
-    pub fn with_project_asset_manager(project_asset_manager: Arc<ProjectAssetManager>) -> Self {
+    pub fn with_runtime_project_manager(
+        core: CoreHandle,
+        handle: ManagerServiceHandle<ProjectAssetManager>,
+    ) -> Self {
         Self {
             state: Arc::new(RwLock::new(EditorAssetState::default())),
-            project_asset_manager: Some(project_asset_manager),
+            project_asset_manager: Some(ProjectAssetManagerAccess {
+                resolver: ManagerResolver::new(core),
+                handle,
+            }),
             change_subscribers: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
-    pub fn refresh_from_runtime_project(
-        &self,
-    ) -> Result<(), zircon_runtime::asset::importer::AssetImportError> {
-        let Some(project_asset_manager) = self.project_asset_manager.as_ref() else {
+    pub fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {
+        let Some(access) = self.project_asset_manager.as_ref() else {
             return Ok(());
         };
+        let project_asset_manager = access.resolver.resolve(access.handle.clone())?;
         let Some(project) = project_asset_manager.current_project_manager() else {
             return Ok(());
         };
         self.sync_from_project(project)
+            .map_err(editor_asset_error::editor_asset_error)
     }
 }

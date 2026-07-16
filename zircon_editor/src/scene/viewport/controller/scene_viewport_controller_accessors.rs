@@ -1,3 +1,4 @@
+use crate::scene::selection::SelectionModel;
 use crate::scene::viewport::{GizmoAxis, SceneViewportSettings, ViewportState};
 use zircon_runtime_interface::math::Vec3;
 
@@ -24,16 +25,12 @@ impl SceneViewportController {
         &mut self.state.settings
     }
 
-    pub(crate) fn selected_node(&self) -> Option<u64> {
-        self.state.selected
+    pub(crate) fn selection(&self) -> &SelectionModel {
+        &self.state.selection
     }
 
-    pub(crate) fn set_selected_node(&mut self, node_id: Option<u64>) -> bool {
-        if self.state.selected == node_id {
-            return false;
-        }
-        self.state.selected = node_id;
-        true
+    pub(crate) fn selection_mut(&mut self) -> &mut SelectionModel {
+        &mut self.state.selection
     }
 
     pub(crate) fn set_orbit_target(&mut self, target: Vec3) {

@@ -1,11 +1,12 @@
-use crate::core::framework::render::ParagraphOverride;
-use crate::graphics::text::layout::{measure_line_width_with_provider, tab_interval_width};
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::layout::{measure_line_width_with_provider, tab_interval_width};
+use crate::text::ParagraphOverride;
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange,
 };
 
+use super::super::adapter::text_style;
 use super::super::rich_text::{UiParsedText, UiTextSourceRun};
 use super::candidate_line::CandidateLine;
 use super::direction::is_rtl_direction;
@@ -90,17 +91,14 @@ pub(super) fn has_block_layout(parsed: &UiParsedText) -> bool {
     })
 }
 
-pub(super) fn column_constraints_with_provider<P>(
+pub(super) fn column_constraints_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame_height: f32,
     source_offset: usize,
     first_physical_column: bool,
-    provider: &mut P,
-) -> ColumnConstraints
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> ColumnConstraints {
     let constraints = line_constraints_with_provider(
         parsed,
         style,
@@ -116,15 +114,12 @@ where
     }
 }
 
-pub(super) fn resolve_paragraph_column_constraints_with_provider<P>(
+pub(super) fn resolve_paragraph_column_constraints_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame_height: f32,
-    provider: &mut P,
-) -> ResolvedParagraphColumnConstraints
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> ResolvedParagraphColumnConstraints {
     let paragraphs = physical_paragraph_ranges(&parsed.text)
         .into_iter()
         .map(|range| ResolvedPhysicalParagraphColumns {
@@ -157,17 +152,14 @@ where
     }
 }
 
-pub(super) fn column_constraints_for_candidate_with_provider<P>(
+pub(super) fn column_constraints_for_candidate_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame_height: f32,
     columns: &[CandidateLine],
     index: usize,
-    provider: &mut P,
-) -> ColumnConstraints
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> ColumnConstraints {
     let column = &columns[index];
     let paragraph_start = physical_paragraph_start(&parsed.text, column.source_range.start);
     let first_physical_column = index == 0
@@ -197,15 +189,12 @@ pub(super) fn aligned_column_y(
     frame.y + constraints.inset + alignment_offset
 }
 
-pub(super) fn wrap_block_paragraphs_with_provider<P>(
+pub(super) fn wrap_block_paragraphs_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame_width: f32,
-    provider: &mut P,
-) -> Vec<CandidateLine>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<CandidateLine> {
     let mut lines = Vec::new();
     for range in physical_paragraph_ranges(&parsed.text) {
         let paragraph = merged_override(&parsed.paragraphs, range.start);
@@ -233,17 +222,14 @@ where
     lines
 }
 
-pub(super) fn line_constraints_with_provider<P>(
+pub(super) fn line_constraints_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame_width: f32,
     source_offset: usize,
     first_physical_line: bool,
-    provider: &mut P,
-) -> LineConstraints
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> LineConstraints {
     let paragraph = merged_override(&parsed.paragraphs, source_offset);
     let (first_inset, continuation_inset) =
         paragraph_insets(&parsed.text, &paragraph, style, provider);
@@ -256,19 +242,16 @@ where
     LineConstraints {
         inset,
         max_width: available_width(frame_width, inset),
-        align: paragraph.align.unwrap_or(style.text_align),
+        align: paragraph.align.map(Into::into).unwrap_or(style.text_align),
     }
 }
 
-pub(super) fn conservative_rich_width_with_provider<P>(
+pub(super) fn conservative_rich_width_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame_width: f32,
-    provider: &mut P,
-) -> f32
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> f32 {
     let maximum_inset = parsed
         .paragraphs
         .iter()
@@ -300,23 +283,29 @@ pub(super) fn inset_logical_start(
     UiFrame::new(x, frame.y, (frame.width - inset).max(0.0), frame.height)
 }
 
-fn paragraph_insets<P>(
+fn paragraph_insets(
     text: &str,
     paragraph: &ParagraphOverride,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> (f32, f32)
-where
-    P: TextShapeRunProvider + ?Sized,
-{
-    let space_width = measure_line_width_with_provider(" ", style, provider);
-    let level_width = tab_interval_width(style, space_width);
-    let level_indent = f32::from(paragraph.indent_level.unwrap_or_default()) * level_width;
+    provider: &mut SharedTextLayoutSession,
+) -> (f32, f32) {
+    let indent_level = paragraph.indent_level.unwrap_or_default();
     let first_indent = paragraph.indent.unwrap_or_default().max(0.0);
+    if indent_level == 0 && paragraph.list_prefix.is_none() {
+        return (first_indent, 0.0);
+    }
+
+    let neutral_style = text_style(style);
+    let level_indent = if indent_level == 0 {
+        0.0
+    } else {
+        let space_width = measure_line_width_with_provider(" ", &neutral_style, provider);
+        f32::from(indent_level) * tab_interval_width(&neutral_style, space_width)
+    };
     let prefix_width = paragraph
         .list_prefix
         .and_then(|range| text.get(range.0 as usize..range.1 as usize))
-        .map(|prefix| measure_line_width_with_provider(prefix, style, provider))
+        .map(|prefix| measure_line_width_with_provider(prefix, &neutral_style, provider))
         .unwrap_or_default();
     (level_indent + first_indent, level_indent + prefix_width)
 }

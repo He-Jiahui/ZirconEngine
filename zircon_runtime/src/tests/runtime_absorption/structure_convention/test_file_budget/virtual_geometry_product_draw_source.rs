@@ -75,8 +75,8 @@ fn runtime_15_virtual_geometry_product_draw_source_is_wired() {
             "GeometrySourceBindingKind::VirtualGeometryPages",
             "GeometrySourceBindingKind::VirtualGeometryClusters",
             "ZR_GEOMETRY_SOURCE_VIRTUAL_GEOMETRY",
-            "new_with_plugin_render_extensions_and_shading_models",
-            "new_with_plugin_render_extensions_and_solari_and_shading_models",
+            "new_for_test_with_plugin_render_extensions_and_shading_models",
+            "new_for_test_with_plugin_render_extensions_and_solari_and_shading_models",
         ],
     );
     assert_contains_all(

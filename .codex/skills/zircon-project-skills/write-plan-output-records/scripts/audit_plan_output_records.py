@@ -26,6 +26,7 @@ CONCRETE_SIGNATURE_RE = re.compile(
     re.IGNORECASE,
 )
 MIGRATION_LINE_RE = re.compile(r"迁入记录|迁入产出记录|具体记录已迁入")
+MARKDOWN_LINK_RE = re.compile(r"\[(?P<label>[^\]]*)\]\((?P<target>[^)]+)\)")
 
 
 @dataclass(frozen=True)
@@ -102,9 +103,26 @@ def count_list_records(section: str) -> int:
             continue
         if MIGRATION_LINE_RE.search(stripped):
             continue
+        if is_concise_lifecycle_link(stripped):
+            continue
         if DATE_RE.search(stripped) or CONCRETE_SIGNATURE_RE.search(stripped):
             total += 1
     return total
+
+
+def is_concise_lifecycle_link(line: str) -> bool:
+    """Keep failure/fixed status links out of the concrete-record limit."""
+    links = list(MARKDOWN_LINK_RE.finditer(line))
+    if not links or not all(is_lifecycle_artifact_target(link.group("target")) for link in links):
+        return False
+    visible = MARKDOWN_LINK_RE.sub(lambda link: link.group("label"), line)
+    return not (DATE_RE.search(visible) or CONCRETE_SIGNATURE_RE.search(visible))
+
+
+def is_lifecycle_artifact_target(target: str) -> bool:
+    normalized = target.strip().strip("<>").split("#", 1)[0]
+    name = Path(normalized).name.casefold()
+    return name.endswith(".md") and name.startswith(("failure-", "fixed-"))
 
 
 def record_count(section: str, forbidden_target: bool) -> int:
@@ -249,6 +267,28 @@ def run_self_test() -> None:
             "| 里程碑 | 切片 | 状态 | 完成日期 | 证据 |\n"
             "|---|---|---|---|---|\n"
             + rows,
+            encoding="utf-8",
+        )
+        assert any(item.code == "child-record-limit" for item in audit_repo(root))
+
+        lifecycle_links = "".join(
+            "- fixed 已修复："
+            f"[failure-{index}](01/fixed-2026-07-15-lifecycle-{index}.md)\n"
+            for index in range(11)
+        )
+        child.write_text(
+            "# Runtime 01\n\n## 状态与产出记录\n\n" + lifecycle_links,
+            encoding="utf-8",
+        )
+        assert not any(item.code == "child-record-limit" for item in audit_repo(root))
+
+        evidence_links = "".join(
+            "- 2026-07-15 M1 validation passed 1/1: "
+            f"[fixed-{index}](01/fixed-2026-07-15-evidence-{index}.md)\n"
+            for index in range(11)
+        )
+        child.write_text(
+            "# Runtime 01\n\n## 状态与产出记录\n\n" + evidence_links,
             encoding="utf-8",
         )
         assert any(item.code == "child-record-limit" for item in audit_repo(root))

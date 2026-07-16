@@ -11,7 +11,7 @@ use zircon_runtime::core::framework::channel::ChannelReceiver;
 
 impl EditorAssetManager for DefaultEditorAssetManager {
     fn refresh_from_runtime_project(&self) -> Result<(), CoreError> {
-        DefaultEditorAssetManager::refresh_from_runtime_project(self).map_err(editor_asset_error)
+        DefaultEditorAssetManager::refresh_from_runtime_project(self)
     }
 
     fn catalog_snapshot(&self) -> EditorAssetCatalogSnapshotRecord {

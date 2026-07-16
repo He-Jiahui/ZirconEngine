@@ -1,15 +1,22 @@
 use crate::core::framework::render::{
     RenderBloomSettings, RenderColorGradingSettings, RenderPostProcessEffectStackSettings,
+    VolumetricFogSettings,
 };
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct RenderPostProcessVolumeProfile {
+    pub volumetric_fog: Option<VolumetricFogSettings>,
     pub bloom: Option<RenderBloomSettings>,
     pub color_grading: Option<RenderColorGradingSettings>,
     pub effect_stack: Option<RenderPostProcessEffectStackSettings>,
 }
 
 impl RenderPostProcessVolumeProfile {
+    pub const fn with_volumetric_fog(mut self, volumetric_fog: VolumetricFogSettings) -> Self {
+        self.volumetric_fog = Some(volumetric_fog);
+        self
+    }
+
     pub const fn with_bloom(mut self, bloom: RenderBloomSettings) -> Self {
         self.bloom = Some(bloom);
         self

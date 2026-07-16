@@ -1,13 +1,15 @@
 use crate::core::framework::physics::{
     PhysicsBackendState, PhysicsBackendStatus, PhysicsSimulationMode,
 };
-use crate::core::manager::resolve_physics_manager;
+use crate::core::manager::{physics_manager_handle, resolve_manager_service};
 use crate::core::CoreHandle;
 
 use super::{RuntimePhysicsBackendDiagnostics, RuntimePhysicsDiagnostics};
 
 pub(super) fn collect(core: &CoreHandle) -> RuntimePhysicsDiagnostics {
-    let physics = match resolve_physics_manager(core) {
+    let physics = match physics_manager_handle(core)
+        .and_then(|handle| resolve_manager_service(core, handle))
+    {
         Ok(physics) => physics,
         Err(error) => return RuntimePhysicsDiagnostics::unavailable(error.to_string()),
     };

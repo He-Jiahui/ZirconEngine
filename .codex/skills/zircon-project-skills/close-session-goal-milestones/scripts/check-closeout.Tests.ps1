@@ -40,7 +40,7 @@ function New-CloseoutFixture {
         [switch]$StageForeign,
         [switch]$AddUnownedManifestPath,
         [switch]$UseNonMain,
-        [string]$CommitMessage = "feat(runtime): complete M2 milestone",
+        [string]$CommitMessage = "feat(runtime): add managed validation coverage",
         [switch]$StageWebhook,
         [switch]$StageMaintenanceToken,
         [switch]$StageCredential,
@@ -373,8 +373,8 @@ Describe "Session Goal milestone closeout checker" {
 
     It "rejects plan-module prefixes in Git commit subjects" {
         foreach ($message in @(
-            "【feature】feat(runtime): complete M2 milestone",
-            "【runtime】feat(runtime): complete M2 milestone"
+            "【feature】feat(runtime): add managed validation coverage",
+            "【runtime】feat(runtime): add managed validation coverage"
         )) {
             $script:fixture = New-CloseoutFixture -CommitMessage $message
             $result = Invoke-CloseoutCheck $script:fixture

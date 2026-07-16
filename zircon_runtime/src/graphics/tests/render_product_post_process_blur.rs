@@ -84,7 +84,7 @@ fn render_product_post_blur_split_changes_final_frame() {
 }
 
 fn blur_product_framework() -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_features(
+    WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor()],
         [RenderPassExecutorRegistration::new(

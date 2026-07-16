@@ -94,7 +94,7 @@ const D12_TRAIT_BACKED_RUNTIME_CRATES: &[(&str, &str, &str, &str)] = &[
 #[test]
 fn review_d12_runtime_helper_exports_use_sdk_macro() {
     let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_exports =

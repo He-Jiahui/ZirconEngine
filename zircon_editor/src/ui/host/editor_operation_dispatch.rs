@@ -1,14 +1,15 @@
 use crate::core::asset::{AssetSourceAuthority, AssetTypeId, AssetWriteAccess};
 use crate::core::commands::{
-    AssetWriteTargetDescriptor, EditorCommandDispatchError, EditorCommandRegistry,
-    EditorCommandRegistryError,
+    AssetWriteTargetDescriptor, EditorCommandRegistry, EditorCommandRegistryError,
 };
+use crate::core::editing::engine::HistoryContextId;
+use crate::core::editing::operation::OperationCommandFactoryError;
 use crate::core::editor_event::{
     EditorEvent, EditorEventRecord, EditorEventSource, EditorOperationEvent,
 };
 use crate::core::editor_operation::{
-    EditorOperationControlErrorKind, EditorOperationControlRequest, EditorOperationControlResponse,
-    EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
+    EditorOperationControlRequest, EditorOperationControlResponse, EditorOperationInvocation,
+    EditorOperationPath, EditorOperationSource,
 };
 use crate::ui::host::EditorHostEventController;
 use serde_json::json;
@@ -20,11 +21,14 @@ impl EditorHostEventController {
         invocation: EditorOperationInvocation,
     ) -> Result<EditorEventRecord, String> {
         let event_source = editor_event_source(source.clone());
-        let descriptor = {
-            self.commands()
-                .lock()
-                .command(invocation.operation_id.as_str())
-                .cloned()
+        let (descriptor, operation_factory) = {
+            let commands = self.commands().lock();
+            (
+                commands.command(invocation.operation_id.as_str()).cloned(),
+                commands
+                    .operation_factory(&invocation.operation_id)
+                    .cloned(),
+            )
         };
         let descriptor = match descriptor {
             Some(descriptor) => descriptor,
@@ -98,28 +102,74 @@ impl EditorHostEventController {
                 invocation.operation_group,
             );
         }
-        let event = match descriptor.event().cloned() {
-            Some(event) => event,
-            None => {
-                let error = EditorCommandDispatchError::EditCommandFactoryPending {
-                    command_id: invocation.operation_id.clone(),
-                }
-                .to_string();
+        if let Some(event) = descriptor.event().cloned() {
+            return self.dispatch_normalized_event_with_operation(
+                event_source,
+                event,
+                Some((
+                    invocation.operation_id,
+                    descriptor.display_name().to_string(),
+                    invocation.arguments,
+                    invocation.operation_group,
+                )),
+            );
+        }
+
+        let Some(operation_factory) = operation_factory else {
+            let error = OperationCommandFactoryError::MissingFactory {
+                operation: invocation.operation_id.clone(),
+            }
+            .to_string();
+            return self.record_operation_control_failure(
+                event_source,
+                invocation.operation_id,
+                error,
+                invocation.arguments,
+                invocation.operation_group,
+            );
+        };
+        let operation = match operation_factory.create(&invocation) {
+            Ok(operation) => operation,
+            Err(error) => {
                 return self.record_operation_control_failure(
                     event_source,
                     invocation.operation_id,
-                    error,
+                    error.to_string(),
                     invocation.arguments,
                     invocation.operation_group,
                 );
             }
         };
+        let (command, history, merge_mode) = operation.into_parts();
+        let execution = match self.context().transactions().execute_operation(
+            descriptor.display_name(),
+            history,
+            invocation.operation_group.as_deref(),
+            merge_mode,
+            command,
+        ) {
+            Ok(execution) => execution,
+            Err(error) => {
+                return self.record_operation_control_failure(
+                    event_source,
+                    invocation.operation_id,
+                    error.to_string(),
+                    invocation.arguments,
+                    invocation.operation_group,
+                );
+            }
+        };
+        let operation_id = invocation.operation_id;
 
         self.dispatch_normalized_event_with_operation(
             event_source,
-            event,
+            EditorEvent::Operation(EditorOperationEvent::CommandExecuted {
+                operation_id: operation_id.to_string(),
+                transaction_id: execution.transaction_id.raw(),
+                group_open: execution.group_open,
+            }),
             Some((
-                invocation.operation_id,
+                operation_id,
                 descriptor.display_name().to_string(),
                 invocation.arguments,
                 invocation.operation_group,
@@ -213,15 +263,14 @@ impl EditorHostEventController {
                         })
                         .filter(|descriptor| descriptor.is_enabled(&context))
                         .map(|descriptor| {
+                            let factory = operation_state.operation_factory(descriptor.id());
                             json!({
                                 "operation_id": descriptor.id().as_str(),
                                 "display_name": descriptor.display_name(),
                                 "menu_path": descriptor.menu_path(),
                                 "callable_from_remote": descriptor.callable_from_remote(),
-                                "undoable": descriptor.undoable().is_some(),
-                                "undo_display_name": descriptor
-                                    .undoable()
-                                    .map(|operation| operation.display_name()),
+                                "undoable": factory.is_some(),
+                                "undo_display_name": factory.map(|factory| factory.undo_display_name()),
                                 "required_capabilities": descriptor.required_capabilities(),
                             })
                         })
@@ -233,11 +282,36 @@ impl EditorHostEventController {
                 )
             }
             EditorOperationControlRequest::QueryOperationHistory => {
-                EditorOperationControlResponse::typed_failure(
-                    "editor.operation.history",
-                    EditorOperationControlErrorKind::OperationHistoryPendingFactory,
-                    "editor operation history is unavailable until the edit-command factory is installed",
-                )
+                match self
+                    .context()
+                    .transactions()
+                    .history_snapshot(HistoryContextId::Global)
+                {
+                    Ok(history) => EditorOperationControlResponse::success(
+                        "editor.operation.history",
+                        Some(json!({
+                            "history": "global",
+                            "len": history.len,
+                            "top": history.top,
+                            "saved_top": history.saved_top,
+                            "saved_top_reachable": history.saved_top_reachable,
+                            "can_undo": history.can_undo,
+                            "can_redo": history.can_redo,
+                            "records": history.records.into_iter().map(|record| json!({
+                                "transaction_id": record.id.raw(),
+                                "label": record.label,
+                                "timestamp_frame": record.timestamp_frame,
+                                "command_count": record.command_count,
+                                "participants": record.participants.into_iter().map(|document| document.value()).collect::<Vec<_>>(),
+                                "significant": record.significant,
+                            })).collect::<Vec<_>>(),
+                        })),
+                    ),
+                    Err(error) => EditorOperationControlResponse::failure(
+                        "editor.operation.history",
+                        error.to_string(),
+                    ),
+                }
             }
         }
     }

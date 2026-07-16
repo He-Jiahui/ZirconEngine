@@ -12,7 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_
     let palette = dialog_palette();
     if unavailable {
         palette.disabled_text
-    } else if matches!(kind, DialogKind::ConfirmDialog)
+    } else if kind.uses_severity_chrome()
         && (variant_contains_any(node, &["destructive"])
             || matches!(severity(node), DialogSeverity::Error))
     {

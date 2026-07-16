@@ -26,12 +26,16 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
         fs::read_to_string(repo_root.join("zircon_runtime/src/dynamic_api/exports.rs"))
             .expect("dynamic API exports source should be readable");
     let session_source =
-        fs::read_to_string(repo_root.join("zircon_runtime/src/dynamic_api/session.rs"))
-            .expect("dynamic API session source should be readable");
+        fs::read_to_string(repo_root.join("zircon_runtime/src/dynamic_api/session/ffi.rs"))
+            .expect("dynamic API session FFI source should be readable");
+    let operation_source =
+        fs::read_to_string(repo_root.join("zircon_runtime/src/dynamic_api/session/operation.rs"))
+            .expect("dynamic API operation source should be readable");
 
     assert_runtime_10_files_exist(repo_root, EXPECTED_RUNTIME_10_SOURCE_FILES);
     assert_function_table_shapes(repo_root);
-    assert_runtime_10_ffi_wrappers(&exports_source, &session_source);
+    assert_runtime_10_ffi_wrappers(&exports_source, &session_source, &operation_source);
+    assert_runtime_10_v2_only_hard_cutover(repo_root);
     assert_runtime_10_behavior_test_anchors(repo_root);
     assert_runtime_10_host_request_payload_anchors(repo_root);
 
@@ -58,16 +62,16 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
             .unwrap_or_else(|error| panic!("`{relative_doc}` should be readable: {error}"));
         for required_doc_anchor in [
             "dynamic_runtime_api_boundary",
-            "expected_source_file_count = 35",
+            "expected_source_file_count = 48",
             "function_table_structs = 10/10",
             "field_count_mismatches = 0",
             "missing_repr_c_tables = 0",
-            "runtime_session_ffi_wrappers = 11/11",
+            "runtime_session_ffi_wrappers = 17/17",
             "direct_session_table_entry_bypasses = 0",
             "session_owner_extern_c_present = false",
             "headless_lifecycle_anchors = 12/12",
             "ffi_panic_anchors = 9/9",
-            "loader_failure_anchors = 10/10",
+            "loader_failure_anchors = 13/13",
             "behavior_test_anchor_count = 16",
             "missing_behavior_test_anchors = []",
             "runtime_diagnostics_anchors = 15/15",
@@ -97,8 +101,8 @@ fn runtime_10_dynamic_runtime_api_mirror_docs_match_structure_audit_counts() {
 fn assert_runtime_10_files_exist(repo_root: &Path, files: &[&str]) {
     assert_eq!(
         files.len(),
-        35,
-        "Runtime 10 dynamic API source inventory should stay at 35 files"
+        48,
+        "Runtime 10 dynamic API source inventory should stay at 48 files"
     );
     for relative_file in files {
         assert!(
@@ -178,17 +182,21 @@ fn assert_function_table_shapes(repo_root: &Path) {
     }
 }
 
-fn assert_runtime_10_ffi_wrappers(exports_source: &str, session_source: &str) {
+fn assert_runtime_10_ffi_wrappers(
+    exports_source: &str,
+    session_source: &str,
+    operation_source: &str,
+) {
     assert_eq!(
         EXPECTED_RUNTIME_10_SESSION_OPERATIONS.len(),
-        11,
-        "Runtime 10 session operation inventory should stay at 11 operations"
+        17,
+        "Runtime 10 session operation inventory should stay at 17 operations"
     );
     for operation in EXPECTED_RUNTIME_10_SESSION_OPERATIONS {
         let wrapper = format!("{operation}_ffi");
         assert!(
             exports_source.contains(&format!("Some({wrapper})")),
-            "`ZrRuntimeApiV1` should advertise `{wrapper}`"
+            "`ZrRuntimeApiV2` should advertise `{wrapper}`"
         );
         assert!(
             exports_source.contains(&format!("fn {wrapper}(")),
@@ -200,17 +208,57 @@ fn assert_runtime_10_ffi_wrappers(exports_source: &str, session_source: &str) {
         );
         assert!(
             !exports_source.contains(&format!("Some({operation}),")),
-            "`ZrRuntimeApiV1` must not advertise `{operation}` directly"
+            "`ZrRuntimeApiV2` must not advertise `{operation}` directly"
         );
+        let owner_source = if operation.ends_with("_operation") {
+            operation_source
+        } else {
+            session_source
+        };
+        let expected_visibility = if operation.ends_with("_operation") {
+            "pub(crate)"
+        } else {
+            "pub(in crate::dynamic_api)"
+        };
         assert!(
-            session_source.contains(&format!("pub(super) unsafe fn {operation}(")),
-            "`session.rs` should keep private Rust ABI owner `{operation}`"
+            owner_source.contains(&format!("{expected_visibility} unsafe fn {operation}(")),
+            "the session FFI owner should keep private Rust ABI owner `{operation}`"
         );
     }
     assert!(
-        !session_source.contains("pub(super) unsafe extern \"C\" fn"),
+        !session_source.contains("pub(in crate::dynamic_api) unsafe extern \"C\" fn"),
         "private dynamic session owner functions must not become extern C"
     );
+    assert!(
+        !operation_source.contains("pub(crate) unsafe extern \"C\" fn"),
+        "private operation owner functions must not become extern C"
+    );
+}
+
+fn assert_runtime_10_v2_only_hard_cutover(repo_root: &Path) {
+    const PRODUCTION_OWNERS: &[&str] = &[
+        "zircon_runtime_interface/src/runtime_api/api_table.rs",
+        "zircon_runtime/src/dynamic_api/exports.rs",
+        "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+    ];
+    const LEGACY_SYMBOLS: &[&str] = &[
+        "ZrRuntimeApiV1",
+        "ZrRuntimeGetApiFnV1",
+        "ZR_RUNTIME_GET_API_SYMBOL_V1",
+        "zircon_runtime_get_api_v1",
+        "RuntimeApi::V1",
+    ];
+
+    for relative_file in PRODUCTION_OWNERS {
+        let source = fs::read_to_string(repo_root.join(relative_file))
+            .unwrap_or_else(|error| panic!("`{relative_file}` should be readable: {error}"));
+        for legacy_symbol in LEGACY_SYMBOLS {
+            assert!(
+                !source.contains(legacy_symbol),
+                "`{relative_file}` must not restore legacy runtime API symbol `{legacy_symbol}`"
+            );
+        }
+    }
 }
 
 fn source_tree_contains(repo_root: &Path, needle: &str) -> bool {

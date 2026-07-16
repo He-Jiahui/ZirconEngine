@@ -1,13 +1,14 @@
 mod api;
 mod catalog;
+mod handle;
 mod manager;
 mod preview;
 mod records;
 mod reference_graph;
-mod resolver;
 
 pub use api::EditorAssetManager;
 pub use catalog::AssetCatalogRecord;
+pub use handle::editor_asset_manager_handle;
 pub use manager::DefaultEditorAssetManager;
 pub use preview::{PreviewArtifactKey, PreviewCache, PreviewScheduler};
 pub use records::{
@@ -16,4 +17,3 @@ pub use records::{
     EditorAssetFolderRecord, EditorAssetReferenceRecord, EditorAssetSubassetRecord,
 };
 pub use reference_graph::ReferenceGraph;
-pub use resolver::{resolve_editor_asset_manager, EditorAssetManagerHandle};

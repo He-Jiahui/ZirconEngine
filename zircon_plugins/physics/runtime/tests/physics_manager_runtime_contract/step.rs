@@ -154,8 +154,7 @@ fn unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick() {
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 0);
     assert_eq!(transform.translation, Vec3::ZERO);
     assert!(level.physics_contacts().is_empty());
-    assert!(resolve_physics_manager(&runtime.handle())
-        .unwrap()
+    assert!(physics_manager(&runtime)
         .ray_cast(&PhysicsRayCastQuery {
             world: level.handle(),
             origin: [0.0, 0.0, -5.0],
@@ -164,7 +163,7 @@ fn unavailable_jolt_backend_does_not_fallback_to_builtin_scene_tick() {
             mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
-                ..PhysicsQueryFilter::default()
+                ..Default::default()
             },
         })
         .is_empty());
@@ -381,8 +380,7 @@ fn builtin_query_only_syncs_queries_without_fixed_step_writeback() {
     let transform = level.with_world(|world| world.find_node(body).unwrap().transform);
     assert_eq!(level.last_physics_step_plan().unwrap().steps, 0);
     assert_eq!(transform.translation, Vec3::ZERO);
-    let hit = resolve_physics_manager(&runtime.handle())
-        .unwrap()
+    let hit = physics_manager(&runtime)
         .ray_cast(&PhysicsRayCastQuery {
             world: level.handle(),
             origin: [0.0, 0.0, -5.0],
@@ -391,7 +389,7 @@ fn builtin_query_only_syncs_queries_without_fixed_step_writeback() {
             mode: Default::default(),
             filter: PhysicsQueryFilter {
                 include_sensors: true,
-                ..PhysicsQueryFilter::default()
+                ..Default::default()
             },
         })
         .into_iter()

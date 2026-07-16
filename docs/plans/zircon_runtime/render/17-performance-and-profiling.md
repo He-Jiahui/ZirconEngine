@@ -103,7 +103,7 @@ plan_sources:
 - 预热衔接:计划 08 `ShaderVariantCache` 磁盘缓存与 prewarm 清单是输入;本计划补"启动期预热钩子"(加载屏/Hub 启动阶段消费 prewarm 清单批量编译)与首帧 miss 计数验收。
 - wgpu `PipelineCache`:能力 gate(目前仅 Vulkan 后端有效),命中时设备级缓存落盘随 08 磁盘缓存同目录;不可用平台静默跳过。
 - 冷启动测量:计划 01 `CompiledGraphCache` 的冷/热编译耗时与命中计数进 profile,作为启动优化的观测面。
-- 回归基线形态定稿:`render_perf_*` 测试只断言确定性计数(draw 数上限、状态切换数上限、上传字节上限、瞬态峰值上限、graph 编译次数),时间类(ms)指标一律只进观测导出不进断言;CI 现状(`ci.yml` 单 job `cargo test --workspace`)无需改动即可携带,计时型基线建议另开手动触发 workflow,本计划只给建议不强改。
+- 回归基线形态定稿:`render_perf_*` 测试只断言确定性计数(draw 数上限、状态切换数上限、上传字节上限、瞬态峰值上限、graph 编译次数),时间类(ms)指标一律只进观测导出不进断言;`render_perf_*` 确定性计数测试通过 focused 批次随里程碑一起验证（policy §3），计时型基线建议另开手动触发 workflow 导出 profile 文本工件，不设阈值门禁；全量 workspace 回归留给波次收口（policy §4）。
 
 ## 里程碑
 
@@ -444,7 +444,7 @@ PF-M4:
 | `render_perf_prewarm_zero_first_frame_miss` | 预热清单消费后首帧 `variant_miss_count` = 0 |
 | `render_perf_cold_start_graph_compile_once` | 冷启动 graph 编译 1 次,第 2 帧 `compiled_graph_cache_hit` = true |
 
-产物对拍:`render_product_*` 系列在三开关(pipelined/parallel_record/async_compile)8 组合矩阵下全绿。CI 接入建议(不强改):`ci.yml` 现有 `cargo test --workspace` 自动携带上述确定性测试;计时型观测建议另开 `workflow_dispatch` 手动 job 导出 profile 文本工件,不设阈值门禁。
+产物对拍:`render_product_*` 系列在三开关(pipelined/parallel_record/async_compile)8 组合矩阵下全绿。CI 接入（policy §4 波次收口）：`render_perf_*` 确定性计数测试通过 focused 批次验证；全量 workspace 回归留给波次收口；计时型观测建议另开 `workflow_dispatch` 手动 job 导出 profile 文本工件，不设阈值门禁。
 
 ## 状态与产出记录
 

@@ -33,6 +33,7 @@ FIRST_PARTY_EDITOR_RUNTIME_MIRROR_ROOTS = [
     "animation",
     "physics",
     "net",
+    "navigation",
 ]
 
 
@@ -406,6 +407,31 @@ def collect_editor_runtime_mirror_violations(repo_root: Path) -> list[str]:
             violations.append(
                 f"{(editor_root / 'src').relative_to(repo_root).as_posix()}: tests must assert mirrored runtime package capabilities"
             )
+        if root == "navigation":
+            runtime_plugin = plugin_workspace / root / "runtime" / "src" / "plugin.rs"
+            runtime_text = runtime_plugin.read_text(encoding="utf-8") if runtime_plugin.exists() else ""
+            required_patterns = {
+                plugin_path: [
+                    "runtime_event_consumers: navigation_runtime_event_consumers()",
+                    "NAVIGATION_TICK_CONSUMER_ID",
+                ],
+                editor_root / "src" / "runtime_mirror.rs": [
+                    "EditorRuntimeEventConsumerState",
+                    "NAVIGATION_TICK_PAYLOAD_SCHEMA",
+                ],
+                runtime_plugin: ["register_mirrored_event::<NavAgentTickReport>"],
+            }
+            for path, patterns in required_patterns.items():
+                text = path.read_text(encoding="utf-8") if path.exists() else ""
+                for pattern in patterns:
+                    if pattern not in text:
+                        violations.append(
+                            f"{path.relative_to(repo_root).as_posix()}: missing navigation runtime mirror contract `{pattern}`"
+                        )
+            if "EditorRuntimeEventConsumerHost" not in tests_text:
+                violations.append(
+                    f"{(editor_root / 'src').relative_to(repo_root).as_posix()}: navigation tests must exercise EditorRuntimeEventConsumerHost delivery"
+                )
     return violations
 
 

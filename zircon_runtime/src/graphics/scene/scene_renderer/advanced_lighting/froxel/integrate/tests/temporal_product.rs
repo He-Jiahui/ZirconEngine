@@ -236,6 +236,7 @@ fn encode_scatter(
                 grid,
                 view,
                 phase_g: 0.0,
+                ambient_radiance: Vec3::ZERO,
                 viewport_size: TEST_OUTPUT,
                 media_view,
                 history_view,

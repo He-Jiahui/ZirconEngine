@@ -38,6 +38,57 @@ function Get-RepositoryKey {
     }
 }
 
+function Test-CoordinatorHealthy {
+    & $python @((Get-BaseArguments) + @("status")) *> $null
+    if ($LASTEXITCODE -eq 0) {
+        return $true
+    }
+
+    # During a controlled restart, the descriptor is briefly absent before the
+    # successor writes it.  The loopback health endpoint keeps launcher callers
+    # from mistaking that publication gap for permission to spawn another daemon.
+    try {
+        $health = Invoke-RestMethod -Uri 'http://127.0.0.1:6518/health' -TimeoutSec 2
+        return $health.status -eq 'ok' -and $health.repo_root -eq $resolvedRepoRoot
+    }
+    catch {
+        return $false
+    }
+}
+
+function Invoke-CoordinatorStartupGate {
+    param([scriptblock]$Action)
+
+    $mutex = [Threading.Mutex]::new(
+        $false,
+        "Local\ZirconSessionCoordinatorStart-$(Get-RepositoryKey)"
+    )
+    $acquired = $false
+    try {
+        try {
+            $acquired = $mutex.WaitOne([TimeSpan]::FromSeconds(35))
+        }
+        catch [Threading.AbandonedMutexException] {
+            $acquired = $true
+        }
+        if (-not $acquired) {
+            throw 'Timed out waiting for the repository coordinator startup gate.'
+        }
+        & $Action
+    }
+    finally {
+        if ($acquired) {
+            try {
+                $mutex.ReleaseMutex()
+            }
+            catch [ApplicationException] {
+                # The process did not own the mutex; disposal remains safe.
+            }
+        }
+        $mutex.Dispose()
+    }
+}
+
 function Start-CoordinatorProcess {
     param([string[]]$ServeArguments)
 
@@ -78,28 +129,25 @@ function Start-CoordinatorProcess {
 }
 
 function Start-Coordinator {
-    $runtimePath = Join-Path $resolvedRepoRoot ".codex\state\session-coordinator\runtime.json"
-    if (Test-Path -LiteralPath $runtimePath) {
-        & $python @((Get-BaseArguments) + @("status")) *> $null
-        if ($LASTEXITCODE -eq 0) {
+    Invoke-CoordinatorStartupGate {
+        if (Test-CoordinatorHealthy) {
             return
         }
-    }
 
-    $serveArguments = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "serve")
-    if ($Automatic) {
-        $serveArguments += "--automatic-start"
-    }
-    Start-CoordinatorProcess -ServeArguments $serveArguments | Out-Null
-
-    for ($attempt = 0; $attempt -lt 300; $attempt++) {
-        Start-Sleep -Milliseconds 100
-        & $python @((Get-BaseArguments) + @("status")) *> $null
-        if ($LASTEXITCODE -eq 0) {
-            return
+        $serveArguments = @("-m", "tools.session_coordinator", "--repo-root", $resolvedRepoRoot, "serve")
+        if ($Automatic) {
+            $serveArguments += "--automatic-start"
         }
+        Start-CoordinatorProcess -ServeArguments $serveArguments | Out-Null
+
+        for ($attempt = 0; $attempt -lt 300; $attempt++) {
+            Start-Sleep -Milliseconds 100
+            if (Test-CoordinatorHealthy) {
+                return
+            }
+        }
+        throw "Zircon Session coordinator did not become healthy within 30 seconds."
     }
-    throw "Zircon Session coordinator did not become healthy within 30 seconds."
 }
 
 if ($Command -eq "start") {

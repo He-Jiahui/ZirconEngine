@@ -1,5 +1,5 @@
-use crate::graphics::text::atlas::render_contract::{GlyphAtlasBlendMode, GLYPH_ATLAS_TEXT_SHADER};
-use crate::graphics::text::atlas::render_gpu_plan::{
+use crate::text::atlas::render_contract::{GlyphAtlasBlendMode, GLYPH_ATLAS_TEXT_SHADER};
+use crate::text::atlas::render_gpu_plan::{
     GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPrimitiveTopology,
 };
 

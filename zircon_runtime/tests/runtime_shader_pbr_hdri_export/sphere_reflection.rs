@@ -12,7 +12,7 @@ const PBR_MIRROR_PERSPECTIVE_HDRI_OUTPUT_NAME: &str =
 const PBR_MIRROR_MULTI_VIEW_HDRI_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_mirror_sphere_multi_view_reflection_20260707.png";
 const PBR_MIRROR_CARDINAL_120DEG_HDRI_OUTPUT_NAME: &str =
-    "runtime_shader_pbr_real_hdri_lakes_mirror_sphere_cardinal_120deg_reflection_20260708.png";
+    "runtime_shader_pbr_real_hdri_lakes_mirror_sphere_cardinal_120deg_reflection_20260716.png";
 const PBR_MIRROR_MULTI_VIEW_TILE_SIZE: UVec2 = UVec2::new(800, 600);
 const PBR_MIRROR_MULTI_VIEW_COLUMNS: u32 = 2;
 

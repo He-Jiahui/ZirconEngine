@@ -22,6 +22,7 @@ impl DeferredSceneResources {
         lightmap_bindings: LightmapGpuBindings,
         target_format: wgpu::TextureFormat,
         plugin_shading_models: &[ShadingModelDescriptor],
+        volumetric_enabled: bool,
     ) -> Result<Self, GraphicsError> {
         let lighting_bind_group_layout = create_lighting_bind_group_layout(device);
         let lighting_pipeline = create_lighting_pipeline(
@@ -33,6 +34,7 @@ impl DeferredSceneResources {
             target_format,
             plugin_shading_models,
             false,
+            volumetric_enabled,
         )?;
         let lighting_subsurface_mrt_pipeline = create_lighting_pipeline(
             device,
@@ -43,6 +45,7 @@ impl DeferredSceneResources {
             target_format,
             plugin_shading_models,
             true,
+            volumetric_enabled,
         )?;
         let shadow_compare_sampler = device.create_sampler(&wgpu::SamplerDescriptor {
             label: Some("zircon-deferred-shadow-compare-sampler"),

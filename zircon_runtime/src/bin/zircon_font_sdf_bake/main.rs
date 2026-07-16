@@ -3,7 +3,7 @@ mod write;
 
 use std::fs;
 
-use zircon_runtime::graphics::text::font_sdf_build_tool::bake_font_sdf_artifact;
+use zircon_runtime::text::font_sdf_build_tool::bake_font_sdf_artifact;
 
 fn main() {
     if let Err(error) = run() {

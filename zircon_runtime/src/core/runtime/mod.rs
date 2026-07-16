@@ -25,6 +25,7 @@ pub use descriptors::{
 pub use events::EventBus;
 pub use frame_clock::FrameClock;
 pub use handle::CoreHandle;
+pub(crate) use handle::RegisteredServiceIdentity;
 pub use lifecycle::{
     InitLevel, LifecycleState, ModuleLifecycle, NoopModuleLifecycle, ServiceKind, StartupMode,
 };

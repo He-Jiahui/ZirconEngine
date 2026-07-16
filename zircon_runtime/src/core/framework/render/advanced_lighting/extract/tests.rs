@@ -1,5 +1,8 @@
 use super::*;
-use crate::core::framework::render::{FroxelGridQuality, OitSettings, VolumetricFogSettings};
+use crate::core::framework::render::{
+    FogVolumeData, FroxelGridQuality, OitSettings, RenderLayerSet, VolumetricFogSettings,
+};
+use crate::core::math::Vec3;
 
 #[test]
 fn render_advanced_extract_empty_keeps_optional_sections_empty() {
@@ -10,6 +13,7 @@ fn render_advanced_extract_empty_keeps_optional_sections_empty() {
     assert!(extract.volumetric.is_none());
     assert!(extract.oit.is_none());
     assert!(extract.fog_volumes.is_empty());
+    assert!(extract.volumetric_light_ids.is_empty());
     assert!(extract.cookies.is_empty());
     assert!(extract.irradiance_volumes.is_empty());
     assert!(extract.planar_probes.is_empty());
@@ -93,4 +97,34 @@ fn render_advanced_extract_volumetric_quality_controls_froxel_dimensions() {
         extract.froxel_dimensions(FroxelGridQuality::High),
         [160, 90, 96]
     );
+}
+
+#[test]
+fn render_advanced_extract_filters_fog_volumes_for_camera_layers() {
+    let extract = AdvancedLightingExtract {
+        fog_volumes: vec![
+            FogVolumeData {
+                volume_id: 2,
+                bounds_min: Vec3::ZERO,
+                bounds_max: Vec3::ONE,
+                density: 0.2,
+                albedo: Vec3::ONE,
+                layer_mask: RenderLayerSet::layer(2),
+            },
+            FogVolumeData {
+                volume_id: 1,
+                bounds_min: -Vec3::ONE,
+                bounds_max: Vec3::ZERO,
+                density: 0.1,
+                albedo: Vec3::splat(0.5),
+                layer_mask: RenderLayerSet::layer(1),
+            },
+        ],
+        ..AdvancedLightingExtract::default()
+    };
+
+    let visible = extract.fog_volumes_for_layers(&RenderLayerSet::layer(1));
+
+    assert_eq!(visible.len(), 1);
+    assert_eq!(visible[0].volume_id, 1);
 }

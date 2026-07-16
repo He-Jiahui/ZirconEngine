@@ -6,7 +6,7 @@ EXPECTED_FIXED_LOOP_STAGE_COUNT = 3
 EXPECTED_DYNAMIC_SESSION_TICK_TIME_CALLS = 1
 
 RUNTIME_03_SOURCE_FILES = (
-    "zircon_runtime/src/dynamic_api/session.rs",
+    "zircon_runtime/src/dynamic_api/session/state.rs",
     "zircon_runtime/src/dynamic_api/session/profile.rs",
     "zircon_runtime/src/dynamic_api/session/extract.rs",
     "zircon_runtime/src/dynamic_api/runtime_loop.rs",

@@ -5,7 +5,7 @@ use zircon_plugin_navigation_recast::{merge_tiled_assets, RecastTiledBakePlan};
 use zircon_runtime::core::framework::navigation::NavMeshAsset;
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeDiagnostic, NavMeshBakeReport, NavMeshBakeRequest, NavigationError,
-    NavigationErrorKind,
+    NavigationErrorKind, NavigationGeneratedBakeSnapshot,
 };
 use zircon_runtime::scene::World;
 
@@ -236,10 +236,16 @@ impl DefaultNavigationManager {
         let mut asset = merge_tiled_assets(preparation.agent_type.clone(), assets)?;
         let identity = preparation.tiled_identity();
         let report = finish_bake(&world, preparation, &mut asset);
+        let generated_snapshot = NavigationGeneratedBakeSnapshot {
+            surface_entity: context_surface,
+            asset: report.asset.clone(),
+            output_asset: report.output_asset.clone(),
+        };
         self.publish_bake(
             context_surface,
             generation,
             Some((identity, plan, asset)),
+            generated_snapshot,
             report.diagnostics.clone(),
             bake_runtime_counts(&world),
         )?;

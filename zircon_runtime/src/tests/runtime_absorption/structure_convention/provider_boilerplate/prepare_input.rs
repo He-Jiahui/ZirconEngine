@@ -8,18 +8,18 @@ fn runtime_15_provider_prepare_input_uses_shared_extract_generation_owner() {
     let virtual_geometry_prepare =
         read_runtime_src("graphics/virtual_geometry_runtime_provider/prepare_input.rs");
     let runtime_15_plan = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     let runtime_index = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let provider_doc = read_repo("docs/zircon_runtime/graphics/runtime_provider/prepare_input.md");

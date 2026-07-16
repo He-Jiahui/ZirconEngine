@@ -3,18 +3,24 @@ use std::collections::{BTreeMap, BTreeSet};
 use serde::{Deserialize, Serialize};
 use zircon_runtime_interface::ui::component::UiValue;
 
+use crate::core::editing::operation::{
+    OperationCommandFactoryError, OperationCommandFactoryRegistration,
+};
 use crate::core::editor_event::EditorEvent;
 use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
     defaults::default_workbench_commands, menu::menu_bar_model, menu::menu_model,
-    AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandDescriptor, EditorCommandPaletteEntry,
+    AssetWriteTargetDescriptor, CommandEvalCtx, EditorCommandAction, EditorCommandDescriptor,
+    EditorCommandPaletteEntry,
 };
 
 /// The only registry for editor command metadata, invocation, discovery, and extensions.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct EditorCommandRegistry {
     commands: BTreeMap<EditorOperationPath, EditorCommandDescriptor>,
+    #[serde(skip)]
+    operation_factories: BTreeMap<EditorOperationPath, OperationCommandFactoryRegistration>,
 }
 
 impl EditorCommandRegistry {
@@ -41,6 +47,45 @@ impl EditorCommandRegistry {
         }
         Self::validate_descriptor(&command)?;
         self.commands.insert(command.id().clone(), command);
+        Ok(())
+    }
+
+    pub fn register_operation(
+        &mut self,
+        command: EditorCommandDescriptor,
+        factory: OperationCommandFactoryRegistration,
+    ) -> Result<(), EditorCommandRegistryError> {
+        if command.id() != factory.operation() {
+            return Err(EditorCommandRegistryError::OperationFactory(
+                OperationCommandFactoryError::OperationMismatch {
+                    descriptor_operation: command.id().clone(),
+                    factory_operation: factory.operation().clone(),
+                },
+            ));
+        }
+        if !matches!(command.action(), EditorCommandAction::Operation) {
+            return Err(EditorCommandRegistryError::OperationFactory(
+                OperationCommandFactoryError::DescriptorIsEvent {
+                    operation: command.id().clone(),
+                },
+            ));
+        }
+        if self.commands.contains_key(command.id()) {
+            return Err(EditorCommandRegistryError::DuplicateCommand(
+                command.id().clone(),
+            ));
+        }
+        if self.operation_factories.contains_key(factory.operation()) {
+            return Err(EditorCommandRegistryError::OperationFactory(
+                OperationCommandFactoryError::DuplicateFactory {
+                    operation: factory.operation().clone(),
+                },
+            ));
+        }
+        Self::validate_descriptor(&command)?;
+        let operation = command.id().clone();
+        self.commands.insert(operation.clone(), command);
+        self.operation_factories.insert(operation, factory);
         Ok(())
     }
 
@@ -85,6 +130,13 @@ impl EditorCommandRegistry {
         self.commands.get(id)
     }
 
+    pub fn operation_factory(
+        &self,
+        operation: &EditorOperationPath,
+    ) -> Option<&OperationCommandFactoryRegistration> {
+        self.operation_factories.get(operation)
+    }
+
     pub fn descriptor_for_event(&self, event: &EditorEvent) -> Option<&EditorCommandDescriptor> {
         self.commands()
             .find(|descriptor| descriptor.event() == Some(event))
@@ -100,7 +152,7 @@ impl EditorCommandRegistry {
             .ok_or_else(|| EditorCommandDispatchError::UnknownCommand(id.to_string()))?;
         Self::ensure_enabled(descriptor, context)?;
         descriptor.event().cloned().ok_or_else(|| {
-            EditorCommandDispatchError::EditCommandFactoryPending {
+            EditorCommandDispatchError::OperationRequiresInvocation {
                 command_id: descriptor.id().clone(),
             }
         })
@@ -173,6 +225,7 @@ impl EditorCommandRegistry {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum EditorCommandRegistryError {
     DuplicateCommand(EditorOperationPath),
+    OperationFactory(OperationCommandFactoryError),
     InvalidCommandMenuPath(String),
     InvalidCommandPayloadSchemaId(String),
     InvalidAssetWriteTargetArgument {
@@ -190,6 +243,7 @@ impl std::fmt::Display for EditorCommandRegistryError {
             Self::DuplicateCommand(id) => {
                 write!(formatter, "editor command {id} already registered")
             }
+            Self::OperationFactory(error) => error.fmt(formatter),
             Self::InvalidCommandMenuPath(path) => {
                 write!(formatter, "editor command menu path `{path}` is invalid")
             }
@@ -229,7 +283,7 @@ pub enum EditorCommandDispatchError {
         command_id: EditorOperationPath,
         capabilities: Vec<String>,
     },
-    EditCommandFactoryPending {
+    OperationRequiresInvocation {
         command_id: EditorOperationPath,
     },
 }
@@ -252,9 +306,9 @@ impl std::fmt::Display for EditorCommandDispatchError {
                 "editor command {command_id} requires disabled capabilities: {}",
                 capabilities.join(", ")
             ),
-            Self::EditCommandFactoryPending { command_id } => write!(
+            Self::OperationRequiresInvocation { command_id } => write!(
                 formatter,
-                "editor command {command_id} is waiting for the Editor 03 edit-command factory"
+                "editor command {command_id} must be invoked through the operation dispatcher"
             ),
         }
     }

@@ -20,6 +20,7 @@ use crate::render_graph::{
 };
 use crate::scene::world::World;
 
+mod advanced_materials;
 mod core_contracts;
 mod external_compute_guards;
 mod postprocess_routes;

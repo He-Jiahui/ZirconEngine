@@ -5,12 +5,13 @@ use super::ResourceStreamer;
 
 impl ResourceStreamer {
     pub(crate) fn load_model_asset(&self, id: ResourceId) -> Option<ModelAsset> {
+        let asset_manager = self.asset_manager().ok()?;
         load_model_asset_with_cache(
             self.models
                 .get(&id)
                 .map(|prepared| (prepared.asset.as_ref(), prepared.revision)),
             self.resource_revision(id).ok(),
-            || self.asset_manager.load_model_asset(id).ok(),
+            || asset_manager.load_model_asset(id).ok(),
         )
     }
 }

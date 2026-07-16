@@ -1,6 +1,20 @@
 from __future__ import annotations
 
 
+LEGACY_RUNTIME_API_FILES = (
+    "zircon_runtime_interface/src/runtime_api/api_table.rs",
+    "zircon_runtime/src/dynamic_api/exports.rs",
+    "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+)
+LEGACY_RUNTIME_API_SYMBOLS = (
+    "ZrRuntimeApiV1",
+    "ZrRuntimeGetApiFnV1",
+    "ZR_RUNTIME_GET_API_SYMBOL_V1",
+    "zircon_runtime_get_api_v1",
+    "RuntimeApi::V1",
+)
+
+
 FFI_PANIC_ANCHORS = (
     ("zircon_runtime/src/dynamic_api/exports.rs", "fn catch_ffi_panic("),
     ("zircon_runtime/src/dynamic_api/exports.rs", "catch_unwind(AssertUnwindSafe"),
@@ -9,7 +23,7 @@ FFI_PANIC_ANCHORS = (
         "zircon_runtime/src/dynamic_api/exports.rs",
         "runtime dynamic API panic caught at FFI boundary",
     ),
-    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v1_inner"),
+    ("zircon_runtime/src/dynamic_api/exports.rs", "zircon_runtime_get_api_v2_inner"),
     ("zircon_runtime/src/dynamic_api/exports.rs", "Err(_) => core::ptr::null()"),
     (
         "zircon_runtime/src/dynamic_api/tests/api_table.rs",
@@ -25,7 +39,7 @@ FFI_PANIC_ANCHORS = (
 LOADER_FAILURE_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
-        ".get::<ZrRuntimeGetApiFnV1>(ZR_RUNTIME_GET_API_SYMBOL_V1)",
+        ".get::<ZrRuntimeGetApiFnV2>(ZR_RUNTIME_GET_API_SYMBOL_V2)",
     ),
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
@@ -33,7 +47,7 @@ LOADER_FAILURE_ANCHORS = (
     ),
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
-        "runtime_api_required_prefix_available",
+        "runtime_api_required_layout_available",
     ),
     (
         "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
@@ -54,6 +68,18 @@ LOADER_FAILURE_ANCHORS = (
     (
         "zircon_app/src/entry/runtime_library/tests.rs",
         "runtime_api_pointer_rejects_missing_required_functions_before_session_creation",
+    ),
+    (
+        "zircon_app/src/entry/runtime_library/tests.rs",
+        "runtime_api_pointer_rejects_missing_required_operation_functions",
+    ),
+    (
+        "zircon_app/src/entry/runtime_library/tests.rs",
+        "runtime_session_does_not_recheck_required_v2_mirror_or_operation_capabilities",
+    ),
+    (
+        "zircon_app/src/entry/runtime_library/runtime_session/operation.rs",
+        "operation_output_abi_rejects_foreign_versions",
     ),
     (
         "zircon_app/src/entry/runtime_library/tests.rs",

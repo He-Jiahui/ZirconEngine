@@ -16,9 +16,10 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
     target_format: wgpu::TextureFormat,
     plugin_shading_models: &[ShadingModelDescriptor],
     subsurface_mrt: bool,
+    volumetric_enabled: bool,
 ) -> Result<wgpu::RenderPipeline, GraphicsError> {
     let lighting_shader_source =
-        deferred_lighting_shader_source(asset_manager, plugin_shading_models)?;
+        deferred_lighting_shader_source(asset_manager, plugin_shading_models, volumetric_enabled)?;
     let lighting_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-deferred-lighting-shader"),
         source: wgpu::ShaderSource::Wgsl(lighting_shader_source.into()),
@@ -83,6 +84,7 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn create_lighting_pipe
 fn deferred_lighting_shader_source(
     asset_manager: &ProjectAssetManager,
     plugin_shading_models: &[ShadingModelDescriptor],
+    volumetric_enabled: bool,
 ) -> Result<String, GraphicsError> {
     let source_set = ShadingModelIncludeSourceSet::from_project_asset_manager(
         asset_manager,
@@ -94,6 +96,7 @@ fn deferred_lighting_shader_source(
         ))
     })?;
     let mut request = DeferredLightingShaderSourceRequest::new()
+        .with_volumetric_enabled(volumetric_enabled)
         .with_shading_model_deferred_include_sources(&source_set);
     for descriptor in plugin_shading_models.iter().cloned() {
         request = request.with_shading_model_descriptor(descriptor);

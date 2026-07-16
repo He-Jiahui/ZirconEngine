@@ -1,16 +1,17 @@
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextDirection, UiTextRange};
 
-use crate::core::framework::render::{
-    FontFaceId, InstancedFaceId, ShapedGlyphRotation, TextShapeRequest, VerticalMode,
+use crate::core::framework::text::{
+    TextFontFaceHandle, TextFontRequest, TextGlyphRotation, TextLayoutError, TextLayoutService,
+    TextRenderMode, TextShapeRequest, TextShapeResult,
 };
-use crate::graphics::text::shaping::shape_text;
+use crate::text::{shared_text_layout_service, ShapedGlyphRotation};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct ScreenSpaceUiShapedGlyph {
     pub(in crate::graphics::scene::scene_renderer::ui) glyph_id: u32,
-    pub(in crate::graphics::scene::scene_renderer::ui) font_id: Option<FontFaceId>,
-    pub(in crate::graphics::scene::scene_renderer::ui) font_instance_id: Option<InstancedFaceId>,
+    pub(in crate::graphics::scene::scene_renderer::ui) font_id: Option<TextFontFaceHandle>,
+    pub(in crate::graphics::scene::scene_renderer::ui) font_instance_id: Option<TextFontFaceHandle>,
     pub(in crate::graphics::scene::scene_renderer::ui) source_scalar: char,
     pub(in crate::graphics::scene::scene_renderer::ui) source_range: UiTextRange,
     pub(in crate::graphics::scene::scene_renderer::ui) advance: f32,
@@ -36,6 +37,7 @@ pub(super) struct ScreenSpaceTextShapingRequest<'a> {
 pub(super) struct ResolvedScreenSpaceTextGlyphs {
     pub(super) glyph_advances: Vec<f32>,
     pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
+    pub(super) layout_error: Option<TextLayoutError>,
 }
 
 pub(super) fn resolve_screen_space_text_glyphs(
@@ -55,7 +57,7 @@ pub(super) fn resolve_screen_space_text_glyphs(
         text_writing_mode: request.writing_mode,
         ..UiResolvedStyle::default()
     };
-    let mut shaped_glyphs = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
+    let shaped = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
         resolved_vertical_text_glyphs(
             request.text,
             &style,
@@ -69,6 +71,10 @@ pub(super) fn resolve_screen_space_text_glyphs(
             request.direction,
             request.source_range,
         )
+    };
+    let (mut shaped_glyphs, layout_error) = match shaped {
+        Ok(glyphs) => (glyphs, None),
+        Err(error) => (Vec::new(), Some(error)),
     };
     let glyph_advances = if matches!(request.writing_mode, UiTextWritingMode::VerticalRl) {
         let resolved_advances = if glyph_advances.is_empty() {
@@ -89,6 +95,7 @@ pub(super) fn resolve_screen_space_text_glyphs(
     ResolvedScreenSpaceTextGlyphs {
         glyph_advances,
         shaped_glyphs,
+        layout_error,
     }
 }
 
@@ -125,6 +132,7 @@ pub(in crate::graphics::scene::scene_renderer::ui) fn refresh_screen_space_text_
     );
     text.glyph_advances = resolved.glyph_advances;
     text.shaped_glyphs = resolved.shaped_glyphs;
+    text.layout_error = resolved.layout_error;
 }
 
 pub(super) fn resolved_vertical_text_glyphs(
@@ -132,15 +140,14 @@ pub(super) fn resolved_vertical_text_glyphs(
     style: &UiResolvedStyle,
     direction: UiTextDirection,
     source_range: UiTextRange,
-) -> Vec<ScreenSpaceUiShapedGlyph> {
-    let shaped = shape_text(TextShapeRequest::vertical(
+) -> Result<Vec<ScreenSpaceUiShapedGlyph>, TextLayoutError> {
+    let shaped = shape_through_canonical_service(
         text,
         style,
         direction,
-        source_range,
-        VerticalMode::Mixed,
-    ));
-    shaped_glyphs_for_screen_space(text, source_range, shaped)
+        crate::core::framework::text::TextWritingMode::VerticalRightToLeft,
+    )?;
+    Ok(shaped_glyphs_for_screen_space(text, source_range, shaped))
 }
 
 pub(super) fn resolved_horizontal_text_glyphs(
@@ -148,45 +155,77 @@ pub(super) fn resolved_horizontal_text_glyphs(
     style: &UiResolvedStyle,
     direction: UiTextDirection,
     source_range: UiTextRange,
-) -> Vec<ScreenSpaceUiShapedGlyph> {
-    let shaped = shape_text(TextShapeRequest::horizontal(
+) -> Result<Vec<ScreenSpaceUiShapedGlyph>, TextLayoutError> {
+    let shaped = shape_through_canonical_service(
         text,
         style,
         direction,
-        source_range,
-    ));
-    shaped_glyphs_for_screen_space(text, source_range, shaped)
+        crate::core::framework::text::TextWritingMode::HorizontalTopToBottom,
+    )?;
+    Ok(shaped_glyphs_for_screen_space(text, source_range, shaped))
 }
 
 fn shaped_glyphs_for_screen_space(
     text: &str,
     source_range: UiTextRange,
-    shaped: crate::core::framework::render::ShapedGlyphRun,
+    shaped: TextShapeResult,
 ) -> Vec<ScreenSpaceUiShapedGlyph> {
     shaped
-        .lines
+        .runs
         .iter()
-        .flat_map(|line| &line.glyphs)
+        .flat_map(|run| &run.glyphs)
         .filter_map(|glyph| {
-            let source_scalar = source_scalar_for_range(text, source_range, glyph.source_range)?;
+            let glyph_source_range = UiTextRange {
+                start: source_range.start + glyph.source_range.start,
+                end: source_range.start + glyph.source_range.end,
+            };
+            let source_scalar = source_scalar_for_range(text, source_range, glyph_source_range)?;
             Some(ScreenSpaceUiShapedGlyph {
                 glyph_id: glyph.glyph_id,
-                font_id: glyph.font_id,
-                font_instance_id: glyph.font_instance_id,
+                font_id: glyph.font_face,
+                font_instance_id: glyph.font_instance,
                 source_scalar,
-                source_range: glyph.source_range,
+                source_range: glyph_source_range,
                 advance: sanitized_advance(glyph.advance),
-                offset_x: sanitized_position(glyph.offset_x),
-                offset_y: sanitized_position(glyph.offset_y),
-                rotation: glyph.rotation,
-                requires_atlas_slot: !glyph.cluster_flags.virtual_glyph
-                    && !glyph.cluster_flags.whitespace
-                    && !glyph.cluster_flags.space
-                    && !glyph.cluster_flags.tab
-                    && !source_scalar.is_whitespace(),
+                offset_x: sanitized_position(glyph.offset[0]),
+                offset_y: sanitized_position(glyph.offset[1]),
+                rotation: match glyph.rotation {
+                    TextGlyphRotation::None => ShapedGlyphRotation::None,
+                    TextGlyphRotation::Clockwise90 => ShapedGlyphRotation::Cw90,
+                },
+                requires_atlas_slot: glyph.requires_rasterization && !source_scalar.is_whitespace(),
             })
         })
         .collect()
+}
+
+fn shape_through_canonical_service(
+    text: &str,
+    style: &UiResolvedStyle,
+    direction: UiTextDirection,
+    writing_mode: crate::core::framework::text::TextWritingMode,
+) -> Result<TextShapeResult, TextLayoutError> {
+    let family_storage = style.font_family.as_deref().map(|family| [family]);
+    let families = family_storage
+        .as_ref()
+        .map_or(&[][..], |families| &families[..]);
+    let font = TextFontRequest {
+        families,
+        asset: style.font.as_deref(),
+        size: style.font_size,
+        weight: style.font_weight,
+        stretch: 100,
+        italic: false,
+        render_mode: TextRenderMode::Auto,
+    };
+    let mut request = TextShapeRequest::new(text, font);
+    request.language = style.language.as_deref();
+    request.direction = direction.into();
+    request.writing_mode = writing_mode;
+    request.line_height = style.line_height;
+    request.tab_size = style.tab_size;
+    let service: &dyn TextLayoutService = shared_text_layout_service();
+    service.shape(request)
 }
 
 pub(super) fn vertical_advances_by_source_grapheme(
@@ -287,7 +326,7 @@ fn sanitized_position(value: f32) -> f32 {
 #[cfg(all(test, target_os = "windows"))]
 mod tests {
     use super::*;
-    use crate::graphics::text::font::shared_font_database_snapshot;
+    use crate::text::font::shared_font_database_snapshot;
 
     #[test]
     fn text_vertical_renderer_projects_backend_advances_by_source_grapheme() {
@@ -305,7 +344,8 @@ mod tests {
             end: text.len(),
         };
         let glyphs =
-            resolved_vertical_text_glyphs(text, &style, UiTextDirection::LeftToRight, source_range);
+            resolved_vertical_text_glyphs(text, &style, UiTextDirection::LeftToRight, source_range)
+                .expect("vertical canonical shaping");
         let advances = vertical_advances_by_source_grapheme(text, source_range, &glyphs);
 
         assert_eq!(advances.len(), 3);
@@ -317,7 +357,10 @@ mod tests {
             .find(|glyph| glyph.source_scalar == '。')
             .expect("vertical punctuation glyph");
         let (_, font_database) = shared_font_database_snapshot();
-        let face = punctuation.font_id.expect("punctuation backend face");
+        let face = punctuation
+            .font_id
+            .and_then(crate::text::font::resolve_font_face_handle)
+            .expect("punctuation Text handle should resolve to a backend face");
         let bytes = font_database
             .face_bytes(face)
             .expect("punctuation face bytes");
@@ -353,10 +396,37 @@ mod tests {
             &style,
             UiTextDirection::LeftToRight,
             source_range,
-        );
+        )
+        .expect("horizontal canonical shaping");
 
         assert!(!glyphs.is_empty());
         assert!(glyphs.iter().all(|glyph| glyph.font_id.is_some()));
         assert!(glyphs.iter().all(|glyph| glyph.font_instance_id.is_some()));
+    }
+
+    #[test]
+    fn renderer_records_canonical_layout_error_in_resolved_batch_contract() {
+        let resolved = resolve_screen_space_text_glyphs(
+            ScreenSpaceTextShapingRequest {
+                text: "invalid",
+                font: None,
+                font_family: None,
+                language: None,
+                font_weight: 400,
+                font_size: 0.0,
+                line_height: 0.0,
+                direction: UiTextDirection::LeftToRight,
+                writing_mode:
+                    zircon_runtime_interface::ui::surface::UiTextWritingMode::HorizontalTb,
+                source_range: UiTextRange { start: 0, end: 7 },
+            },
+            Vec::new(),
+        );
+
+        assert_eq!(
+            resolved.layout_error,
+            Some(TextLayoutError::InvalidFontSize)
+        );
+        assert!(resolved.shaped_glyphs.is_empty());
     }
 }

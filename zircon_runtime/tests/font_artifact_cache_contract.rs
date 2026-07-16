@@ -9,10 +9,10 @@ use zircon_runtime::asset::{
     FontAssetMetadata, FontAssetParsedFace, FontAssetRenderStrategy, FontAssetSourceFormat,
     FontAssetVariableInstance, FontAssetVariationAxis, FontAssetVariationCoord, ImportedAsset,
 };
-use zircon_runtime::core::framework::render::{
+use zircon_runtime::core::resource::ResourceRecord;
+use zircon_runtime::text::{
     CompositeFontDescriptor, FontCultureTag, FontFamilyName, FontScript, SubFontRange,
 };
-use zircon_runtime::core::resource::ResourceRecord;
 
 #[test]
 fn font_artifact_cache_roundtrips_fields_omitted_by_authoring_formats() {

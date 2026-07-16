@@ -25,5 +25,6 @@ pub(crate) fn default_pipeline_key() -> PipelineKey {
         pbr_clearcoat: false,
         pbr_anisotropy: false,
         pbr_transmission: false,
+        volumetric_fog: false,
     }
 }

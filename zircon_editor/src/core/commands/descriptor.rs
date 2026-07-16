@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::core::editor_event::EditorEvent;
-use crate::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+use crate::core::editor_operation::EditorOperationPath;
 
 use super::{AssetWriteTargetDescriptor, CommandEvalCtx, EditorKeyChord, WhenClause};
 
@@ -13,6 +13,7 @@ pub struct EditorCommandDescriptor {
     description: String,
     category: EditorCommandCategory,
     menu_path: Option<String>,
+    menu_projection: EditorCommandMenuProjection,
     action: EditorCommandAction,
     default_chord: Option<EditorKeyChord>,
     #[serde(default)]
@@ -22,8 +23,6 @@ pub struct EditorCommandDescriptor {
     payload_schema_id: Option<String>,
     #[serde(default = "default_callable_from_remote")]
     callable_from_remote: bool,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    undoable: Option<UndoableEditorOperation>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     asset_write_target: Option<AssetWriteTargetDescriptor>,
     #[serde(
@@ -48,25 +47,24 @@ impl EditorCommandDescriptor {
             display_name,
             category,
             menu_path: None,
+            menu_projection: EditorCommandMenuProjection::CommandRegistry,
             action,
             default_chord: None,
             when: WhenClause::Always,
             keywords: Vec::new(),
             payload_schema_id: None,
             callable_from_remote: true,
-            undoable: None,
             asset_write_target: None,
             required_capabilities: Vec::new(),
         }
     }
 
-    /// Declares a legal command whose Editor 03 edit-command factory is not installed yet.
-    pub fn pending_operation(id: EditorOperationPath, display_name: impl Into<String>) -> Self {
+    pub fn operation(id: EditorOperationPath, display_name: impl Into<String>) -> Self {
         Self::new(
             id,
             display_name,
             EditorCommandCategory::Command,
-            EditorCommandAction::EditCommandFactoryPending,
+            EditorCommandAction::Operation,
         )
     }
 
@@ -82,6 +80,11 @@ impl EditorCommandDescriptor {
 
     pub fn with_menu_path(mut self, menu_path: impl Into<String>) -> Self {
         self.menu_path = Some(menu_path.into());
+        self
+    }
+
+    pub fn with_menu_projection(mut self, projection: EditorCommandMenuProjection) -> Self {
+        self.menu_projection = projection;
         self
     }
 
@@ -113,11 +116,6 @@ impl EditorCommandDescriptor {
 
     pub fn with_callable_from_remote(mut self, callable_from_remote: bool) -> Self {
         self.callable_from_remote = callable_from_remote;
-        self
-    }
-
-    pub fn with_undoable(mut self, undoable: UndoableEditorOperation) -> Self {
-        self.undoable = Some(undoable);
         self
     }
 
@@ -170,6 +168,10 @@ impl EditorCommandDescriptor {
         self.menu_path.as_deref()
     }
 
+    pub fn menu_projection(&self) -> EditorCommandMenuProjection {
+        self.menu_projection
+    }
+
     pub fn action(&self) -> &EditorCommandAction {
         &self.action
     }
@@ -177,7 +179,7 @@ impl EditorCommandDescriptor {
     pub fn event(&self) -> Option<&EditorEvent> {
         match &self.action {
             EditorCommandAction::Emit(event) => Some(event),
-            EditorCommandAction::EditCommandFactoryPending => None,
+            EditorCommandAction::Operation => None,
         }
     }
 
@@ -230,10 +232,6 @@ impl EditorCommandDescriptor {
         self.callable_from_remote
     }
 
-    pub fn undoable(&self) -> Option<&UndoableEditorOperation> {
-        self.undoable.as_ref()
-    }
-
     pub fn asset_write_target(&self) -> Option<&AssetWriteTargetDescriptor> {
         self.asset_write_target.as_ref()
     }
@@ -245,6 +243,13 @@ impl EditorCommandDescriptor {
     pub fn required_capabilities(&self) -> &[String] {
         &self.required_capabilities
     }
+}
+
+/// Selects the single owner that materializes a command's menu metadata.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EditorCommandMenuProjection {
+    CommandRegistry,
+    ExtensionRegistry,
 }
 
 fn default_callable_from_remote() -> bool {
@@ -304,6 +309,5 @@ impl EditorCommandCategory {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum EditorCommandAction {
     Emit(EditorEvent),
-    /// Explicit extension point owned by Editor 03 M3.2; it is not an invalid command.
-    EditCommandFactoryPending,
+    Operation,
 }

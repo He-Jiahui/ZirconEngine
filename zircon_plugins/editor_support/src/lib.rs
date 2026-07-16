@@ -122,7 +122,7 @@ pub fn register_authoring_surface(
         .open_operation_path()
         .map_err(EditorExtensionRegistryError::OperationPath)?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(
+        EditorCommandDescriptor::operation(
             operation_path.clone(),
             format!("Open {}", view.display_name()),
         )
@@ -169,29 +169,14 @@ mod tests {
             &mut registry,
             EditorAuthoringContributionBatch {
                 commands: vec![
-                    EditorCommandDescriptor::pending_operation(
-                        import.clone(),
-                        "Import Support Asset",
-                    )
-                    .with_menu_path("Plugins/Support/Import")
-                    .with_payload_schema_id("support.import.v1"),
-                    EditorCommandDescriptor::pending_operation(open.clone(), "Open Support Asset"),
-                    EditorCommandDescriptor::pending_operation(
-                        validate.clone(),
-                        "Validate Support Asset",
-                    ),
-                    EditorCommandDescriptor::pending_operation(
-                        compile.clone(),
-                        "Compile Support Asset",
-                    ),
-                    EditorCommandDescriptor::pending_operation(
-                        create.clone(),
-                        "Create Support Asset",
-                    ),
-                    EditorCommandDescriptor::pending_operation(
-                        activate.clone(),
-                        "Activate Support Tool",
-                    ),
+                    EditorCommandDescriptor::operation(import.clone(), "Import Support Asset")
+                        .with_menu_path("Plugins/Support/Import")
+                        .with_payload_schema_id("support.import.v1"),
+                    EditorCommandDescriptor::operation(open.clone(), "Open Support Asset"),
+                    EditorCommandDescriptor::operation(validate.clone(), "Validate Support Asset"),
+                    EditorCommandDescriptor::operation(compile.clone(), "Compile Support Asset"),
+                    EditorCommandDescriptor::operation(create.clone(), "Create Support Asset"),
+                    EditorCommandDescriptor::operation(activate.clone(), "Activate Support Tool"),
                 ],
                 menu_items: vec![EditorMenuItemDescriptor::new(
                     "Plugins/Support/Import",

@@ -1,7 +1,8 @@
-use super::identity::DialogKind;
+use super::identity::{dialog_paint_state, DialogKind, DialogPaintState};
+use super::layout::body_rect;
 use super::metrics::dialog_metrics_from_host;
 use super::style::{dialog_border_color, dialog_palette_from_host};
-use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
+use crate::ui::retained_host::host_contract::data::{FrameRect, TemplatePaneNodeData};
 use crate::ui::retained_host::host_contract::paint_theme::{METRICS, PALETTE};
 
 #[test]
@@ -9,6 +10,7 @@ fn dialog_metrics_project_from_host_control_metrics() {
     let mut host = METRICS;
     host.radius_control = 5.0;
     host.border_width = 1.5;
+    host.font_small = 8.0;
     host.font_body = 11.0;
     host.font_large = 15.0;
     host.line_height_ratio = 1.25;
@@ -24,20 +26,35 @@ fn dialog_metrics_project_from_host_control_metrics() {
     assert_eq!(metrics.padding_x, 22.0);
     assert_eq!(metrics.title_top, 21.0);
     assert_eq!(metrics.body_top, 52.0);
-    assert_eq!(metrics.title_font_size, 16.5);
-    assert_eq!(metrics.title_line_height, 20.625);
-    assert_eq!(metrics.body_font_size, 13.75);
-    assert_eq!(metrics.body_line_height, 18.6875);
+    assert_eq!(metrics.content_gap, 6.5);
+    assert_eq!(metrics.content_action_gap, 10.5);
+    assert_eq!(metrics.title_font_size, 11.0);
+    assert_eq!(metrics.title_line_height, 13.75);
+    assert_eq!(metrics.body_font_size, 8.0);
+    assert_eq!(metrics.body_line_height, 10.0);
     assert_eq!(metrics.severity_mark_width, 6.0);
     assert_eq!(metrics.radius, 8.0);
     assert_eq!(metrics.border_width, 1.5);
-    assert_eq!(metrics.action_bottom, 22.0);
+    assert_eq!(metrics.action_bottom, 10.5);
+    assert_eq!(metrics.legacy_action_bottom, 22.0);
     assert_eq!(metrics.action_gap, 18.0);
+    assert_eq!(metrics.action_stack_gap, 6.5);
     assert_eq!(metrics.action_min_width, 61.0);
     assert_eq!(metrics.action_text_padding_x, 12.0);
     assert_eq!(metrics.action_text_clip_guard, 4.0);
-    assert_eq!(metrics.action_font_size, 13.75);
-    assert_eq!(metrics.action_line_height, 18.6875);
+    assert_eq!(metrics.action_font_size, 11.0);
+    assert_eq!(metrics.action_line_height, 13.75);
+}
+
+#[test]
+fn dialog_typography_uses_unreal_standard_dialog_roles() {
+    let metrics = dialog_metrics_from_host(METRICS);
+
+    assert_eq!(metrics.title_font_size, METRICS.font_body);
+    assert_eq!(metrics.body_font_size, METRICS.font_small);
+    assert_eq!(metrics.action_font_size, METRICS.font_body);
+    assert!(metrics.title_font_size < METRICS.font_large);
+    assert!(metrics.body_font_size < metrics.title_font_size);
 }
 
 #[test]
@@ -109,4 +126,61 @@ fn open_dialog_uses_active_border() {
     let border = dialog_border_color(&node, DialogKind::Dialog, false);
 
     assert_eq!(border, PALETTE.focus_ring);
+}
+
+#[test]
+fn dialog_body_reserves_a_separate_interaction_rail_after_the_title() {
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 220.0,
+        height: 104.0,
+    };
+    let metrics = super::metrics::dialog_metrics();
+    let action_top = 102.0;
+    let body = body_rect(&rect, DialogKind::ConfirmDialog, Some(action_top))
+        .expect("a standard confirm dialog keeps one body line above its action rail");
+
+    assert!(body.y >= rect.y + metrics.title_top + metrics.title_line_height + metrics.content_gap);
+    assert!(body.y + body.height <= action_top - metrics.content_action_gap);
+}
+
+#[test]
+fn short_confirm_dialog_compacts_the_body_action_gap_before_dropping_content() {
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 220.0,
+        height: 84.0,
+    };
+    let metrics = super::metrics::dialog_metrics();
+    let action_top = rect.y + rect.height - metrics.action_bottom - metrics.action_line_height;
+    let body = body_rect(&rect, DialogKind::ConfirmDialog, Some(action_top))
+        .expect("the atlas confirm dialog compacts spacing instead of hiding its body");
+    let effective_gap = action_top - (body.y + body.height);
+
+    assert!(effective_gap >= metrics.content_gap);
+    assert!(effective_gap < metrics.content_action_gap);
+}
+
+#[test]
+fn alert_dialog_retains_its_separate_legacy_identity_and_body_offset() {
+    let rect = FrameRect {
+        x: 10.0,
+        y: 20.0,
+        width: 220.0,
+        height: 104.0,
+    };
+    let mut node = TemplatePaneNodeData::default();
+    node.role = "AlertDialog".to_string();
+    node.popup_open = true;
+
+    assert_eq!(
+        dialog_paint_state(&node),
+        DialogPaintState::Open(DialogKind::AlertDialog)
+    );
+    assert!(DialogKind::AlertDialog.uses_severity_chrome());
+    let body = body_rect(&rect, DialogKind::AlertDialog, None)
+        .expect("the legacy alert body is always positioned by its established body offset");
+    assert_eq!(body.y, rect.y + super::metrics::dialog_metrics().body_top);
 }

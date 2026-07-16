@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::manager::AiManagerHandle;
+use zircon_runtime::core::framework::ai::AiManager;
+use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
@@ -64,7 +65,7 @@ pub fn module_descriptor_with_manager(manager: Option<Arc<DefaultAiManager>>) ->
                 Some(manager) => Arc::clone(manager),
                 None => core.resolve_manager::<DefaultAiManager>(DEFAULT_AI_MANAGER_NAME)?,
             };
-            Ok(Arc::new(AiManagerHandle::new(manager)) as ServiceObject)
+            Ok(Arc::new(RegisteredManagerService::<dyn AiManager>::new(manager)) as ServiceObject)
         }),
     ))
 }

@@ -1,6 +1,7 @@
 use crate::core::asset::{AssetContextCommandAccess, AssetTypeRegistry};
 use crate::core::commands::{
-    AssetWriteTargetDescriptor, EditorCommandDescriptor, EditorCommandRegistryError,
+    AssetWriteTargetDescriptor, EditorCommandDescriptor, EditorCommandMenuProjection,
+    EditorCommandRegistryError,
 };
 use crate::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use crate::core::editor_extension::{
@@ -27,6 +28,8 @@ impl EditorHostEventController {
         &self,
         registration: EditorPluginRegistrationReport,
     ) -> Result<(), EditorExtensionRegistryError> {
+        self.register_runtime_event_consumers(registration.runtime_event_consumers)
+            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
         self.register_editor_extension_owned(
             registration.package_manifest.id,
             registration.extensions,
@@ -55,6 +58,12 @@ impl EditorHostEventController {
         let owner_id = owner_id.into();
         let mut shell = self.shell().lock();
         let views = extension.views().into_iter().cloned().collect::<Vec<_>>();
+        shell
+            .manager
+            .validate_extension_views(&views)
+            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
+        validate_asset_type_contributions(&shell.editor_extensions, &extension, &owner_id)?;
+        validate_extension_contribution_conflicts(&shell.editor_extensions, &extension)?;
         let mut command_registry = self.commands().lock().clone();
         let menu_capabilities = extension
             .menu_items()
@@ -90,6 +99,11 @@ impl EditorHostEventController {
             );
         }
         let commands = extension.take_command_contributions();
+        let mut operation_factories = extension
+            .take_operation_factories()
+            .into_iter()
+            .map(|factory| (factory.operation().clone(), factory))
+            .collect::<std::collections::BTreeMap<_, _>>();
         let explicit_view_commands = commands
             .iter()
             .map(|command| (command.id().clone(), command.event().cloned()))
@@ -100,13 +114,27 @@ impl EditorHostEventController {
                 .into_iter()
                 .flatten()
                 .cloned();
-            command_registry
-                .register(
-                    command
-                        .with_required_capabilities(required_capabilities.iter().cloned())
-                        .with_required_capabilities(command_capabilities),
-                )
-                .map_err(EditorExtensionRegistryError::Command)?;
+            let command = command
+                .with_required_capabilities(required_capabilities.iter().cloned())
+                .with_required_capabilities(command_capabilities);
+            if let Some(factory) = operation_factories.remove(command.id()) {
+                command_registry
+                    .register_operation(command, factory)
+                    .map_err(EditorExtensionRegistryError::Command)?;
+            } else {
+                command_registry
+                    .register(command)
+                    .map_err(EditorExtensionRegistryError::Command)?;
+            }
+        }
+        if let Some(operation) = operation_factories.keys().next().cloned() {
+            return Err(EditorExtensionRegistryError::Command(
+                EditorCommandRegistryError::OperationFactory(
+                    crate::core::editing::operation::OperationCommandFactoryError::OrphanFactory {
+                        operation,
+                    },
+                ),
+            ));
         }
         for view in &views {
             let operation_path = view
@@ -156,12 +184,6 @@ impl EditorHostEventController {
         validate_component_drawer_operation_bindings(&extension, &available_operations)?;
         validate_asset_importer_operation_bindings(&extension, &available_operations)?;
         validate_asset_type_operation_bindings(&extension, &available_operations)?;
-        validate_asset_type_contributions(&shell.editor_extensions, &extension, &owner_id)?;
-        validate_extension_contribution_conflicts(&shell.editor_extensions, &extension)?;
-        shell
-            .manager
-            .validate_extension_views(&views)
-            .map_err(|error| EditorExtensionRegistryError::View(error.to_string()))?;
         shell
             .manager
             .register_extension_views_with_required_capabilities(&views, &required_capabilities)
@@ -229,13 +251,11 @@ fn extension_view_open_operation(
     operation_path: EditorOperationPath,
     required_capabilities: &[String],
 ) -> EditorCommandDescriptor {
-    EditorCommandDescriptor::pending_operation(
-        operation_path,
-        format!("Open {}", view.display_name()),
-    )
-    .with_menu_path(format!("View/{}/{}", view.category(), view.display_name()))
-    .with_required_capabilities(required_capabilities.iter().cloned())
-    .with_event(extension_view_open_event(view))
+    EditorCommandDescriptor::operation(operation_path, format!("Open {}", view.display_name()))
+        .with_menu_path(format!("View/{}/{}", view.category(), view.display_name()))
+        .with_menu_projection(EditorCommandMenuProjection::ExtensionRegistry)
+        .with_required_capabilities(required_capabilities.iter().cloned())
+        .with_event(extension_view_open_event(view))
 }
 
 fn extension_view_open_event(view: &ViewDescriptor) -> EditorEvent {

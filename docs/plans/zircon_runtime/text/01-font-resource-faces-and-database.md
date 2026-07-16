@@ -6,10 +6,10 @@ related_code:
   - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
-  - zircon_runtime/src/core/framework/render/text/font/mod.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
+  - zircon_runtime/src/text/model/font/mod.rs
+  - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/Cargo.toml
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Fonts/CompositeFont.h
@@ -33,6 +33,12 @@ status: in_progress
 
 > 本计划是文本主链的最上游:把"一个字体文件"变成"shaping 可消费的 face + family + 回退链 + 变量实例"。承接 `editor_ui/03 §2.2` 缺口 3(字体注册表缺失)。回退**算法**在 `06`,本计划只定义回退链**数据结构与字体库索引**。
 
+## Cross-Plan Failure Status
+
+- fixed 已修复：[milestone-finalize-session-relative-owned-scope](01/fixed-2026-07-15-milestone-finalize-session-relative-owned-scope.md)
+- fixed 已修复：[milestone-session-relative-line-ending-drift](01/fixed-2026-07-15-milestone-session-relative-line-ending-drift.md)
+- open 待修复：[goal-closeout-counts-terminal-failed-intents](../../zircon_tooling/session_coordinator/01/failure-2026-07-15-goal-closeout-counts-terminal-failed-intents.md)
+
 ## 1. 目标
 
 1. **字体文件处理**:支持 TTF / OTF / TTC(集合)/ WOFF2;face 索引(一个文件多 face);变量字体(`fvar` 轴 + 命名实例);字体二进制按 `Arc<[u8]>` 零拷贝共享。
@@ -40,11 +46,23 @@ status: in_progress
 3. **字体库与系统字体发现**:进程级 `FontDatabase`(fontdb)索引项目字体资产 + 系统字体;按 `(family, weight, style, stretch)` 查询 best-match;按 codepoint/script 枚举回退候选(喂给 `06`)。
 4. **资产与导入升级**:`FontAsset` 从"单 source + family + render_mode"升级为可声明 family 成员、变量实例、回退链、render 策略。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-font-resource-faces-and-database",
+  "goal": "在既有 FR-M1 中立 FontFace 与 FontDatabase 基线上，完成变量字体及 CompositeFont 数据面",
+  "milestones": [
+    {"id": "M2", "title": "字体文件解析与变量字体", "depends_on": []},
+    {"id": "M3", "title": "CompositeFont 与回退链数据面", "depends_on": ["M2"]}
+  ]
+}
+```
+
 ## 2. 现状与差距
 
 - `FontAsset` 已扩展 face index、family members、变量实例、fallback family、render strategy、parsed metadata 与中立 `CompositeFontDescriptor`；FR-M2 补齐 face 级 typographic/Windows/装饰线 metrics，FR-M3 补齐按 Unicode range/script/culture 的复合字体资产 schema。
 - 字体导入已硬切到 `import_font_asset/{mod.rs,parse_sfnt.rs,parse_sfnt/tests/}`；`asset/assets/font_source.rs` 统一处理 WOFF2→SFNT 解码与 TTC 选定 face 的 standalone SFNT 提取。真实 transformed-glyf WOFF2、合成 `fvar` 命名实例、TTC face 1 SDF raster focused tests 已落代码；library check 已绿，focused lib-test 当前被活动 plugin-extension 会话的非文本 E0282 编译错误阻断，断言尚未执行。
-- UI 不再自持默认 family 字面量；默认链由 `graphics/text/font/default_families.rs` 统一提供，项目默认字体 manifest 声明 Fira Mono default 与 Noto CJK/system family culture routes。`SystemFontPolicy` 默认 `Disabled`，只有 screen-space renderer 显式选择 `Discover`。
+- UI 不再自持默认 family 字面量；默认链由 `text/font/default_families.rs` 统一提供，项目默认字体 manifest 声明 Fira Mono default 与 Noto CJK/system family culture routes。`SystemFontPolicy` 默认 `Disabled`，只有 screen-space renderer 显式选择 `Discover`。
 - native glyphon 与 SDF 均通过 `FontDatabase` 的中立 `FontFaceId`/共享 `Arc<[u8]>` 消费项目字体；SDF 对 TTC 非零 face 通过 standalone face bytes 构造 `fontsdf::Font`，不再静默使用 face 0。
 - `FontDatabase` 已具项目/系统 face 索引、best-match、coverage/fallback 候选、variation instance id、共享 bytes 与 active project composite 投影；剩余工作归 02/06 的真实 locale/per-script fallback 贯穿和 09 的完整 cache invalidation 闭环。
 
@@ -63,7 +81,7 @@ status: in_progress
 
 ## 4. 目标架构
 
-归属:契约层 `core/framework/render/text/font/`(纯数据,serde);实现层 `graphics/text/font/`(持 `Arc<[u8]>` + fontdb 索引,`fontdb`/`ttf-parser` 隔离于此)。
+归属:契约层 `text/model/font/`(纯数据,serde);实现层 `text/font/`(持 `Arc<[u8]>` + fontdb 索引,`fontdb`/`ttf-parser` 隔离于此)。
 
 ```
 FontAsset(磁盘 TOML + 字体文件)
@@ -79,7 +97,7 @@ FontAsset(磁盘 TOML + 字体文件)
 ### FR-M1 中立 FontFace 与 FontDatabase
 
 实施切片:
-1. 契约层 `font/face.rs`、`font/database.rs` 类型定稿;实现层 `graphics/text/font/` 接 `fontdb`,索引项目字体 + 可选系统字体发现;`FontFaceId`/`InstancedFaceId` 句柄。
+1. 契约层 `font/face.rs`、`font/database.rs` 类型定稿;实现层 `text/font/` 接 `fontdb`,索引项目字体 + 可选系统字体发现;`FontFaceId`/`InstancedFaceId` 句柄。
 2. `ui/text/font_registry.rs` 硬编码链改为查 `FontDatabase`(数据驱动);glyphon `FontSystem` 与 SDF bake 改为消费同一 `FontDatabase`(字体二进制单次加载、`Arc` 共享)。
 
 测试:`text_font_database_query_best_match_*`、`text_font_face_shares_arc_bytes`;`cargo check -p zircon_runtime --lib`。
@@ -105,7 +123,7 @@ FontAsset(磁盘 TOML + 字体文件)
 
 ### 模块与文件落点
 
-**契约层 `zircon_runtime/src/core/framework/render/text/font/`**(serde,无第三方句柄):
+**契约层 `zircon_runtime/src/text/model/font/`**(serde,无第三方句柄):
 
 | 文件 | 内容 |
 |------|------|
@@ -115,7 +133,7 @@ FontAsset(磁盘 TOML + 字体文件)
 | `composite.rs` | `CompositeFontDescriptor`、`SubFontRange`(script/UnicodeRange→family) |
 | `database.rs` | `FontFaceId`、`InstancedFaceId`、`FontQuery`、`FontMatch`(纯查询请求/结果 DTO) |
 
-**实现层 `zircon_runtime/src/graphics/text/font/`**:
+**实现层 `zircon_runtime/src/text/font/`**:
 
 | 文件 | 内容 |
 |------|------|
@@ -216,7 +234,7 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-13）：系统 `fontdb` face 已能从权威 backend ID 物化容器字节，并按记录的 collection face index 提取独立 SFNT；`Microsoft YaHei UI` 已通过同一 `FontDatabase` 进入 production SDF CJK 竖排帧。Screen-space renderer 构造现在对共享快照重新应用 `SystemFontPolicy::Discover` 后再同步 glyphon `FontSystem`，默认空项目快照不再清空系统 face；Editor HUD 使用与 Runtime 产品门禁一致的 24 帧异步 glyph 收敛窗口后，真实帧缓冲回归为 1/1。项目字体、系统字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage，没有新增 Editor 旁路数据库、硬编码平台字体或兼容层。FR-M2 变量轴已从仅有哈希推进到可反查实例、horizontal/vertical RustyBuzz、native Swash、dynamic SDF/MSDF/MTSDF 与 atlas/offline identity 的同一坐标链；horizontal leaf 同时承接 cosmic-text `Attrs` 缺失的 per-run language→`locl`，并显式拒绝竖排请求。当前源 Windows exact `text_horizontal_` 已 5/5，通过真实 `Bahnschrift` width-axis、真实 `Calibri` 俄语/塞尔维亚语 `locl`、空语言/竖排边界和 renderer face/instance identity；F2DOT14 数据库量化、dynamic SDF 像素、atlas instance separation 与产品帧仍待继续验收，因此本计划保持 `in_progress`。跨平台 CJK fixture 继续保持 open。
+当前概述（2026-07-14）：系统 `fontdb` face、项目字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage；FR-M2 变量轴已贯通可反查实例、horizontal/vertical RustyBuzz、native Swash、dynamic SDF/MSDF/MTSDF 与 atlas/offline identity。Screen-space preparation 在 atlas 前按每帧唯一资产 URI 加载正式项目字体，失败保持可重试，成功加载与真实 face-count delta 分离；raw VerticalRl 批次清除内部旧 advances 后重塑形，resolved layout-line 保留其权威 advances。fallback span 同时携带 logical family、`FontFaceId` 与 `InstancedFaceId`，cosmic 投影使用有序 span 的 `partition_point`，避免同一物理 family 的逻辑变量实例合并且不引入 O(glyph×spans) 扫描。整个产品 exporter 仅在 Windows 编译，正式临时项目只导入一个 Bahnschrift face，并用真实 `wdth` min/max 形成两个逻辑实例。最终 post-review managed GPU job `d80d6dabac754907b50aa3ae2c1c1056` 为 1/1，PNG 目视与像素验收得到 narrow 256px/3187px、wide 346px/3747px、差异 4984px；focused jobs `61aaa263af684ab7b028956c772e0a20`、`deb789dcbdbe43c3b17fea6a234c9079` 同时取得 `text_font` 41/41、`text_horizontal_` 6/6、dynamic SDF/atlas/Swash 各 1/1。独立复审为 `Accept`，无 Critical/Important 遗留，FR-M2 已完成。FR-M3 CompositeFont 与跨平台 CJK fixture 继续 open，因此整个 Text01 计划保持 `in_progress`。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
@@ -224,3 +242,6 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 - 已修复交接（`fixed / 2026-07-11`）：[`Editor 01/fixed-2026-07-11-editor-m1-font-discovery.md`](../../zircon_editor/editor/01/fixed-2026-07-11-editor-m1-font-discovery.md)；当前 HUD glyph capture 上层 exact 为 1/1，功能计划保留回链与摘要，不保留重复真相。
 - fixed 已修复：[reflection-probe-product-type-inference](01/fixed-2026-07-12-reflection-probe-product-type-inference.md)
 - fixed 已修复：[font-decoration-display-size-argument](../../zircon_editor/editor/09/fixed-2026-07-13-font-decoration-display-size-argument.md)
+- fixed 已修复：[runtime-text-ui-system-constructor-drift](../../zircon_editor/editor_layout/15/fixed-2026-07-14-runtime-text-ui-system-constructor-drift.md)
+- fixed 已修复：[ui-text-module-split-import-drift](../../zircon_editor/editor/02/fixed-2026-07-14-ui-text-module-split-import-drift.md)
+- fixed 已修复：[dynamic-scene-format-version-root-export-drift](01/fixed-2026-07-14-dynamic-scene-format-version-root-export-drift.md)

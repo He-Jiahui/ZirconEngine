@@ -36,6 +36,15 @@ function Invoke-GitText {
     return @($output | ForEach-Object { [string]$_ })
 }
 
+function Test-IgnoredSessionState {
+    param([string]$RelativePath)
+    if (-not $RelativePath.StartsWith(".codex/sessions/", [StringComparison]::OrdinalIgnoreCase)) {
+        return $false
+    }
+    & git -C $script:resolvedRepo check-ignore -q -- $RelativePath 2>$null
+    return $LASTEXITCODE -eq 0
+}
+
 function Get-JsonFile {
     param([string]$Path, [string]$Label)
     if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
@@ -185,6 +194,7 @@ try {
         if ($null -ne $relative) { $manifestPaths.Add($relative) }
     }
     $manifestSet = @($manifestPaths | Sort-Object -Unique)
+    $preStage = @(Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=ACMRD")).Count -eq 0
 
     $planEvidencePaths = @()
     $childPrefix = $null
@@ -207,10 +217,20 @@ try {
     $planEvidencePaths += $stagedPlanEvidence
     $planTextParts = [Collections.Generic.List[string]]::new()
     foreach ($evidencePath in @($planEvidencePaths | Sort-Object -Unique)) {
-        $content = & git -C $script:resolvedRepo show ":$evidencePath" 2>$null
-        if ($LASTEXITCODE -ne 0) {
-            Add-CloseoutError "plan_evidence_missing" "Plan evidence must exist in the Git index." @($evidencePath)
-            continue
+        if ($preStage) {
+            $worktreePath = Join-Path $script:resolvedRepo $evidencePath
+            if (-not (Test-Path -LiteralPath $worktreePath -PathType Leaf)) {
+                Add-CloseoutError "plan_evidence_missing" "Plan evidence must exist in the working tree." @($evidencePath)
+                continue
+            }
+            $content = Get-Content -LiteralPath $worktreePath -Encoding UTF8
+        }
+        else {
+            $content = & git -C $script:resolvedRepo show ":$evidencePath" 2>$null
+            if ($LASTEXITCODE -ne 0) {
+                Add-CloseoutError "plan_evidence_missing" "Plan evidence must exist in the Git index." @($evidencePath)
+                continue
+            }
         }
         $planTextParts.Add(($content -join "`n"))
     }
@@ -236,7 +256,7 @@ try {
 
     $ownedPaths = @((Get-PropertyValue $coordinator "owned_dirty_paths") | ForEach-Object {
         ConvertTo-RepoPath ([string]$_)
-    } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
+    } | Where-Object { $null -ne $_ -and -not (Test-IgnoredSessionState $_) } | Sort-Object -Unique)
     $omittedOwned = @($ownedPaths | Where-Object { $manifestSet -notcontains $_ })
     if ($omittedOwned.Count -gt 0) {
         Add-CloseoutError "owned_path_omitted" "Manifest omits paths owned by this Session." $omittedOwned
@@ -263,12 +283,19 @@ try {
             $stagedHashMismatch.Add($path)
         }
     }
-    if ($stagedHashMismatch.Count -gt 0) {
+    if (-not $preStage -and $stagedHashMismatch.Count -gt 0) {
         Add-CloseoutError "staged_content_not_attributed" "Staged content differs from current-hash Session attribution." @($stagedHashMismatch)
     }
 
-    $untrackedActual = @(Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=A") |
-        ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
+    $untrackedRaw = @(
+        if ($preStage) {
+            Invoke-GitText -Arguments @("ls-files", "--others", "--exclude-standard")
+        }
+        else {
+            Invoke-GitText -Arguments @("diff", "--cached", "--name-only", "--diff-filter=A")
+        }
+    )
+    $untrackedActual = @($untrackedRaw | ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
     $declaredUntracked = @($categoryPaths["untracked"] | ForEach-Object {
         ConvertTo-RepoPath ([string]$_)
     } | Where-Object { $null -ne $_ } | Sort-Object -Unique)
@@ -293,10 +320,10 @@ try {
         ForEach-Object { $_.Replace('\', '/') } | Sort-Object -Unique)
     $extraStaged = @($stagedPaths | Where-Object { $manifestSet -notcontains $_ })
     $missingStaged = @($manifestSet | Where-Object { $stagedPaths -notcontains $_ })
-    if ($extraStaged.Count -gt 0 -or $missingStaged.Count -gt 0) {
+    if (-not $preStage -and ($extraStaged.Count -gt 0 -or $missingStaged.Count -gt 0)) {
         Add-CloseoutError "staged_scope_mismatch" "Staged paths must exactly equal the manifest scope." @($extraStaged + $missingStaged)
     }
-    if ($stagedPaths.Count -eq 0) {
+    if (-not $preStage -and $stagedPaths.Count -eq 0) {
         Add-CloseoutError "empty_commit_scope" "Closeout cannot create an empty commit."
     }
 

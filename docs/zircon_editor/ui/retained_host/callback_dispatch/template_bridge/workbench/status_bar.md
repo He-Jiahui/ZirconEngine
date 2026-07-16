@@ -6,7 +6,11 @@ related_code:
   - zircon_editor/src/ui/workbench/model/status_bar_model.rs
   - zircon_editor/src/ui/host/editor_event_runtime_access.rs
   - zircon_editor/src/ui/retained_host/app/host_lifecycle.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/status_bar.rs
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/data_sync.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
@@ -22,6 +26,9 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/callback_dispatch/template_bridge/workbench/status_bar.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/status_bar.rs
   - zircon_editor/assets/ui/editor/components/workbench/shell/workbench_status_bar.zui
 plan_sources:
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md
@@ -33,6 +40,8 @@ tests:
   - zircon_editor/src/tests/workbench/view_model/shell_projection.rs
   - zircon_editor/src/ui/retained_host/app/build_export_actions/tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
+  - zircon_editor/src/ui/layouts/windows/workbench_host_window/chrome_template_projection/tests.rs
+  - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/shell/template_bridges.rs
   - cargo test -p zircon_editor --lib status_bar --locked -- --nocapture
   - cargo test -p zircon_editor --lib componentized_workbench_status_bar_skips_legacy_skeleton_fill --locked -- --nocapture
   - cargo test -p zircon_editor --lib componentized_workbench_status_bar_adapts_primary_runtime_text_without_shrinking_fixed_controls --locked -- --exact --test-threads=1
@@ -72,7 +81,7 @@ The task composite can compress from 224 to 160 logical units. Its label and pro
 
 This policy follows the Unreal Curve Editor status-bar pattern of one horizontal remaining-width composition with compact auto-width status content. It does not introduce absolute window positions, a control-specific host branch, a duplicate text measurement path, or a legacy fallback surface.
 
-When `HostWindowPresentationData.workbench_window_nodes` is populated, the native painter treats the status bar as owned by the componentized `WorkbenchStatusBar` template. `draw_root_skeleton` keeps the rest of the shell fallback but skips the legacy `STATUS_BAR` quad and the old `host_shell.status_secondary` label marker for that region. Non-componentized retained windows still draw the legacy status bar fallback until the full shell cutover removes the rest of the skeleton path.
+When `HostWindowPresentationData.workbench_window_nodes` is populated, the native painter treats the status bar as owned by the componentized `WorkbenchStatusBar` template. `draw_root_skeleton` keeps the rest of the shell fallback but skips the legacy `STATUS_BAR` quad and the old `host_shell.status_secondary` label marker for that region. The separate generic-host projection now always loads the authored `workbench_status_bar.zui`; its former constant-enabled procedural pixel fallback has been deleted. Resize/DPI recomputation preserves the last stable frames on failure and emits typed `editor_root_template_bridge_layout` or `editor_workbench_template_bridge_layout` diagnostics instead of discarding the error.
 
 ## Validation
 
@@ -84,4 +93,4 @@ When `HostWindowPresentationData.workbench_window_nodes` is populated, the nativ
 - `desktop_export_job_snapshot_projects_status_bar_task_progress` verifies desktop export job snapshots become status bar task progress records.
 - `componentized_workbench_status_bar_skips_legacy_skeleton_fill` verifies the command stream no longer contains the legacy status-bar skeleton fill when the componentized Workbench window is present.
 
-The adaptive composite is implemented and its source/TOML contracts are present. Current-source Windows test and screenshot acceptance remains the milestone testing stage until the managed Editor binary executes the two adaptive contracts and refreshes the three Blend Space artifacts under `docs/tests/editor`.
+The adaptive composite is implemented and its source/TOML contracts are present. The managed Windows lane produced the current 3,173-test binary, but the full suite exceeded its 60-minute limit. Exact execution then exposed and corrected a test-owner mismatch: right-edge assertions now use `EditorWorkbenchTemplateFrames::status_bar` (`WorkbenchWindowStatusBarRegion`) rather than the clipped internal component root. Current-source exact tests and screenshot acceptance remain the milestone testing stage because unrelated Editor changes currently fail compilation before this body; the three Blend Space artifacts must not be refreshed until that boundary is restored.

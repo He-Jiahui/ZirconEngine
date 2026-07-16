@@ -621,7 +621,7 @@ winit（editor EventLoop）→ 01 platform_input 翻译 → batch
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
-- 迁入记录：[`08/2026-07-09-workbench-shell-on-runtime-ui-output-records.md`](08/2026-07-09-workbench-shell-on-runtime-ui-output-records.md)
+- 迁入记录：[`../../_archive/zircon_editor/editor_ui/08/2026-07-09-workbench-shell-on-runtime-ui-output-records.md`](../../_archive/zircon_editor/editor_ui/08/2026-07-09-workbench-shell-on-runtime-ui-output-records.md)
 - 当前失败交接（`open / 待修复`）：[`08/failure-2026-07-11-runtime-diagnostics-physics-state-format.md`](08/failure-2026-07-11-runtime-diagnostics-physics-state-format.md)
 - 当前失败交接（`open / 待修复`）：[`08/failure-2026-07-11-retained-window-hard-cutover-expectations.md`](08/failure-2026-07-11-retained-window-hard-cutover-expectations.md)
 - fixed 已修复：[componentized-workspace-test-export](../editor/14/fixed-2026-07-12-componentized-workspace-test-export.md)

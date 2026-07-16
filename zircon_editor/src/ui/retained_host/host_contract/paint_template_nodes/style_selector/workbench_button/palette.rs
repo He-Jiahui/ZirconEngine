@@ -8,6 +8,8 @@ const TRANSPARENT_SURFACE: [u8; 4] = [0, 0, 0, 0];
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct WorkbenchButtonPalette
 {
     pub surface_base: [u8; 4],
+    pub surface_primary_rest: [u8; 4],
+    pub surface_primary_hover: [u8; 4],
     pub surface_hover: [u8; 4],
     pub surface_primary_pressed: [u8; 4],
     pub surface_secondary_pressed: [u8; 4],
@@ -85,6 +87,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
 ) -> WorkbenchButtonPalette {
     WorkbenchButtonPalette {
         surface_base: palette.surface_pressed,
+        // Mirrors Starship's PrimaryButton fill hierarchy while retaining the
+        // centralized Zircon teal palette rather than importing UE blue.
+        surface_primary_rest: palette.accent,
+        surface_primary_hover: palette.focus_ring,
         surface_hover: palette.surface_hover,
         surface_primary_pressed: palette.surface_selected,
         surface_secondary_pressed: palette.surface,

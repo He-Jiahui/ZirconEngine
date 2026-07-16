@@ -50,7 +50,7 @@ fn text_rich_link_hit_uses_upstream_affinity_at_run_end() {
     };
 
     let mut style = UiResolvedStyle::default();
-    style.rich_text_format = RichTextFormat::Html;
+    style.rich_text_format = RichTextFormat::Html.into();
     style.wrap = UiTextWrap::None;
     style.text_overflow = UiTextOverflow::Clip;
     let layout = crate::ui::text::layout_engine::layout_text(
@@ -84,7 +84,7 @@ fn text_rich_horizontal_table_link_hit_uses_the_containing_cell_line() {
 
     let markup = "[table=2][cell]first[/cell][cell border=#73D7FF padding=18,12,16,10][url=res://docs/table-second.md]second link[/url][/cell][/table]";
     let mut style = UiResolvedStyle::default();
-    style.rich_text_format = RichTextFormat::BbCode;
+    style.rich_text_format = RichTextFormat::BbCode.into();
     style.wrap = UiTextWrap::None;
     style.text_overflow = UiTextOverflow::Clip;
     let layout = crate::ui::text::layout_engine::layout_text(
@@ -120,7 +120,7 @@ fn text_rich_vertical_table_link_hit_uses_the_containing_inline_slot() {
 
     let markup = "[table=2][cell]上[/cell][cell border=#73D7FF padding=2,2,2,2][url=res://docs/vertical-cell.md]下[/url][/cell][/table]";
     let mut style = UiResolvedStyle::default();
-    style.rich_text_format = RichTextFormat::BbCode;
+    style.rich_text_format = RichTextFormat::BbCode.into();
     style.text_writing_mode = UiTextWritingMode::VerticalRl;
     style.wrap = UiTextWrap::None;
     style.text_overflow = UiTextOverflow::Clip;
@@ -157,7 +157,7 @@ fn text_rich_table_cell_padding_does_not_activate_its_link() {
 
     let markup = "[table=1][cell border=#73D7FF bg=#102638 padding=24,20,18,16][url=res://docs/padded.md]linked[/url][/cell][/table]";
     let mut style = UiResolvedStyle::default();
-    style.rich_text_format = RichTextFormat::BbCode;
+    style.rich_text_format = RichTextFormat::BbCode.into();
     style.wrap = UiTextWrap::None;
     style.text_overflow = UiTextOverflow::Clip;
     let layout = crate::ui::text::layout_engine::layout_text(

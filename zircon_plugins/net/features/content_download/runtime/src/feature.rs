@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::manager::NetManagerHandle;
+use zircon_runtime::core::manager::net_manager_handle;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{ManagerDescriptor, ModuleDescriptor, ServiceKind};
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name};
@@ -58,12 +58,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "NetManager",
         )],
         factory(|core| {
-            let net = core.resolve_manager::<NetManagerHandle>(
-                zircon_runtime::core::manager::NET_MANAGER_NAME,
-            )?;
-            Ok(Arc::new(NetContentDownloadRuntimeManager::with_net_manager(
-                net.shared(),
-            )) as ServiceObject)
+            let net = net_manager_handle(core)?;
+            Ok(
+                Arc::new(NetContentDownloadRuntimeManager::with_registered_net_manager(core, net))
+                    as ServiceObject,
+            )
         }),
     ))
 }

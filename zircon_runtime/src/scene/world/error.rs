@@ -23,6 +23,8 @@ pub enum SceneError {
     },
     #[error("entity {entity} already exists")]
     DuplicateEntity { entity: EntityId },
+    #[error("entity {entity} cannot advance the world identity allocator")]
+    EntityIdExhausted { entity: EntityId },
     #[error("node name cannot be empty")]
     EmptyNodeName,
     #[error("joint on entity {entity} cannot connect to itself")]

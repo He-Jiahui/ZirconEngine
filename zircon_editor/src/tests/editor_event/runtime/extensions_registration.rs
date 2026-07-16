@@ -13,7 +13,7 @@ fn editor_runtime_folds_menu_capabilities_into_the_shared_command_descriptor() {
     let capability = "editor.extension.weather_authoring";
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             operation_path.clone(),
             "Refresh Cloud Layers",
         ))
@@ -65,12 +65,9 @@ fn editor_runtime_consumes_plugin_command_descriptors_into_the_shared_registry()
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Weather Reset Layout",
-            )
-            .with_menu_path("Tools/Weather/Reset Layout")
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Weather Reset Layout")
+                .with_menu_path("Tools/Weather/Reset Layout")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
 
@@ -113,7 +110,6 @@ fn explicit_plugin_operation_keeps_its_identity_without_synthetic_history() {
     use crate::core::editor_extension::EditorExtensionRegistry;
     use crate::core::editor_operation::{
         EditorOperationInvocation, EditorOperationPath, EditorOperationSource,
-        UndoableEditorOperation,
     };
 
     let _guard = env_lock().lock().unwrap();
@@ -122,13 +118,9 @@ fn explicit_plugin_operation_keeps_its_identity_without_synthetic_history() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Plugin Reset Layout",
-            )
-            .with_menu_path("Tools/Zzz/Reset Layout")
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
-            .with_undoable(UndoableEditorOperation::new("Plugin Reset Layout")),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Plugin Reset Layout")
+                .with_menu_path("Tools/Zzz/Reset Layout")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
 
@@ -163,11 +155,8 @@ fn editor_runtime_projects_plugin_menu_operations_into_remote_callable_reflectio
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Refresh Cloud Layers",
-            )
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     extension
@@ -237,11 +226,8 @@ fn editor_operation_ui_binding_arguments_are_preserved_in_journal() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Refresh Cloud Layers",
-            )
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     extension
@@ -431,11 +417,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Refresh Cloud Layers",
-            )
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     extension
@@ -456,6 +439,8 @@ fn editor_runtime_consumes_plugin_registration_reports_with_capability_gate() {
             extensions: extension,
             lifecycle:
                 crate::core::editor_plugin_sdk::lifecycle::EditorPluginLifecycleReport::default(),
+            runtime_event_consumers:
+                crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry::default(),
             diagnostics: Vec::new(),
         })
         .expect("register editor plugin report");
@@ -574,7 +559,7 @@ fn editor_runtime_exposes_plugin_component_drawer_templates_for_inspector_lookup
     let runtime = EventRuntimeHarness::new("zircon_editor_event_plugin_component_drawer");
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap(),
             "Refresh Cloud Layers",
         ))
@@ -667,7 +652,7 @@ fn editor_snapshot_resolves_enabled_component_drawer_for_selected_dynamic_compon
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             operation_path,
             "Refresh Cloud Layers",
         ))
@@ -755,7 +740,7 @@ fn editor_snapshot_hides_component_drawer_when_extension_capability_is_disabled(
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             operation_path,
             "Refresh Cloud Layers",
         ))

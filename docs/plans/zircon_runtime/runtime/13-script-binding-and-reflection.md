@@ -38,7 +38,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - docs/zircon_runtime/script/vm/host/function_ledger.md
 status: in_progress
-last_refined: 2026-07-13
+last_refined: 2026-07-14
 ---
 
 # 13 脚本绑定面与反射收束
@@ -114,3 +114,5 @@ Runtime 13 current child-owner sync (2026-07-10): `script_binding_boundary` repo
 
 - 迁入记录：[`13/2026-07-09-script-binding-and-reflection-output-records.md`](13/2026-07-09-script-binding-and-reflection-output-records.md)
 - fixed 已修复：[host-registry-generational-handle-consumer-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-host-registry-generational-handle-consumer-cutover.md)
+
+- 2026-07-14 owner 硬切同步：`script_binding_boundary` 当前 `expected_source_file_count = 18`、`expected_test_file_count = 3`、`expected_guard_file_count = 9`、`missing_source_files = []`、`missing_guard_files = []`、`mirror_docs_guard_present = true`、`risks = []`。ZrVM `real_backend/host_modules.rs` 已归插件 crate，Runtime13 清单不再读取或计入插件实现 owner。

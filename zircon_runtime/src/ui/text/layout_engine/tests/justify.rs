@@ -3,7 +3,8 @@ use zircon_runtime_interface::ui::{
     surface::{UiTextAlign, UiTextDirection, UiTextOverflow, UiTextWrap},
 };
 
-use crate::graphics::text::layout::measured_grapheme_widths;
+use crate::text::layout::measured_grapheme_widths;
+use crate::ui::text::adapter::text_style;
 
 use super::{layout_text, measure_text_size, test_style};
 
@@ -28,7 +29,7 @@ fn text_justify_distributes_word_and_cjk_gaps() {
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
     assert!((layout.lines[0].glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 
-    let natural_advances = measured_grapheme_widths(first_line, &style);
+    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style));
     assert_eq!(layout.lines[0].glyph_advances.len(), natural_advances.len());
     assert!(layout.lines[0].glyph_advances[1] > natural_advances[1]);
     assert!(layout.lines[0].glyph_advances[3] > natural_advances[3]);
@@ -58,7 +59,7 @@ fn text_justify_trims_edge_spaces_before_distributing_gaps() {
     assert_eq!(layout.lines[0].text, first_line);
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
 
-    let natural_advances = measured_grapheme_widths(first_line, &style);
+    let natural_advances = measured_grapheme_widths(first_line, &text_style(&style));
     assert_eq!(layout.lines[0].glyph_advances.len(), natural_advances.len());
     assert!(
         (layout.lines[0].glyph_advances[0] - natural_advances[0]).abs() < 0.1,
@@ -94,7 +95,8 @@ fn text_justify_distributes_arabic_kashida_advances() {
     assert!((layout.lines[0].measured_width - target_width).abs() < 0.1);
     assert!((layout.lines[0].glyph_advances.iter().sum::<f32>() - target_width).abs() < 0.1);
 
-    let natural_advances = measured_grapheme_widths(layout.lines[0].text.as_str(), &style);
+    let natural_advances =
+        measured_grapheme_widths(layout.lines[0].text.as_str(), &text_style(&style));
     assert_eq!(layout.lines[0].glyph_advances.len(), natural_advances.len());
     assert!(
         layout.lines[0]

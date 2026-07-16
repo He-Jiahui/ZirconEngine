@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::{
     RenderFeatureDescriptor, RenderPassExecutorRegistration, RuntimePrepareCollectorRegistration,
@@ -21,7 +21,7 @@ use super::super::scene_renderer_core::SceneRendererCore;
 
 impl SceneRenderer {
     pub(crate) fn new_with_icon_source(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         icon_source: Arc<dyn ViewportIconSource>,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_icon_source_and_plugin_render_features(
@@ -34,7 +34,7 @@ impl SceneRenderer {
     }
 
     pub(crate) fn new_with_icon_source_and_plugin_render_features(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
@@ -52,7 +52,7 @@ impl SceneRenderer {
     }
 
     pub(crate) fn new_with_icon_source_and_plugin_render_features_and_shading_models(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         icon_source: Arc<dyn ViewportIconSource>,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,

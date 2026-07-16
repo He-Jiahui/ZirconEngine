@@ -9,7 +9,7 @@ impl SceneViewportController {
         build_scene_edit_mode_projection(
             scene,
             &self.state.settings,
-            self.selected_node(),
+            self.state.selection.active_primary(),
             self.is_handle_drag_active(),
         )
     }

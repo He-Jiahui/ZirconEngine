@@ -17,7 +17,7 @@ const LARGE_STATIC_SCENE_MESH_COUNT: usize = 10_001;
 #[test]
 fn render_framework_reuses_static_index_and_reports_main_view_prefilter() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

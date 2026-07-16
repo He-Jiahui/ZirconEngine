@@ -37,6 +37,7 @@ class CargoReservationTests(unittest.TestCase):
         self.sessions = SessionService(self.database, self.repo)
         self.sessions.register(session_id="session-a")
         self.sessions.register(session_id="session-b")
+        self.sessions.register(session_id="session-c")
         self.policy = TargetPathPolicy([self.target_root])
         self.service = CargoJobService(
             self.database,
@@ -472,20 +473,66 @@ class CargoReservationTests(unittest.TestCase):
                 ("2000-01-01T00:00:00+00:00", reservation["reservationId"]),
             )
 
-        with self.assertRaises(CoordinatorError) as blocked:
-            self.service.reserve_cpu(
-                "session-b",
-                compatibility=self.compatibility(build_config="profile=dev;features=graphics"),
-                command=("cargo", "check", "-p", "zircon_editor"),
-            )
-
-        self.assertEqual("cargo_cpu_lane_reserved", blocked.exception.code)
+        successor = self.service.reserve_cpu(
+            "session-b",
+            compatibility=self.compatibility(build_config="profile=dev;features=graphics"),
+            command=("cargo", "check", "-p", "zircon_editor"),
+        )
+        self.assertEqual("pending", successor["status"])
         with self.database.connect() as connection:
             row = connection.execute(
                 "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
                 (reservation["reservationId"],),
             ).fetchone()
         self.assertEqual("running", row["status"])
+
+    def test_cpu_reservation_queues_one_pending_successor_behind_running_job(self) -> None:
+        running_compatibility = self.compatibility()
+        successor_compatibility = self.compatibility(
+            build_config="profile=dev;features=graphics"
+        )
+        running = self.service.reserve_cpu(
+            "session-a",
+            compatibility=running_compatibility,
+            command=("cargo", "test", "-p", "zircon_runtime"),
+        )
+        running_job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=running_compatibility
+        )
+        self.service.start(
+            running_job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["cargo", "test", "-p", "zircon_runtime"],
+        )
+
+        successor = self.service.reserve_cpu(
+            "session-b",
+            compatibility=successor_compatibility,
+            command=("cargo", "check", "-p", "zircon_editor"),
+        )
+        self.assertEqual("pending", successor["status"])
+
+        with self.assertRaises(CoordinatorError) as generic_overtake:
+            self.service.acquire("session-c", CargoLaneKind.CHECK)
+        self.assertEqual("cargo_cpu_lane_reserved", generic_overtake.exception.code)
+
+        self.service.process_tree_pids = lambda _pid: ()
+        self.service.finish(running_job.job_id, session_id="session-a", exit_code=0)
+        self.service.release(running_job.job_id, session_id="session-a")
+
+        successor_job = self.service.consume_cpu_reservation(
+            successor["reservationId"],
+            session_id="session-b",
+            lane_kind=CargoLaneKind.CHECK,
+        )
+        self.assertEqual(CargoJobStatus.LEASED, successor_job.status)
+        with self.database.connect() as connection:
+            running_row = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (running["reservationId"],),
+            ).fetchone()
+        self.assertEqual("released", running_row["status"])
 
     def test_leased_cpu_reservation_survives_stale_owner_and_pending_ttl(self) -> None:
         reservation = self.service.reserve_cpu(
@@ -504,14 +551,12 @@ class CargoReservationTests(unittest.TestCase):
                 ("2000-01-01T00:00:00+00:00", reservation["reservationId"]),
             )
 
-        with self.assertRaises(CoordinatorError) as blocked:
-            self.service.reserve_cpu(
-                "session-b",
-                compatibility=self.compatibility(build_config="profile=dev;features=graphics"),
-                command=("cargo", "check", "-p", "zircon_editor"),
-            )
-
-        self.assertEqual("cargo_cpu_lane_reserved", blocked.exception.code)
+        successor = self.service.reserve_cpu(
+            "session-b",
+            compatibility=self.compatibility(build_config="profile=dev;features=graphics"),
+            command=("cargo", "check", "-p", "zircon_editor"),
+        )
+        self.assertEqual("pending", successor["status"])
         with self.database.connect() as connection:
             row = connection.execute(
                 "SELECT status, job_id FROM cargo_lane_reservations WHERE reservation_id=?",

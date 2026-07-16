@@ -75,6 +75,7 @@ fn scene_asset_overview_reports_entity_component_and_reference_counts() {
         color: [1.0, 0.8, 0.6],
         intensity: 4.0,
         range: 12.0,
+        volumetric: false,
     });
     hero_entity.rigid_body = Some(SceneRigidBodyAsset {
         body_type: SceneRigidBodyTypeAsset::Dynamic,
@@ -268,6 +269,7 @@ fn scene_asset_management_record_set_sorts_and_summarizes_records() {
         direction: [0.0, -1.0, 0.0],
         color: [1.0, 1.0, 1.0],
         intensity: 2.0,
+        volumetric: false,
     });
     actor_entity.rigid_body = Some(SceneRigidBodyAsset {
         body_type: SceneRigidBodyTypeAsset::Dynamic,

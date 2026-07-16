@@ -18,7 +18,7 @@ fn register_when_command(
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(operation_path.clone(), "When Command")
+            EditorCommandDescriptor::operation(operation_path.clone(), "When Command")
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
                 .with_when(when),
         )
@@ -149,7 +149,7 @@ fn remote_capability_failure_comes_from_effective_when() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(operation_path.clone(), "Capability")
+            EditorCommandDescriptor::operation(operation_path.clone(), "Capability")
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
                 .with_required_capabilities(["editor.extension.missing"]),
         )

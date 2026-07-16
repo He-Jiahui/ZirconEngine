@@ -7,7 +7,7 @@ description = "ZrVM language runtime backend plugin for Zircon."
 
 [features]
 default = []
-backend-zr-vm = ["dep:zr_vm_rust_binding"]
+backend-zr-vm = ["dep:zr_vm_rust_binding", "dep:zr_vm_rust_binding_sys"]
 
 [dependencies]
 zircon_plugin_sdk = { workspace = true, features = ["runtime"] }
@@ -15,5 +15,6 @@ zircon_runtime = { workspace = true, features = ["net-contracts", "script"] }
 zircon_runtime_interface.workspace = true
 serde_json = "1.0.149"
 zr_vm_rust_binding = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding", optional = true }
+zr_vm_rust_binding_sys = { path = "../../../../zr_vm/zr_vm_rust_binding/rust/zr_vm_rust_binding_sys", optional = true }
 
 [dev-dependencies]

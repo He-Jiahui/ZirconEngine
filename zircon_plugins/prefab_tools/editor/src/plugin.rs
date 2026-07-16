@@ -96,32 +96,26 @@ fn prefab_authoring_batch() -> EditorAuthoringContributionBatch {
     let break_instance = operation("prefab_tools.authoring.break_instance");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(
-                create.clone(),
-                "Create Prefab From Selection",
-            )
-            .with_menu_path("Plugins/Prefab Tools/Create From Selection")
-            .with_payload_schema_id("prefab_tools.create_from_selection.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(open.clone(), "Open Prefab")
+            EditorCommandDescriptor::operation(create.clone(), "Create Prefab From Selection")
+                .with_menu_path("Plugins/Prefab Tools/Create From Selection")
+                .with_payload_schema_id("prefab_tools.create_from_selection.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(open.clone(), "Open Prefab")
                 .with_menu_path("Plugins/Prefab Tools/Open Prefab Asset")
                 .with_payload_schema_id("prefab_tools.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(apply.clone(), "Apply Prefab Overrides")
+            EditorCommandDescriptor::operation(apply.clone(), "Apply Prefab Overrides")
                 .with_menu_path("Plugins/Prefab Tools/Apply Overrides")
                 .with_payload_schema_id("prefab_tools.apply_overrides.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(revert.clone(), "Revert Prefab Overrides")
+            EditorCommandDescriptor::operation(revert.clone(), "Revert Prefab Overrides")
                 .with_menu_path("Plugins/Prefab Tools/Revert Overrides")
                 .with_payload_schema_id("prefab_tools.revert_overrides.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                break_instance.clone(),
-                "Break Prefab Instance",
-            )
-            .with_menu_path("Plugins/Prefab Tools/Break Instance")
-            .with_payload_schema_id("prefab_tools.break_instance.v1")
-            .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(break_instance.clone(), "Break Prefab Instance")
+                .with_menu_path("Plugins/Prefab Tools/Break Instance")
+                .with_payload_schema_id("prefab_tools.break_instance.v1")
+                .with_required_capabilities([CAPABILITY]),
         ],
         menu_items: vec![
             menu_item("Plugins/Prefab Tools/Create From Selection", &create),

@@ -117,7 +117,15 @@ pub enum EditorDraftEvent {
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum EditorOperationEvent {
-    ControlFailure { operation_id: String, error: String },
+    ControlFailure {
+        operation_id: String,
+        error: String,
+    },
+    CommandExecuted {
+        operation_id: String,
+        transaction_id: u64,
+        group_open: bool,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]

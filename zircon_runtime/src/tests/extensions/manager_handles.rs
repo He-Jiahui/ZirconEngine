@@ -157,6 +157,21 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
     }
 
     for required in [
+        "ManagerServiceHandle",
+        "RegisteredManagerService",
+        "ai_manager_handle",
+        "physics_manager_handle",
+        "animation_manager_handle",
+        "net_manager_handle",
+        "sound_manager_handle",
+    ] {
+        assert!(
+            manager_mod_source.contains(required) || manager_resolver_source.contains(required),
+            "core manager surface should own public manager handle wiring `{required}`"
+        );
+    }
+
+    for removed in [
         "AiManagerHandle",
         "PhysicsManagerHandle",
         "AnimationManagerHandle",
@@ -169,8 +184,8 @@ fn runtime_and_plugin_modules_keep_manager_handles_under_core_manager_contracts(
         "resolve_sound_manager",
     ] {
         assert!(
-            manager_mod_source.contains(required) || manager_resolver_source.contains(required),
-            "core manager surface should own public manager handle wiring `{required}`"
+            !manager_mod_source.contains(removed) && !manager_resolver_source.contains(removed),
+            "legacy Arc-holder manager API `{removed}` must stay removed"
         );
     }
 

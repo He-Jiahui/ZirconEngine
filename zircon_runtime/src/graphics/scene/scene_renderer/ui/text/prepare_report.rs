@@ -1,5 +1,4 @@
 use super::font_id_report::ScreenSpaceUiTextFontIdReport;
-use super::native_bitmap_atlas::NativeBitmapAtlasPrepareReport;
 use super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::sdf_fallback::ScreenSpaceUiTextSdfFallbackReport;
 use super::ScreenSpaceUiNativePrepareReport;
@@ -7,7 +6,9 @@ use crate::graphics::scene::scene_renderer::ui::atlas_renderer::GlyphAtlasBitmap
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasCacheReport;
 use crate::graphics::scene::scene_renderer::ui::sdf_render::ScreenSpaceUiSdfPrepareReport;
-use crate::graphics::text::font::MissingGlyphDiagnosticsReport;
+use crate::text::font::MissingGlyphDiagnosticsReport;
+use crate::text::native_bitmap_atlas::NativeBitmapAtlasPrepareReport;
+use crate::text::TextLayoutFallbackReport;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct ScreenSpaceUiTextPrepareReport {
@@ -19,6 +20,7 @@ pub(crate) struct ScreenSpaceUiTextPrepareReport {
     pub(super) sdf_fallback: ScreenSpaceUiTextSdfFallbackReport,
     pub(crate) native_font_ids: ScreenSpaceUiTextFontIdReport,
     pub(super) missing_glyphs: MissingGlyphDiagnosticsReport,
+    pub(crate) layout_fallbacks: TextLayoutFallbackReport,
     pub(crate) raster_upload: ScreenSpaceUiTextRasterUploadReport,
     pub(super) native_bitmap_atlas: NativeBitmapAtlasPrepareReport,
     pub(super) bitmap_atlas_renderer: GlyphAtlasBitmapRendererPrepareReport,
@@ -73,6 +75,7 @@ pub(super) fn text_prepare_report(
         sdf_fallback,
         native_font_ids: native_prepare.font_ids,
         missing_glyphs,
+        layout_fallbacks: resolved_texts.layout_fallback_report(),
         raster_upload,
         native_bitmap_atlas: native_prepare.bitmap_atlas,
         bitmap_atlas_renderer,

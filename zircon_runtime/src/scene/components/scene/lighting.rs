@@ -33,6 +33,8 @@ pub struct DirectionalLight {
     pub direction: Vec3,
     pub color: Vec3,
     pub intensity: Real,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 impl Default for DirectionalLight {
@@ -41,6 +43,7 @@ impl Default for DirectionalLight {
             direction: Vec3::new(-0.4, -1.0, -0.25).normalize_or_zero(),
             color: Vec3::splat(1.0),
             intensity: 2.0,
+            volumetric: false,
         }
     }
 }
@@ -55,6 +58,8 @@ pub struct PointLight {
     pub color: Vec3,
     pub intensity: Real,
     pub range: Real,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 impl Default for PointLight {
@@ -63,6 +68,7 @@ impl Default for PointLight {
             color: Vec3::splat(1.0),
             intensity: 4.0,
             range: 8.0,
+            volumetric: false,
         }
     }
 }
@@ -78,6 +84,8 @@ pub struct RectLight {
     pub intensity: Real,
     pub range: Real,
     pub size: Vec2,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 impl Default for RectLight {
@@ -87,6 +95,7 @@ impl Default for RectLight {
             intensity: 1_000_000.0,
             range: 20.0,
             size: Vec2::new(1.0, 1.0),
+            volumetric: false,
         }
     }
 }
@@ -104,6 +113,8 @@ pub struct SpotLight {
     pub range: Real,
     pub inner_angle_radians: Real,
     pub outer_angle_radians: Real,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 impl Default for SpotLight {
@@ -115,6 +126,7 @@ impl Default for SpotLight {
             range: 12.0,
             inner_angle_radians: 0.3,
             outer_angle_radians: 0.55,
+            volumetric: false,
         }
     }
 }

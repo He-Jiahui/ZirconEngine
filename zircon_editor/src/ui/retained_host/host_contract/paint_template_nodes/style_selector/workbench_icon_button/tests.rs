@@ -41,7 +41,7 @@ fn icon_button_loading_state_uses_unavailable_visuals() {
     assert_eq!(toolbar.state, UiPainterResolvedState::Loading);
     assert_eq!(toolbar.background, None);
     assert_eq!(toolbar.border, None);
-    assert_eq!(toolbar.border_width, 1.0);
+    assert_eq!(toolbar.border_width, 0.0);
     assert_eq!(toolbar.glyph, PALETTE.text_disabled);
 }
 
@@ -61,12 +61,55 @@ fn icon_button_metrics_project_from_host_control_metrics() {
             UiPainterResolvedState::Normal,
             metrics,
         ),
-        2.0
+        0.0,
+        "Starship toolbar buttons stay quiet until keyboard focus or pointer interaction"
     );
     assert_eq!(
         icon_radius_from_host(&node, WorkbenchIconButtonContext::Rail, metrics),
         6.0
     );
+}
+
+#[test]
+fn toolbar_icon_button_uses_starship_quiet_simple_button_chrome() {
+    let mut node = TemplatePaneNodeData::default();
+    node.control_id = "WorkbenchToolbarMenu".into();
+
+    let normal = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+    assert_eq!(normal.state, UiPainterResolvedState::Normal);
+    assert_eq!(normal.background, None);
+    assert_eq!(normal.border, None);
+    assert_eq!(normal.border_width, 0.0);
+
+    node.hovered = true;
+    let hovered = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+    assert_eq!(hovered.state, UiPainterResolvedState::Hovered);
+    assert_eq!(hovered.background, Some(PALETTE.surface_hover));
+    assert_eq!(hovered.border, None);
+    assert_eq!(hovered.border_width, 0.0);
+
+    node.focused = true;
+    let focused_hovered =
+        select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+    assert_eq!(focused_hovered.background, Some(PALETTE.surface_hover));
+    assert_eq!(focused_hovered.border, None);
+    assert_eq!(focused_hovered.border_width, 0.0);
+
+    node.hovered = false;
+    node.focused = false;
+    node.pressed = true;
+    let pressed = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+    assert_eq!(pressed.state, UiPainterResolvedState::Pressed);
+    assert_eq!(pressed.background, Some(PALETTE.surface_pressed));
+    assert_eq!(pressed.border, None);
+    assert_eq!(pressed.border_width, 0.0);
+
+    node.pressed = false;
+    node.focused = true;
+    let focused = select_workbench_icon_button_style(&node, WorkbenchIconButtonContext::Toolbar);
+    assert_eq!(focused.background, None);
+    assert_eq!(focused.border, Some(PALETTE.focus_ring));
+    assert_eq!(focused.border_width, 1.0);
 }
 
 #[test]

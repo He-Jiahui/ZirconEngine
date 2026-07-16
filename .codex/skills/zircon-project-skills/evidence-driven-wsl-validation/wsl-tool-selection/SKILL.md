@@ -4,7 +4,6 @@
 
 - Read this file when choosing or installing tools for debugging and validation in WSL.
 - If you still need the documentation requirements for acceptance, go to `../acceptance-and-evidence/SKILL.md`.
-- If you need the test placement rules, go to `../plan-tests-under-tests-directory.md`.
 
 ## Workflow
 

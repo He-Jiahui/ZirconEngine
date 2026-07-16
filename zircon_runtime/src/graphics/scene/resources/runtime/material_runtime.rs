@@ -3,7 +3,7 @@ use std::collections::BTreeMap;
 use crate::core::framework::render::{
     RenderMaterialLightingModel, RenderMaterialPropertyUniformPayload, RenderMaterialPropertyValue,
     RenderMaterialReadinessReport, RenderMaterialTextureTransform, RenderQueueValue,
-    ShadingModelId,
+    ShadingModelId, StandardPbrMaterialFeatures,
 };
 use crate::core::math::{Vec3, Vec4};
 use crate::core::resource::ResourceId;
@@ -116,6 +116,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) depth_bias: f32,
     pub(crate) taa_reactive_mask_strength: f32,
     pub(crate) subsurface_profile_index: u32,
+    pub(crate) advanced_features: StandardPbrMaterialFeatures,
     pub(crate) base_color_texture: Option<ResourceId>,
     pub(crate) base_color_texture_transform: RenderMaterialTextureTransform,
     pub(crate) base_color_texture_uv_channel: u32,
@@ -131,6 +132,7 @@ pub(crate) struct MaterialRuntime {
     pub(crate) emissive_texture: Option<ResourceId>,
     pub(crate) emissive_texture_transform: RenderMaterialTextureTransform,
     pub(crate) emissive_texture_uv_channel: u32,
+    pub(crate) clearcoat_normal_texture: Option<ResourceId>,
     pub(crate) shader_property_values: BTreeMap<String, RenderMaterialPropertyValue>,
     pub(crate) shader_property_uniform_payload: RenderMaterialPropertyUniformPayload,
     pub(crate) non_standard_texture_slots: BTreeMap<String, Option<ResourceId>>,

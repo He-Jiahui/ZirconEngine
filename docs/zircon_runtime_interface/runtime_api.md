@@ -5,19 +5,27 @@ related_code:
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/operation.rs
+  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
   - zircon_runtime_interface/src/runtime_api/requests.rs
   - zircon_runtime_interface/src/runtime_api/viewport.rs
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
   - zircon_runtime_interface/src/tests/boundary.rs
   - zircon_runtime_interface/src/lib.rs
+  - zircon_app/src/entry/runtime_library/loaded_runtime.rs
+  - zircon_app/src/entry/runtime_library/runtime_session/operation.rs
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_api_markdown.py
 implementation_files:
+  - zircon_app/src/entry/runtime_library/loaded_runtime.rs
+  - zircon_app/src/entry/runtime_library/runtime_session/operation.rs
   - zircon_runtime_interface/src/runtime_api.rs
   - zircon_runtime_interface/src/runtime_api/api_table.rs
   - zircon_runtime_interface/src/runtime_api/constants.rs
   - zircon_runtime_interface/src/runtime_api/events.rs
   - zircon_runtime_interface/src/runtime_api/host_requests.rs
+  - zircon_runtime_interface/src/runtime_api/operation.rs
+  - zircon_runtime_interface/src/runtime_api/plugin_event_mirror.rs
   - zircon_runtime_interface/src/runtime_api/requests.rs
   - zircon_runtime_interface/src/runtime_api/viewport.rs
   - zircon_runtime_interface/src/tests/abi_safety_contracts.rs
@@ -46,14 +54,26 @@ doc_type: module-detail
 ## Owner Split
 
 - `runtime_api.rs` is a facade only. It declares child modules and re-exports the stable public ABI names.
-- `runtime_api/api_table.rs` owns the dynamic library symbol, function pointer types, `ZrHostApiV1`, `ZrRuntimeApiV1`, and `ZrRuntimeSessionConfigV1`.
+- `runtime_api/api_table.rs` owns the V2 dynamic-library symbol, function pointer types, `ZrHostApiV1`, `ZrRuntimeApiV2`, and `ZrRuntimeSessionConfigV1`.
 - `runtime_api/constants.rs` owns ABI numeric discriminants for event kinds, native surface kinds, window/gamepad/IME states, and fetch flags.
 - `runtime_api/host_requests.rs` owns runtime-to-host request DTOs, currently IME requests and gamepad rumble requests.
+- `runtime_api/plugin_event_mirror.rs` owns typed plugin-event subscription and delivery DTOs.
+- `runtime_api/operation.rs` owns the runtime operation handle, submit/progress/result DTOs, terminal phase rules, and submit/poll/harvest function pointer types.
 - `runtime_api/viewport.rs` owns viewport size, metrics, native surface target, and bind-surface request DTOs.
 - `runtime_api/events.rs` owns `ZrRuntimeEventV1`, `ZrRuntimeTranslatedEventV1`, and event constructor helpers.
 - `runtime_api/requests.rs` owns host fetch, frame capture, accessibility tree capture, and captured frame DTOs.
 
-This split preserves the existing ABI and public re-export shape. It changes source ownership only.
+The V2 cutover replaces the old runtime table ABI. `zircon_runtime_get_api_v2` returns the 19-field
+`ZrRuntimeApiV2`, including plugin-event subscribe/unsubscribe/drain and operation
+submit/poll/harvest. Hosts resolve only V2; the old table export and loader fallback were deleted.
+Existing `*V1` DTO names remain only where their payload layouts did not change.
+
+Although the C-compatible table stores function pointers as optional slots, the V2 host contract
+requires the base session, plugin-event mirror, and submit/poll/harvest operation groups. The app
+loader rejects a missing member before session construction; after that gate, those accessors are
+required functions rather than per-call capability fallbacks. Operation progress and result JSON
+must carry `ZIRCON_RUNTIME_ABI_VERSION_V1`; the app adapter rejects a foreign DTO ABI before the
+editor gateway can interpret handles, phases, operation ids, or payloads.
 
 ## Boundary Rules
 
@@ -66,11 +86,13 @@ New ABI additions should land in the narrow owner file:
 - function-table or symbol additions in `api_table.rs`;
 - new event kinds or constructor helpers in `events.rs` plus `constants.rs`;
 - new host request payloads in `host_requests.rs`;
+- plugin-event mirror payloads in `plugin_event_mirror.rs`;
+- generic long-running operation payloads in `operation.rs`;
 - viewport/native surface records in `viewport.rs`;
 - capture/fetch request records in `requests.rs`.
 
-Do not add new behavior back into `runtime_api.rs`. The interface boundary test keeps this file as a small facade, requires each owner module to be declared and re-exported, and rejects oversized owner files before the ABI surface becomes another support hot spot. `tests/abi_safety_contracts.rs` additionally locks `ZrHostApiV1` and `ZrRuntimeApiV1` as `#[repr(C)]` function-table structs and rejects public signature lines that introduce dynamic object carriers unsuitable for the ABI boundary. The structural audit mirrors the facade shape as `runtime_api_boundary` so the owner layout is visible in architecture review output without first running the Rust test binary; `runtime_api_markdown.py` owns the audit's Markdown rendering so the boundary module remains focused on ABI shape and risk calculation.
+Do not add new behavior back into `runtime_api.rs`. The interface boundary test keeps this file as a small facade, requires each owner module to be declared and re-exported, and rejects oversized owner files before the ABI surface becomes another support hot spot. `tests/abi_safety_contracts.rs` additionally locks `ZrHostApiV1` and `ZrRuntimeApiV2` as `#[repr(C)]` function-table structs, fixes V2 at 19 fields, and rejects public signature lines that introduce dynamic object carriers unsuitable for the ABI boundary. The structural audit mirrors the facade shape as `runtime_api_boundary` so the owner layout is visible in architecture review output without first running the Rust test binary; `runtime_api_markdown.py` owns the audit's Markdown rendering so the boundary module remains focused on ABI shape and risk calculation.
 
 ## Validation
 
-The split is accepted only when `zircon_runtime_interface` compiles standalone and `runtime_api_boundary` reports 6/6 owner modules, a small facade, no missing re-exports, no direct ABI declarations in `runtime_api.rs`, and no oversized owner modules. The 2026-06-21 Markdown renderer split keeps `runtime_api_boundary.py` at 143 audit/risk lines and `runtime_api_markdown.py` at 39 renderer lines while preserving owner modules 6/6, facade 12/20 non-empty lines, and `risks = []`. Focused interface tests should continue to assert ABI size/order, optional function-table fields, event constructors, host request serialization, and frame/accessibility capture DTO contracts.
+The split is accepted only when `zircon_runtime_interface` compiles standalone and `runtime_api_boundary` reports all eight owner modules, a small facade, no missing re-exports, no direct ABI declarations in `runtime_api.rs`, and no oversized owner modules. Focused interface tests assert the exact V2 table size/order, required mirror/operation-tail placement, event constructors, host request and plugin-event serialization, and frame/accessibility capture DTO contracts.

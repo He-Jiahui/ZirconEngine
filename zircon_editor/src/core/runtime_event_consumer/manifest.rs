@@ -1,0 +1,1 @@
+pub use zircon_runtime::plugin::PluginEventConsumerManifest as EditorRuntimeEventConsumerManifest;

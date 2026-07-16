@@ -5,6 +5,7 @@ use zircon_runtime::script::{CapabilitySet, ScriptCallSite, VmError, VmPluginHos
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{map_zr_error, zr_error};
+use super::extension_host::register_extension_host_module;
 use super::reflection_host::register_reflection_host_module;
 use super::values::{read_host_arguments_for_function, to_zr_value_for_function};
 use super::ZrVmRegistration;
@@ -24,6 +25,9 @@ pub(super) fn register_host_modules(
         runtime,
         reflection_host.clone(),
     )?];
+    if host.vm_owner().is_some() {
+        registrations.push(register_extension_host_module(runtime, host)?);
+    }
     let call_table = host.host_exports.script_call_table()?;
     for module in host.host_exports.modules() {
         let mut builder = zrvm::ModuleBuilder::new(&module.descriptor.name)

@@ -28,7 +28,6 @@ mod editor_manager_runtime_diagnostics;
 mod editor_manager_startup;
 mod editor_manager_workspace;
 mod editor_operation_dispatch;
-mod editor_runtime_client;
 mod editor_session_state;
 mod editor_subsystems;
 mod editor_ui_host;
@@ -86,9 +85,6 @@ pub use editor_manager_plugins_export::{
     DESKTOP_EXPORT_START_BINDING_ID, DESKTOP_EXPORT_START_BUTTON,
     DESKTOP_EXPORT_TERMINAL_OUTPUT_SLOT, EXPORT_WIZARD_BINDING_SYMBOL,
     EXPORT_WIZARD_TEMPLATE_DOCUMENT_ID, EXPORT_WIZARD_VIEW_ID,
-};
-pub use editor_runtime_client::{
-    DetachedEditorRuntimeClient, EditorRuntimeClient, SharedEditorRuntimeClient,
 };
 pub use editor_subsystems::{
     EditorSubsystemReport, EDITOR_ENABLED_SUBSYSTEMS_CONFIG_KEY,

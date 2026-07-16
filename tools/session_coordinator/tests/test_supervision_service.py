@@ -21,6 +21,7 @@ class SupervisionServiceTests(unittest.TestCase):
             repository_key="repo-key",
             daemon_instance_id="daemon-a",
             process_creation_time="creation-a",
+            maintenance_session_ids=("session-a", "reviewer-session"),
         )
 
     def test_initialize_and_health_are_durable_enum_transitions(self) -> None:
@@ -54,6 +55,98 @@ class SupervisionServiceTests(unittest.TestCase):
             self.service.require_mutation_allowed("lease.claim")
         self.assertEqual("service_not_accepting_mutations", rejected.exception.code)
         self.service.require_mutation_allowed("service.resume")
+
+    def test_maintenance_hold_allows_only_evidence_reconciliation(self) -> None:
+        self.service.initialize()
+        self.service.mark_healthy()
+        self.service.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.maintenance_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+
+        self.service.require_mutation_allowed("milestone.reconcile_accepted")
+        self.service.require_mutation_allowed("session.activate@session-a")
+        self.service.require_mutation_allowed("session.set_status@session-a")
+        self.service.require_mutation_allowed("lease.claim@session-a")
+        self.service.require_mutation_allowed("milestone.commit@session-a")
+        self.service.require_mutation_allowed("milestone.review@reviewer-session")
+        self.service.require_mutation_allowed("topology.refresh@reviewer-session")
+        self.service.require_mutation_allowed("maintenance.cleanup@session-a")
+        self.service.require_mutation_allowed("session.register@session-a")
+        self.service.require_mutation_allowed("failure.return@session-a")
+        self.service.require_mutation_allowed("finalize.preview@session-a")
+        self.service.require_mutation_allowed("finalize.commit@session-a")
+        self.service.require_mutation_allowed("cargo.consume_cpu_reservation@session-a")
+        self.service.require_mutation_allowed("codex.sessions.reconcile")
+        self.service.require_mutation_allowed("cargo.reserve_cpu@session-b")
+        with self.assertRaises(CoordinatorError) as resume_rejected:
+            self.service.require_mutation_allowed("service.resume")
+        self.assertEqual("maintenance_scope_resume_blocked", resume_rejected.exception.code)
+        with self.assertRaises(CoordinatorError) as hold_rejected:
+            self.service.require_mutation_allowed("lease.claim@session-b")
+        self.assertEqual("maintenance_hold_active", hold_rejected.exception.code)
+        with self.assertRaises(CoordinatorError) as cleanup_rejected:
+            self.service.require_mutation_allowed("maintenance.cleanup@session-b")
+        self.assertEqual("maintenance_hold_active", cleanup_rejected.exception.code)
+        with self.assertRaises(CoordinatorError) as failure_return_rejected:
+            self.service.require_mutation_allowed("failure.return@session-b")
+        self.assertEqual("maintenance_hold_active", failure_return_rejected.exception.code)
+        self.service.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.explicit_scope",
+            actor="test",
+            updates={"explicit_stop": 1},
+        )
+        self.service.require_mutation_allowed("lease.claim@session-a")
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.require_mutation_allowed("lease.claim@session-b")
+        self.assertEqual("service_explicit_stop_active", rejected.exception.code)
+        with self.assertRaises(CoordinatorError) as cargo_rejected:
+            self.service.require_mutation_allowed("cargo.acquire@session-a")
+        self.assertEqual("service_explicit_stop_active", cargo_rejected.exception.code)
+
+    def test_scoped_hold_allows_only_bound_explicit_release(self) -> None:
+        self.service.initialize()
+        self.service.mark_healthy()
+        self.service.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.maintenance_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+
+        with self.assertRaises(CoordinatorError) as ordinary_resume:
+            self.service.require_mutation_allowed("service.resume")
+        self.assertEqual("maintenance_scope_resume_blocked", ordinary_resume.exception.code)
+
+        self.service.require_mutation_allowed("service.resume.release")
+        with self.assertRaises(CoordinatorError) as legacy_session_release:
+            self.service.require_mutation_allowed("service.resume.release@session-a")
+        self.assertEqual("maintenance_release_scope_invalid", legacy_session_release.exception.code)
+
+    def test_explicit_stop_blocks_new_mutations_even_if_timeout_restores_healthy_state(self) -> None:
+        """A timed-out stop must not reopen Cargo admission before an explicit start."""
+        self.service.initialize()
+        self.service.mark_healthy()
+        self.service.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.stop",
+            actor="test",
+            updates={"explicit_stop": 1},
+        )
+        self.service.transition(
+            SupervisionState.HEALTHY,
+            reason_code="test.timeout_reconciled",
+            actor="test",
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.require_mutation_allowed("cargo.acquire")
+        self.assertEqual("service_explicit_stop_active", rejected.exception.code)
+        self.service.require_mutation_allowed("session.heartbeat")
+        self.service.require_mutation_allowed("service.restart")
 
     def test_blocker_inventory_distinguishes_critical_work_from_advisory_leases(self) -> None:
         self.service.initialize()

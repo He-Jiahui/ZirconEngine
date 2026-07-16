@@ -275,7 +275,7 @@ fn shade_forward(surface: ZrSurfaceOutput, ctx: ZrShadingContext) -> vec3<f32> {
     );
     let transmitted_scene = zr_pbr_screen_space_transmission(
         surface,
-        ctx.frag_coord.xy,
+        ctx.position_ws,
         environment_lights,
     );
     return opaque_lighting * (1.0 - specular_transmission)

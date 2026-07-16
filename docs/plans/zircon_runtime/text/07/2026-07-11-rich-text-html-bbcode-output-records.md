@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/mod.rs
-  - zircon_runtime/src/core/framework/render/text/rich.rs
+  - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/layout/rich.rs
   - zircon_runtime/src/text/layout/rich_vertical.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs

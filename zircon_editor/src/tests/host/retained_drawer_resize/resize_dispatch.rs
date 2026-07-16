@@ -1,6 +1,6 @@
 use std::fs;
 
-use zircon_runtime::core::manager::resolve_config_manager;
+use zircon_runtime::core::manager::ManagerResolver;
 
 use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::EditorManager;
@@ -14,7 +14,8 @@ fn apply_resize_to_left_group_updates_all_left_slots() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_retained_left_resize");
     let runtime = editor_runtime_with_config_path(&path);
-    let _config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let _config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();

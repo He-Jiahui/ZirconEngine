@@ -34,7 +34,7 @@ fn zr_cookie_octahedral_uv(direction: vec3<f32>) -> vec2<f32> {
 }
 
 fn zr_light_cookie_factor(light: ZrGpuLightData, world_position: vec3<f32>) -> vec3<f32> {
-    if (light.cookie_misc.w == 0u) {
+    if (light.cookie_misc.x == 0u) {
         return vec3<f32>(1.0);
     }
     let projection = light.cookie_misc.x;

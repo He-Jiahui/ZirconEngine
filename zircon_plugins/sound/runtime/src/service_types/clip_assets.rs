@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 #[cfg(test)]
 use zircon_runtime::asset::SoundAsset;
-use zircon_runtime::asset::{AssetUri, ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
+use zircon_runtime::asset::{project_asset_manager_handle, AssetUri, ProjectAssetManager};
 use zircon_runtime::core::framework::sound::{SoundClipId, SoundClipInfo, SoundError};
+use zircon_runtime::core::manager::resolve_manager_service;
 
 use crate::engine::LoadedClip;
 
@@ -18,7 +19,8 @@ impl DefaultSoundManager {
             .ok_or_else(|| SoundError::BackendUnavailable {
                 detail: "sound manager is not attached to a CoreRuntime".to_string(),
             })?;
-        core.resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)
+        project_asset_manager_handle(&core)
+            .and_then(|handle| resolve_manager_service(&core, handle))
             .map_err(|error| SoundError::BackendUnavailable {
                 detail: error.to_string(),
             })

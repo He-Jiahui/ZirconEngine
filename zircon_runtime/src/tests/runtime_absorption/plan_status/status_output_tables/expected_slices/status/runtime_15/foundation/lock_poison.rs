@@ -77,10 +77,6 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
         Some("runtime_15_input_runtime_manager_lock_poison_recovery_static_passed_cargo_deferred")
     } else if slice == "Runtime 15 M3 script VM registry lock poison recovery" {
         Some("runtime_15_script_vm_registry_lock_poison_recovery_static_passed_cargo_deferred")
-    } else if slice == "Runtime 15 M3 ZrVM real backend runtime lock poison recovery" {
-        Some(
-            "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_static_passed_cargo_timeout_no_result",
-        )
     } else if slice == "Runtime 15 M3 VM plugin manager selected-backend lock poison recovery" {
         Some(
             "runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred",

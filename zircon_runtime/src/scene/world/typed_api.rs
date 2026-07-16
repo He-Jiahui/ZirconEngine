@@ -179,12 +179,18 @@ impl World {
     {
         let tick = self.mutation_change_tick();
         if self.is_fixed_component_type::<T>() {
+            if self.fixed_component_ref::<T>(entity).is_none() {
+                return None;
+            }
             self.mark_component_changed_at_tick::<T>(entity, tick);
             self.mark_component_mutation::<T>();
             return self.fixed_component_mut::<T>(entity);
         }
         let component_id = self.registered_component_id::<T>()?;
         let internal = self.internal_entity(entity)?;
+        if !self.component_storage.contains(component_id, internal) {
+            return None;
+        }
         self.mark_component_mutation::<T>();
         self.component_storage
             .get_mut_at_tick(component_id, internal, tick)
@@ -430,6 +436,38 @@ impl World {
         Ok(())
     }
 
+    /// Rebuilds the ECS storage projection for an already-authoritative fixed
+    /// component without reporting a second observable world mutation.
+    pub(in crate::scene::world) fn insert_rebuilt_fixed_component_presence<T>(
+        &mut self,
+        entity: EntityId,
+        component: T,
+    ) where
+        T: Component,
+    {
+        let component_id = self.component_id::<T>();
+        let was_present = self.contains_component_id(entity, component_id);
+        let internal = self
+            .internal_entity(entity)
+            .expect("fixed component presence rebuild requires a registered entity");
+        let tick = self.mutation_change_tick();
+        let old = self
+            .component_storage
+            .insert_at_tick(component_id, T::STORAGE_TYPE, internal, component, tick)
+            .expect("fixed component presence rebuild must preserve the registered storage type");
+        debug_assert_eq!(old.is_some(), was_present);
+
+        self.mark_component_derived_state_dirty::<T>();
+        if !was_present {
+            self.refresh_entity_archetype(entity);
+            self.bump_query_cache_revision();
+            self.trigger_component_lifecycle(LifecycleEventKind::Add, entity, component_id);
+        } else {
+            self.trigger_component_lifecycle(LifecycleEventKind::Replace, entity, component_id);
+        }
+        self.trigger_component_lifecycle(LifecycleEventKind::Insert, entity, component_id);
+    }
+
     pub(super) fn rebuild_typed_component_presence(&mut self) {
         self.component_registry = Default::default();
         self.component_storage = Default::default();
@@ -470,6 +508,13 @@ impl World {
         T: Component,
     {
         self.advance_world_generation();
+        self.mark_component_derived_state_dirty::<T>();
+    }
+
+    fn mark_component_derived_state_dirty<T>(&mut self)
+    where
+        T: Component,
+    {
         let type_id = std::any::TypeId::of::<T>();
         if self.is_hierarchy_component_type(type_id) {
             self.mark_hierarchy_dirty();

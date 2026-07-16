@@ -26,8 +26,8 @@ pub(crate) use integrate::{
     VOLUMETRIC_INTEGRATE_WORKGROUP_SIZE,
 };
 pub(crate) use light_scatter::{
-    FroxelLightScatterPipeline, FroxelLightScatterRequest, VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL,
-    VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
+    volumetric_ambient_radiance, FroxelLightScatterPipeline, FroxelLightScatterRequest,
+    VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL, VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
 };
 pub(crate) use media_inject::{
     FroxelMediaInjectPipeline, FroxelMediaInjectRequest, VOLUMETRIC_MEDIA_INJECT_PIPELINE_LABEL,

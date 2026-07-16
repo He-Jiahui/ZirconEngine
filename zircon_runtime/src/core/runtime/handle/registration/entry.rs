@@ -11,10 +11,13 @@ pub(super) fn service_entry(
     factory: ServiceEntryFactory,
 ) -> ServiceEntry {
     ServiceEntry {
+        index: ServiceEntry::unassigned_index(),
+        generation: ServiceEntry::initial_generation(),
         startup_mode,
         dependencies: dependency_names(dependencies),
         factory,
         lifecycle: LifecycleState::Registered,
+        initialization_owner: None,
         instance: None,
     }
 }

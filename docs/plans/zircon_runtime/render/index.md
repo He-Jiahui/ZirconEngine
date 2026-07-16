@@ -391,13 +391,12 @@ Unity SRP 概念到 Zircon 的补充映射:`RenderPipelineAsset/ScriptableRender
 
 ## 7. 全局验收与测试基线
 
-按 milestone-first 政策:实现切片期间只做轻量 `cargo check`,每个里程碑末进入测试阶段。
+按 [`milestone-validation-policy.md`](../../milestone-validation-policy.md) 执行：实现切片期间只做格式、结构守卫与源码检查；每个里程碑末才进入一次批量 Cargo 验证阶段。
 
-- 切片期:`cargo check -p zircon_runtime --lib --locked`
-- 里程碑测试阶段:`cargo test -p zircon_runtime --lib --locked`(优先按各子计划列出的模块过滤词收窄)
+- 里程碑验证阶段：一条 `cargo check -p zircon_runtime --lib --tests --locked` 覆盖该里程碑的所有 render 切片；随后运行一次按计划模块过滤词组合的 `cargo test -p zircon_runtime --lib --locked`。
 - 渲染产物对拍:`render_product_*` 系列测试 + `ZR_RENDERDOC_CAPTURE_NEXT=1` 抓帧人工比对(对照 UE 同场景行为)
-- 插件接缝:`cargo test --manifest-path zircon_plugins/Cargo.toml -p <受影响插件> --locked`
-- 每个里程碑完成后,按源码镜像路径更新 `docs/zircon_runtime/**` 模块文档,并保持本目录子计划中的状态标记最新。
+- 插件接缝：仅在该里程碑触及插件边界时，将受影响插件合并为一次 `cargo test --manifest-path zircon_plugins/Cargo.toml -p <受影响插件> --locked` 批次。
+- 工作区级验证留给依赖波次收口；每个里程碑完成后,按源码镜像路径更新 `docs/zircon_runtime/**` 模块文档,并保持本目录子计划中的状态标记最新。
 
 ## 8. 全局工程约定(各子计划"工程落地细化"章节共享)
 

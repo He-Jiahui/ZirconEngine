@@ -21,6 +21,57 @@ from tools.session_coordinator.tests.helpers import init_repo
 
 
 class ActionConcurrencyTests(unittest.TestCase):
+    def test_confirm_reuses_the_preview_session_scoped_mutation_operation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(
+                session_id="session-a",
+                plan_path="docs/plans/runtime/01-feature.md",
+                write_scope=["src/feature.py"],
+            )
+            operations: list[str] = []
+            service = ActionService(
+                database,
+                ActionFingerprinter(database, repo, daemon_instance_id="instance-a"),
+                ActionExecutor(
+                    sessions=sessions,
+                    leases=None,
+                    patches=None,
+                    failures=None,
+                    workspace_copy=None,
+                    workflows=None,
+                ),
+                daemon_instance_id="instance-a",
+                mutation_gate=operations.append,
+            )
+            context = ActionContext(
+                actor="cli",
+                role=WebControlRole.OPERATOR,
+                web_session_id="web-a",
+                bound_session_id="session-a",
+                daemon_instance_id="instance-a",
+            )
+
+            preview = service.preview(
+                context, ActionKind.SESSION_HEARTBEAT.value, {"sessionId": "session-a"}
+            )
+            confirmed = service.confirm(
+                context,
+                preview.action_id,
+                phrase=preview.confirmation_phrase or "",
+                reason="preserve scoped operation through confirmation",
+            )
+
+            self.assertEqual("succeeded", confirmed.status.value)
+            self.assertEqual(
+                ["session.heartbeat@session-a", "session.heartbeat@session-a"],
+                operations,
+            )
+
     def test_state_change_invalidates_confirm_without_side_effect_repeatedly(self) -> None:
         for attempt in range(20):
             with self.subTest(attempt=attempt), tempfile.TemporaryDirectory() as directory:

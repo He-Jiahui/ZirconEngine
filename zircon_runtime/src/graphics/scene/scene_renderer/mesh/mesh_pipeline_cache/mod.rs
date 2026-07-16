@@ -12,6 +12,7 @@ mod mesh_pipeline_variant_registry;
 mod prewarm_pipeline_validation;
 mod shader_source;
 
+pub(in crate::graphics::scene::scene_renderer::mesh) use forward_shadow_receiver::create_forward_shadow_receiver_layout;
 pub(crate) use mesh_pipeline_cache::MeshPipelineCache;
 pub(crate) use mesh_pipeline_variant_registry::{
     MeshPipelineVariantRegistry, MeshPipelineVariantResolver,

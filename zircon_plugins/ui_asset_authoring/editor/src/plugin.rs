@@ -95,7 +95,7 @@ impl zircon_editor::EditorPlugin for UiAssetAuthoringEditorPlugin {
                 zircon_editor::core::editor_extension::EditorExtensionRegistryError::OperationPath,
             )?;
             registry.register_command(
-                EditorCommandDescriptor::pending_operation(
+                EditorCommandDescriptor::operation(
                     create.clone(),
                     format!("Create {display_name}"),
                 )

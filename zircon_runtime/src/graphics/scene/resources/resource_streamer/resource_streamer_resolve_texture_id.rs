@@ -72,8 +72,29 @@ impl ResourceStreamer {
             };
         };
 
-        let Some(id) = self
-            .asset_manager
+        let Ok(asset_manager) = self.asset_manager() else {
+            return ResolvedTextureReference {
+                id: None,
+                validation_error: Some(RenderMaterialValidationError::UnresolvedTextureReference {
+                    slot: slot.to_string(),
+                    reference: reference.clone(),
+                }),
+                fallback_usage: Some(RenderMaterialFallbackUsage {
+                    reason: RenderMaterialFallbackReason::Texture {
+                        slot: slot.to_string(),
+                        reference: reference.clone(),
+                    },
+                    fallback_policy: RenderMaterialFallbackPolicy::DefaultMaterial,
+                }),
+                slot_fallback: Some(RenderMaterialTextureSlotFallback::unresolved_reference(
+                    reference.clone(),
+                )),
+                expected_dimension,
+                actual_dimension: None,
+            };
+        };
+
+        let Some(id) = asset_manager
             .resource_manager()
             .registry()
             .get_by_locator(&reference.locator)
@@ -100,7 +121,7 @@ impl ResourceStreamer {
             };
         };
 
-        let texture = match self.asset_manager.load_texture_asset(id) {
+        let texture = match asset_manager.load_texture_asset(id) {
             Ok(texture) => texture,
             Err(_) => {
                 return ResolvedTextureReference {

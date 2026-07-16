@@ -1,18 +1,14 @@
-use crate::core::framework::render::{ShapedGlyphRun, TextShapeRequest};
+use crate::core::framework::text::TextDirection;
 use crate::core::runtime::tasks::TaskPool;
-use crate::graphics::text::{
+use crate::text::{
     cache::{
-        ShapedRunCache, ShapedRunCacheKey, ShapedRunCacheReport, TextFrameDedup,
-        TextFrameDedupReport, TextLayoutCache, TextLayoutCacheReport, TextLayoutWidthValidity,
-        TextMeasureCache, TextMeasureCacheReport, DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
-        DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES, DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY,
-        DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
+        ShapedRunCacheReport, TextFrameDedup, TextFrameDedupReport, TextLayoutCache,
+        TextLayoutCacheReport, TextLayoutWidthValidity, TextMeasureCache, TextMeasureCacheReport,
+        DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY, DEFAULT_TEXT_MEASURE_CACHE_CAPACITY,
     },
     layout::measure_line_width,
-    parallel::shape_pool::{
-        shape_paragraphs_with_cache, TextParallelShapeBatchReport, TextShapeParagraph,
-    },
-    shaping::{shape_text, TextShapeRunProvider},
+    parallel::shape_pool::{TextParallelShapeBatchReport, TextShapeParagraph},
+    SharedTextLayoutSession, TextRange,
 };
 use std::sync::Arc;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
@@ -20,6 +16,7 @@ use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiRichTextFormat, UiTextDirection, UiTextRange, UiTextWrap,
 };
 
+use super::adapter::text_style;
 use super::resolved_layout::{
     resolve_text_layout_with_provider, UiTextLayoutRequest, UiTextLayoutResolution, UiTextStyleKey,
 };
@@ -35,7 +32,7 @@ impl UiWidthBucket {
             return Self(0);
         }
 
-        let advance = measure_line_width("n", request.style)
+        let advance = measure_line_width("n", &text_style(request.style))
             .max(request.style.font_size.max(1.0) * 0.25)
             .max(1.0);
         Self(
@@ -146,9 +143,9 @@ impl UiTextShapePrewarmRequest {
     fn to_shape_paragraph(&self) -> TextShapeParagraph {
         TextShapeParagraph::horizontal(
             Arc::clone(&self.text),
-            self.style.clone(),
-            UiTextDirection::Auto,
-            UiTextRange {
+            text_style(&self.style),
+            TextDirection::Auto,
+            TextRange {
                 start: 0,
                 end: self.text.len(),
             },
@@ -164,7 +161,7 @@ fn layout_prewarm_text(text: &str, format: UiRichTextFormat) -> Option<Arc<str>>
         return Some(Arc::from(text));
     }
 
-    let visible_text = parse_source_text(text, format).text;
+    let visible_text = parse_source_text(text, format.into()).text;
     (!visible_text.is_empty()).then(|| Arc::from(visible_text))
 }
 
@@ -172,7 +169,7 @@ fn layout_prewarm_text(text: &str, format: UiRichTextFormat) -> Option<Arc<str>>
 pub(crate) struct UiTextMeasureCache {
     measure_frame_dedup: TextFrameDedup<UiTextMeasureSizeKey, UiSize>,
     measure_cache: TextMeasureCache<UiTextMeasureSizeKey, UiSize>,
-    shaped_run_cache: ShapedRunCache,
+    text_layout_session: SharedTextLayoutSession,
     layout_frame_dedup: TextFrameDedup<UiTextMeasureKey, UiTextLayoutResolution>,
     layout_cache: TextLayoutCache<UiTextMeasureKey, UiTextLayoutResolution>,
     shape_prewarm_report: TextParallelShapeBatchReport,
@@ -184,10 +181,7 @@ impl Default for UiTextMeasureCache {
         Self {
             measure_frame_dedup: TextFrameDedup::default(),
             measure_cache: TextMeasureCache::with_capacity(DEFAULT_TEXT_MEASURE_CACHE_CAPACITY),
-            shaped_run_cache: ShapedRunCache::with_limits(
-                DEFAULT_SHAPED_RUN_CACHE_CAPACITY,
-                DEFAULT_SHAPED_RUN_CACHE_MAX_BYTES,
-            ),
+            text_layout_session: SharedTextLayoutSession::new(),
             layout_frame_dedup: TextFrameDedup::default(),
             layout_cache: TextLayoutCache::with_capacity(DEFAULT_TEXT_LAYOUT_CACHE_CAPACITY),
             shape_prewarm_report: TextParallelShapeBatchReport::default(),
@@ -200,7 +194,7 @@ impl UiTextMeasureCache {
     pub(crate) fn clear(&mut self) {
         self.measure_frame_dedup.clear();
         self.measure_cache.clear();
-        self.shaped_run_cache.clear();
+        self.text_layout_session.clear();
         self.layout_frame_dedup.clear();
         self.layout_cache.clear();
     }
@@ -209,7 +203,7 @@ impl UiTextMeasureCache {
         self.frame_index = self.frame_index.saturating_add(1);
         self.measure_frame_dedup.begin_frame(self.frame_index);
         self.measure_cache.begin_frame(self.frame_index);
-        self.shaped_run_cache.begin_frame(self.frame_index);
+        self.text_layout_session.begin_frame(self.frame_index);
         self.layout_frame_dedup.begin_frame(self.frame_index);
         self.layout_cache.begin_frame(self.frame_index);
         self.shape_prewarm_report = TextParallelShapeBatchReport::default();
@@ -217,7 +211,7 @@ impl UiTextMeasureCache {
 
     pub(crate) fn finish_frame(&mut self) {
         self.measure_cache.finish_frame();
-        self.shaped_run_cache.finish_frame();
+        self.text_layout_session.finish_frame();
         self.layout_cache.finish_frame();
     }
 
@@ -234,7 +228,7 @@ impl UiTextMeasureCache {
     }
 
     pub(crate) fn frame_shaped_run_report(&self) -> ShapedRunCacheReport {
-        self.shaped_run_cache.report()
+        self.text_layout_session.cache_report()
     }
 
     pub(crate) fn frame_shape_prewarm_report(&self) -> TextParallelShapeBatchReport {
@@ -260,8 +254,8 @@ impl UiTextMeasureCache {
             .map(UiTextShapePrewarmRequest::to_shape_paragraph)
             .collect::<Vec<_>>();
         let report =
-            shape_paragraphs_with_cache(pool, &mut self.shaped_run_cache, &paragraphs, chunk_size)
-                .report;
+            self.text_layout_session
+                .prewarm_horizontal_paragraphs(pool, &paragraphs, chunk_size);
         self.record_shape_prewarm_report(report);
         report
     }
@@ -316,8 +310,8 @@ impl UiTextMeasureCache {
         let size = if let Some(size) = self.measure_cache.get(&key, text).copied() {
             size
         } else {
-            let mut provider = UiCachedTextShapeProvider::new(&mut self.shaped_run_cache);
-            let measured = measure_backend_text_size_with_provider(text, style, &mut provider);
+            let measured =
+                measure_backend_text_size_with_provider(text, style, &mut self.text_layout_session);
             *self.measure_cache.insert(key.clone(), text, measured)
         };
         self.measure_frame_dedup.insert(key, text, size);
@@ -346,8 +340,8 @@ impl UiTextMeasureCache {
         {
             resolution
         } else {
-            let mut provider = UiCachedTextShapeProvider::new(&mut self.shaped_run_cache);
-            let resolution = resolve_text_layout_with_provider(request, &mut provider);
+            let resolution =
+                resolve_text_layout_with_provider(request, &mut self.text_layout_session);
             self.layout_cache
                 .insert(
                     key.clone(),
@@ -360,59 +354,5 @@ impl UiTextMeasureCache {
         self.layout_frame_dedup
             .insert(key, resolved_text, resolution.clone());
         resolution
-    }
-}
-
-struct UiCachedTextShapeProvider<'a> {
-    cache: &'a mut ShapedRunCache,
-}
-
-impl<'a> UiCachedTextShapeProvider<'a> {
-    fn new(cache: &'a mut ShapedRunCache) -> Self {
-        Self { cache }
-    }
-}
-
-impl TextShapeRunProvider for UiCachedTextShapeProvider<'_> {
-    fn shape_horizontal_line_with_kerning(
-        &mut self,
-        text: &str,
-        style: &UiResolvedStyle,
-        direction: UiTextDirection,
-        source_range: UiTextRange,
-        include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
-        let request = TextShapeRequest::horizontal_with_kerning(
-            text,
-            style,
-            direction,
-            source_range,
-            include_kerning,
-        );
-        let key = ShapedRunCacheKey::from_request(&request);
-        self.cache
-            .get_or_insert_with(key, text, || shape_text(request))
-    }
-
-    fn shape_vertical_line_with_kerning(
-        &mut self,
-        text: &str,
-        style: &UiResolvedStyle,
-        direction: UiTextDirection,
-        source_range: UiTextRange,
-        vertical_mode: crate::core::framework::render::VerticalMode,
-        include_kerning: bool,
-    ) -> Arc<ShapedGlyphRun> {
-        let request = TextShapeRequest::vertical_with_kerning(
-            text,
-            style,
-            direction,
-            source_range,
-            vertical_mode,
-            include_kerning,
-        );
-        let key = ShapedRunCacheKey::from_request(&request);
-        self.cache
-            .get_or_insert_with(key, text, || shape_text(request))
     }
 }

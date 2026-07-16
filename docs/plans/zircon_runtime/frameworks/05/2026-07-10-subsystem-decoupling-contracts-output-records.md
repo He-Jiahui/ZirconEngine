@@ -2,7 +2,7 @@
 
 > 来源：[`05-subsystem-decoupling-contracts.md`](../05-subsystem-decoupling-contracts.md) 的 `## 6. 状态与产出记录`。
 
-> 2026-07-14 M1 evidence correction：独立复审确认旧 dependency scanner 漏掉 bare/grouped root imports，并把注释与字符串计为 production references。下表在修复前记录的 2399/80、2401/79 及后续同口径总数只保留为执行时间线，已全部失效，不得继续作为机器验收证据；M1 的 canonical corrected baseline 是 [`2026-07-10-runtime-domain-dependencies.json`](baselines/2026-07-10-runtime-domain-dependencies.json)，按 baseline 首次提交 `f7a3209` 的精确树重算为 2001 refs / 86 edges。后续里程碑必须用修复后的 scanner 重新生成各自基线，不能沿用本表旧总数。
+> 2026-07-14 M1 evidence correction：独立复审确认旧 dependency scanner 漏掉 bare/grouped root imports，并把注释与字符串计为 production references。下表在修复前记录的 2399/80、2401/79 及后续同口径总数只保留为执行时间线，已全部失效，不得继续作为机器验收证据；M1 的 canonical corrected baseline 是 [`2026-07-10-runtime-domain-dependencies.json`](../../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json)，按 baseline 首次提交 `f7a3209` 的精确树重算为 2001 refs / 86 edges。后续里程碑必须用修复后的 scanner 重新生成各自基线，不能沿用本表旧总数。
 
 Plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 Milestone: M5

@@ -16,7 +16,7 @@ use crate::scene::world::World;
 #[test]
 fn render_framework_skips_advanced_postprocess_work_when_effects_are_disabled() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -60,7 +60,7 @@ fn render_framework_skips_advanced_postprocess_work_when_effects_are_disabled() 
 #[test]
 fn render_framework_submits_advanced_postprocess_graph_passes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

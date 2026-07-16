@@ -28,6 +28,7 @@ pub mod script;
 pub mod sound;
 pub mod state;
 pub mod tasks;
+pub mod text;
 pub mod time;
 pub mod ui;
 pub mod window;

@@ -1,8 +1,6 @@
-use std::sync::Arc;
-
 use crate::core::jobs::{EditorJob, JobContext, JobError};
 use crate::scene::viewport::RenderFramework;
-use zircon_runtime::core::manager::resolve_render_framework;
+use zircon_runtime::core::manager::{render_framework_handle, ManagerServiceHandle};
 use zircon_runtime::core::CoreHandle;
 
 pub(super) struct RenderFrameworkResolveJob {
@@ -16,11 +14,11 @@ impl RenderFrameworkResolveJob {
 }
 
 impl EditorJob for RenderFrameworkResolveJob {
-    type Output = Arc<dyn RenderFramework>;
+    type Output = ManagerServiceHandle<dyn RenderFramework>;
 
     fn run(self, context: JobContext) -> Result<Self::Output, JobError> {
         context.check_cancelled()?;
         zircon_runtime::profile_scope!("editor", "viewport", "async_resolve_render_framework");
-        resolve_render_framework(&self.core).map_err(JobError::failed)
+        render_framework_handle(&self.core).map_err(JobError::failed)
     }
 }

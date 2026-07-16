@@ -38,7 +38,7 @@ pub use post_process::{
     SceneDitherSettingsAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
     ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
     ScenePostProcessVolumeProfileAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,
-    SceneVignetteSettingsAsset,
+    SceneVignetteSettingsAsset, SceneVolumetricFogSettingsAsset,
 };
 pub use transform::TransformAsset;
 

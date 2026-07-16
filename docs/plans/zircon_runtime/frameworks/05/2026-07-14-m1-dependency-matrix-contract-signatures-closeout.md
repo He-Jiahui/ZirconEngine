@@ -3,7 +3,7 @@
 Plan: docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 Milestone: M1
 Status: completed
-Files: ["docs/plans/zircon_runtime/frameworks/05/2026-07-10-subsystem-decoupling-contracts-output-records.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-14-m1-dependency-matrix-contract-signatures-closeout.md", "docs/plans/zircon_runtime/frameworks/05/baselines/2026-07-10-contract-signatures.md", "docs/plans/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json", "docs/zircon_runtime/structure/runtime-domain-dependency-audit.md", "tools/runtime_domain_dependency_audit.py", "tools/tests/test_runtime_domain_dependency_audit.py"]
+Files: ["docs/plans/zircon_runtime/frameworks/05/2026-07-10-subsystem-decoupling-contracts-output-records.md", "docs/plans/zircon_runtime/frameworks/05/2026-07-14-m1-dependency-matrix-contract-signatures-closeout.md", "docs/plans/zircon_runtime/frameworks/05/baselines/2026-07-10-contract-signatures.md", "docs/plans/_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json", "docs/zircon_runtime/structure/runtime-domain-dependency-audit.md", "tools/runtime_domain_dependency_audit.py", "tools/tests/test_runtime_domain_dependency_audit.py"]
 
 ## Scope Delivered
 

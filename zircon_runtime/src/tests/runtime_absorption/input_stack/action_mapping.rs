@@ -75,8 +75,8 @@ fn runtime_12_action_mapping_keeps_ui_filtered_evaluation_path() {
     for required_registration_anchor in [
         "module_descriptor_with_config",
         "INPUT_ACTION_MANAGER_NAME",
-        "InputActionManagerHandle",
-        "resolve_input_action_manager",
+        "RegisteredManagerService::<dyn InputActionManager>",
+        "input_action_manager_handle",
         "InputModule.Manager.InputActionManager",
     ] {
         assert!(
@@ -100,7 +100,7 @@ fn runtime_12_action_mapping_keeps_ui_filtered_evaluation_path() {
         "evaluate_with_consumed_buttons",
         "evaluate_with_consumed_input",
         "evaluate_with_active_contexts",
-        "resolve_input_action_manager",
+        "input_actions_handle",
         "value(\"gameplay.move_x\")",
         "action_evaluator()",
         "action_manager",

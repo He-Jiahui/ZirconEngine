@@ -10,7 +10,7 @@ const RUNTIME_09_STATUS: &str = concat!(
 const RUNTIME_INDEX_STATUS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
 );
 
 #[test]

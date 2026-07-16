@@ -23,6 +23,130 @@ from tools.session_coordinator.workflows.store import WorkflowStore
 
 
 class ControlSnapshotTests(unittest.TestCase):
+    def test_snapshot_bounds_terminal_history_without_hiding_live_rows(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="active-session")
+            for index in range(60):
+                sessions.register(session_id=f"terminal-session-{index:02d}")
+
+            with database.transaction() as connection:
+                connection.execute(
+                    "UPDATE sessions SET status='archived' WHERE session_id LIKE 'terminal-session-%'"
+                )
+                for index in range(60):
+                    stamp = f"2026-07-16T00:{index:02d}:00+00:00"
+                    connection.execute(
+                        """
+                        INSERT INTO workflow_runs(
+                            run_id, session_id, workflow_key, plan_path, state,
+                            created_at, updated_at
+                        ) VALUES (?, 'active-session', ?, 'plan.md', 'archived', ?, ?)
+                        """,
+                        (f"terminal-run-{index:02d}", f"terminal-workflow-{index:02d}", stamp, stamp),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO finalize_requests(
+                            request_id, session_id, message, paths_json, categories_json,
+                            untracked_json, validation_json, maintenance, status, created_at
+                        ) VALUES (?, 'active-session', 'terminal', '[]', '{}', '[]', '[]', 0,
+                                  'committed', ?)
+                        """,
+                        (f"terminal-finalize-{index:02d}", stamp),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO cargo_jobs(
+                            job_id, session_id, lane_kind, target_dir, target_key, status,
+                            command_json, created_at, last_heartbeat_at, cleanup_policy,
+                            cleanup_status
+                        ) VALUES (?, 'active-session', 'test', ?, ?, 'released', '[]', ?, ?,
+                                  'retained', 'retained')
+                        """,
+                        (
+                            f"terminal-cargo-{index:02d}",
+                            f"target-{index:02d}",
+                            f"target-{index:02d}",
+                            stamp,
+                            stamp,
+                        ),
+                    )
+                    connection.execute(
+                        """
+                        INSERT INTO validation_copies(
+                            job_id, session_id, job_root, source_root, target_root,
+                            head_commit, manifest_json, status, created_at, removed_at
+                        ) VALUES (?, 'active-session', 'job', 'source', 'target', 'head', '[]',
+                                  'removed', ?, ?)
+                        """,
+                        (f"terminal-copy-{index:02d}", stamp, stamp),
+                    )
+                connection.execute(
+                    """
+                    INSERT INTO workflow_runs(
+                        run_id, session_id, workflow_key, plan_path, state, created_at, updated_at
+                    ) VALUES ('active-run', 'active-session', 'active-workflow', 'plan.md',
+                              'active', '2026-07-16T02:00:00+00:00', '2026-07-16T02:00:00+00:00')
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO finalize_requests(
+                        request_id, session_id, message, paths_json, categories_json,
+                        untracked_json, validation_json, maintenance, status, created_at
+                    ) VALUES ('active-finalize', 'active-session', 'active', '[]', '{}', '[]',
+                              '[]', 0, 'previewed', '2026-07-16T02:00:00+00:00')
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO cargo_jobs(
+                        job_id, session_id, lane_kind, target_dir, target_key, status,
+                        command_json, created_at, last_heartbeat_at, cleanup_policy,
+                        cleanup_status
+                    ) VALUES ('active-cargo', 'active-session', 'test', 'active-target',
+                              'active-target', 'running', '[]', '2026-07-16T02:00:00+00:00',
+                              '2026-07-16T02:00:00+00:00', 'retained', 'retained')
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO validation_copies(
+                        job_id, session_id, job_root, source_root, target_root,
+                        head_commit, manifest_json, status, created_at
+                    ) VALUES ('active-copy', 'active-session', 'job', 'source', 'target', 'head',
+                              '[]', 'running', '2026-07-16T02:00:00+00:00')
+                    """
+                )
+
+            snapshot = ControlSnapshotService(
+                database, WorkflowProjectionService(), lambda _connection: {"status": "ok"}
+            ).build()
+
+        self.assertEqual(51, len(snapshot["sessions"]))
+        self.assertIn("active-session", {row["sessionId"] for row in snapshot["sessions"]})
+        self.assertEqual(51, len(snapshot["workflows"]))
+        self.assertIn("active-run", {row["runId"] for row in snapshot["workflows"]})
+        self.assertEqual(51, len(snapshot["git"]["finalizeRequests"]))
+        self.assertIn(
+            "active-finalize",
+            {row["request_id"] for row in snapshot["git"]["finalizeRequests"]},
+        )
+        self.assertEqual(51, len(snapshot["validation"]["cargoJobs"]))
+        self.assertIn(
+            "active-cargo", {row["job_id"] for row in snapshot["validation"]["cargoJobs"]}
+        )
+        self.assertEqual(51, len(snapshot["validation"]["validationCopies"]))
+        self.assertIn(
+            "active-copy",
+            {row["job_id"] for row in snapshot["validation"]["validationCopies"]},
+        )
+
     def test_validation_lifecycle_summary_counts_only_existing_latest_targets(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -310,9 +434,10 @@ class ControlSnapshotTests(unittest.TestCase):
                     """
                     INSERT INTO validation_copies(
                         job_id, session_id, job_root, source_root, target_root,
-                        head_commit, manifest_json, status, created_at
+                        head_commit, manifest_json, status, created_at,
+                        materialization_started_at
                     ) VALUES ('copy-a', 'session-a', 'job', 'source', 'target',
-                              'head', ?, 'planned', 'now')
+                              'head', ?, 'planned', 'now', 'now')
                     """,
                     (manifest,),
                 )
@@ -331,6 +456,7 @@ class ControlSnapshotTests(unittest.TestCase):
             self.assertGreater(patch["content_bytes"], 16 * 1024)
             self.assertEqual(1, patch["has_current_objects"])
             self.assertGreater(copy["manifest_bytes"], 16 * 1024)
+            self.assertEqual("materializing", copy["status"])
             self.assertNotIn("manifest_json", baseline)
             self.assertNotIn("base_objects", patch)
             self.assertNotIn("current_objects", patch)

@@ -81,7 +81,7 @@ related_code:
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
 status: in_progress
-last_refined: 2026-07-12
+last_refined: 2026-07-14
 ---
 
 # 08 ECS 内核数据面对齐
@@ -235,3 +235,7 @@ last_refined: 2026-07-12
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`08/2026-07-09-ecs-kernel-data-alignment-output-records.md`](08/2026-07-09-ecs-kernel-data-alignment-output-records.md)
+## Open Failure Handoffs
+
+- fixed 已修复：[ecs-resource-marker-owner-missing](../../zircon_editor/editor/02/fixed-2026-07-14-ecs-resource-marker-owner-missing.md)
+- fixed 已修复：[system-stage-owner-guard-drift](08/fixed-2026-07-14-system-stage-owner-guard-drift.md)

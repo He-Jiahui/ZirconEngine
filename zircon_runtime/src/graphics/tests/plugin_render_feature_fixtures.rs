@@ -32,7 +32,7 @@ pub(super) fn pluginized_wgpu_render_framework() -> WgpuRenderFramework {
 pub(super) fn pluginized_wgpu_render_framework_with_asset_manager(
     asset_manager: Arc<ProjectAssetManager>,
 ) -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_extensions_and_shading_models(
+    WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_shading_models(
         asset_manager,
         [
             virtual_geometry_render_feature_descriptor(),
@@ -57,7 +57,7 @@ pub(super) fn pluginized_wgpu_render_framework_with_advanced_providers() -> Wgpu
 pub(super) fn pluginized_wgpu_render_framework_with_advanced_providers_and_asset_manager(
     asset_manager: Arc<ProjectAssetManager>,
 ) -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_extensions_and_shading_models(
+    WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_shading_models(
         asset_manager,
         [
             virtual_geometry_render_feature_descriptor(),
@@ -76,7 +76,7 @@ pub(super) fn pluginized_wgpu_render_framework_with_advanced_providers_and_asset
 pub(super) fn pluginized_wgpu_render_framework_with_solari_provider(
     status: SolariRuntimeStatus,
 ) -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_extensions_and_solari_and_shading_models(
+    WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_solari_and_shading_models(
         Arc::new(ProjectAssetManager::default()),
         [
             virtual_geometry_render_feature_descriptor(),

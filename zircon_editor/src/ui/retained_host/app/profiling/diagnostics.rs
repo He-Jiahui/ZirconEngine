@@ -29,7 +29,7 @@ impl RetainedEditorHost {
             command: ProfileControlCommand::Snapshot,
             config: None,
         };
-        let Ok(Some(response)) = self.runtime_client.profile_control(&request) else {
+        let Ok(Some(response)) = self.runtime_gateway.profile_control(&request) else {
             return;
         };
         let Some(runtime_profile) = response.snapshot else {

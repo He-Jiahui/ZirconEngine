@@ -112,7 +112,7 @@ impl RenderFixture {
         &self,
         profile: RenderQualityProfile,
     ) -> (WgpuRenderFramework, RenderViewportHandle) {
-        let framework = WgpuRenderFramework::new(self.asset_manager.clone()).unwrap();
+        let framework = WgpuRenderFramework::new_for_test(self.asset_manager.clone()).unwrap();
         let viewport = framework
             .create_viewport(RenderViewportDescriptor::new(self.viewport_size))
             .unwrap();

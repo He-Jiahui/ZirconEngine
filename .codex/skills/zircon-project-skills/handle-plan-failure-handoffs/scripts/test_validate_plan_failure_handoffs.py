@@ -78,6 +78,7 @@ class HandoffFixture:
         empty_fixed_result: bool = False,
         duplicate_with_alternate_path_spelling: bool = False,
         empty_source_executor_section: bool = False,
+        child_record_only: bool = False,
     ) -> Path:
         if same_plan:
             self.fixing_plan = self.origin_plan
@@ -100,6 +101,8 @@ class HandoffFixture:
         }
         if kind == "fixed":
             metadata["resolved_at"] = "2026-07-12"
+        if child_record_only:
+            metadata["plan_link_mode"] = "child_record_only"
         if omit_key:
             metadata.pop(omit_key)
 
@@ -195,11 +198,42 @@ class ValidatePlanFailureHandoffsTests(unittest.TestCase):
         errors = self.validate_fixture(lambda fixture: fixture.seed(kind="fixed"))
         self.assertEqual([], errors)
 
+    def test_child_record_only_handoff_does_not_require_global_plan_links(self) -> None:
+        def configure(fixture: HandoffFixture) -> None:
+            fixture.seed(child_record_only=True)
+            fixture._write(fixture.origin_plan, "# Origin plan\n")
+            fixture._write(fixture.fixing_plan, "# Fixing plan\n")
+
+        self.assertEqual([], self.validate_fixture(configure))
+
     def test_rejects_date_first_failure_name(self) -> None:
         errors = self.validate_fixture(
             lambda fixture: fixture.seed(filename="2026-07-11-editor-m1-failure-handoff.md")
         )
         self.assertTrue(any("noncanonical handoff filename" in error for error in errors), errors)
+
+    def test_ignores_date_named_output_record_with_failure_in_its_summary(self) -> None:
+        """Only legacy handoff names, not ordinary output records, are candidates."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            record = (
+                root
+                / "docs/plans/zircon_tooling/session_coordinator/01"
+                / "2026-07-15-live-evidence-window-and-failure-chain.md"
+            )
+            HandoffFixture._write(
+                record,
+                "---\nrecord_kind: implementation_slice\nstatus: implemented\n---\n\n"
+                "# 实时证据与 Failure 链\n\n"
+                "来源计划：协调器控制中心\n"
+                "修复责任计划：协调器控制中心\n",
+            )
+
+            records, parse_errors = parse_handoff_records(root)
+
+            self.assertEqual([], records)
+            self.assertEqual([], parse_errors)
+            self.assertEqual([], validate_repository(root))
 
     def test_rejects_malformed_prefix_first_failure_name(self) -> None:
         errors = self.validate_fixture(

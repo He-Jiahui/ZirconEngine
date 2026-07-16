@@ -1,5 +1,6 @@
 //! Runtime scene subsystem: level orchestration plus the core ECS world.
 
+mod event_mirror;
 mod level_system;
 mod level_system_render_extract;
 mod module;
@@ -9,6 +10,10 @@ mod runtime_extension;
 mod runtime_hook;
 mod runtime_level_traits;
 
+pub use event_mirror::{
+    RuntimeEventMirrorDescriptor, RuntimeEventMirrorError, RuntimeEventMirrorRegistration,
+    RuntimeEventMirrorSubscription,
+};
 pub use level_system::{
     AnimationStateTransitionRuntime, LevelLifecycleState, LevelMetadata, LevelSystem,
 };

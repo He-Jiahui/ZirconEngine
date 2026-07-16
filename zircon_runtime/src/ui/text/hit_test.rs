@@ -1,4 +1,5 @@
-use crate::graphics::text::layout::measured_grapheme_widths;
+use super::adapter::text_style;
+use crate::text::layout::measured_grapheme_widths;
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{
@@ -197,7 +198,7 @@ fn resolved_grapheme_advances(
             return advances;
         }
     }
-    measured_grapheme_widths(&line.text, style)
+    measured_grapheme_widths(&line.text, &text_style(style))
 }
 
 fn sanitized_advance(advance: f32) -> f32 {

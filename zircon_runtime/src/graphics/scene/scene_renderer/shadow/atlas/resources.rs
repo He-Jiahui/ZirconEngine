@@ -11,7 +11,7 @@ use super::ShadowAtlasConfig;
 pub(crate) const SHADOW_ATLAS_DEFAULT_SLOT_CAPACITY: u32 = 256;
 pub(crate) const SHADOW_ATLAS_FALLBACK_SIZE: u32 = 2048;
 pub(crate) const SHADOW_ATLAS_COMPARE_FUNCTION: wgpu::CompareFunction =
-    wgpu::CompareFunction::GreaterEqual;
+    wgpu::CompareFunction::LessEqual;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct ShadowAtlasResourceConfig {
@@ -270,7 +270,7 @@ mod tests {
     fn render_shadow_atlas_compare_function_matches_forward_depth_contract() {
         assert_eq!(
             SHADOW_ATLAS_COMPARE_FUNCTION,
-            wgpu::CompareFunction::GreaterEqual
+            wgpu::CompareFunction::LessEqual
         );
     }
 

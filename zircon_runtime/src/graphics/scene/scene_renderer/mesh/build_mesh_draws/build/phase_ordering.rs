@@ -118,6 +118,7 @@ fn command_sort_input_for_mesh_index(
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 struct MaterialPhaseSortOffsets {
     queue: Option<RenderQueueValue>,
+    fixed_queue: bool,
     render_queue: i32,
     material_queue: i32,
     depth_bias: f32,
@@ -131,6 +132,7 @@ fn material_sort_offsets(
         .material(&mesh.material.id())
         .map(|material| MaterialPhaseSortOffsets {
             queue: material.render_queue_value,
+            fixed_queue: material.advanced_features.uses_transmission(),
             render_queue: material.render_queue,
             material_queue: material.material_queue,
             depth_bias: material.depth_bias,
@@ -187,6 +189,11 @@ fn material_adjusted_queue(
     input_material_queue: i32,
     offsets: MaterialPhaseSortOffsets,
 ) -> RenderQueueValue {
+    if offsets.fixed_queue {
+        return offsets
+            .queue
+            .unwrap_or(crate::core::framework::render::STANDARD_PBR_TRANSMISSION_RENDER_QUEUE);
+    }
     let queue = if let Some(queue) = offsets.queue {
         queue.with_material_offset_i32(input_render_queue)
     } else {
@@ -257,12 +264,14 @@ mod tests {
             phase_ordered_meshes_with_material_offsets(&frame, |mesh| match mesh.node_id {
                 20 => MaterialPhaseSortOffsets {
                     queue: None,
+                    fixed_queue: false,
                     render_queue: -5,
                     material_queue: 0,
                     depth_bias: 0.0,
                 },
                 30 => MaterialPhaseSortOffsets {
                     queue: None,
+                    fixed_queue: false,
                     render_queue: 0,
                     material_queue: -3,
                     depth_bias: -2.5,

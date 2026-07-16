@@ -4,7 +4,7 @@ import json
 import os
 import threading
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timezone
 from sqlite3 import Connection
 
@@ -24,6 +24,7 @@ _ALLOWED_TRANSITIONS: dict[SupervisionState, frozenset[SupervisionState]] = {
         {
             SupervisionState.HEALTHY,
             SupervisionState.DEGRADED,
+            SupervisionState.DRAINING,
             SupervisionState.RECOVERING,
             SupervisionState.READ_ONLY,
             SupervisionState.IDENTITY_MISMATCH,
@@ -96,15 +97,53 @@ _DRAIN_ALLOWED_OPERATIONS = frozenset(
         "service.drain_preview",
         "service.drain",
         "service.resume",
+        "service.resume.release",
         "service.stop",
         "service.restart",
         "service.force_stop",
+        "session.heartbeat",
         "lease.release",
         "lease.heartbeat",
         "cargo.heartbeat",
         "cargo.finish",
         "cargo.release",
+        # This creates only a durable scheduling claim.  It never starts a
+        # process; cargo.acquire and cargo.run remain denied until resume.
+        "cargo.reserve_cpu",
+        "cargo.renew_cpu_reservation",
+        "cargo.release_cpu_reservation",
+        "codex.sessions.reconcile",
+        "milestone.reconcile_accepted",
         "supervision.recovery_record",
+    }
+)
+
+_MAINTENANCE_SESSION_OPERATIONS = frozenset(
+    {
+        "baseline.attribute",
+        "lease.claim",
+        "lease.claim_own_scope",
+        "failure.return",
+        "session.activate",
+        "session.register",
+        "session.set_status",
+        "topology.refresh",
+        "validation.start",
+        "milestone.review",
+        "milestone.commit",
+        "maintenance.cleanup",
+        # A maintenance-scoped dependency closure may finalize only its
+        # explicitly leased manifest; generic finalize remains unavailable.
+        "finalize.preview",
+        "finalize.commit",
+        # A held coordinator may bind only the already-audited CPU reservation
+        # or GPU reservation of an explicitly configured Session.  Generic
+        # Cargo acquisition and process start remain outside this exception.
+        "cargo.reserve_gpu",
+        "cargo.consume_cpu_reservation",
+        "cargo.consume_gpu_reservation",
+        "cargo.recover_expired_reservation",
+        "cargo.run_reserved",
     }
 )
 
@@ -120,6 +159,8 @@ class SupervisionService:
         daemon_instance_id: str,
         process_creation_time: str,
         maintenance_active: Callable[[], bool] | None = None,
+        maintenance_session_id: str | None = None,
+        maintenance_session_ids: Iterable[str] | None = None,
     ):
         self.database = database
         self.repository_key = repository_key
@@ -127,6 +168,12 @@ class SupervisionService:
         self.process_id = os.getpid()
         self.process_creation_time = process_creation_time
         self._maintenance_active = maintenance_active or (lambda: False)
+        scoped_ids = set(maintenance_session_ids or ())
+        if maintenance_session_id:
+            scoped_ids.add(maintenance_session_id)
+        self._maintenance_session_ids = frozenset(
+            session_id.strip() for session_id in scoped_ids if session_id.strip()
+        )
         self._transition_lock = threading.RLock()
 
     def initialize(
@@ -274,14 +321,58 @@ class SupervisionService:
             )
 
     def require_mutation_allowed(self, operation: str) -> None:
+        operation_name, separator, session_id = operation.partition("@")
+        scoped_maintenance_operation = (
+            bool(separator)
+            and session_id in self._maintenance_session_ids
+            and operation_name in _MAINTENANCE_SESSION_OPERATIONS
+        )
         with self.database.connect() as connection:
             row = self._state_row(connection)
         if row is None:
             raise CoordinatorError("supervision_uninitialized", "Supervision state is missing")
         state = SupervisionState(row["state"])
+        if operation_name == "service.resume.release" and separator:
+            raise CoordinatorError(
+                "maintenance_release_scope_invalid",
+                "Explicit maintenance release is authorized by its drain action, not a Session",
+                details={"state": state.value, "operation": operation},
+            )
+        if (
+            self._maintenance_session_ids
+            and operation_name == "service.resume"
+            and (bool(row["explicit_stop"]) or bool(row["maintenance_hold"]))
+        ):
+            raise CoordinatorError(
+                "maintenance_scope_resume_blocked",
+                "A scoped maintenance daemon requires an unscoped explicit resume",
+                details={"state": state.value, "operation": operation},
+            )
+        if (
+            bool(row["explicit_stop"])
+            and operation_name not in _DRAIN_ALLOWED_OPERATIONS
+            and not scoped_maintenance_operation
+        ):
+            raise CoordinatorError(
+                "service_explicit_stop_active",
+                "Coordinator is under an explicit stop and is not accepting new mutations",
+                details={"state": state.value, "operation": operation},
+            )
+        if (
+            bool(row["maintenance_hold"])
+            and operation_name not in _DRAIN_ALLOWED_OPERATIONS
+            and not scoped_maintenance_operation
+        ):
+            raise CoordinatorError(
+                "maintenance_hold_active",
+                "Coordinator maintenance hold is not accepting new mutations",
+                details={"state": state.value, "operation": operation},
+            )
         if state in {SupervisionState.HEALTHY, SupervisionState.DEGRADED}:
             return
-        if state is SupervisionState.DRAINING and operation in _DRAIN_ALLOWED_OPERATIONS:
+        if state is SupervisionState.DRAINING and (
+            operation_name in _DRAIN_ALLOWED_OPERATIONS or scoped_maintenance_operation
+        ):
             return
         raise CoordinatorError(
             "service_not_accepting_mutations",
@@ -661,10 +752,13 @@ class SupervisionService:
                 LifecycleStatus.DRAINING.value,
             }:
                 return None
+            recovery_state = self._state_row(connection)
+            state = SupervisionState(recovery_state["state"])
+            preserve_maintenance_hold = bool(recovery_state["maintenance_hold"])
             now = utc_text()
             result = {
                 "intentId": row["intent_id"],
-                "state": "healthy",
+                "state": "draining" if preserve_maintenance_hold else "healthy",
                 "errorCode": error_code,
                 "reconciled": True,
             }
@@ -686,12 +780,19 @@ class SupervisionService:
                 """,
                 (error_code, encoded, now, action_id),
             )
-            state = SupervisionState(self._state_row(connection)["state"])
             if state is SupervisionState.DRAINING:
                 self._transition(
                     connection,
-                    SupervisionState.HEALTHY,
-                    reason_code="lifecycle.failure_reconciled",
+                    (
+                        SupervisionState.DRAINING
+                        if preserve_maintenance_hold
+                        else SupervisionState.HEALTHY
+                    ),
+                    reason_code=(
+                        "lifecycle.failure_hold_preserved"
+                        if preserve_maintenance_hold
+                        else "lifecycle.failure_reconciled"
+                    ),
                     actor=actor,
                     action_id=action_id,
                 )
@@ -704,6 +805,118 @@ class SupervisionService:
                             "actionId": action_id,
                             "errorCode": error_code,
                             "intentId": row["intent_id"],
+                        },
+                        sort_keys=True,
+                    ),
+                    now,
+                ),
+            )
+        return result
+
+    def complete_drain(
+        self,
+        action_id: str,
+        *,
+        actor: str,
+        timed_out: bool = True,
+    ) -> dict[str, object] | None:
+        """Finish a bounded admission drain without disturbing a durable stop.
+
+        A normal ``service.drain`` only pauses new work while its deadline is
+        active.  It must never leave maintenance hold behind after its timer
+        expires, and an older drain must not reopen admission over a newer
+        drain or a real stop/restart.
+        """
+        with self._transition_lock, self.database.transaction() as connection:
+            intent = connection.execute(
+                """
+                SELECT intent_id, status
+                FROM service_lifecycle_intents
+                WHERE repository_key=? AND action_id=? AND kind='service.drain'
+                """,
+                (self.repository_key, action_id),
+            ).fetchone()
+            if intent is None or intent["status"] not in {
+                LifecycleStatus.ACCEPTED.value,
+                LifecycleStatus.DRAINING.value,
+                LifecycleStatus.READY.value,
+            }:
+                return None
+            newer_drain = connection.execute(
+                """
+                SELECT intent_id, action_id
+                FROM service_lifecycle_intents
+                WHERE repository_key=? AND kind='service.drain'
+                  AND status IN ('accepted', 'draining', 'ready')
+                ORDER BY created_at DESC, intent_id DESC
+                LIMIT 1
+                """,
+                (self.repository_key,),
+            ).fetchone()
+            durable = connection.execute(
+                """
+                SELECT action_id
+                FROM service_lifecycle_intents
+                WHERE repository_key=?
+                  AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
+                  AND status IN ('accepted', 'draining')
+                ORDER BY created_at DESC, intent_id DESC
+                LIMIT 1
+                """,
+                (self.repository_key,),
+            ).fetchone()
+            state_row = self._state_row(connection)
+            if state_row is None:
+                raise CoordinatorError("supervision_uninitialized", "Supervision state is missing")
+            superseded = newer_drain is not None and newer_drain["intent_id"] != intent["intent_id"]
+            preserve_stop = durable is not None or bool(state_row["explicit_stop"])
+            reopen = (
+                not superseded
+                and not preserve_stop
+                and SupervisionState(state_row["state"]) is SupervisionState.DRAINING
+            )
+            result = {
+                "intentId": intent["intent_id"],
+                "state": "healthy" if reopen else SupervisionState(state_row["state"]).value,
+                "timedOut": timed_out,
+            }
+            if superseded:
+                result["supersededByActionId"] = newer_drain["action_id"]
+            if durable is not None:
+                result["preservedLifecycleActionId"] = durable["action_id"]
+            now = utc_text()
+            connection.execute(
+                """
+                UPDATE service_lifecycle_intents
+                SET status='succeeded', error_code=NULL, result_json=?, updated_at=?, completed_at=?
+                WHERE intent_id=? AND status IN ('accepted', 'draining', 'ready')
+                """,
+                (json.dumps(result, sort_keys=True), now, now, intent["intent_id"]),
+            )
+            if reopen:
+                self._transition(
+                    connection,
+                    SupervisionState.HEALTHY,
+                    reason_code=(
+                        "lifecycle.drain_deadline_elapsed"
+                        if timed_out
+                        else "lifecycle.drain_resumed"
+                    ),
+                    actor=actor,
+                    action_id=action_id,
+                    updates={"maintenance_hold": 0, "explicit_stop": 0, "healthy_since": now},
+                )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "lifecycle.drain_completed",
+                    json.dumps(
+                        {
+                            "actionId": action_id,
+                            "intentId": intent["intent_id"],
+                            "reopened": reopen,
+                            "superseded": superseded,
+                            "timedOut": timed_out,
                         },
                         sort_keys=True,
                     ),

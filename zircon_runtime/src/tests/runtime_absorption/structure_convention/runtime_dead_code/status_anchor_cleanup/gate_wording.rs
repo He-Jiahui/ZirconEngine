@@ -3,11 +3,11 @@ use super::*;
 #[test]
 fn runtime_15_runtime_dead_code_current_rows_keep_module_gate_audit_clear() {
     let runtime_15_plan = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     let runtime_index = runtime_15_plan.clone();
     let review_findings = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = runtime_15_plan.clone();
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
@@ -84,11 +84,11 @@ fn runtime_15_runtime_dead_code_current_rows_keep_module_gate_audit_clear() {
 #[test]
 fn runtime_15_runtime_dead_code_current_rows_use_production_gate_name() {
     let runtime_15_plan = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     let runtime_index = runtime_15_plan.clone();
     let review_findings = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = runtime_15_plan.clone();
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

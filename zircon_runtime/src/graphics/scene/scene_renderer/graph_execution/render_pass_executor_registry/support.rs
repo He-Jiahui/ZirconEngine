@@ -72,7 +72,7 @@ pub(super) fn execute_gpu_executor_without_specialized_context_for_extract(
             entries: &[],
         });
     let mut resources = RenderGraphExecutionResources::new();
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,

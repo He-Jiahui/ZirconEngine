@@ -17,7 +17,7 @@ pub(crate) mod runtime_provider;
 pub(crate) mod scene;
 pub(crate) mod shader;
 pub(crate) mod solari_runtime_provider;
-pub mod text;
+mod text_transport;
 pub(crate) mod types;
 pub(crate) mod virtual_geometry_runtime_provider;
 pub(crate) mod visibility;
@@ -53,14 +53,9 @@ pub use runtime::{
     offline_bake_frame, OfflineBakeOutput, OfflineBakeSettings, WgpuRenderFramework,
 };
 pub use runtime_builtin_graphics::{
-    module_descriptor as graphics_module_descriptor, GraphicsModule, GRAPHICS_MODULE_NAME,
-    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    module_descriptor as graphics_module_descriptor, GraphicsModule, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME,
 };
-pub use text::rich::{
-    EmojiShortcodeRegistrationError, RichTextDecoration, RichTextDecorator,
-    RichTextDecoratorRegistrationError, RichTextParser,
-};
-
 // Crate-visible bridge used by runtime preparation paths without widening the
 // public graphics API.
 pub(crate) use runtime_prepare_collector::RuntimePrepareExternalBufferBinding;

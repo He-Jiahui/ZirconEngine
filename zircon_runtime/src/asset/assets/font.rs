@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::core::framework::render::CompositeFontDescriptor;
+#[cfg(feature = "text")]
+use crate::text::CompositeFontDescriptor;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 pub type FontAssetResult<T> = std::result::Result<T, FontAssetError>;
@@ -21,6 +22,7 @@ pub struct FontAsset {
     pub variable_instances: Vec<FontAssetVariableInstance>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub fallback_families: Vec<String>,
+    #[cfg(feature = "text")]
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub composite_font: Option<CompositeFontDescriptor>,
     #[serde(default, skip_serializing_if = "FontAssetRenderStrategy::is_default")]

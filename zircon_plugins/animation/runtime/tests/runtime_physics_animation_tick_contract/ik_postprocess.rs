@@ -5,7 +5,7 @@ use zircon_runtime::core::framework::animation::{
 use zircon_runtime::core::framework::animation::{
     AnimationIkCommand, AnimationLookAtCommand, AnimationTargetId, AnimationTwoBoneIkCommand,
 };
-use zircon_runtime::core::manager::resolve_animation_manager;
+use zircon_runtime::core::manager::{animation_manager_handle, resolve_manager_service};
 use zircon_runtime::core::math::{Mat4, Quat, Vec3};
 use zircon_runtime::core::resource::{
     AnimationClipMarker, AnimationSkeletonMarker, ResourceHandle, ResourceId, ResourceKind,
@@ -72,7 +72,11 @@ fn queued_two_bone_ik_runs_after_pose_blend_before_pose_apply() {
         entity
     });
 
-    let animation = resolve_animation_manager(&core).unwrap();
+    let animation = resolve_manager_service(
+        &core,
+        animation_manager_handle(&core).expect("animation manager handle"),
+    )
+    .unwrap();
     let target = Vec3::new(1.2, 0.8, 0.0);
     animation
         .queue_ik_command(AnimationIkCommand::TwoBone(AnimationTwoBoneIkCommand {
@@ -164,7 +168,11 @@ fn queued_look_at_uses_model_space_target_and_clamps_final_pose() {
             .unwrap();
         entity
     });
-    let animation = resolve_animation_manager(&core).unwrap();
+    let animation = resolve_manager_service(
+        &core,
+        animation_manager_handle(&core).expect("animation manager handle"),
+    )
+    .unwrap();
     animation
         .queue_ik_command(AnimationIkCommand::LookAt(AnimationLookAtCommand {
             world: level.world_handle(),

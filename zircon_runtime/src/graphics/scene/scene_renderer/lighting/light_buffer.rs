@@ -33,12 +33,13 @@ pub(crate) fn pack_lighting_extract(
         return PackedGpuLightBuffer::default();
     }
 
-    pack_light_slices_with_cookies(
+    pack_light_slices_with_advanced_metadata(
         &lighting.directional_lights,
         &lighting.point_lights,
         &lighting.spot_lights,
         &lighting.rect_lights,
         &[],
+        &lighting.advanced_lighting.volumetric_light_ids,
     )
 }
 
@@ -50,12 +51,13 @@ pub(crate) fn pack_lighting_extract_with_cookies(
     if !lighting_enabled {
         return PackedGpuLightBuffer::default();
     }
-    pack_light_slices_with_cookies(
+    pack_light_slices_with_advanced_metadata(
         &lighting.directional_lights,
         &lighting.point_lights,
         &lighting.spot_lights,
         &lighting.rect_lights,
         cookies,
+        &lighting.advanced_lighting.volumetric_light_ids,
     )
 }
 
@@ -80,6 +82,24 @@ pub(crate) fn pack_light_slices_with_cookies(
     spot_lights: &[RenderSpotLightSnapshot],
     rect_lights: &[RenderRectLightSnapshot],
     cookies: &[LightCookieData],
+) -> PackedGpuLightBuffer {
+    pack_light_slices_with_advanced_metadata(
+        directional_lights,
+        point_lights,
+        spot_lights,
+        rect_lights,
+        cookies,
+        &[],
+    )
+}
+
+pub(crate) fn pack_light_slices_with_advanced_metadata(
+    directional_lights: &[RenderDirectionalLightSnapshot],
+    point_lights: &[RenderPointLightSnapshot],
+    spot_lights: &[RenderSpotLightSnapshot],
+    rect_lights: &[RenderRectLightSnapshot],
+    cookies: &[LightCookieData],
+    volumetric_light_ids: &[u64],
 ) -> PackedGpuLightBuffer {
     let mut packed = PackedGpuLightBuffer {
         lights: Vec::with_capacity(
@@ -111,6 +131,7 @@ pub(crate) fn pack_light_slices_with_cookies(
         .chain(spot_lights.iter().map(|light| light.light_id))
         .chain(rect_lights.iter().map(|light| light.light_id));
     for (light, light_id) in packed.lights.iter_mut().zip(light_ids) {
+        light.cookie_misc[2] = u32::from(volumetric_light_ids.contains(&light_id));
         if let Some(metadata) = cookie_plan.metadata_for_light(light_id) {
             apply_cookie_metadata(light, metadata);
         }
@@ -120,7 +141,9 @@ pub(crate) fn pack_light_slices_with_cookies(
 
 fn apply_cookie_metadata(light: &mut GpuLightData, metadata: CookieGpuMetadata) {
     light.cookie_uv_rect = metadata.uv_rect;
-    light.cookie_misc = metadata.misc;
+    light.cookie_misc[0] = metadata.misc[0];
+    light.cookie_misc[1] = metadata.misc[1];
+    light.cookie_misc[3] = 0;
     if metadata.misc[0]
         == crate::graphics::scene::scene_renderer::advanced_lighting::light_cookie::COOKIE_PROJECTION_DIRECTIONAL
     {
@@ -271,7 +294,7 @@ mod tests {
             mobility: crate::core::framework::scene::Mobility::Dynamic,
             shadow: None,
         };
-        let packed = pack_light_slices_with_cookies(
+        let packed = pack_light_slices_with_advanced_metadata(
             &[],
             &[point(11, 1.0), point(5, 2.0)],
             &[],
@@ -292,13 +315,33 @@ mod tests {
                     },
                 },
             ],
+            &[11],
         );
 
-        assert_eq!(packed.lights[0].cookie_misc[2], 1);
+        assert_eq!(packed.lights[0].cookie_misc, [1, 1, 1, 0]);
         assert_eq!(packed.lights[0].position_range[0..2], [0.25, 0.5]);
         assert_eq!(packed.lights[0].spot_angles_size[2..4], [2.0, 3.0]);
-        assert_eq!(packed.lights[1].cookie_misc[2], 0);
+        assert_eq!(packed.lights[1].cookie_misc, [3, 0, 0, 0]);
         assert_eq!(packed.lights[1].position_range[0], 2.0);
+    }
+
+    #[test]
+    fn render_volumetric_light_participation_uses_cookie_misc_z_without_cookie() {
+        let point = RenderPointLightSnapshot {
+            node_id: 7,
+            light_id: 7,
+            layer_mask: RenderLayerSet::from_scene_schema_v1_mask(DEFAULT_RENDER_LAYER_MASK),
+            position: Vec3::ZERO,
+            color: Vec3::ONE,
+            intensity: 1.0,
+            range: 4.0,
+            mobility: crate::core::framework::scene::Mobility::Dynamic,
+            shadow: None,
+        };
+
+        let packed = pack_light_slices_with_advanced_metadata(&[], &[point], &[], &[], &[], &[7]);
+
+        assert_eq!(packed.lights[0].cookie_misc, [0, 0, 1, 0]);
     }
 
     #[test]

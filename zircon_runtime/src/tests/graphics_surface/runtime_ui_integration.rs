@@ -8,8 +8,10 @@ fn render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels() {
     };
 
     let viewport_size = crate::core::math::UVec2::new(640, 360);
-    let asset_manager = Arc::new(crate::asset::ProjectAssetManager::default());
-    let server = crate::graphics::WgpuRenderFramework::new(asset_manager).unwrap();
+    let asset_access = crate::asset::ProjectAssetManagerAccess::for_test(Arc::new(
+        crate::asset::ProjectAssetManager::default(),
+    ));
+    let server = crate::graphics::WgpuRenderFramework::new(asset_access).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -28,8 +30,10 @@ fn render_framework_submits_runtime_ui_frames_and_renders_pause_menu_panels() {
         .load_builtin_fixture(crate::ui::RuntimeUiFixture::PauseMenu)
         .unwrap();
 
+    let frame = manager.build_frame();
+    assert_eq!(frame.viewport_size, viewport_size);
     server
-        .submit_runtime_frame(viewport, manager.build_frame().into())
+        .submit_frame_extract_with_ui(viewport, frame.extract, frame.ui)
         .unwrap();
 
     let stats = server.query_stats().unwrap();
@@ -69,8 +73,10 @@ fn render_framework_reports_clipped_ui_commands_for_inventory_fixture() {
     };
 
     let viewport_size = crate::core::math::UVec2::new(960, 540);
-    let asset_manager = Arc::new(crate::asset::ProjectAssetManager::default());
-    let server = crate::graphics::WgpuRenderFramework::new(asset_manager).unwrap();
+    let asset_access = crate::asset::ProjectAssetManagerAccess::for_test(Arc::new(
+        crate::asset::ProjectAssetManager::default(),
+    ));
+    let server = crate::graphics::WgpuRenderFramework::new(asset_access).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -89,8 +95,10 @@ fn render_framework_reports_clipped_ui_commands_for_inventory_fixture() {
         .load_builtin_fixture(crate::ui::RuntimeUiFixture::InventoryList)
         .unwrap();
 
+    let frame = manager.build_frame();
+    assert_eq!(frame.viewport_size, viewport_size);
     server
-        .submit_runtime_frame(viewport, manager.build_frame().into())
+        .submit_frame_extract_with_ui(viewport, frame.extract, frame.ui)
         .unwrap();
 
     let stats = server.query_stats().unwrap();
@@ -110,8 +118,10 @@ fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
     };
 
     let viewport_size = crate::core::math::UVec2::new(800, 450);
-    let asset_manager = Arc::new(crate::asset::ProjectAssetManager::default());
-    let server = crate::graphics::WgpuRenderFramework::new(asset_manager).unwrap();
+    let asset_access = crate::asset::ProjectAssetManagerAccess::for_test(Arc::new(
+        crate::asset::ProjectAssetManager::default(),
+    ));
+    let server = crate::graphics::WgpuRenderFramework::new(asset_access).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -134,8 +144,10 @@ fn render_framework_submits_all_builtin_runtime_ui_fixtures() {
     ] {
         let mut manager = crate::ui::RuntimeUiManager::new(viewport_size);
         manager.load_builtin_fixture(fixture).unwrap();
+        let frame = manager.build_frame();
+        assert_eq!(frame.viewport_size, viewport_size);
         server
-            .submit_runtime_frame(viewport, manager.build_frame().into())
+            .submit_frame_extract_with_ui(viewport, frame.extract, frame.ui)
             .unwrap();
 
         let stats = server.query_stats().unwrap();

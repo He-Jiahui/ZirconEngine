@@ -95,7 +95,7 @@ impl PluginGroupBuilder {
 
     pub fn add_group(self, group: impl PluginGroup) -> Result<Self, PluginGroupError> {
         let mut builder = self;
-        for module in group.build()?.finish().into_modules() {
+        for module in group.build()?.try_finish()?.into_modules() {
             builder = builder.add_module(module)?;
         }
         Ok(builder)

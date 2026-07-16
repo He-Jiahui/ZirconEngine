@@ -48,7 +48,7 @@ pub(super) fn dispatch_pointer_rich_link_activation(
         .find_map(|command| {
             link_at_layout_point(
                 command.text.as_deref()?,
-                command.style.rich_text_format,
+                command.style.rich_text_format.into(),
                 command.text_layout.as_ref()?,
                 route.point,
             )

@@ -492,5 +492,55 @@ class PluginValidateModuleTests(unittest.TestCase):
             )
 
 
+    def test_plugin_validate_accepts_typed_editor_event_consumer(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir) / "repo"
+            crate_name = "zircon_plugin_native_dynamic_fixture_native"
+            _write_dist_plugin_workspace(repo_root, crate_name)
+            editor_root = repo_root / "zircon_plugins/native_dynamic_fixture/editor"
+            editor_root.mkdir(parents=True)
+            (editor_root / "Cargo.toml").write_text(
+                "\n".join(
+                    [
+                        "[package]",
+                        'name = "zircon_plugin_native_dynamic_fixture_editor"',
+                        'version = "0.1.0"',
+                        'edition = "2021"',
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            workspace = repo_root / "zircon_plugins/Cargo.toml"
+            workspace.write_text(
+                workspace.read_text(encoding="utf-8").replace(
+                    'members = ["native_dynamic_fixture/native"]',
+                    'members = ["native_dynamic_fixture/native", "native_dynamic_fixture/editor"]',
+                ),
+                encoding="utf-8",
+            )
+            _write_complete_native_dynamic_fixture_manifest(repo_root, crate_name)
+            _append_manifest(
+                repo_root / "zircon_plugins/native_dynamic_fixture/plugin.toml",
+                [
+                    "[[modules]]",
+                    'name = "native_dynamic_fixture.editor"',
+                    'kind = "editor"',
+                    'crate_name = "zircon_plugin_native_dynamic_fixture_editor"',
+                    'target_modes = ["editor_host"]',
+                    'capabilities = ["editor.extension.native_dynamic_fixture"]',
+                    "",
+                    "[[modules.event_consumers]]",
+                    'consumer_id = "native_dynamic_fixture.editor.meter"',
+                    'event_id = "native_dynamic_fixture.events.meter"',
+                    'payload_schema = "native_dynamic_fixture.events.meter.v1"',
+                    'required_capability = "editor.extension.native_dynamic_fixture"',
+                ],
+            )
+
+            exit_code, report = _run_plugin_validate(repo_root)
+
+            self.assertEqual(0, exit_code, report["diagnostics"])
+
+
 if __name__ == "__main__":
     unittest.main()

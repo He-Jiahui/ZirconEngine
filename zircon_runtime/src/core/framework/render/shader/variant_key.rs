@@ -63,6 +63,7 @@ impl ShaderFeatureBits {
     pub const PBR_CLEARCOAT: u32 = 1 << 6;
     pub const PBR_ANISOTROPY: u32 = 1 << 7;
     pub const PBR_TRANSMISSION: u32 = 1 << 8;
+    pub const VOLUMETRIC_FOG: u32 = 1 << 9;
 
     pub const fn new(bits: u32) -> Self {
         Self(bits)

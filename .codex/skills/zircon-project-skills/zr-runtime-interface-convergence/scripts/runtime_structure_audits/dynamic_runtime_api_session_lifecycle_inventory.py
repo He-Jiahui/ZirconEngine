@@ -3,7 +3,7 @@ from __future__ import annotations
 
 HEADLESS_LIFECYCLE_ANCHORS = (
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "render_bridge: Option<RuntimeRenderBridge>",
     ),
     (
@@ -19,10 +19,13 @@ HEADLESS_LIFECYCLE_ANCHORS = (
         "fn uses_render_bridge(self) -> bool",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/construction.rs",
         "runtime_dynamic_session_render_bridge_skipped",
     ),
-    ("zircon_runtime/src/dynamic_api/session.rs", "empty_captured_frame(requested)"),
+    (
+        "zircon_runtime/src/dynamic_api/session/state.rs",
+        "empty_captured_frame(requested)",
+    ),
     (
         "zircon_runtime/src/dynamic_api/tests/session_lifecycle.rs",
         "session_destroy_reports_explicit_not_found_after_headless_destroy",

@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_runtime/src/core/framework/error.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/asset/load/texture.rs
   - zircon_runtime/src/asset/load/mesh.rs
@@ -47,11 +48,13 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_source_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_anchor_inventory.py
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
   - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
 tests:
+  - tools/tests/test_frameworks_02_core_error_single_source.py
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::worker_pool_completes_builtin_texture_requests_on_the_runtime_io_pool
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::worker_pool_unbounded_mode_is_explicit_opt_in
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::project_asset_manager_uses_the_injected_runtime_io_pool
@@ -103,7 +106,7 @@ Runtime 11 M2.4 now uses a single process-wide task owner. `TaskPools::default()
 
 ## Backpressure
 
-`AssetWorkerPool::request(...)` performs non-blocking admission. In bounded mode, the capacity is `io_parallelism + queue_depth`; exceeding that capacity returns `ZirconError::ChannelSend("asset request queue full: ...")` instead of blocking the caller thread. Accepted requests are submitted to the runtime IO pool immediately and may wait in that pool's scheduler behind other IO work.
+`AssetWorkerPool::request(...)` performs non-blocking admission and returns `CoreResult<()>`. In bounded mode, the capacity is `io_parallelism + queue_depth`; exceeding that capacity returns `CoreError::ChannelSend("asset request queue full: ...")` instead of blocking the caller thread. Accepted requests are submitted to the runtime IO pool immediately and may wait in that pool's scheduler behind other IO work. The worker does not retain a second asset-specific or compatibility error surface.
 
 `AssetWorkerPool::request(...)` is the only public request entry. The former `request_sender()` channel escape hatch is retired, so callers cannot bypass in-flight coalescing, bounded admission, or worker diagnostics.
 

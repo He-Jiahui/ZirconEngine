@@ -30,6 +30,8 @@ pub(super) fn native_editor_registration_from_package(
         capabilities,
         extensions: EditorExtensionRegistry::default(),
         lifecycle,
+        runtime_event_consumers:
+            crate::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry::default(),
         diagnostics,
     }
 }

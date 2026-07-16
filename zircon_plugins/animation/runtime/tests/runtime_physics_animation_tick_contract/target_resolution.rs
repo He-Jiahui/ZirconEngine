@@ -3,7 +3,7 @@ use super::animation_assets::{
 };
 use super::runtime_helpers::{runtime_asset_manager, runtime_with_physics_animation_scene_asset};
 use zircon_runtime::asset::AssetUri;
-use zircon_runtime::core::manager::resolve_animation_manager;
+use zircon_runtime::core::manager::{animation_manager_handle, resolve_manager_service};
 use zircon_runtime::core::math::Vec3;
 use zircon_runtime::core::resource::{
     AnimationSequenceMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
@@ -13,7 +13,12 @@ use zircon_runtime::scene::components::{AnimationSequencePlayerComponent, NodeKi
 #[test]
 fn clip_sampling_resolves_track_target_id_before_bone_name_fallback() {
     let runtime = runtime_with_physics_animation_scene_asset();
-    let animation = resolve_animation_manager(&runtime.handle()).unwrap();
+    let core = runtime.handle();
+    let animation = resolve_manager_service(
+        &core,
+        animation_manager_handle(&core).expect("animation manager handle"),
+    )
+    .unwrap();
     let skeleton = two_bone_skeleton();
     let mut clip = single_hand_translation_clip(
         &AssetUri::parse("res://animation/target-id.clip.zranim").unwrap(),

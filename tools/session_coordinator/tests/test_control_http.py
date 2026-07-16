@@ -131,6 +131,20 @@ class ControlHttpTests(unittest.TestCase):
                 )
                 rejected.exception.close()
 
+    def test_root_redirects_to_the_control_console(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            dist = repo / "tools" / "session_coordinator" / "web" / "dist"
+            dist.mkdir(parents=True)
+            (dist / "index.html").write_text("<main>control console</main>", encoding="utf-8")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            with RunningCoordinator.start(config) as running:
+                page = urllib.request.urlopen(f"{running.base_url}/", timeout=2)
+                self.assertEqual(f"{running.base_url}/ui/", page.url)
+                self.assertIn(b"control console", page.read())
+                page.close()
+
     def test_observer_bootstrap_opens_cookie_snapshot_without_bearer(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

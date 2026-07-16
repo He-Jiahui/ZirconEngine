@@ -1,5 +1,5 @@
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor};
-use crate::graphics::text::layout::measure_line_width;
+use crate::text::layout::measure_line_width;
 use crate::ui::text::{
     UiTextLayoutRequest, UiTextMeasureCache, UiTextShapePrewarmRequest, UiWidthBucket,
 };
@@ -385,9 +385,10 @@ fn text_measure_cache_reshapes_when_wrap_bucket_changes() {
         wrap: UiTextWrap::Word,
         ..UiResolvedStyle::default()
     };
-    let alpha_width = measure_line_width("Alpha", &style);
-    let beta_width = measure_line_width("Beta", &style);
-    let full_width = measure_line_width("Alpha Beta", &style);
+    let neutral_style = crate::ui::text::text_style(&style);
+    let alpha_width = measure_line_width("Alpha", &neutral_style);
+    let beta_width = measure_line_width("Beta", &neutral_style);
+    let full_width = measure_line_width("Alpha Beta", &neutral_style);
     let narrow_width = alpha_width.max(beta_width) + 0.5;
     let wide_width = full_width + 0.5;
     assert!(

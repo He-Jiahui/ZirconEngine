@@ -9,11 +9,11 @@ fn runtime_15_runtime_ui_dead_code_surface_is_test_support() {
     let runtime_ui_support_mod = read_runtime_src("ui/tests/runtime_ui_support/mod.rs");
     let runtime_ui_manager = read_runtime_src("ui/tests/runtime_ui_support/runtime_ui_manager.rs");
     let runtime_15_plan = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     let runtime_index = runtime_15_plan.clone();
     let review_findings = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = runtime_15_plan.clone();
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");

@@ -7,6 +7,7 @@ use super::errors::map_zr_error;
 use super::host_modules::register_host_modules;
 use super::instance::ZrVmPluginInstance;
 use super::lock::acquire_zr_vm_lock;
+use super::runtime_owner::ZrVmRuntimeOwner;
 
 pub fn load_project_package(
     package: &VmPluginPackage,
@@ -58,9 +59,7 @@ pub fn load_project_package(
 
     Ok(Box::new(ZrVmPluginInstance::new(
         package.manifest.clone(),
-        session,
-        host_modules.registrations,
-        runtime,
+        ZrVmRuntimeOwner::new(session, host_modules.registrations, runtime),
         project.entry_module.clone(),
     )))
 }

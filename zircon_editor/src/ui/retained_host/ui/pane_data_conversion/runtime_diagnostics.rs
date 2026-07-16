@@ -468,7 +468,7 @@ fn runtime_diagnostics_status_lines(payload: &RuntimeDiagnosticsPanePayload) -> 
 
 #[cfg(test)]
 mod tests {
-    use crate::ui::layouts::windows::workbench_host_window::pane_payload::RuntimeDiagnosticsPanePayload;
+    use crate::ui::layouts::windows::workbench_host_window::RuntimeDiagnosticsPanePayload;
 
     use super::runtime_diagnostics_status_lines;
 

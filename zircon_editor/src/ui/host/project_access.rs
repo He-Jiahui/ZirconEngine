@@ -1,15 +1,15 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::{resolve_asset_manager, AssetManager};
 use zircon_runtime::asset::project::ProjectManager;
+use zircon_runtime::asset::{asset_manager_handle, AssetManager};
 use zircon_runtime::asset::{AssetImportError, AssetUri};
 use zircon_runtime::core::framework::foundation::ConfigManager;
-use zircon_runtime::core::manager::ManagerResolver;
-use zircon_runtime::scene::{DefaultLevelManager, LevelMetadata, DEFAULT_LEVEL_MANAGER_NAME};
+use zircon_runtime::core::manager::{resolve_manager_service, ManagerResolver};
+use zircon_runtime::scene::LevelMetadata;
 
 use crate::core::project::ProjectAuthority;
-use crate::ui::host::editor_asset_manager::{resolve_editor_asset_manager, EditorAssetManager};
+use crate::ui::host::editor_asset_manager::{editor_asset_manager_handle, EditorAssetManager};
 use crate::ui::workbench::project::EditorProjectDocument;
 
 use super::editor_error::EditorError;
@@ -49,21 +49,32 @@ impl EditorUiHost {
         &self,
         scene: zircon_runtime::scene::Scene,
     ) -> Result<zircon_runtime::scene::LevelSystem, EditorError> {
-        let core = self.runtime_core()?;
-        let manager = core.resolve_manager::<DefaultLevelManager>(DEFAULT_LEVEL_MANAGER_NAME)?;
-        Ok(manager.create_level(scene, LevelMetadata::default()))
+        Ok(zircon_runtime::scene::create_level(
+            &self.runtime_core()?,
+            scene,
+            LevelMetadata::default(),
+        )?)
     }
 
     pub(super) fn config_manager(&self) -> Result<Arc<dyn ConfigManager>, EditorError> {
-        Ok(ManagerResolver::new(self.runtime_core()?).config()?)
+        let resolver = ManagerResolver::new(self.runtime_core()?);
+        Ok(resolver.resolve(resolver.config_handle()?)?)
     }
 
     pub(super) fn asset_manager(&self) -> Result<Arc<dyn AssetManager>, EditorError> {
-        Ok(resolve_asset_manager(&self.runtime_core()?)?.shared())
+        let core = self.runtime_core()?;
+        Ok(resolve_manager_service(
+            &core,
+            asset_manager_handle(&core)?,
+        )?)
     }
 
     pub(super) fn editor_asset_manager(&self) -> Result<Arc<dyn EditorAssetManager>, EditorError> {
-        Ok(resolve_editor_asset_manager(&self.runtime_core()?)?)
+        let core = self.runtime_core()?;
+        Ok(resolve_manager_service(
+            &core,
+            editor_asset_manager_handle(&core)?,
+        )?)
     }
 
     pub(super) fn current_project_root(&self) -> Result<Option<PathBuf>, EditorError> {

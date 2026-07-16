@@ -314,6 +314,7 @@ fn zero_intensity_key_light_entity(entity: u64, name: &str) -> SceneEntityAsset 
             direction: [-0.35, -0.55, -0.76],
             color: [1.0, 0.96, 0.88],
             intensity: 0.0,
+            volumetric: false,
         }),
         point_light: None,
         rect_light: None,

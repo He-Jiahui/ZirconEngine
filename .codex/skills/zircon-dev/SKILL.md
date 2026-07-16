@@ -9,13 +9,13 @@ description: Use when building, testing, refactoring, or debugging the `zirconEn
 
 - Work from the repository root.
 - Read `references/main-branch-development-policy.md` before starting. It overrides any generic skill advice about creating worktrees or feature branches.
-- Read `../zircon-project-skills/milestone-first-workflow-policy.md` before planning, implementing, or validating work. It overrides generic TDD and per-slice build/test workflows in this repository.
-- Read `../zircon-project-skills/prefer-windows-validation/SKILL.md` before choosing Windows or WSL validation. Windows-native validation is the default; WSL is an explicit Linux-specific exception.
-- Read `references/cargo-target-disk-policy.md` before every Cargo build or validation command. Build output is allowed only below the nine approved `D:`, `E:`, or `F:` drive-root `cargo-targets`, `targets`, or `ZirconBuilds` trees and their WSL mounted equivalents.
+- Read `../zircon-engineering/SKILL.md` first for the standard delivery loop.
+- Read `../zircon-project-skills/milestone-first-workflow-policy.md` when selecting a milestone validation gate or planning a substantial change.
+- Read `workflow/SKILL.md` only for Rust workspace editing, refactors, crate boundaries, or test-tree organization.
+- Read `../zircon-project-skills/prefer-windows-validation/SKILL.md` and `references/cargo-target-disk-policy.md` immediately before a Cargo command. Windows-native validation is the default; WSL is a Linux-specific exception.
 - For cross-crate architecture convergence or crate-boundary changes, also read `../zircon-project-skills/zr-architecture-first-engineering/SKILL.md`.
-- Read `workflow/SKILL.md` for repository-specific editing and refactor rules.
-- Read `validation/SKILL.md` before claiming the workspace is green or before entering a milestone testing stage.
-- Use `validation/SKILL.md` and `scripts/validate-matrix.ps1` as the default milestone testing-stage Cargo validation path; during implementation slices, prefer scoped `cargo check` only when a lightweight Rust syntax/type gate is needed.
+- Read `validation/SKILL.md` before claiming the workspace is green or entering a milestone testing stage.
+- Use `validation/SKILL.md` and `scripts/validate-matrix.ps1` for the selected milestone-stage Cargo batch. Do not run Cargo by default during implementation slices; use it early only for a blocker, public API/ABI change, unsafe code, persistence risk, or explicit user request.
 - Read `reporting.md` before closeout so validation and risk statements stay concrete.
 
 ## Structure Rules

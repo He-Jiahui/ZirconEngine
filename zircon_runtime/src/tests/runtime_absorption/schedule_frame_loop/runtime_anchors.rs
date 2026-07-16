@@ -45,7 +45,7 @@ fn assert_system_stage_contract() {
 }
 
 fn assert_dynamic_session_time_handoff() {
-    let session = include_str!("../../../dynamic_api/session.rs");
+    let session = include_str!("../../../dynamic_api/session/state.rs");
     let session_profile = include_str!("../../../dynamic_api/session/profile.rs");
     assert_eq!(
         session.matches(".tick_time(").count(),

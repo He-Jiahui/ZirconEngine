@@ -1,20 +1,15 @@
-use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
-use crate::graphics::text::font::{
-    text_decoration_frame, FontDatabase, TextDecorationKind, TextDecorationMetrics,
-};
+use crate::text::font::{text_decoration_frame, TextDecorationKind, TextDecorationMetrics};
+use crate::text::sdf::SdfRunCpuPreparation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 
 use super::super::render::ScreenSpaceUiTextBatch;
-use super::super::sdf_font_bake::SdfFontBakeCache;
 use super::vertices::{push_clipped_solid_quad, transform_sdf_vertices, ScreenSpaceUiSdfVertex};
 
 pub(super) fn build_text_decoration_vertices(
     texts: &[ScreenSpaceUiTextBatch],
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
+    cpu_runs: &[SdfRunCpuPreparation],
     viewport_size: UVec2,
 ) -> Vec<ScreenSpaceUiSdfVertex> {
     let viewport = UiFrame::new(
@@ -24,13 +19,18 @@ pub(super) fn build_text_decoration_vertices(
         viewport_size.y.max(1) as f32,
     );
     let mut vertices = Vec::new();
-    for text in texts
+    for (text, cpu_run) in texts
         .iter()
-        .filter(|text| text.text_decorations.underline || text.text_decorations.strikethrough)
+        .zip(cpu_runs)
+        .filter(|(text, _)| text.text_decorations.underline || text.text_decorations.strikethrough)
     {
         let start = vertices.len();
-        let metrics = font_bake.text_decoration_metrics(text, font_database, asset_manager);
-        push_text_decorations_for_metrics(&mut vertices, text, metrics, viewport);
+        push_text_decorations_for_metrics(
+            &mut vertices,
+            text,
+            cpu_run.decoration_metrics,
+            viewport,
+        );
         if let Some(transform) = text.clip_transform {
             transform_sdf_vertices(&mut vertices[start..], transform);
         }
@@ -50,13 +50,14 @@ pub(super) fn push_text_decorations_for_metrics(
         .unwrap_or(viewport);
     let baseline = text_decoration_baseline(text, metrics);
     if text.text_decorations.underline {
-        let frame = text_decoration_frame(
-            text.frame,
+        let frame: UiFrame = text_decoration_frame(
+            text.frame.into(),
             baseline,
-            text.writing_mode,
+            text.writing_mode.into(),
             metrics,
             TextDecorationKind::Underline,
-        );
+        )
+        .into();
         push_clipped_solid_quad(
             vertices,
             frame,
@@ -66,13 +67,14 @@ pub(super) fn push_text_decorations_for_metrics(
         );
     }
     if text.text_decorations.strikethrough {
-        let frame = text_decoration_frame(
-            text.frame,
+        let frame: UiFrame = text_decoration_frame(
+            text.frame.into(),
             baseline,
-            text.writing_mode,
+            text.writing_mode.into(),
             metrics,
             TextDecorationKind::Strikethrough,
-        );
+        )
+        .into();
         push_clipped_solid_quad(
             vertices,
             frame,

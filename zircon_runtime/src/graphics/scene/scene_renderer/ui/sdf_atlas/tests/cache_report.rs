@@ -50,3 +50,44 @@ fn sdf_atlas_cache_report_marks_rebuilt_pages_full_dirty() {
         vec![dirty_page(1, sdf_rect(0, 0, 256, 256))]
     );
 }
+
+#[test]
+fn font_face_invalidation_rebuilds_stable_slots_as_dirty_pages() {
+    let texts = [text_batch("AB", UiFrame::new(0.0, 0.0, 128.0, 32.0))];
+    let mut atlas = ScreenSpaceUiSdfAtlas::new();
+    atlas.prepare(&texts);
+    atlas.prepare(&texts);
+    assert_eq!(atlas.cache_report().stable_slot_count, 2);
+    assert!(atlas.cache_report().dirty_pages.is_empty());
+
+    atlas.invalidate_font_faces();
+    atlas.prepare(&[]);
+    atlas.mark_prepared_pages_uploaded();
+    atlas.prepare(&texts);
+
+    let report = atlas.cache_report();
+    assert_eq!(report.previous_slot_count, 0);
+    assert_eq!(report.current_slot_count, 2);
+    assert_eq!(report.stable_slot_count, 0);
+    assert_eq!(report.added_slot_count, 2);
+    assert!(!report.dirty_pages.is_empty());
+    assert!(report.dirty_pages.iter().all(|page| {
+        page.dirty_rect.x == 0
+            && page.dirty_rect.y == 0
+            && page.dirty_rect.width == atlas.plan().atlas_size.x
+            && page.dirty_rect.height == atlas.plan().atlas_size.y
+    }));
+
+    atlas.prepare(&texts);
+    assert!(!atlas.cache_report().dirty_pages.is_empty());
+    assert!(atlas.cache_report().dirty_pages.iter().all(|page| {
+        page.dirty_rect.x == 0
+            && page.dirty_rect.y == 0
+            && page.dirty_rect.width == atlas.plan().atlas_size.x
+            && page.dirty_rect.height == atlas.plan().atlas_size.y
+    }));
+
+    atlas.mark_prepared_pages_uploaded();
+    atlas.prepare(&texts);
+    assert!(atlas.cache_report().dirty_pages.is_empty());
+}

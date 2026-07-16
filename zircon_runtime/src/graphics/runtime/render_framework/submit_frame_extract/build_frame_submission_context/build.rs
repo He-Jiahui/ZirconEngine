@@ -23,6 +23,7 @@ use super::compile_pipeline::{
     compile_submission_pipeline, compile_submission_pipeline_with_options,
 };
 use super::environment_ibl_compile_options::compile_options_with_environment_ibl_bake_request;
+use super::material_feature_extract::resolve_advanced_pbr_material_usage;
 use super::resolve_enabled_features::resolve_enabled_features;
 use super::resolve_viewport_record_state::resolve_viewport_record_state;
 use super::subsurface_profile_extract::resolve_subsurface_material_profiles;
@@ -78,8 +79,10 @@ fn build_frame_submission_context_from_source(
     let asset_manager = {
         let state = framework.lock_state();
         state.renderer.asset_manager_for_runtime_extract()
-    };
+    }
+    .map_err(|error| RenderFrameworkError::Backend(error.to_string()))?;
     resolve_subsurface_material_profiles(asset_manager.as_ref(), Arc::make_mut(extract_source));
+    resolve_advanced_pbr_material_usage(asset_manager.as_ref(), Arc::make_mut(extract_source));
     let resolved_camera_target = resolve_camera_target_descriptor(
         primary_target_size,
         extract_source.as_ref().view.selected_camera_target(),
@@ -443,7 +446,7 @@ fn build_automatic_virtual_geometry_extract(
         let state = framework.lock_state();
         (
             state.virtual_geometry_runtime_provider.clone()?,
-            state.renderer.asset_manager_for_runtime_extract(),
+            state.renderer.asset_manager_for_runtime_extract().ok()?,
         )
     };
     let mut load_model = |model_id| asset_manager.load_model_asset(model_id).ok();

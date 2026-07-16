@@ -1,5 +1,5 @@
 use zircon_runtime::core::framework::net::NetDiagnostics;
-use zircon_runtime::core::manager::resolve_net_manager;
+use zircon_runtime::core::manager::{net_manager_handle, resolve_manager_service};
 use zircon_runtime::core::{CoreError, CoreHandle};
 use zircon_runtime::plugin::{PluginEventManifest, RuntimeExtensionRegistryError};
 use zircon_runtime::scene::ecs::RuntimeSceneSystemContext;
@@ -53,7 +53,9 @@ pub fn register_runtime_systems(
 }
 
 fn run_net_poll_ingress(context: RuntimeSceneSystemContext<'_>) -> Result<(), CoreError> {
-    let Ok(net) = resolve_net_manager(context.core) else {
+    let Ok(net) = net_manager_handle(context.core)
+        .and_then(|handle| resolve_manager_service(context.core, handle))
+    else {
         return Ok(());
     };
     let diagnostics = net.diagnostics();

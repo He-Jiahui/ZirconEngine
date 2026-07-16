@@ -43,6 +43,7 @@ pub struct RecoveryStatus {
 pub struct RecoveryController {
     policy: RecoveryPolicy,
     last_guard: Option<RecoveryGuard>,
+    last_verified_instance_id: Option<String>,
     circuit_open: bool,
     explicit_stop_requested: bool,
     explicit_restart_requested: bool,
@@ -159,6 +160,34 @@ impl RecoveryController {
     }
 
     pub fn observe_online(&mut self, now_seconds: u64, guard: RecoveryGuard) -> bool {
+        self.observe_online_with_instance(now_seconds, guard, false)
+    }
+
+    /// Records an online observation whose runtime descriptor, process identity, and
+    /// authenticated health response have already been verified together.
+    pub fn observe_verified_online(
+        &mut self,
+        now_seconds: u64,
+        guard: RecoveryGuard,
+        instance_id: &str,
+    ) -> bool {
+        let instance_changed = self.last_verified_instance_id.as_deref() != Some(instance_id);
+        let mut changed = false;
+        if instance_changed {
+            self.last_verified_instance_id = Some(instance_id.to_owned());
+            changed = true;
+        }
+        let observation_changed =
+            self.observe_online_with_instance(now_seconds, guard, instance_changed);
+        changed || observation_changed
+    }
+
+    fn observe_online_with_instance(
+        &mut self,
+        now_seconds: u64,
+        guard: RecoveryGuard,
+        verified_instance_changed: bool,
+    ) -> bool {
         let mut changed = self.last_guard != Some(guard);
         self.last_guard = Some(guard);
         let invalidates_explicit_restart = guard.explicit_stop
@@ -181,6 +210,16 @@ impl RecoveryController {
             changed |= self.explicit_stop_requested || self.explicit_restart_requested;
             self.explicit_stop_requested = false;
             self.explicit_restart_requested = false;
+        }
+        let replacement_is_safe = guard.state == SupervisionState::Healthy
+            && !guard.explicit_stop
+            && !guard.maintenance_hold
+            && !guard.valid_competing_instance;
+        if verified_instance_changed && replacement_is_safe {
+            changed |= self.policy.clear_failures();
+            changed |= self.circuit_open;
+            self.circuit_open = false;
+            return changed;
         }
         let (policy_changed, reset) = if guard.state == SupervisionState::Healthy {
             self.policy.observe_healthy(now_seconds)
@@ -258,6 +297,18 @@ pub struct RecoveryPolicy {
 }
 
 impl RecoveryPolicy {
+    fn clear_failures(&mut self) -> bool {
+        let changed = !self.failures.is_empty()
+            || self.healthy_since.is_some()
+            || self.next_retry_at.is_some()
+            || self.circuit_opened_at.is_some();
+        self.failures.clear();
+        self.healthy_since = None;
+        self.next_retry_at = None;
+        self.circuit_opened_at = None;
+        changed
+    }
+
     pub fn record_failure(&mut self, now_seconds: u64) -> RecoveryDecision {
         while self
             .failures
@@ -698,5 +749,35 @@ mod tests {
 
         assert_eq!(1, controller.status().failure_count);
         assert_eq!(None, controller.status().healthy_since);
+    }
+
+    #[test]
+    fn verified_replacement_immediately_clears_an_open_circuit() {
+        let guard = RecoveryGuard {
+            state: SupervisionState::Healthy,
+            explicit_stop: false,
+            maintenance_hold: false,
+            valid_competing_instance: false,
+        };
+        let mut controller = RecoveryController::default();
+        controller.observe_verified_online(0, guard, "old-instance");
+        for (index, now) in [1, 2, 4, 8, 16].into_iter().enumerate() {
+            assert_ne!(
+                RecoveryDecision::Suppressed,
+                controller.observe_offline(now, true)
+            );
+            if index < 4 {
+                controller.retry_finished();
+            }
+        }
+        assert_eq!(5, controller.status().failure_count);
+        assert!(controller.status().circuit_open_until.is_some());
+
+        controller.observe_verified_online(17, guard, "old-instance");
+        assert_eq!(5, controller.status().failure_count);
+
+        assert!(controller.observe_verified_online(18, guard, "new-instance"));
+        assert_eq!(0, controller.status().failure_count);
+        assert_eq!(None, controller.status().circuit_open_until);
     }
 }

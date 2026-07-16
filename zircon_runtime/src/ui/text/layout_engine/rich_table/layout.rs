@@ -1,5 +1,5 @@
-use crate::core::framework::render::RichTable;
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::RichTable;
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
@@ -22,16 +22,13 @@ const TABLE_COLUMN_GAP_EM: f32 = 0.2;
 const MIN_TABLE_COLUMN_EM: f32 = 1.0;
 const MAX_PROVISIONAL_CELL_BLOCK_EXTENT: f32 = f32::MAX / 4.0;
 
-pub(in super::super) fn layout_rich_tables_with_provider<P>(
+pub(in super::super) fn layout_rich_tables_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
-    provider: &mut P,
-) -> Option<UiResolvedTextLayout>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Option<UiResolvedTextLayout> {
     let axes = TableAxes::from_style(style);
     let top_level_tables: Vec<&RichTable> = parsed
         .rich
@@ -140,18 +137,15 @@ where
     })
 }
 
-fn layout_table_with_provider<P>(
+fn layout_table_with_provider(
     parsed: &UiParsedText,
     table: &RichTable,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip: UiFrame,
     axes: TableAxes,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     let grid = TableGrid::from_table(table);
     let column_count = grid.column_count;
     let column_gap = style.font_size.max(1.0) * TABLE_COLUMN_GAP_EM;
@@ -299,17 +293,14 @@ where
     }
 }
 
-fn preferred_cell_extents<P>(
+fn preferred_cell_extents(
     parsed: &UiParsedText,
     grid: &TableGrid<'_>,
     table_depth: u16,
     style: &UiResolvedStyle,
     axes: TableAxes,
-    provider: &mut P,
-) -> Vec<PreferredColumnExtent>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<PreferredColumnExtent> {
     grid.cells
         .iter()
         .map(|placed| {

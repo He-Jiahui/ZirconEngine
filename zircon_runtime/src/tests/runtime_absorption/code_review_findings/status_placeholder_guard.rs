@@ -1,5 +1,5 @@
 const REVIEW_OUTPUT: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
 );
 
 #[test]

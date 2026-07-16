@@ -26,6 +26,7 @@ MODULE_FIELDS = frozenset(
         "capabilities",
         "system_sets",
         "system_anchors",
+        "event_consumers",
     )
 )
 MODULE_SYSTEM_FIELDS = ("system_sets", "system_anchors")
@@ -156,6 +157,72 @@ def collect_module_schema_violations(
         namespace_id,
         violations,
     )
+    collect_module_event_consumer_violations(
+        display_path,
+        field_label,
+        module,
+        module_kind,
+        namespace_id,
+        violations,
+    )
+
+
+def collect_module_event_consumer_violations(
+    display_path: str,
+    field_label: str,
+    module: dict[str, Any],
+    module_kind: str | None,
+    namespace_id: str | None,
+    violations: list[str],
+) -> None:
+    consumers = module.get("event_consumers")
+    if consumers is None:
+        return
+    if module_kind != "editor":
+        violations.append(
+            f"{display_path}: {field_label}.event_consumers may only be declared by editor modules"
+        )
+    if not isinstance(consumers, list) or not consumers:
+        violations.append(
+            f"{display_path}: {field_label}.event_consumers must be a non-empty array"
+        )
+        return
+    seen_ids: set[str] = set()
+    known_fields = {"consumer_id", "event_id", "payload_schema", "required_capability"}
+    for index, consumer in enumerate(consumers):
+        label = f"{field_label}.event_consumers[{index}]"
+        if not isinstance(consumer, dict):
+            violations.append(f"{display_path}: {label} must be a table")
+            continue
+        for field in sorted(consumer):
+            if field not in known_fields:
+                violations.append(f"{display_path}: {label}.{field} is not a known event consumer field")
+        values: dict[str, str] = {}
+        for field in ("consumer_id", "event_id", "payload_schema", "required_capability"):
+            value = consumer.get(field)
+            if not is_non_empty_trimmed_string(value):
+                violations.append(f"{display_path}: {label}.{field} must be a non-empty trimmed string")
+            else:
+                values[field] = value
+        consumer_id = values.get("consumer_id")
+        if consumer_id is not None:
+            if consumer_id in seen_ids:
+                violations.append(f"{display_path}: {label}.consumer_id {consumer_id} is duplicated")
+            seen_ids.add(consumer_id)
+            if namespace_id and not consumer_id.startswith(f"{namespace_id}."):
+                violations.append(
+                    f"{display_path}: {label}.consumer_id {consumer_id} should stay under namespace {namespace_id}."
+                )
+        event_id = values.get("event_id")
+        if event_id is not None and namespace_id and not event_id.startswith(f"{namespace_id}."):
+            violations.append(
+                f"{display_path}: {label}.event_id {event_id} should stay under namespace {namespace_id}."
+            )
+        capability = values.get("required_capability")
+        if capability is not None and not capability.startswith("editor."):
+            violations.append(
+                f"{display_path}: {label}.required_capability {capability} should start with editor."
+            )
 
 
 def collect_module_known_field_violations(

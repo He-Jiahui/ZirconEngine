@@ -343,6 +343,22 @@ status: in_progress
 ---
 # 15 组件视觉标准化（从原子基元到领域组合）
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-editor-layout-component-standardization",
+  "goal": "按 Unreal Slate 度量与响应、Zircon 主题令牌和 Runtime Text 接口，自下而上完成编辑器原子、复合与领域布局组件的视觉标准化和自适应截图验收",
+  "milestones": [
+    {"id": "M1", "title": "从原子控件到复合界面的连续视觉标准化", "depends_on": []}
+  ]
+}
+```
+
+## Coordinator 里程碑拓扑
+
+- [ ] **M1.1 TextField 与 Dialog 原子/复合视觉标准化.** 仅覆盖 closeout manifest 中的 21 个 TextField、Dialog、测试、模块文档与 `docs/tests/editor/` 截图文件；该 slice 独立验收，不把父 M1、S15.4 全项或 Layout15 计划标记为完成。
+- 测试阶段：Windows 受管 Cargo fresh compile；TextField focused guards 5/5、Dialog exact guards 8/8、ignored screenshot captures 2/2；三张验收图固定写入 `docs/tests/editor/`；独立复核 Critical/Important/Minor = 0/0/0。完整证据见 `15/2026-07-14-workbench-v2-bridge-boundary-profile.md`。
+
 > 2026-07-11 S15.3d 完成:页面溢出选择列表已接入共享 popup keyboard target,Down/Up 首次选择与循环、文本前缀搜索、Enter 激活、Escape 关闭复用同一交互/页面回调 owner。真实 RED 0/2 定位为测试夹具遗漏 `UiHostContext` 权威状态,修正后 focused 2/2 passed;共享 dropdown/menu/Home-End 回归 3/3 passed;ignored capture 1/1 passed。验收图 `docs/tests/editor/editor-window-m3-host-page-overflow-keyboard-640x420.png`,8944 bytes,SHA256 `14EB302814E3CC48E3AD9BFF0C4385E38A07A9153B0B9DA5A327AEDF2A508681`;repo `target` 与 D/E/F cargo target 同名图均 0。该图只验收局部 overflow list 的键盘 hover,不声明大面积空背景或整窗视觉已达到参考图;S15.3 总项继续开放。
 
 > 2026-07-11 S15.4pq/S15.6op 完成: `editor_layout_asset_browser_dynamic_thumbnail_responsive_grid_native_scroll_screenshot_passed` 已移除 Thumbnail 固定 8 项截断,由共享 `AssetThumbnailGridMetrics` 根据实时内容宽度计算 1-6 列、104-132px card 宽度、稳定纵横间距与完整纵向 content extent;layout、二维 pointer hit-test、native projector/clip、scrollbar 共用同一组 item frames。native route 以可见 grid 优先于 retained collapsed table,修复切换到 Thumbnail 后隐藏 List 节点抢占滚动的问题;滚动只平移 card/preview/name/info-band children,工具栏、view-mode chips、utility tabs 和 Preview 保持固定。验证:当前 editor test binary 构建通过;dynamic nodes、responsive grid、grid route、route priority、二维 pointer、projector 与真实窗口 scroll isolation 共 7 个 focused 回归分别 1/1 passed;ignored capture 1/1 passed。验收图 `docs/tests/editor/editor-window-m3-asset-browser-thumbnail-scrolled-hover-900x620.png`,106508 bytes,SHA256 `7BAF3A64A6AA1BB109511E85F2775C35F97A7A63853B79EFE37248D08603D7FD`;repo `target`、外部 F/D target 同名 PNG 均 0 hits;人工复核六列密集网格、滚动裁剪、单卡 hover 与固定 Preview 无重叠。本片完成 Browser Thumbnail 动态内容、响应式列、native scroll/clip 与截图验证,不声明完整 Content Browser 资源操作、thumbnail cache/generation 或 Layout 15 全部完成。
@@ -1133,6 +1149,12 @@ S15.1 在 retained host 引入**唯一**度量事实源(建议落点 `paint_them
 - [x] **S15.4ok/S15.6nl** retained Property/axis component route:新增 `property_axis_visual_screenshot.rs`,用真实 property-row/axis-label/axis-value-field painter 输出 `docs/tests/editor/editor-components-property-axis-900x360.png`,46029 bytes,SHA256 `F7B228D8C9B8C354B00A0A194C8E0499FDCFBE73595988DC36B27B0BF45BECE8`;focused component visual 测试与 ignored screenshot export 通过且 repo/external target 扫描无同名截图。
 - [x] **S15.4ol/S15.6nm** retained Asset thumbnail component route:新增 `asset_thumbnail_visual_screenshot.rs`,用真实 asset-thumbnail-card/name-area/visual painter 输出 `docs/tests/editor/editor-components-asset-thumbnails-900x360.png`,32081 bytes,SHA256 `F05DFF34C66BF9FE04C3EEF1E0427608D4618BAA81BFB8564968744EFFEE917A`;direct compiled test binary component visual 测试与 ignored screenshot export 通过且 repo/external target 扫描无同名截图。
 - [ ] **S15.5** 640/900/1260 三档断点自适应;三档截图无破版。(S15.5a `LayoutTier` + 640 右抽屉 rail 折叠已通过;S15.5b 主页签 Narrow/Wide 联动已通过;S15.5c 表格列 narrow tier 联动已通过;S15.5d breakpoint 默认 token、window minimum 与 Ultra 档已完成;S15.5e Asset Browser 短视口 utility/详情列折叠已通过;S15.5f Asset Browser 短视口来源栏折叠已通过;S15.5h 断点判定已改为 `physical_width / scale_factor` 后的逻辑宽度,宿主 scale factor 已接入且 focused Cargo/M3 截图通过;toolbar popup 相对 anchor 900/1260/1672 已完成;窗口级组合观感继续 open)
+
+## 跨计划 Failure 状态
+
+- Open：受管 Cargo PID 复用误判阻断本计划的当前源码窗口截图验证；最低共享修复由 Tooling 01 承担，见 [Cargo PID 复用身份守卫](../../zircon_tooling/session_coordinator/01/failure-2026-07-14-cargo-pid-reuse-identity-guard.md)。在该 handoff 回传前，不复用旧二进制或更换 target。
+- fixed 已修复：[runtime-text-ui-system-constructor-drift](15/fixed-2026-07-14-runtime-text-ui-system-constructor-drift.md)
+- fixed 已修复：[binary-value-visibility-compilation](15/fixed-2026-07-14-binary-value-visibility-compilation.md)
 - [x] **S15.6** retained painter 色板由 `EditorDesignTokens` 投影;删除第二套手写色板;token 测试 + 截图色板比对。(已通过 focused tests/build/M3 screenshot;组件 atlas 直接执行已编译测试二进制通过)
 
 ## 附录 D：逐切片实现就绪设计(文件级)
@@ -1226,7 +1248,7 @@ S15.1 在 retained host 引入**唯一**度量事实源(建议落点 `paint_them
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
-- 迁入记录：[`15/2026-07-09-component-standardization-from-primitives-output-records.md`](15/2026-07-09-component-standardization-from-primitives-output-records.md)
+- 迁入记录：[`../../_archive/zircon_editor/editor_layout/15/2026-07-09-component-standardization-from-primitives-output-records.md`](../../_archive/zircon_editor/editor_layout/15/2026-07-09-component-standardization-from-primitives-output-records.md)
 - 已修复交接（`fixed / 2026-07-11`）：[`Editor 01/fixed-2026-07-11-editor-m1-zui-governance.md`](../editor/01/fixed-2026-07-11-editor-m1-zui-governance.md)；审查后 ZUI governance 为 72/72，24 个 builtin registry 键及直接消费者已硬切 locator，alias 机制已删除，功能计划只保留回链与摘要。
 - 待修复交接（`open / 2026-07-12`）：[`Physics 03/failure-2026-07-12-collider-shape-consumer-exhaustiveness.md`](../../zircon_plugins/03/failure-2026-07-12-collider-shape-consumer-exhaustiveness.md)；Physics 03 M2-T1 新增五个 `ColliderShape` 变体后，Runtime project I/O、property access 与 render post-process 四处 match 尚未穷尽，当前源码 Editor Windows 构建在截图测试前被 E0004 阻断。
 - fixed 已修复：[realtime-ibl-graph-recorder-type-errors](15/fixed-2026-07-12-realtime-ibl-graph-recorder-type-errors.md)

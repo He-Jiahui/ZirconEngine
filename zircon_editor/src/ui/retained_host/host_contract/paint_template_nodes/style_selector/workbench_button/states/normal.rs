@@ -11,7 +11,7 @@ pub(super) fn normal_button_style(
     let border_width = workbench_button_border_width();
     match kind {
         WorkbenchButtonKind::Primary => WorkbenchButtonStyle {
-            surface: button_palette.surface_base,
+            surface: button_palette.surface_primary_rest,
             border: button_palette.border,
             border_width,
             text: button_palette.text,

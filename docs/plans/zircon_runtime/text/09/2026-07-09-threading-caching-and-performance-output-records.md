@@ -4,7 +4,7 @@
 
 ## 8. 状态与产出记录
 
-> 迁入产出记录：text index 迁入记录 已拆入 [`09/2026-07-09-index-output-records.md`](2026-07-09-index-output-records.md)；本子计划状态表保留当前执行行，长记录在子目录文件中维护。
+> 迁入产出记录：text index 迁入记录 已拆入 [`09/2026-07-09-index-output-records.md`](../../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md)；本子计划状态表保留当前执行行，长记录在子目录文件中维护。
 
 
 | 日期 | 里程碑/切片 | 状态 | 产出 | 验证 | 后续 |

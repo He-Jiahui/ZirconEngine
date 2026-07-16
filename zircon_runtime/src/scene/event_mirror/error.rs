@@ -1,0 +1,33 @@
+use thiserror::Error;
+
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
+pub enum RuntimeEventMirrorError {
+    #[error("runtime event mirror id cannot be empty")]
+    EmptyEventId,
+    #[error("runtime event mirror `{event_id}` payload schema cannot be empty")]
+    EmptyPayloadSchema { event_id: String },
+    #[error("runtime event mirror `{event_id}` is already registered")]
+    DuplicateEventId { event_id: String },
+    #[error("runtime event mirror `{event_id}` is not registered")]
+    UnknownEventId { event_id: String },
+    #[error(
+        "runtime event mirror `{event_id}` expects payload schema `{expected}`, received `{actual}`"
+    )]
+    PayloadSchemaMismatch {
+        event_id: String,
+        expected: String,
+        actual: String,
+    },
+    #[error("runtime event mirror `{event_id}` could not connect its ECS reader")]
+    ConnectionFailed { event_id: String },
+    #[error("runtime event mirror `{event_id}` reader count overflowed")]
+    ReaderCountOverflow { event_id: String },
+    #[error("runtime event mirror `{event_id}` reader count underflowed")]
+    ReaderCountUnderflow { event_id: String },
+    #[error("runtime event mirror `{event_id}` subscription is disconnected")]
+    Disconnected { event_id: String },
+    #[error("runtime event mirror `{event_id}` failed to serialize its payload: {message}")]
+    Serialize { event_id: String, message: String },
+    #[error("runtime event mirror `{event_id}` reader-count callback failed: {message}")]
+    ReaderCountCallback { event_id: String, message: String },
+}

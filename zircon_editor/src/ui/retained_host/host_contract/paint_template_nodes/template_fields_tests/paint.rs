@@ -4,6 +4,7 @@ use super::super::super::style_selector::{
     WORKBENCH_TEXT_FIELD_DISABLED_SURFACE as FIELD_DISABLED_SURFACE,
     WORKBENCH_TEXT_FIELD_DISABLED_TEXT as FIELD_DISABLED_TEXT,
     WORKBENCH_TEXT_FIELD_FOCUSED_BORDER as FIELD_FOCUSED_BORDER,
+    WORKBENCH_TEXT_FIELD_FOCUSED_SURFACE as FIELD_FOCUSED_SURFACE,
     WORKBENCH_TEXT_FIELD_STEPPER_DIVIDER as FIELD_STEPPER_DIVIDER,
     WORKBENCH_TEXT_FIELD_SURFACE as FIELD_SURFACE,
 };
@@ -37,7 +38,7 @@ fn workbench_field_paints_surface_border_and_text() {
 }
 
 #[test]
-fn focused_workbench_field_uses_neutral_focused_border() {
+fn focused_workbench_field_uses_primary_focused_border() {
     let mut node = positioned_field_node(
         "WorkbenchInputFocused",
         "Focused input",
@@ -49,8 +50,9 @@ fn focused_workbench_field_uses_neutral_focused_border() {
     node.focused = true;
     let bytes = paint_template_nodes_for_test(200, 48, model_rc(vec![node]));
 
+    assert_eq!(pixel_at(&bytes, 200, 170, 24), FIELD_FOCUSED_SURFACE);
     assert_eq!(pixel_at(&bytes, 200, 80, 8), FIELD_FOCUSED_BORDER);
-    assert_eq!(FIELD_FOCUSED_BORDER, PALETTE.border);
+    assert_eq!(FIELD_FOCUSED_BORDER, PALETTE.focus_ring);
     assert_ne!(FIELD_FOCUSED_BORDER, PALETTE.accent);
 }
 

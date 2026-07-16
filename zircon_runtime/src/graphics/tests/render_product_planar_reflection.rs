@@ -151,14 +151,14 @@ fn render_mirror_floor(registered: bool, with_probe: bool) -> ProductRender {
     );
 
     let framework = if registered {
-        WgpuRenderFramework::new_with_plugin_render_features(
+        WgpuRenderFramework::new_for_test_with_plugin_render_features(
             asset_manager,
             [planar_render_feature_descriptor()],
             planar_reflection_render_pass_executor_registrations(),
             Vec::new(),
         )
     } else {
-        WgpuRenderFramework::new(asset_manager)
+        WgpuRenderFramework::new_for_test(asset_manager)
     }
     .expect("WGPU framework should initialize for the planar product scene");
     let viewport = framework

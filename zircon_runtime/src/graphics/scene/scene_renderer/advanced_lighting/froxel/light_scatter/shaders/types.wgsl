@@ -12,7 +12,7 @@ struct ZrGpuLightData {
 struct VolumetricLightScatterParams {
     grid_and_light_count: vec4<u32>,
     viewport_size: vec4<u32>,
-    phase_g: vec4<f32>,
+    phase_and_ambient: vec4<f32>,
     view: ZrFroxelViewParams,
     temporal: VolumetricTemporalReprojection,
 };

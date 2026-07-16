@@ -12,5 +12,5 @@ pub use super::{
     RuntimePrepareCollector, RuntimePrepareCollectorContext, RuntimePrepareCollectorFn,
     RuntimePrepareCollectorRegistration, RuntimePrepareMaterialCaptureSeed, SceneRenderer,
     ViewportFrame, ViewportFrameTextureHandle, ViewportRenderRegion, WgpuRenderFramework,
-    GRAPHICS_MODULE_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
 };

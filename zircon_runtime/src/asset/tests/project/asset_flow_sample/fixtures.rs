@@ -279,13 +279,14 @@ pub(super) fn write_sample_material(paths: &ProjectPaths) {
         queue: None,
         validation_diagnostics: Vec::new(),
     };
-    write_text(
-        paths
-            .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
-            .join("materials")
-            .join("hero_surface.zmaterial"),
-        &material.to_toml_string().unwrap(),
-    );
+    let material_path = paths
+        .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
+        .join("materials")
+        .join("hero_surface.zmaterial");
+    if let Some(parent) = material_path.parent() {
+        fs::create_dir_all(parent).unwrap();
+    }
+    crate::asset::tests::support::write_project_material(&material_path, &material);
 }
 
 pub(super) fn write_bc1_texture(path: PathBuf) {

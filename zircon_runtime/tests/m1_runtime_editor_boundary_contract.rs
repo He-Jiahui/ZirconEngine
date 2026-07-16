@@ -13,6 +13,8 @@ use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::graphics::SceneRenderer;
 use zircon_runtime::scene::world::World;
 
+mod support;
+
 #[test]
 fn runtime_world_render_extract_keeps_authoring_overlay_fields_defaulted() {
     let source = read_repo_file("zircon_runtime/src/scene/world/render.rs");
@@ -242,8 +244,9 @@ fn scene_gizmo_overlay_constructors_are_limited_to_editor_viewport_and_runtime_d
 #[test]
 fn neutral_overlay_packet_renders_scene_gizmo_without_runtime_world_context() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
     let viewport_size = UVec2::new(320, 240);
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new(asset_runtime.access()).unwrap();
     let frame = renderer
         .render(overlay_only_snapshot(viewport_size), viewport_size)
         .unwrap();

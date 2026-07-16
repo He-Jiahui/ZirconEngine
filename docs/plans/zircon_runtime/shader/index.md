@@ -87,6 +87,8 @@ Shader 总索引只保留计划入口与当前执行概述；逐条产出记录�
 
 ## 7. 全局验收基线
 
+测试调度遵循 [`milestone-validation-policy.md`](../../milestone-validation-policy.md)：资产 schema、代码生成、import、renderer 消费与 IDE 产物各自按里程碑聚合验证；只有跨这些边界的波次才运行完整 shader/renderer 回归。
+
 1. 开发者新建一个自定义 PBR surface shader(带 8 个属性、2 个 options、3 张贴图)所需手写内容 ≤ 一份 zshader 声明 + 一个 surface 函数;不出现任何手写 binding/layout/上传代码。
 2. 同一 shader 的所有变体共享 group2 bind group layout(布局恒定纪律可断言)。
 3. options 组合只按 `.zmaterial` 实际使用稀疏编译;预热后二次启动 miss 计数为 0(对齐计划 08 MS-M4 验收)。

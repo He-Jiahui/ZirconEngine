@@ -12,6 +12,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     order: i32,
     kind: DialogKind,
     unavailable: bool,
+    action_top: Option<f32>,
     opacity: f32,
 ) {
     let metrics = dialog_metrics();
@@ -30,9 +31,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
         ));
     }
 
-    if let Some(message) = message_text(node, title) {
+    if let (Some(message), Some(body)) = (
+        message_text(node, title),
+        layout::body_rect(rect, kind, action_top),
+    ) {
         commands.push(HostPaintCommand::text(
-            layout::body_rect(rect),
+            body,
             Some(clip.clone()),
             order + 3,
             message.to_string(),

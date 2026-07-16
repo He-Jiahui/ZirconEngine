@@ -543,6 +543,23 @@ status: in_progress
 2. 存量插件按 touch-it-conform-it 增量硬切到骨架，`migration_debt` 递减至 0。
 3. reviewer 面对任意插件看到同一目录骨架、同一 manifest schema、同一注册入口、单源 capability。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-plugins-dx-and-structure-framework",
+  "goal": "统一插件 manifest、骨架、注册入口、capability 单源与存量硬切，并保留可审计的里程碑提交证据。",
+  "milestones": [
+    {"id": "M1", "title": "统一 manifest schema", "depends_on": []},
+    {"id": "M2", "title": "骨架与 SDK", "depends_on": ["M1"]},
+    {"id": "M3", "title": "注册收编", "depends_on": ["M2"]},
+    {"id": "M4", "title": "capability 单源与 editor/runtime 对称", "depends_on": []},
+    {"id": "M5", "title": "存量硬切", "depends_on": ["M2", "M3", "M4"]}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. M4 is an independently committable late-adoption slice because M1–M3 predate coordinator workflow evidence; the task-level dependency remains authoritative in §4. -->
+
 ## 2. 现状缺口（按代码实查，带路径证据）
 
 | # | 缺口 | 规范条目 | 证据路径 |
@@ -626,7 +643,7 @@ status: in_progress
 ## 6. 硬切 checklist
 
 - [x] 旧自由函数注册路径已删除，调用方走 `impl RuntimePlugin::register`（2026-07-10 全插件 runtime 根审计新增 `free_function_registration_sites`，当前为 0；support crate `plugin_sdk` 不误计入插件根）
-- [ ] 缺失 `plugin.toml` 已补齐且过 schema 校验
+- [x] 缺失 `plugin.toml` 已补齐且过 schema 校验（2026-07-15 当前真实审计 `missing_plugin_toml = 0`、`manifest_schema_violations = 0`；`first_party_editor_catalog` 是 workspace support catalog，不是可分发插件根，已由审计分类排除，未用伪造 manifest 消除告警）
 - [x] capability 常量为 `capability.rs` 单源，四源一致（2026-06-23 已完成 15 个 trait-backed first-party runtime 根的 M4/T1 首批 guard，并完成 `PluginFeatureBundleBuilder` + editor `mirrors_runtime(...)` 的 M4/T2 SDK guard；2026-06-28 D5 editor authoring macro consumer guard 已让 animation/physics/net editor plugin 使用 `zircon_plugin_sdk::authoring_plugin!` 生成 struct/Default/declaration/EditorPlugin impl，状态锚 `d5_editor_authoring_macro_consumers_static_passed_cargo_deferred`，守卫 `review_d5_editor_authoring_plugins_use_sdk_macro`；同日 D9 editor/runtime mirror consumer guard 已让 animation/physics/net editor plugin 通过 SDK macro 的 `mirrors_runtime_manifest:` / `EditorPluginDeclaration::mirrors_runtime_manifest` mirror runtime manifest，审计输出 `editor_runtime_mirror_violations = 0`、`d9_editor_runtime_mirror_gate_status = editor-runtime-mirror-clean`；同日 M5/T1 importer capability-owner、runtime-only skeleton owner、editor-only skeleton owner、authoring runtime/editor skeleton owner、particles/physics/texture skeleton owner、editor_build_export_desktop skeleton owner、sound runtime/editor feature skeleton owner、timeline_sequence editor skeleton owner 与最终 8 根 owner rollout 已把 skeleton migration debt 从 35 降至 0；`migration_debt_roots = []`）
 - [x] native 双 crate_name 已显式区分 runtime / editor（2026-07-10 新增 `native_crate_name_collisions`；共享 cdylib 仅在 runtime/editor `kind` 明确且互异时合法，当前为 0）
 - [x] 无兼容 re-export / 双轨；删除清单写进提交说明（2026-07-10 `registration_compatibility_shim_sites = 0`、`m3_hard_cut_gate_status = registration-hard-cut-clean`；本切片删除清单为空并已写入产出记录）
@@ -648,5 +665,8 @@ status: in_progress
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`12/2026-07-09-plugin-dx-and-structure-framework-output-records.md`](12/2026-07-09-plugin-dx-and-structure-framework-output-records.md)
-- Navigation M6 editor/runtime mirror consumer SDK：`待修复（open）`；[failure 交接](12/failure-2026-07-13-plugin-editor-runtime-mirror-consumer-wiring.md)。
-- Plugin structure audit report fixture descriptor 字段同步：`待修复（open）`；[failure 交接](12/failure-2026-07-13-plugin-structure-audit-report-fixture-drift.md)。
+- 当前收口记录：[`12/2026-07-15-plugin-runtime-event-consumer-output-records.md`](12/2026-07-15-plugin-runtime-event-consumer-output-records.md)（event generation 精确里程碑已提交为 `663537c7`；linked runtime module 受管测试 3/3，app Navigation 产品门禁 job `188a8df88f10431c8240845ad440dd05` 为 1/1。代码语义复核 P0/P1 为 0，但 exact 16-file manifest 复核为 P0=0、P1=3、P2=1：Editor09 fixed lifecycle 尚未落地、共享 interface blob 依赖 Editor03 operation owner、event-mirror 的 module/World/test wiring 未完整纳入；必须按 owner 有序提交后重建 manifest，因此计划状态保持 `in_progress`）
+- fixed 已修复：[plugin-editor-runtime-mirror-consumer-wiring](05/fixed-2026-07-15-plugin-editor-runtime-mirror-consumer-wiring.md)
+- fixed 已修复：[plugin-mirror-v1-runtime-fallback](../zircon_editor/editor/03/fixed-2026-07-15-plugin-mirror-v1-runtime-fallback.md)
+- fixed 已修复：[plugin-structure-audit-report-fixture-drift](../zircon_editor/editor/09/fixed-2026-07-15-plugin-structure-audit-report-fixture-drift.md)
+- open / 协调器重复里程碑编号错误选择历史切片 manifest：[repeated-milestone-slice-manifest-selection-conflict](../zircon_tooling/session_coordinator/01/failure-2026-07-15-repeated-milestone-slice-manifest-selection-conflict.md)

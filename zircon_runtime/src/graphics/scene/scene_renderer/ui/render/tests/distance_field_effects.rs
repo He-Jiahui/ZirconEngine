@@ -44,7 +44,7 @@ fn screen_space_ui_effects_force_small_native_text_onto_distance_field_batches()
     assert_eq!(plan.sdf_texts.len(), 1);
     assert_eq!(
         plan.sdf_texts[0].distance_field_mode,
-        crate::graphics::text::sdf::SdfMode::Sdf
+        crate::text::sdf::SdfMode::Sdf
     );
     assert!(plan.sdf_texts[0].text_effects.outline.is_some());
 }
@@ -89,6 +89,6 @@ fn screen_space_ui_glow_selects_mtsdf_true_distance() {
     assert_eq!(plan.sdf_texts.len(), 1);
     assert_eq!(
         plan.sdf_texts[0].distance_field_mode,
-        crate::graphics::text::sdf::SdfMode::Mtsdf
+        crate::text::sdf::SdfMode::Mtsdf
     );
 }

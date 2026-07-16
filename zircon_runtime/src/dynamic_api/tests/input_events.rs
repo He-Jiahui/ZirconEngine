@@ -43,6 +43,7 @@ fn mouse_wheel_events_reject_invalid_unit_and_delta() {
 fn mouse_wheel_at_events_decode_delta_bits_for_dynamic_session() {
     let source = concat!(
         include_str!("../session.rs"),
+        include_str!("../session/state.rs"),
         include_str!("../session/events.rs"),
     );
     let wheel_handler = source

@@ -282,6 +282,13 @@ pub(super) fn update_base_stats(
         ui_text_report.raster_upload.worker_request_pending_count;
     state.stats.last_ui_text_raster_worker_failed_count =
         ui_text_report.raster_upload.worker_request_failed_count;
+    state.stats.last_ui_text_layout_fallback_count = ui_text_report.layout_fallbacks.fallback_count;
+    state.stats.last_ui_text_invalid_font_size_count =
+        ui_text_report.layout_fallbacks.invalid_font_size_count;
+    state.stats.last_ui_text_invalid_language_count =
+        ui_text_report.layout_fallbacks.invalid_language_count;
+    state.stats.last_ui_text_other_layout_error_count =
+        ui_text_report.layout_fallbacks.other_error_count;
     state.stats.last_ui_image_payload_count = ui_stats.image_payload_count();
     state.stats.last_ui_clipped_command_count = ui_stats.clipped_command_count();
     state.stats.last_ui_graph_executed_pass_count = state

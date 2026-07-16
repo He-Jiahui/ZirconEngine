@@ -5,7 +5,7 @@ use zircon_runtime::core::framework::navigation::{
     NAV_MESH_AGENT_COMPONENT_TYPE, NAV_MESH_OBSTACLE_COMPONENT_TYPE,
 };
 use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
-use zircon_runtime::core::manager::resolve_navigation_manager;
+use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::math::{Real, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::scene::components::NodeKind;
@@ -22,7 +22,10 @@ fn navigation_module_resolves_manager_and_queries_loaded_navmesh() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
-    let manager = resolve_navigation_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let manager = resolver
+        .resolve(resolver.navigation_handle().unwrap())
+        .unwrap();
 
     let handle = manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 5.0))
@@ -41,7 +44,10 @@ fn resolved_navigation_manager_exposes_filtered_path_query() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(NAVIGATION_MODULE_NAME).unwrap();
-    let manager = resolve_navigation_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let manager = resolver
+        .resolve(resolver.navigation_handle().unwrap())
+        .unwrap();
     let handle = manager
         .load_nav_mesh(NavMeshAsset::simple_quad("humanoid", 5.0))
         .unwrap();

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::core::editing::intent::EditorIntent;
+use crate::scene::selection::WorldDomain;
 use crate::scene::viewport::{
     DisplayMode, GridMode, HandleElementExtract, OverlayAxis, ProjectionMode, SceneViewportTool,
     ViewportCameraSnapshot,
@@ -8,9 +9,14 @@ use crate::scene::viewport::{
 use crate::ui::binding::ViewportCommand;
 use crate::ui::workbench::startup::{EditorSessionMode, WelcomePaneSnapshot};
 use crate::ui::workbench::state::EditorState;
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::core::framework::render::{
     CapturedFrame, RenderFramework, RenderQualityProfile, RenderStats, RenderViewportDescriptor,
+};
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{
+    CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
 };
 use zircon_runtime::graphics::WgpuRenderFramework;
 use zircon_runtime::scene::DefaultLevelManager;
@@ -107,7 +113,11 @@ fn editor_state_new_starts_in_welcome_mode_without_default_selection() {
     assert!(!snapshot.project_open);
     assert_eq!(snapshot.session_mode, EditorSessionMode::Welcome);
     assert!(snapshot.inspector.is_none());
-    assert!(state.viewport_controller.selected_node().is_none());
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_primary()
+        .is_none());
 }
 
 #[test]
@@ -119,19 +129,151 @@ fn editor_state_with_default_selection_preserves_editor_authored_selection() {
     let snapshot = state.snapshot();
 
     assert!(snapshot.inspector.is_some());
-    assert!(state.viewport_controller.selected_node().is_some());
+    assert!(state
+        .viewport_controller
+        .selection()
+        .active_primary()
+        .is_some());
+}
+
+#[test]
+fn non_selection_edit_preserves_active_multi_selection() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    assert!(state.viewport_controller.selection_mut().replace(
+        WorldDomain::Edit,
+        [camera, cube],
+        Some(cube)
+    ));
+
+    assert!(state
+        .apply_intent(EditorIntent::RenameNode(cube, "Edited Cube".to_string()))
+        .unwrap());
+
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, cube]
+    );
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(cube)
+    );
+    let snapshot = state.snapshot();
+    let selected_entries = snapshot
+        .scene_entries
+        .iter()
+        .filter(|entry| entry.selected)
+        .map(|entry| entry.id)
+        .collect::<Vec<_>>();
+    assert_eq!(selected_entries.len(), 2);
+    assert!(selected_entries.contains(&camera));
+    assert!(selected_entries.contains(&cube));
+    assert_eq!(
+        snapshot.inspector.as_ref().map(|inspector| inspector.id),
+        Some(cube)
+    );
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, cube]
+    );
+    assert!(state.apply_intent(EditorIntent::Redo).unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, cube]
+    );
+}
+
+#[test]
+fn deleting_from_multi_selection_preserves_surviving_entities() {
+    let mut state = test_state();
+    let (cube, camera) = cube_and_camera(&state);
+    assert!(state.viewport_controller.selection_mut().replace(
+        WorldDomain::Edit,
+        [camera, cube],
+        Some(cube)
+    ));
+
+    assert!(state.apply_intent(EditorIntent::DeleteNode(cube)).unwrap());
+
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera]
+    );
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(camera)
+    );
+
+    assert!(state.apply_intent(EditorIntent::Undo).unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, cube]
+    );
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(cube)
+    );
+    assert!(state.apply_intent(EditorIntent::Redo).unwrap());
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera]
+    );
 }
 
 #[test]
 fn editor_state_snapshot_ignores_stale_editor_selection() {
     let mut state = test_state();
-    state.viewport_controller.set_selected_node(Some(999_999));
+    state
+        .viewport_controller
+        .selection_mut()
+        .select_only_active(999_999);
 
     let snapshot = state.snapshot();
 
     assert!(snapshot.inspector.is_none());
     assert!(snapshot.scene_entries.iter().all(|entry| !entry.selected));
-    assert_eq!(state.viewport_controller.selected_node(), Some(999_999));
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(999_999)
+    );
 }
 
 #[test]
@@ -177,7 +319,10 @@ fn play_mode_restores_edit_world_and_history_on_exit() {
     assert_eq!(restored_snapshot.session_mode, EditorSessionMode::Project);
     assert!(restored_snapshot.can_undo);
     assert_eq!(state.world.with_world(|scene| scene.clone()), edit_world);
-    assert_eq!(state.viewport_controller.selected_node(), Some(cube));
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(cube)
+    );
 
     assert!(state.apply_intent(EditorIntent::Undo).unwrap());
     assert_eq!(
@@ -185,6 +330,58 @@ fn play_mode_restores_edit_world_and_history_on_exit() {
             .world
             .with_world(|scene| scene.find_node(cube).unwrap().name.clone()),
         original_name
+    );
+}
+
+#[test]
+fn play_mode_restores_the_complete_dual_domain_selection_model() {
+    let manager = DefaultLevelManager::default();
+    let mut state = EditorState::project(
+        manager.create_default_level(),
+        UVec2::new(1280, 720),
+        "sandbox-project",
+    );
+    let (cube, camera) = cube_and_camera(&state);
+    assert!(state.viewport_controller.selection_mut().replace(
+        WorldDomain::Edit,
+        [camera, cube],
+        Some(cube)
+    ));
+    assert!(state
+        .viewport_controller
+        .selection_mut()
+        .select_only(WorldDomain::Play, camera));
+    let selection_before_play = state.viewport_controller.selection().clone();
+
+    assert!(state.enter_play_mode().unwrap());
+    assert_eq!(
+        state.viewport_controller.selection().active_domain(),
+        WorldDomain::Play
+    );
+    assert_eq!(
+        state
+            .viewport_controller
+            .selection()
+            .active_items()
+            .iter()
+            .copied()
+            .collect::<Vec<_>>(),
+        [camera, cube]
+    );
+    assert!(state
+        .viewport_controller
+        .selection_mut()
+        .select_only(WorldDomain::Edit, camera));
+    assert!(state
+        .viewport_controller
+        .selection_mut()
+        .select_only(WorldDomain::Play, cube));
+
+    assert!(state.exit_play_mode().unwrap());
+
+    assert_eq!(
+        state.viewport_controller.selection(),
+        &selection_before_play
     );
 }
 
@@ -224,7 +421,10 @@ fn drag_tool_click_selects_renderable_without_handle_overlay() {
     });
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
-    assert_eq!(state.viewport_controller.selected_node(), Some(cube));
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(cube)
+    );
     assert!(state.render_snapshot().unwrap().overlays.handles.is_empty());
 }
 
@@ -268,7 +468,10 @@ fn viewport_clicking_light_gizmo_selects_light_node() {
     });
     let _ = state.apply_viewport_command(&ViewportCommand::LeftReleased);
 
-    assert_eq!(state.viewport_controller.selected_node(), Some(light));
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(light)
+    );
 }
 
 #[test]
@@ -551,7 +754,8 @@ fn capture_editor_submission(
     const ASYNC_TEXT_SETTLE_FRAME_COUNT: usize = 24;
 
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let framework = WgpuRenderFramework::new(asset_manager).expect("render framework");
+    let (_asset_runtime, asset_manager_access) = editor_render_asset_access(asset_manager);
+    let framework = WgpuRenderFramework::new(asset_manager_access).expect("render framework");
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .expect("viewport");
@@ -575,6 +779,44 @@ fn capture_editor_submission(
         .expect("capture frame query")
         .expect("captured frame");
     (capture, stats)
+}
+
+fn editor_render_asset_access(
+    manager: Arc<ProjectAssetManager>,
+) -> (CoreRuntime, ProjectAssetManagerAccess) {
+    const MODULE_NAME: &str = "EditorRenderCaptureAssetRuntime";
+    const SERVICE_NAME: &str = "EditorRenderCaptureAssetRuntime.Manager.ProjectAssetManager";
+
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(
+            ModuleDescriptor::new(MODULE_NAME, "editor render capture asset runtime").with_manager(
+                ManagerDescriptor::new(
+                    RegistryName::from_parts(
+                        MODULE_NAME,
+                        ServiceKind::Manager,
+                        "ProjectAssetManager",
+                    ),
+                    StartupMode::Immediate,
+                    Vec::new(),
+                    Arc::new(move |_| {
+                        Ok(
+                            Arc::new(RegisteredManagerService::new(Arc::clone(&manager)))
+                                as ServiceObject,
+                        )
+                    }),
+                ),
+            ),
+        )
+        .expect("editor render capture ProjectAssetManager service should register");
+    runtime
+        .activate_module(MODULE_NAME)
+        .expect("editor render capture ProjectAssetManager module should activate");
+    let core = runtime.handle();
+    let handle = manager_service_handle(&core, SERVICE_NAME)
+        .expect("editor render capture ProjectAssetManager handle should resolve");
+    let access = ProjectAssetManagerAccess::new(core, handle);
+    (runtime, access)
 }
 
 fn count_changed_pixels_in_frame(

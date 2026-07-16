@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::asset::ProjectAssetManager;
-use crate::core::manager::resolve_animation_manager;
+use crate::asset::project_asset_manager_handle;
+use crate::core::manager::{animation_manager_handle, resolve_manager_service};
 use crate::core::math::Real;
 use crate::core::CoreHandle;
 use crate::scene::LevelSystem;
@@ -16,7 +16,9 @@ use super::sequences::apply_loaded_sequences;
 use super::state_machine::resolve_state_machine_pose_requests;
 
 pub(super) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
-    let Ok(animation) = resolve_animation_manager(core) else {
+    let Ok(animation) =
+        animation_manager_handle(core).and_then(|handle| resolve_manager_service(core, handle))
+    else {
         record_empty_animation_state(core, level);
         return;
     };
@@ -27,8 +29,8 @@ pub(super) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         return;
     }
 
-    let asset_manager = core
-        .resolve_manager::<ProjectAssetManager>(crate::asset::PROJECT_ASSET_MANAGER_NAME)
+    let asset_manager = project_asset_manager_handle(core)
+        .and_then(|handle| resolve_manager_service(core, handle))
         .ok();
     let scan = scan_animation_scene(level, &playback_settings, delta_seconds);
     let mut frame_diagnostics = AnimationSceneFrameDiagnostics::from_scan(&scan);

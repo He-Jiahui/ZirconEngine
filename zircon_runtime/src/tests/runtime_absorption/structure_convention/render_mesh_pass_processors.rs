@@ -5,6 +5,9 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs");
     let tests =
         read_runtime_src("graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs");
+    let material_options = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs",
+    );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let plan_02 = format!(
@@ -60,6 +63,23 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
             "fn velocity_processor_requires_velocity_history_and_previous_transform",
             "fn shadow_processor_respects_shadow_view_visibility",
             "GEOMETRY_SOURCE_ID_SKINNED_MESH",
+            "mod material_options;",
+        ],
+    );
+    assert!(
+        !tests.contains(
+            "fn render_material_options_disabled_passes_and_queue_drive_mesh_commands_together"
+        ),
+        "combined material-options coverage should stay in its child owner"
+    );
+    assert_contains_all(
+        "material-options processor child owns combined behavior coverage",
+        &material_options,
+        &[
+            "fn render_material_options_disabled_passes_and_queue_drive_mesh_commands_together",
+            "MaterialDisabledPasses::from_shader_pass_names",
+            "material_option_bits = 1",
+            "fn batch_with_pipeline_key",
         ],
     );
 
@@ -73,6 +93,11 @@ fn runtime_15_mesh_pass_processors_are_folder_backed() {
             "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs",
             tests.as_str(),
             470,
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs",
+            material_options.as_str(),
+            150,
         ),
     ] {
         let line_count = source.lines().count();

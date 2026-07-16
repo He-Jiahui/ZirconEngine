@@ -61,6 +61,8 @@ fn create_test_material_layout(device: &wgpu::Device, label: &str) -> wgpu::Bind
             material_sampler_entry(8),
             material_texture_entry(9),
             material_sampler_entry(10),
+            material_texture_entry(11),
+            material_sampler_entry(12),
         ],
     })
 }

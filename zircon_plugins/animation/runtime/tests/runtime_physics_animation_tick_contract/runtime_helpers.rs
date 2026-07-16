@@ -31,6 +31,9 @@ pub(super) fn runtime_with_scene_asset_only() -> TestRuntime {
 }
 
 pub(super) fn runtime_asset_manager(core: &CoreHandle) -> Arc<ProjectAssetManager> {
-    core.resolve_manager::<ProjectAssetManager>(asset::PROJECT_ASSET_MANAGER_NAME)
-        .unwrap()
+    zircon_runtime::core::manager::resolve_manager_service(
+        core,
+        asset::project_asset_manager_handle(core).unwrap(),
+    )
+    .unwrap()
 }

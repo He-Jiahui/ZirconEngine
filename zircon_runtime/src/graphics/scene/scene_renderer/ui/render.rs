@@ -10,11 +10,12 @@ use zircon_runtime_interface::ui::surface::{
 };
 
 use crate::core::framework::render::SkyboxMode;
+use crate::core::framework::text::TextLayoutError;
 use crate::graphics::scene::resources::{ui_image_resource_id, ResourceStreamer};
 use crate::graphics::scene::scene_renderer::attachment_ops::color_attachment_operations;
-use crate::graphics::text::sdf::SdfMode;
 use crate::graphics::types::{GraphicsError, ViewportRenderFrame};
 use crate::render_graph::{RenderGraphAttachmentLoadOp, RenderGraphAttachmentOps};
+use crate::text::sdf::SdfMode;
 
 use super::image::ScreenSpaceUiImageBatch;
 use super::screen_space_ui_renderer::ScreenSpaceUiRenderer;
@@ -65,6 +66,7 @@ pub(super) struct ScreenSpaceUiTextBatch {
     pub(super) source_range: Option<UiTextRange>,
     pub(super) glyph_advances: Vec<f32>,
     pub(super) shaped_glyphs: Vec<ScreenSpaceUiShapedGlyph>,
+    pub(super) layout_error: Option<TextLayoutError>,
     pub(super) color: [f32; 4],
     pub(super) background_color: Option<[f32; 4]>,
     pub(super) font: Option<String>,
@@ -726,6 +728,7 @@ fn push_text_batch(
     let text_advances::ResolvedScreenSpaceTextGlyphs {
         glyph_advances,
         shaped_glyphs,
+        layout_error,
     } = resolved_glyphs;
 
     let text_effects = command.style.text_effects.normalized();
@@ -741,6 +744,7 @@ fn push_text_batch(
         source_range,
         glyph_advances,
         shaped_glyphs,
+        layout_error,
         color,
         background_color: text_batch_background_color(command, frame, viewport, backgrounds),
         font,

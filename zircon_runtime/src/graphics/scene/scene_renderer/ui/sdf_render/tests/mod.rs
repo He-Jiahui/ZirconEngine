@@ -1,7 +1,3 @@
-use super::super::sdf_font_bake::{
-    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph,
-    SdfFontBakeCache, SdfGlyphMetrics,
-};
 use super::super::sdf_upload::{SdfAtlasUploadMode, SdfAtlasUploadPageReport};
 use super::super::text_pixel_snap::text_frame_device_origin;
 use super::vertices::{
@@ -12,20 +8,26 @@ use super::vertices::{
 };
 use super::*;
 use crate::asset::ProjectAssetManager;
-use crate::core::framework::render::{ShapedGlyphRotation, VerticalMode};
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiShapedGlyph;
 use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
-    plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasGlyphKey,
-    SdfAtlasPlan, SdfAtlasRect, SdfAtlasRun, SdfAtlasSlot,
+    plan_sdf_atlas, SdfAtlasAllocationFailure, SdfAtlasAllocationFailureReason, SdfAtlasPlan,
+    SdfAtlasRun,
 };
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet, GlyphRasterPlacement,
     GlyphSmoothingMode,
 };
-use crate::graphics::text::font::{FontDatabase, SystemFontPolicy};
-use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
-use crate::graphics::text::shaping::vertical_glyph_rotation;
+use crate::text::font::{FontDatabase, SystemFontPolicy};
+use crate::text::sdf::{
+    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasBakeReport, SdfBakedGlyph,
+    SdfFontBakeCache, SdfGlyphMetrics,
+};
+use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot};
+use crate::text::sdf::{SdfBakeParams, SdfMode};
+use crate::text::shaping::vertical_glyph_rotation;
+use crate::text::TextRenderState;
+use crate::text::{ShapedGlyphRotation, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextAlign, UiTextDirection, UiTextRange, UiTextWrap, UiTextWritingMode,
@@ -146,7 +148,12 @@ fn bake_atlas(
     let mut font_bake = SdfFontBakeCache::new();
     let mut font_database = FontDatabase::with_default_fallbacks();
     let asset_manager = ProjectAssetManager::default();
-    let atlas_bake = font_bake.build_atlas(plan, &mut font_database, &asset_manager);
+    let atlas_bake = font_bake.build_atlas_from_slots(
+        plan.atlas_size,
+        &plan.slots,
+        &mut font_database,
+        &asset_manager,
+    );
     (font_bake, font_database, asset_manager, atlas_bake)
 }
 
@@ -177,13 +184,11 @@ fn text_advance(
 
 fn first_sdf_screen_px_range(text: ScreenSpaceUiTextBatch) -> f32 {
     let plan = plan_sdf_atlas(std::slice::from_ref(&text));
-    let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    let (_, _, asset_manager, atlas_bake) = bake_atlas(&plan);
     let vertices = build_sdf_vertices(
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -201,6 +206,7 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         source_range: None,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
+        layout_error: None,
         color: [0.2, 0.3, 0.4, 0.5],
         background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),

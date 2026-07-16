@@ -18,17 +18,18 @@ Treat each accepted milestone as a normal Git commit boundary. Preserve foreign 
 ## Shared preflight
 
 1. **REQUIRED:** Use `cross-session-coordination`. Confirm service health, `main`, Session identity, leases, attribution, baseline, and staged paths.
+   The registered `write_scope` must include both the exact `plan_path` and its numbered child-plan directory before editing plan status or output records. `session register --write-scope` replaces—not appends—the stored list: when correcting an omission, submit the complete prior scope plus the plan paths, then claim and attribute those paths through the coordinator before continuing. Never treat a plan file as implicitly owned because its child directory is owned.
 2. Query the Failure graph. If an open handoff targets this plan, use `handle-plan-failure-handoffs`; fix the lowest shared architecture before closeout.
 3. Before writing plan evidence, use `write-plan-output-records`. Write only the registered numbered child-plan output, never a global `docs/plans` definition or index.
-4. Run the testing stage and `verification-before-completion` for the exact scope.
+4. Reuse the milestone testing stage evidence already recorded for this scope. Do not re-run the test batch at closeout unless the owned scope changed after the last recorded run; `verification-before-completion` is a review of that evidence, not a second execution.
 5. Before the first write or deletion, heartbeat, claim the path, and attribute its base/current hash. Keep that lease live through commit; a deletion without its pre-delete lease base is not owned.
 6. Inventory every Session-owned dirty path, including new files omitted from the latest prompt. Classify `code`, `docs`, `tests`, `scripts`, and `untracked` in JSON. Every untracked path must also appear in one content category. Re-attribute current hashes after the final edit. Never absorb or unstage another Session's files.
 
 ## Validate, commit, and notify
 
-Build every automatic Git subject as a plain Conventional Commit, for example `feat(workflow): complete M5 milestone`. A subject beginning with `【{module}】` is invalid. Derive the module from the registered numbered plan's parent directory only after the commit, exclusively for the WeCom summary line; never insert it into Git history.
+Every Session must give `milestone commit --summary` a concise, concrete description of the delivered change. The service derives the plain Conventional Commit subject as `<type>(<plan-module>): <summary>` from the exact manifest and registered plan; for example, `feat(shader): migrate global shader execution`. It rejects generic `workflow`, `milestone`, and `complete M5 milestone` summaries. A subject beginning with `【{module}】` is invalid; the module prefix belongs only to the WeCom first line.
 
-Do not use `finalize --milestone` for a business milestone. That legacy command creates a scoped Git commit but cannot identify the `M<n>` node, record the workflow attempt, or deliver the service-managed WeCom notification.
+Do not use `finalize --milestone` for a business milestone. The coordinator rejects that legacy command because it cannot identify the `M<n>` node, record the workflow attempt, or deliver the service-managed WeCom notification.
 
 Before the milestone action, stage no files manually. If a repository-owned skill path is intentionally covered by the blanket `.codex` ignore, it remains eligible only when it is already attributed and appears in the service-bound milestone manifest. Run the read-only closeout checker for the exact candidate scope:
 
@@ -51,6 +52,10 @@ $validation = & .\tools\zircon-session.ps1 -Json milestone validate `
   --session-id $sessionId --run-id $runId --milestone $milestoneId `
   --template coordinator-actions | ConvertFrom-Json
 # Wait until the managed validation copy reaches a terminal result in the coordinator snapshot.
+# A direct `validation-copy materialize` response is only an accepted job: poll
+# `validation-copy status <job-id>` until it is `materialized` or `failed`.
+# Never retry by launching Cargo directly; large manifests materialize in a
+# detached archive worker specifically so heartbeat, Cargo finish and leases stay live.
 # Do not launch cargo directly while waiting.
 
 # A distinct reviewer Session submits the independent review after validation is recorded.
@@ -60,7 +65,8 @@ $validation = & .\tools\zircon-session.ps1 -Json milestone validate `
   --critical-count 0 --important-count 0 --summary "<review summary>"
 
 $committed = & .\tools\zircon-session.ps1 -Json milestone commit `
-  --session-id $sessionId --run-id $runId --milestone $milestoneId | ConvertFrom-Json
+  --session-id $sessionId --run-id $runId --milestone $milestoneId `
+  --summary "<specific delivered change>" | ConvertFrom-Json
 ```
 
 `milestone commit` rechecks live gates, Failure state, attribution, leases, and the exact manifest under the Git mutex. It records the accepted `M<n>` attempt and invokes `WeComNotificationService` exactly once after a real commit succeeds. Read the returned notification status; never manually invoke `wecom-push-message` for that same SHA.
@@ -68,15 +74,15 @@ $committed = & .\tools\zircon-session.ps1 -Json milestone commit `
 The service message has exactly four lines:
 
 ```text
-核心内容摘要：【{module}】<中文核心摘要>
+核心内容摘要：【{module}】<M<n> · milestone title：specific summary>
 提交时间：<commit ISO time>
 修改情况统计：<shortstat>
 提交的commit内容：<SHA> <subject>
 ```
 
-The fourth line must contain the real unprefixed Conventional Commit subject. For example, a plan under `docs/plans/zircon_tooling/session_coordinator/` uses `【session_coordinator】` only on the first line, while the Git subject remains `feat(workflow): ...`.
+The fourth line must contain the real unprefixed Conventional Commit subject. For example, a plan under `docs/plans/zircon_tooling/session_coordinator/` uses `【session_coordinator】` only on the first line, while Git records a specific subject such as `feat(session_coordinator): add controlled action audit`.
 
-Never store the webhook URL in Git. If sending fails, report the recorded notification failure; do not retry automatically and do not roll back the commit.
+Never store the webhook URL in Git. If sending fails, report the recorded notification failure; do not retry automatically and do not roll back the commit. Local `pre-commit` and `prepare-commit-msg` gates reject direct `git commit`, including `--no-verify`; the Codex Hook also rejects direct commit forms that try to override `core.hooksPath`, plus direct shared-index mutations (`git add`, `rm`, `mv`, `reset`, or `restore --staged`). Do not set a bypass environment variable or Git hook override. The coordinator performs the scoped Git mutation only after the milestone gates pass.
 
 All build-producing Cargo commands must use the managed validation action or `validate-matrix.ps1`. A repo Hook rejects ordinary `cargo build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean` invocations before they create an unleased target directory. `cargo metadata`, `tree`, and `fmt` remain read-only/non-target inspections.
 
@@ -91,7 +97,7 @@ All build-producing Cargo commands must use the managed validation action or `va
 
 ### Goal
 
-- Reject incomplete plan items, applicable open Failures, or remaining Session-owned dirty paths.
+- Reject incomplete plan items, applicable open Failures, or remaining Session-owned dirty paths. A numbered-plan Session cannot use generic `session set-status completed` as a substitute for this closeout.
 - Do not create an empty final commit when the last milestone already contains all closeout changes.
 - Confirm after the final milestone that the Session-owned scope has no unstaged difference, then process safely executable delayed patches.
 - Close the Goal through `& .\tools\zircon-session.ps1 milestone close-goal --session-id $sessionId --run-id $runId`; the service validates complete milestone attempts, open Failures, pending patches, and live leases before setting the Session complete.

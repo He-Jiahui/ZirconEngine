@@ -21,7 +21,7 @@ const PARTICLE_TRANSPARENT_EXECUTOR_ID: &str = "particle.transparent";
 
 #[test]
 fn render_product_taa_particle_transparent_pass_contributes_before_resolve() {
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+    let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor()],
         [RenderPassExecutorRegistration::new(
@@ -94,7 +94,7 @@ fn render_product_taa_particle_transparent_pass_contributes_before_resolve() {
 
 #[test]
 fn render_product_particle_previous_state_suppresses_velocity_gap_stats() {
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+    let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor()],
         [RenderPassExecutorRegistration::new(

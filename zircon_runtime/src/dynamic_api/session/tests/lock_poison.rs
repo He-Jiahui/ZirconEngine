@@ -2,10 +2,10 @@ use std::panic::{self, AssertUnwindSafe};
 
 use zircon_runtime_interface::{ZrStatus, ZrStatusCode};
 
-use super::super::{
-    destroy_session, insert_session, lock_registry, lock_session, with_session,
-    RuntimeDynamicSession, RuntimeDynamicSessionProfile,
-};
+use super::super::ffi::destroy_session;
+use super::super::profile::RuntimeDynamicSessionProfile;
+use super::super::registry::{insert_session, lock_registry, lock_session, with_session};
+use super::super::state::RuntimeDynamicSession;
 
 #[test]
 fn dynamic_api_session_registry_accessors_recover_poisoned_locks() {

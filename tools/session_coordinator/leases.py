@@ -176,6 +176,38 @@ class LeaseService:
             ).fetchall()
         return [row["display_path"] for row in rows]
 
+    def require_owned_live(
+        self,
+        session_id: str,
+        paths: list[str] | tuple[str, ...],
+        *,
+        error_code: str,
+        message: str,
+        now: datetime | None = None,
+    ) -> None:
+        """Require every exact path to retain an unexpired lease for one Session."""
+        current_time = now or utc_now()
+        normalized = [self.path_policy.normalize(path) for path in paths]
+        if not normalized:
+            raise ValueError("at least one lease path is required")
+        keys = tuple(item.key for item in normalized)
+        placeholders = ",".join("?" for _ in keys)
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                f"SELECT path_key, session_id, expires_at FROM leases WHERE path_key IN ({placeholders})",
+                keys,
+            ).fetchall()
+        leases = {row["path_key"]: row for row in rows}
+        missing = [
+            item.display
+            for item in normalized
+            if (row := leases.get(item.key)) is None
+            or row["session_id"] != session_id
+            or current_time > parse_utc(row["expires_at"])
+        ]
+        if missing:
+            raise CoordinatorError(error_code, message, details={"paths": missing})
+
     def list(self) -> list[dict[str, str | None]]:
         with self.database.connect() as connection:
             rows = connection.execute("SELECT * FROM leases ORDER BY path_key").fetchall()

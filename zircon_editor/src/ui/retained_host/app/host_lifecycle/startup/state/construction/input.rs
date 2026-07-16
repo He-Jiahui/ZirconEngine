@@ -11,8 +11,8 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) struct StartupHos
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) startup_managers:
         StartupManagers,
     #[cfg(feature = "profiling")]
-    pub(in crate::ui::retained_host::app::host_lifecycle::startup) runtime_client:
-        SharedEditorRuntimeClient,
+    pub(in crate::ui::retained_host::app::host_lifecycle::startup) runtime_gateway:
+        SharedEditorRuntimeGateway,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) native_plugin_live_host:
         Arc<zircon_runtime::plugin::native::NativePluginLiveHost>,
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) viewport:

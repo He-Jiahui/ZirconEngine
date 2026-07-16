@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::sync::Arc;
+use std::thread;
 
 use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
@@ -8,7 +9,7 @@ use crate::core::{LifecycleState, ServiceKind};
 use super::super::contexts::PluginContext;
 use super::super::descriptors::RegistryName;
 use super::super::state::ServiceEntryFactory;
-use super::CoreHandle;
+use super::{CoreHandle, RegisteredServiceIdentity};
 
 const RESOLUTION_STACK_FRAME_CAPACITY: usize = 1;
 
@@ -31,6 +32,49 @@ impl CoreHandle {
     pub fn resolve_manager<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
         let service = self.resolve_named_service(name, Some(ServiceKind::Manager))?;
         downcast_resolved_service(name, service)
+    }
+
+    pub(crate) fn registered_manager_identity(
+        &self,
+        service_name: &str,
+    ) -> Result<RegisteredServiceIdentity, CoreError> {
+        let services = self.lock_services();
+        let Some((name, entry)) = services.get_key_value(service_name) else {
+            return Err(CoreError::MissingService(service_name.to_owned()));
+        };
+        let actual_kind = name.service_kind();
+        if actual_kind != ServiceKind::Manager {
+            return Err(CoreError::ServiceKindMismatch {
+                name: service_name.to_owned(),
+                expected: ServiceKind::Manager,
+                actual: actual_kind,
+            });
+        }
+        ensure_service_resolution_available(name.as_str(), entry.lifecycle)?;
+        Ok(RegisteredServiceIdentity::new(
+            entry.index,
+            entry.generation,
+            name.clone(),
+        ))
+    }
+
+    pub(crate) fn resolve_registered_manager<T: Any + Send + Sync>(
+        &self,
+        identity: &RegisteredServiceIdentity,
+    ) -> Result<Arc<T>, CoreError> {
+        let service = match self
+            .registered_service_resolution_for_identity(identity, ServiceKind::Manager)?
+        {
+            RegisteredServiceResolution::Resolved(instance) => instance,
+            RegisteredServiceResolution::Pending => {
+                let mut stack = Vec::with_capacity(RESOLUTION_STACK_FRAME_CAPACITY);
+                let instance =
+                    self.resolve_existing_service_inner(identity.service(), &mut stack)?;
+                self.validate_registered_service_identity(identity, ServiceKind::Manager)?;
+                instance
+            }
+        };
+        downcast_resolved_service(identity.service().as_str(), service)
     }
 
     pub fn resolve_plugin<T: Any + Send + Sync>(&self, name: &str) -> Result<Arc<T>, CoreError> {
@@ -87,6 +131,7 @@ impl CoreHandle {
                 });
             }
         }
+        ensure_service_resolution_available(name.as_str(), entry.lifecycle)?;
         if let Some(instance) = entry.instance.clone() {
             return Ok(NamedServiceResolution::Resolved(instance));
         }
@@ -128,12 +173,42 @@ impl CoreHandle {
             let Some(entry) = services.get(service_key) else {
                 return Err(CoreError::MissingService(service_key.to_string()));
             };
+            ensure_service_resolution_available(service_key.as_str(), entry.lifecycle)?;
             if let Some(instance) = entry.instance.clone() {
                 return Ok(RegisteredServiceResolution::Resolved(instance));
             }
         }
 
         Ok(RegisteredServiceResolution::Pending)
+    }
+
+    fn registered_service_resolution_for_identity(
+        &self,
+        identity: &RegisteredServiceIdentity,
+        expected_kind: ServiceKind,
+    ) -> Result<RegisteredServiceResolution, CoreError> {
+        let services = self.lock_services();
+        let Some(entry) = services.get(identity.service()) else {
+            return Err(CoreError::MissingService(identity.service().to_string()));
+        };
+        validate_service_identity(identity, entry.index, entry.generation, expected_kind)?;
+        ensure_service_resolution_available(identity.service().as_str(), entry.lifecycle)?;
+        if let Some(instance) = entry.instance.clone() {
+            return Ok(RegisteredServiceResolution::Resolved(instance));
+        }
+        Ok(RegisteredServiceResolution::Pending)
+    }
+
+    fn validate_registered_service_identity(
+        &self,
+        identity: &RegisteredServiceIdentity,
+        expected_kind: ServiceKind,
+    ) -> Result<(), CoreError> {
+        let services = self.lock_services();
+        let Some(entry) = services.get(identity.service()) else {
+            return Err(CoreError::MissingService(identity.service().to_string()));
+        };
+        validate_service_identity(identity, entry.index, entry.generation, expected_kind)
     }
 
     fn resolve_existing_service_inner(
@@ -145,21 +220,59 @@ impl CoreHandle {
             return Err(CoreError::DependencyCycle(service_key.to_string()));
         }
         stack.push(service_key.clone());
+        let current_thread = thread::current().id();
+        let mut claimed_initialization = false;
 
         let result = (|| {
             let owner_module = service_key.module_name();
             let canonical_service_name = service_key.as_str();
-            let (dependency_names, factory) = {
+            let (dependency_names, factory, resolution_index, resolution_generation) = {
                 let mut services = self.lock_services();
-                let Some(entry) = services.get_mut(service_key) else {
-                    return Err(CoreError::MissingService(service_key.to_string()));
-                };
-                if let Some(instance) = entry.instance.clone() {
-                    return Ok(instance);
+                loop {
+                    let Some(entry) = services.get_mut(service_key) else {
+                        return Err(CoreError::MissingService(service_key.to_string()));
+                    };
+                    if let Some(instance) = entry.instance.clone() {
+                        return Ok(instance);
+                    }
+                    ensure_service_resolution_available(service_key.as_str(), entry.lifecycle)?;
+                    if entry.lifecycle != LifecycleState::Initializing {
+                        entry.lifecycle = LifecycleState::Initializing;
+                        entry.initialization_owner = Some(current_thread);
+                        claimed_initialization = true;
+                        break (
+                            entry.dependencies.clone(),
+                            entry.factory.clone(),
+                            entry.index,
+                            entry.generation,
+                        );
+                    }
+                    let Some(initialization_owner) = entry.initialization_owner else {
+                        return Err(CoreError::ServiceUnavailable(service_key.to_string()));
+                    };
+                    if initialization_owner == current_thread
+                        && self.take_service_activation_reentry(current_thread, service_key)
+                    {
+                        claimed_initialization = true;
+                        break (
+                            entry.dependencies.clone(),
+                            entry.factory.clone(),
+                            entry.index,
+                            entry.generation,
+                        );
+                    }
+                    if !self
+                        .try_register_service_resolution_wait(current_thread, initialization_owner)
+                    {
+                        return Err(CoreError::DependencyCycle(service_key.to_string()));
+                    }
+                    services = self.wait_for_service_resolution_change(services);
+                    self.clear_service_resolution_wait(current_thread);
                 }
-                entry.lifecycle = LifecycleState::Initializing;
-                (entry.dependencies.clone(), entry.factory.clone())
             };
+
+            #[cfg(test)]
+            self.wait_on_service_resolution_claim_barrier();
 
             let should_activate = {
                 let modules = self.lock_modules();
@@ -169,7 +282,10 @@ impl CoreHandle {
                 }
             };
             if should_activate {
-                self.activate_module(owner_module)?;
+                self.register_service_activation_reentry(current_thread, service_key.clone());
+                let activation_result = self.activate_module(owner_module);
+                self.clear_service_activation_reentry(current_thread, service_key);
+                activation_result?;
                 if let Some(instance) = self.resolved_service_instance(service_key) {
                     return Ok(instance);
                 }
@@ -202,20 +318,40 @@ impl CoreHandle {
                 }
             };
 
-            {
+            let committed = (|| {
                 let mut services = self.lock_services();
                 let Some(entry) = services.get_mut(service_key) else {
                     return Err(CoreError::MissingService(service_key.to_string()));
                 };
+                if entry.index != resolution_index
+                    || entry.generation != resolution_generation
+                    || matches!(
+                        entry.lifecycle,
+                        LifecycleState::Stopping | LifecycleState::Unloaded
+                    )
+                {
+                    return Err(CoreError::ServiceUnavailable(service_key.to_string()));
+                }
+                if entry.initialization_owner != Some(current_thread) {
+                    return Err(CoreError::ServiceUnavailable(service_key.to_string()));
+                }
+                if let Some(existing) = entry.instance.clone() {
+                    return Ok(existing);
+                }
+                if entry.lifecycle != LifecycleState::Initializing {
+                    return Err(CoreError::ServiceUnavailable(service_key.to_string()));
+                }
                 entry.instance = Some(instance.clone());
+                entry.initialization_owner = None;
                 entry.lifecycle = LifecycleState::Running;
-            }
-
-            Ok(instance)
+                Ok(instance)
+            })();
+            self.notify_service_resolution_changed();
+            committed
         })();
 
-        if result.is_err() {
-            self.reset_initializing_service(service_key);
+        if result.is_err() && claimed_initialization {
+            self.reset_initializing_service(service_key, current_thread);
         }
 
         stack.pop();
@@ -272,12 +408,26 @@ impl CoreHandle {
         Ok(())
     }
 
-    fn reset_initializing_service(&self, service_key: &RegistryName) {
+    fn reset_initializing_service(
+        &self,
+        service_key: &RegistryName,
+        initialization_owner: thread::ThreadId,
+    ) {
         let mut services = self.lock_services();
+        let mut reset = false;
         if let Some(entry) = services.get_mut(service_key) {
-            if entry.lifecycle == LifecycleState::Initializing && entry.instance.is_none() {
+            if entry.lifecycle == LifecycleState::Initializing
+                && entry.initialization_owner == Some(initialization_owner)
+                && entry.instance.is_none()
+            {
+                entry.initialization_owner = None;
                 entry.lifecycle = LifecycleState::Registered;
+                reset = true;
             }
+        }
+        drop(services);
+        if reset {
+            self.notify_service_resolution_changed();
         }
     }
 
@@ -288,6 +438,45 @@ impl CoreHandle {
         };
         entry.instance.clone()
     }
+}
+
+fn validate_service_identity(
+    identity: &RegisteredServiceIdentity,
+    actual_index: u32,
+    actual_generation: u32,
+    expected_kind: ServiceKind,
+) -> Result<(), CoreError> {
+    let actual_kind = identity.service().service_kind();
+    if actual_kind != expected_kind {
+        return Err(CoreError::ServiceKindMismatch {
+            name: identity.service().to_string(),
+            expected: expected_kind,
+            actual: actual_kind,
+        });
+    }
+    if actual_index != identity.index() || actual_generation != identity.generation() {
+        return Err(CoreError::StaleServiceHandle {
+            name: identity.service().to_string(),
+            expected_index: identity.index(),
+            expected_generation: identity.generation(),
+            actual_index,
+            actual_generation,
+        });
+    }
+    Ok(())
+}
+
+fn ensure_service_resolution_available(
+    service_name: &str,
+    lifecycle: LifecycleState,
+) -> Result<(), CoreError> {
+    if matches!(
+        lifecycle,
+        LifecycleState::Stopping | LifecycleState::Unloaded
+    ) {
+        return Err(CoreError::ServiceUnavailable(service_name.to_owned()));
+    }
+    Ok(())
 }
 
 fn downcast_resolved_service<T: Any + Send + Sync>(

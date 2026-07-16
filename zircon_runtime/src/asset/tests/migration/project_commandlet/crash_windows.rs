@@ -19,6 +19,23 @@ fn minted_sidecar_commit_crash_is_whitelisted_and_next_apply_converges() {
         crate::asset::migration::AssetMigrationError::Transaction { .. }
     ));
 
+    let journal_name = fs::read_dir(root.join(".zircon/asset-migration"))
+        .unwrap()
+        .next()
+        .expect("commit interruption must retain the migration journal")
+        .unwrap()
+        .file_name()
+        .to_string_lossy()
+        .into_owned();
+    assert!(
+        journal_name.starts_with(".hero.glb.zmeta.zr-migrate-journal-"),
+        "unexpected migration journal name: {journal_name}"
+    );
+    assert!(
+        journal_name.ends_with(".toml"),
+        "migration journal must retain its TOML suffix: {journal_name}"
+    );
+
     let recovered =
         migrate_project_assets(AssetMigrationOptions::new(&root, AssetMigrationMode::Apply))
             .unwrap();

@@ -1,40 +1,39 @@
-use crate::core::framework::render::LayoutItem;
-use crate::graphics::text::layout::{
+use crate::text::layout::{
     layout_rich_text_glyph_wrapped_with_provider, layout_rich_text_with_provider,
     layout_rich_text_word_wrapped_with_provider, measured_grapheme_widths_with_provider,
     resolve_rich_run_style, rich_forced_line_ranges, rich_glyph_line_ranges_with_provider,
     RichWordWrapMode, ELLIPSIS,
 };
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::LayoutItem;
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiResolvedTextRun, UiTextDirection,
     UiTextRange, UiTextWrap, UiTextWritingMode,
 };
 
+use super::super::adapter::text_style;
 use super::super::rich_text::UiParsedText;
 use super::candidate_line::CandidateLine;
 use super::ellipsis::{ellipsize_line_with_advances, is_ellipsis_overflow};
 use super::line_box::aligned_x;
 use super::visual_order::apply_visual_order_with_advances;
 
-pub(super) fn layout_inline_rich_text_with_provider<P>(
+pub(super) fn layout_inline_rich_text_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     font_size: f32,
     direction: UiTextDirection,
-    provider: &mut P,
-) -> Option<UiResolvedTextLayout>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Option<UiResolvedTextLayout> {
     if !parsed.runs.iter().any(|run| run.inline.is_some())
         || !matches!(style.text_writing_mode, UiTextWritingMode::HorizontalTb)
     {
         return None;
     }
+    let neutral_style = text_style(style);
 
     let wrap_width = if super::paragraph_layout::has_block_layout(parsed) {
         super::paragraph_layout::conservative_rich_width_with_provider(
@@ -49,12 +48,16 @@ where
     let (rich_layout, source_ranges) = match style.wrap {
         UiTextWrap::Glyph => {
             let max_width = wrap_width;
-            let ranges =
-                rich_glyph_line_ranges_with_provider(&parsed.rich, style, max_width, provider);
+            let ranges = rich_glyph_line_ranges_with_provider(
+                &parsed.rich,
+                &neutral_style,
+                max_width,
+                provider,
+            );
             (
                 layout_rich_text_glyph_wrapped_with_provider(
                     &parsed.rich,
-                    style,
+                    &neutral_style,
                     max_width,
                     provider,
                 ),
@@ -62,12 +65,12 @@ where
             )
         }
         UiTextWrap::None => (
-            layout_rich_text_with_provider(&parsed.rich, style, provider),
+            layout_rich_text_with_provider(&parsed.rich, &neutral_style, provider),
             rich_forced_line_ranges(&parsed.text),
         ),
         UiTextWrap::Word | UiTextWrap::WordSmart => layout_rich_text_word_wrapped_with_provider(
             &parsed.rich,
-            style,
+            &neutral_style,
             wrap_width,
             if matches!(style.wrap, UiTextWrap::WordSmart) {
                 RichWordWrapMode::WordSmart
@@ -129,7 +132,7 @@ where
         );
         if is_ellipsis_overflow(style.text_overflow) {
             let ellipsis_advance =
-                measured_grapheme_widths_with_provider(ELLIPSIS, style, provider)
+                measured_grapheme_widths_with_provider(ELLIPSIS, &neutral_style, provider)
                     .into_iter()
                     .next()
                     .unwrap_or_default();
@@ -233,15 +236,12 @@ pub(super) fn resolved_runs_for_line(
         .collect()
 }
 
-fn item_advances<P>(
+fn item_advances(
     item: &LayoutItem,
     parsed: &UiParsedText,
     base_style: &UiResolvedStyle,
-    provider: &mut P,
-) -> Vec<f32>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<f32> {
     match item {
         LayoutItem::Inline { advance, .. } => vec![*advance],
         LayoutItem::Text {
@@ -261,7 +261,7 @@ where
             let Some(text) = parsed.text.get(start..end) else {
                 return Vec::new();
             };
-            let style = resolve_rich_run_style(base_style, &run.style);
+            let style = resolve_rich_run_style(&text_style(base_style), &run.style);
             measured_grapheme_widths_with_provider(text, &style, provider)
         }
     }

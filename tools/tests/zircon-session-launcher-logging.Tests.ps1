@@ -22,6 +22,8 @@ if errorlevel 1 (
   exit /b 1
 )
 mkdir "%ZIRCON_LAUNCHER_TEST_REPO%\.codex\state\session-coordinator" 2>nul
+echo serve>>"%ZIRCON_LAUNCHER_TEST_REPO%\serve-count.txt"
+timeout /t 1 /nobreak >nul
 echo {}>"%ZIRCON_LAUNCHER_TEST_REPO%\.codex\state\session-coordinator\runtime.json"
 echo fixture-daemon-stdout
 echo fixture-daemon-stderr 1>&2
@@ -87,6 +89,27 @@ exit /b 0
     if ((Get-ChildItem -LiteralPath $logRoot -Filter 'daemon-*.stdout.log' -File).Count -ne 10 -or
         (Get-ChildItem -LiteralPath $logRoot -Filter 'daemon-*.stderr.log' -File).Count -ne 10) {
         throw 'daemon launch log retention did not keep exactly ten generations per stream'
+    }
+
+    $serveCount = Join-Path $fakeRepo 'serve-count.txt'
+    Remove-Item -LiteralPath $serveCount -Force -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $fakeRepo '.codex\state\session-coordinator\runtime.json') -Force
+    $parallel = @(
+        (Start-Process -FilePath 'powershell.exe' -ArgumentList @(
+            '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+            '-File', $launcher, 'start', '-RepoRoot', $fakeRepo
+        ) -PassThru -WindowStyle Hidden)
+        (Start-Process -FilePath 'powershell.exe' -ArgumentList @(
+            '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+            '-File', $launcher, 'start', '-RepoRoot', $fakeRepo
+        ) -PassThru -WindowStyle Hidden)
+    )
+    $parallel | ForEach-Object { $_.WaitForExit() }
+    if ($parallel | Where-Object { $_.ExitCode -ne 0 }) {
+        throw 'concurrent launcher fixture did not return successfully'
+    }
+    if (@(Get-Content -LiteralPath $serveCount).Count -ne 1) {
+        throw 'concurrent launcher starts spawned more than one daemon process'
     }
     Write-Host 'zircon session launcher logging test passed'
 }

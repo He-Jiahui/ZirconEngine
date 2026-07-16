@@ -1,5 +1,5 @@
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::GlyphAtlasStorageFormat;
+use crate::text::atlas::GlyphAtlasStorageFormat;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer::ui) struct GlyphAtlasTextureArraySpec {

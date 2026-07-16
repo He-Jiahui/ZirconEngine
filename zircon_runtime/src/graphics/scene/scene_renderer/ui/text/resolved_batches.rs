@@ -1,6 +1,5 @@
 use std::collections::{HashMap, HashSet};
 
-use glyphon::FontSystem;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 use super::super::render::{
@@ -8,7 +7,7 @@ use super::super::render::{
 };
 use super::font_assets::{effective_text_render_mode, ensure_font_asset_record, LoadedUiFontAsset};
 use crate::asset::ProjectAssetManager;
-use crate::graphics::text::font::FontDatabase;
+use crate::text::{TextLayoutFallbackReport, TextRenderState};
 
 #[derive(Clone, Debug, Default)]
 pub(super) struct ResolvedScreenSpaceUiTextBatches {
@@ -54,6 +53,19 @@ impl ResolvedScreenSpaceUiTextBatches {
         self.font_faces_changed
     }
 
+    pub(super) fn layout_fallback_report(&self) -> TextLayoutFallbackReport {
+        let mut report = TextLayoutFallbackReport::default();
+        for error in self
+            .native_texts
+            .iter()
+            .chain(self.sdf_texts.iter())
+            .filter_map(|text| text.layout_error.as_ref())
+        {
+            report.record(error);
+        }
+        report
+    }
+
     fn refresh_shaping_after_font_load(&mut self) {
         for text in self
             .native_texts
@@ -66,8 +78,7 @@ impl ResolvedScreenSpaceUiTextBatches {
 }
 
 pub(super) fn resolve_text_batches(
-    font_system: &mut FontSystem,
-    font_database: &mut FontDatabase,
+    text_state: &mut TextRenderState,
     font_assets: &mut HashMap<String, LoadedUiFontAsset>,
     asset_manager: &ProjectAssetManager,
     auto_texts: &[ScreenSpaceUiTextBatch],
@@ -90,13 +101,7 @@ pub(super) fn resolve_text_batches(
         if !loaded_assets.insert(asset) {
             continue;
         }
-        let ensured = ensure_font_asset_record(
-            font_system,
-            font_database,
-            font_assets,
-            asset_manager,
-            asset,
-        );
+        let ensured = ensure_font_asset_record(text_state, font_assets, asset_manager, asset);
         shaping_changed |= ensured.loaded;
         font_faces_changed |= ensured.faces_changed;
     }

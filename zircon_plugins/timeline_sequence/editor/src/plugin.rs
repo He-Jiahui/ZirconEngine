@@ -144,35 +144,26 @@ fn timeline_authoring_batch() -> EditorAuthoringContributionBatch {
     let validate = operation("timeline_sequence.authoring.validate");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(open.clone(), "Open Timeline Sequence")
+            EditorCommandDescriptor::operation(open.clone(), "Open Timeline Sequence")
                 .with_menu_path("Plugins/Timeline Sequence/Open Sequence")
                 .with_payload_schema_id("timeline_sequence.open.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                create_track.clone(),
-                "Create Timeline Track",
-            )
-            .with_menu_path("Plugins/Timeline Sequence/Create Track")
-            .with_payload_schema_id("timeline_sequence.create_track.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                delete_track.clone(),
-                "Delete Timeline Track",
-            )
-            .with_menu_path("Plugins/Timeline Sequence/Delete Track")
-            .with_payload_schema_id("timeline_sequence.delete_track.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(move_key.clone(), "Move Timeline Keyframe")
+            EditorCommandDescriptor::operation(create_track.clone(), "Create Timeline Track")
+                .with_menu_path("Plugins/Timeline Sequence/Create Track")
+                .with_payload_schema_id("timeline_sequence.create_track.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(delete_track.clone(), "Delete Timeline Track")
+                .with_menu_path("Plugins/Timeline Sequence/Delete Track")
+                .with_payload_schema_id("timeline_sequence.delete_track.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(move_key.clone(), "Move Timeline Keyframe")
                 .with_menu_path("Plugins/Timeline Sequence/Move Keyframe")
                 .with_payload_schema_id("timeline_sequence.move_keyframe.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                validate.clone(),
-                "Validate Timeline Sequence",
-            )
-            .with_menu_path("Plugins/Timeline Sequence/Validate")
-            .with_payload_schema_id("timeline_sequence.validate.v1")
-            .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(validate.clone(), "Validate Timeline Sequence")
+                .with_menu_path("Plugins/Timeline Sequence/Validate")
+                .with_payload_schema_id("timeline_sequence.validate.v1")
+                .with_required_capabilities([CAPABILITY]),
         ],
         menu_items: vec![
             menu_item("Plugins/Timeline Sequence/Open Sequence", &open),

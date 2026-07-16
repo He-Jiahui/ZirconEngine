@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::manager::NavigationManagerHandle;
+use zircon_runtime::core::framework::navigation::NavigationManager;
+use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
@@ -91,7 +92,11 @@ pub fn module_descriptor() -> ModuleDescriptor {
             let manager = core.resolve_driver::<DefaultNavigationManager>(
                 DEFAULT_NAVIGATION_RUNTIME_DRIVER_NAME,
             )?;
-            Ok(Arc::new(NavigationManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn NavigationManager>::new(
+                    manager,
+                )) as ServiceObject,
+            )
         }),
     ))
 }

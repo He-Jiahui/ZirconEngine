@@ -6,20 +6,38 @@ const SKY_SHADER: &str = concat!(
     include_str!("../../../environment/shaders/skybox_procedural.wgsl"),
 );
 
+const SKY_SHADER_BODY: &str = include_str!("../../../environment/shaders/skybox_procedural.wgsl");
+const SKY_VOLUMETRIC_DISABLED: &str = r#"
+fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
+    return color;
+}
+"#;
+
+fn sky_shader_source(volumetric_enabled: bool) -> String {
+    let volumetric = if volumetric_enabled {
+        include_str!("../../../../../shader/wgsl/zr_volumetric.wgsl")
+    } else {
+        SKY_VOLUMETRIC_DISABLED
+    };
+    format!("{volumetric}\n{SKY_SHADER_BODY}")
+}
+
 pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_renderer) fn create_sky_pipeline(
     device: &wgpu::Device,
     target_format: wgpu::TextureFormat,
     scene_layout: &wgpu::BindGroupLayout,
     volumetric_layout: &wgpu::BindGroupLayout,
+    volumetric_enabled: bool,
 ) -> wgpu::RenderPipeline {
     let sky_pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
         label: Some("zircon-sky-layout"),
         bind_group_layouts: &[Some(scene_layout), Some(volumetric_layout)],
         immediate_size: 0,
     });
+    let sky_shader_source = sky_shader_source(volumetric_enabled);
     let sky_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("zircon-sky-shader"),
-        source: wgpu::ShaderSource::Wgsl(SKY_SHADER.into()),
+        source: wgpu::ShaderSource::Wgsl(sky_shader_source.into()),
     });
     device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
         label: Some("zircon-sky-pipeline"),
@@ -56,7 +74,18 @@ pub(in crate::graphics::scene::scene_renderer::overlay::viewport_overlay_rendere
 
 #[cfg(test)]
 mod tests {
-    use super::SKY_SHADER;
+    use super::{sky_shader_source, SKY_SHADER};
+
+    #[test]
+    fn skybox_shader_variant_removes_volumetric_bindings_when_disabled() {
+        let disabled = sky_shader_source(false);
+        let enabled = sky_shader_source(true);
+
+        for binding in ["@binding(25)", "@binding(26)", "@binding(27)"] {
+            assert!(!disabled.contains(binding));
+            assert!(enabled.contains(binding));
+        }
+    }
 
     #[test]
     fn skybox_shader_reconstructs_camera_ray_before_source_cubemap_sampling() {
@@ -76,17 +105,22 @@ mod tests {
     }
 
     #[test]
-    fn skybox_shader_is_valid_wgsl() {
-        let module = naga::front::wgsl::parse_str(SKY_SHADER)
-            .unwrap_or_else(|error| panic!("{}", error.emit_to_string(SKY_SHADER)));
-        let mut validator = naga::valid::Validator::new(
-            naga::valid::ValidationFlags::all(),
-            naga::valid::Capabilities::all(),
-        );
+    fn skybox_shader_feature_variants_are_valid_wgsl() {
+        for (label, source) in [
+            ("disabled", sky_shader_source(false)),
+            ("enabled", sky_shader_source(true)),
+        ] {
+            let module = naga::front::wgsl::parse_str(&source)
+                .unwrap_or_else(|error| panic!("{label}: {}", error.emit_to_string(&source)));
+            let mut validator = naga::valid::Validator::new(
+                naga::valid::ValidationFlags::all(),
+                naga::valid::Capabilities::all(),
+            );
 
-        validator
-            .validate(&module)
-            .expect("skybox shader should validate");
+            validator
+                .validate(&module)
+                .unwrap_or_else(|error| panic!("{label} skybox shader should validate: {error}"));
+        }
     }
 
     #[test]

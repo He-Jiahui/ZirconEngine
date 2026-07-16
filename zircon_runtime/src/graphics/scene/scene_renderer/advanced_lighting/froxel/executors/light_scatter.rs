@@ -9,8 +9,8 @@ use crate::graphics::scene::scene_renderer::graph_execution::{
 use crate::render_graph::RenderGraphResourceAccessKind;
 
 use super::super::{
-    resolved_volumetric_fog_settings, FroxelLightScatterPipeline, FroxelLightScatterRequest,
-    FroxelViewReconstruction, GpuFroxelTemporalReprojection,
+    resolved_volumetric_fog_settings, volumetric_ambient_radiance, FroxelLightScatterPipeline,
+    FroxelLightScatterRequest, FroxelViewReconstruction, GpuFroxelTemporalReprojection,
     VOLUMETRIC_LIGHT_SCATTER_PIPELINE_LABEL, VOLUMETRIC_LIGHT_SCATTER_WORKGROUP_SIZE,
 };
 use super::{validate_compute_context, VOLUMETRIC_LIGHT_SCATTER_EXECUTOR_ID};
@@ -123,6 +123,10 @@ impl RenderPassExecutor for VolumetricLightScatterExecutor {
                 grid,
                 view,
                 phase_g: settings.phase_g,
+                ambient_radiance: volumetric_ambient_radiance(
+                    &extract.lighting.ambient_lights,
+                    extract.post_process.preview.lighting_enabled,
+                ),
                 viewport_size: [viewport_size.x, viewport_size.y],
                 media_view: &media,
                 history_view: history.as_ref().unwrap_or(&media),

@@ -1,5 +1,5 @@
 use unicode_segmentation::UnicodeSegmentation;
-use zircon_runtime::core::framework::render::{
+use zircon_runtime::text::{
     ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphScript,
 };
 use zircon_runtime::ui::surface::{layout_text, shape_text_line};
@@ -742,14 +742,14 @@ fn shaped_glyphs_from_host_layout(
                 glyph_id: glyph.key.glyph_index as u32,
                 font_id: None,
                 font_instance_id: None,
-                source_range: visual_range,
-                visual_range,
+                source_range: visual_range.into(),
+                visual_range: visual_range.into(),
                 advance: metrics.advance_width.max(0.0),
                 x: super::glyph_cursor_x(glyph, font_face) - start_x,
                 y: glyph.y,
                 offset_x: 0.0,
                 offset_y: 0.0,
-                direction: UiTextDirection::LeftToRight,
+                direction: UiTextDirection::LeftToRight.into(),
                 bidi_level: 0,
                 cluster_flags: ShapedGlyphClusterFlags {
                     cluster_start: true,

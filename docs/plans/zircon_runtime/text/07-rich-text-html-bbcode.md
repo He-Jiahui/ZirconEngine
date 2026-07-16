@@ -65,8 +65,8 @@ markup string (BBCode | HTML | Plain) →
 ### RT-M1 解析器框架 + BBCode 核心标签
 
 实施切片:
-1. `graphics/text/rich/parser.rs`:tokenizer(BBCode `[tag=val]...[/tag]` + HTML `<tag attr>`)+ 标签栈 → `StyledRun`。
-2. `graphics/text/rich/decorator.rs`:`DecoratorRegistry` + 内置文本样式装饰器(b/i/u/s/color/bgcolor/size/font);样式 run 合并(嵌套→扁平)。
+1. `text/rich/parser.rs`:tokenizer(BBCode `[tag=val]...[/tag]` + HTML `<tag attr>`)+ 标签栈 → `StyledRun`。
+2. `text/rich/decorator.rs`:`DecoratorRegistry` + 内置文本样式装饰器(b/i/u/s/color/bgcolor/size/font);样式 run 合并(嵌套→扁平)。
 3. `ui/text/rich_text.rs` markdown 解析迁入统一框架(保留为 `RichTextFormat::Markdown`)。
 
 测试:`text_rich_bbcode_nested_styles_flatten_to_runs`、`text_rich_color_size_font_overrides`、`text_rich_run_boundaries_respect_clusters`。
@@ -91,7 +91,7 @@ markup string (BBCode | HTML | Plain) →
 
 ### 模块与文件落点
 
-实现层 `zircon_runtime/src/graphics/text/rich/`:
+实现层 `zircon_runtime/src/text/rich/`:
 
 | 文件 | 内容 |
 |------|------|
@@ -102,7 +102,7 @@ markup string (BBCode | HTML | Plain) →
 | `bbcode.rs` | BBCode 标签集(对照 godot)+ 自定义标签注册 |
 | `inline.rs` | `InlineObject`、内联 metric 与 baseline 对齐 |
 
-契约层 `core/framework/render/text/rich.rs`:`RichTextFormat`、`StyledRun`、`StyleOverride`、`InlineObjectRef`(serde)。
+契约层 `text/model/rich.rs`:`RichTextFormat`、`StyledRun`、`StyleOverride`、`InlineObjectRef`(serde)。
 
 ### 核心类型
 
@@ -171,7 +171,7 @@ pub struct RichParseResult {
 
 | 现有 | 切换 |
 |------|------|
-| `ui/text/rich_text.rs` markdown 三标记 | 迁 `graphics/text/rich/`,保留为 `RichTextFormat::Markdown`;调用方改 `parse_rich_text` |
+| `ui/text/rich_text.rs` markdown 三标记 | 迁 `text/rich/`,保留为 `RichTextFormat::Markdown`;调用方改 `parse_rich_text` |
 | 调用方直接传 raw 文本 | 经 `parse_rich_text` 产 `StyledRun`(Plain 时单 run) |
 
 ### 测试与验收清单

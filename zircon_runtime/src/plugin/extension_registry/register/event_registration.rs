@@ -5,7 +5,8 @@ use crate::plugin::{
     PluginEventCatalogManifest, PluginEventManifest, RuntimeExtensionRegistryError,
 };
 use crate::scene::ecs::Event;
-use crate::scene::World;
+use crate::scene::{RuntimeEventMirrorError, RuntimeEventMirrorRegistration, SceneResult, World};
+use serde::Serialize;
 
 use super::super::owner::PluginModuleId;
 use super::super::validation::validate_plugin_event_catalog_manifest;
@@ -16,7 +17,13 @@ pub struct EventRegistration {
     type_id: TypeId,
     type_name: &'static str,
     manifest: PluginEventManifest,
-    apply: fn(&mut World),
+    apply: EventApply,
+}
+
+#[derive(Clone)]
+enum EventApply {
+    Event(fn(&mut World)),
+    Mirrored(RuntimeEventMirrorRegistration),
 }
 
 impl EventRegistration {
@@ -28,7 +35,28 @@ impl EventRegistration {
             type_id: TypeId::of::<E>(),
             type_name: std::any::type_name::<E>(),
             manifest,
-            apply: |world| world.register_event::<E>(),
+            apply: EventApply::Event(|world| world.register_event::<E>()),
+        }
+    }
+
+    fn mirrored<E>(
+        manifest: PluginEventManifest,
+        reader_count_callback: impl Fn(&mut World, u32) -> SceneResult<()> + Send + Sync + 'static,
+    ) -> Self
+    where
+        E: Event + Serialize,
+    {
+        Self {
+            type_id: TypeId::of::<E>(),
+            type_name: std::any::type_name::<E>(),
+            apply: EventApply::Mirrored(
+                RuntimeEventMirrorRegistration::typed::<E>(
+                    manifest.id.clone(),
+                    manifest.payload_schema.clone(),
+                )
+                .with_reader_count_callback(reader_count_callback),
+            ),
+            manifest,
         }
     }
 
@@ -40,8 +68,19 @@ impl EventRegistration {
         &self.manifest
     }
 
-    pub(in crate::plugin::extension_registry) fn apply(&self, world: &mut World) {
-        (self.apply)(world);
+    pub(in crate::plugin::extension_registry) fn apply(
+        &self,
+        world: &mut World,
+    ) -> Result<(), RuntimeEventMirrorError> {
+        match &self.apply {
+            EventApply::Event(apply) => {
+                apply(world);
+                Ok(())
+            }
+            EventApply::Mirrored(registration) => {
+                world.register_runtime_event_mirror(registration.clone())
+            }
+        }
     }
 }
 
@@ -76,6 +115,37 @@ impl RuntimeExtensionRegistry {
             })?;
         validate_event_manifest(&namespace, &manifest)?;
         let registration = EventRegistration::new::<E>(manifest.clone());
+        if self.plugin_events.contains_key(&registration.type_id) {
+            return Err(RuntimeExtensionRegistryError::DuplicatePluginEvent(
+                registration.type_name().to_string(),
+            ));
+        }
+        self.push_derived_event_catalog_entry(namespace, manifest)?;
+        self.register_event_registration(owner, registration)
+    }
+
+    pub fn register_mirrored_event<E>(
+        &mut self,
+        owner: PluginModuleId,
+        manifest: PluginEventManifest,
+        reader_count_callback: impl Fn(&mut World, u32) -> SceneResult<()> + Send + Sync + 'static,
+    ) -> Result<(), RuntimeExtensionRegistryError>
+    where
+        E: Event + Serialize,
+    {
+        let namespace = self
+            .plugin_modules
+            .name(owner)
+            .and_then(plugin_event_catalog_namespace_from_module)
+            .ok_or_else(|| {
+                RuntimeExtensionRegistryError::InvalidPluginModule(format!(
+                    "unknown plugin module owner {}",
+                    owner.raw()
+                ))
+            })?;
+        validate_event_manifest(&namespace, &manifest)?;
+        let registration =
+            EventRegistration::mirrored::<E>(manifest.clone(), reader_count_callback);
         if self.plugin_events.contains_key(&registration.type_id) {
             return Err(RuntimeExtensionRegistryError::DuplicatePluginEvent(
                 registration.type_name().to_string(),

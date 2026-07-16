@@ -5,4 +5,5 @@ pub(crate) mod context;
 pub mod engine;
 pub(crate) mod history;
 pub(crate) mod intent;
+pub mod operation;
 pub(crate) mod paths;

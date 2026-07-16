@@ -77,7 +77,8 @@ mod tests {
 
     #[test]
     fn set_quality_profile_revalidates_override_graph_executor_contract() {
-        let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+        let framework =
+            WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
         let viewport = framework
             .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
             .unwrap();

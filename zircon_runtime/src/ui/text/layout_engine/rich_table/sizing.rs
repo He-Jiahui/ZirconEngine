@@ -1,4 +1,4 @@
-use crate::core::framework::render::RichTableColumn;
+use crate::text::RichTableColumn;
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct PreferredColumnExtent {

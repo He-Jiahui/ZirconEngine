@@ -23,6 +23,7 @@ impl SceneRendererAdvancedPluginResources {
         shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     ) -> BuiltMeshDraws {
         let virtual_geometry_enabled = virtual_geometry_enabled && self.virtual_geometry_enabled();
+        let volumetric_fog_enabled = self.volumetric_fog_enabled();
         build_mesh_draws(
             device,
             queue,
@@ -32,6 +33,7 @@ impl SceneRendererAdvancedPluginResources {
             streamer,
             frame,
             virtual_geometry_enabled,
+            volumetric_fog_enabled,
             shadow_light_slots,
             None,
         )
@@ -54,6 +56,7 @@ impl SceneRendererAdvancedPluginResources {
         shader_quality: crate::core::framework::render::ShaderQualityTier,
     ) -> BuiltMeshDraws {
         let virtual_geometry_enabled = virtual_geometry_enabled && self.virtual_geometry_enabled();
+        let volumetric_fog_enabled = self.volumetric_fog_enabled();
         build_mesh_draws(
             device,
             queue,
@@ -63,6 +66,7 @@ impl SceneRendererAdvancedPluginResources {
             streamer,
             frame,
             virtual_geometry_enabled,
+            volumetric_fog_enabled,
             shadow_light_slots,
             Some(PendingMeshCommandCacheExtractionContext::new(
                 command_cache,

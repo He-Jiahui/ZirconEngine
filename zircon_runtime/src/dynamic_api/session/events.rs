@@ -59,7 +59,7 @@ impl RuntimeDynamicSession {
             }
             ZR_RUNTIME_EVENT_KIND_POINTER_MOVED_V1 => {
                 let cursor = Vec2::new(event.x, event.y);
-                self.input_manager.submit_event(InputEvent::CursorMoved {
+                self.submit_input_event(InputEvent::CursorMoved {
                     x: cursor.x,
                     y: cursor.y,
                 });
@@ -67,17 +67,17 @@ impl RuntimeDynamicSession {
                 ZrStatus::ok()
             }
             ZR_RUNTIME_EVENT_KIND_CURSOR_ENTERED_V1 => {
-                self.input_manager.submit_event(InputEvent::CursorEntered);
+                self.submit_input_event(InputEvent::CursorEntered);
                 ZrStatus::ok()
             }
             ZR_RUNTIME_EVENT_KIND_CURSOR_LEFT_V1 => {
-                self.input_manager.submit_event(InputEvent::CursorLeft);
+                self.submit_input_event(InputEvent::CursorLeft);
                 ZrStatus::ok()
             }
             ZR_RUNTIME_EVENT_KIND_MOUSE_BUTTON_V1 => self.handle_mouse_button(event),
             ZR_RUNTIME_EVENT_KIND_MOUSE_WHEEL_V1 => self.handle_mouse_wheel(event),
             ZR_RUNTIME_EVENT_KIND_MOUSE_MOTION_V1 => {
-                self.input_manager.submit_event(InputEvent::MouseMotion {
+                self.submit_input_event(InputEvent::MouseMotion {
                     delta_x: event.x,
                     delta_y: event.y,
                 });
@@ -123,13 +123,11 @@ impl RuntimeDynamicSession {
         };
         match event.state {
             ZR_RUNTIME_BUTTON_STATE_PRESSED_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::ButtonPressed(button));
+                self.submit_input_event(InputEvent::ButtonPressed(button));
                 self.handle_pressed(event.button);
             }
             ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::ButtonReleased(button));
+                self.submit_input_event(InputEvent::ButtonReleased(button));
                 self.handle_released(event.button);
             }
             _ => return invalid_argument(b"unknown runtime button state"),
@@ -143,8 +141,7 @@ impl RuntimeDynamicSession {
             Err(status) => return status,
         };
         let Some(unit) = unit else {
-            self.input_manager
-                .submit_event(InputEvent::WheelScrolled { delta: event.delta });
+            self.submit_input_event(InputEvent::WheelScrolled { delta: event.delta });
             self.handle_scroll(event.delta);
             return ZrStatus::ok();
         };
@@ -160,8 +157,7 @@ impl RuntimeDynamicSession {
             return invalid_argument(b"invalid runtime mouse wheel delta");
         }
         let wheel = MouseWheelEvent::new(unit, delta_x, delta_y);
-        self.input_manager
-            .submit_event(InputEvent::MouseWheel(wheel));
+        self.submit_input_event(InputEvent::MouseWheel(wheel));
         self.handle_scroll(wheel.vertical_line_delta());
         ZrStatus::ok()
     }
@@ -171,8 +167,7 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_LIFECYCLE_STATE_BACKGROUND_V1
             | ZR_RUNTIME_LIFECYCLE_STATE_SUSPENDED_V1
             | ZR_RUNTIME_LIFECYCLE_STATE_LOW_MEMORY_V1 => {
-                self.input_manager
-                    .submit_event(InputEvent::KeyboardFocusLost);
+                self.submit_input_event(InputEvent::KeyboardFocusLost);
             }
             _ => {}
         }
@@ -184,11 +179,11 @@ impl RuntimeDynamicSession {
         let Some(phase) = touch_phase(event.state) else {
             return invalid_argument(b"unknown runtime touch phase");
         };
-        self.input_manager.submit_event(InputEvent::CursorMoved {
+        self.submit_input_event(InputEvent::CursorMoved {
             x: cursor.x,
             y: cursor.y,
         });
-        self.input_manager.submit_event(InputEvent::Touch {
+        self.submit_input_event(InputEvent::Touch {
             id: event.pointer_id,
             phase,
             x: cursor.x,
@@ -218,7 +213,7 @@ impl RuntimeDynamicSession {
         };
         if event.button == ZR_RUNTIME_KEY_ACTION_TEXT_V1 {
             if let Some(text) = text {
-                self.input_manager.submit_event(InputEvent::KeyboardInput {
+                self.submit_input_event(InputEvent::KeyboardInput {
                     key_code: event.key_code,
                     logical_key: None,
                     text: Some(text),
@@ -234,7 +229,7 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_KEY_ACTION_RELEASED_V1 => false,
             _ => return ZrStatus::ok(),
         };
-        self.input_manager.submit_event(InputEvent::KeyboardInput {
+        self.submit_input_event(InputEvent::KeyboardInput {
             key_code: event.key_code,
             logical_key: keyboard_logical_key(event.key_code, text.as_deref()),
             text,
@@ -290,7 +285,7 @@ impl RuntimeDynamicSession {
             }
             _ => return invalid_argument(b"unknown runtime ime state"),
         };
-        self.input_manager.submit_event(input_event);
+        self.submit_input_event(input_event);
         ZrStatus::ok()
     }
 
@@ -312,8 +307,7 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_FILE_DRAG_CANCELLED_V1 => FileDragDropEvent::Cancelled,
             _ => return invalid_argument(b"unknown runtime file drag state"),
         };
-        self.input_manager
-            .submit_event(InputEvent::FileDragDrop(file_event));
+        self.submit_input_event(InputEvent::FileDragDrop(file_event));
         ZrStatus::ok()
     }
 
@@ -350,8 +344,7 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_WINDOW_STATUS_DESTROYED_V1 => WindowStatusEvent::Destroyed,
             _ => return invalid_argument(b"unknown runtime window status"),
         };
-        self.input_manager
-            .submit_event(InputEvent::WindowStatus(window_event));
+        self.submit_input_event(InputEvent::WindowStatus(window_event));
         ZrStatus::ok()
     }
 
@@ -367,14 +360,13 @@ impl RuntimeDynamicSession {
         } else {
             String::from_utf8(payload.to_vec()).ok()
         };
-        self.input_manager
-            .submit_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
-                gamepad: GamepadId(event.pointer_id),
-                connected,
-                name,
-                vendor_id: nonzero_u16(event.key_code),
-                product_id: nonzero_u16(event.scan_code),
-            }));
+        self.submit_input_event(InputEvent::GamepadConnection(GamepadConnectionInfo {
+            gamepad: GamepadId(event.pointer_id),
+            connected,
+            name,
+            vendor_id: nonzero_u16(event.key_code),
+            product_id: nonzero_u16(event.scan_code),
+        }));
         ZrStatus::ok()
     }
 
@@ -384,7 +376,7 @@ impl RuntimeDynamicSession {
             ZR_RUNTIME_BUTTON_STATE_RELEASED_V1 => false,
             _ => return invalid_argument(b"unknown runtime gamepad button state"),
         };
-        self.input_manager.submit_event(InputEvent::GamepadButton {
+        self.submit_input_event(InputEvent::GamepadButton {
             gamepad: GamepadId(event.pointer_id),
             button: gamepad_button(event.button),
             value: event.delta,
@@ -394,7 +386,7 @@ impl RuntimeDynamicSession {
     }
 
     fn handle_gamepad_axis(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
-        self.input_manager.submit_event(InputEvent::GamepadAxis {
+        self.submit_input_event(InputEvent::GamepadAxis {
             gamepad: GamepadId(event.pointer_id),
             axis: gamepad_axis(event.button),
             value: event.delta,

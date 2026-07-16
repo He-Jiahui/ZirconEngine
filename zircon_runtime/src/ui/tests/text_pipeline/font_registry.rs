@@ -1,5 +1,5 @@
 use crate::asset::assets::{FontAsset, FontAssetRenderStrategy};
-use crate::graphics::text::font::default_runtime_font_families;
+use crate::text::font::default_runtime_font_families;
 use crate::ui::text::UiFontRegistry;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 

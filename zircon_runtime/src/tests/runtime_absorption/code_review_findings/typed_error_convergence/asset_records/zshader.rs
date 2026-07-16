@@ -8,7 +8,7 @@ fn review_f5_zshader_v2_replaces_user_shader_definitions() {
     let shader_tests = include_str!("../../../../../asset/tests/assets/shader_readiness.rs");
     let review_findings = concat!(
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_15_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"

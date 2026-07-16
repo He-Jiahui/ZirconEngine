@@ -558,7 +558,7 @@ M6 文本收敛切片进一步把 `UiTextPaint` 的 editable decoration 事实�
 - `screen_space_ui_plan_uses_shared_text_decorations_as_pre_and_post_text_draws` 证明 runtime WGPU planner 使用 shared text decoration frames，并把 selection 与 caret/composition 分到正确的 text 前/后绘制阶段
 - `ui_text_decorations_use_run_visual_ranges_for_non_isomorphic_source_ranges` 证明 source/visual byte 长度不一致的 editable run 仍按 resolved visual range 生成 decoration frame
 - `screen_space_ui_plan_splits_rich_text_runs_from_shared_paint` 证明 graphics planner 按 shared rich paint runs 拆分 batch，并保留 Strong/Code 样式标记
-- `text_attrs_maps_shared_rich_run_style_to_glyphon_attrs` 证明 glyphon native path 从 shared run style 得到 bold、italic、monospace attrs
+- `native_attrs_are_owned_by_text_cpu_preparation` 证明 glyphon native path 从 shared run style 得到 bold、italic、monospace attrs
 
 ## Glyphon Runtime Text Path
 

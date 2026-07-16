@@ -9,8 +9,8 @@ origin_child_dir: docs/plans/zircon_editor/editor/15
 fixing_child_dir: docs/plans/zircon_editor/editor_ui/03
 related_code:
   - zircon_runtime/src/core/framework/render/mod.rs
-  - zircon_runtime/src/core/framework/render/text/mod.rs
-  - zircon_runtime/src/core/framework/render/text/rich.rs
+  - zircon_runtime/src/core/framework/text/mod.rs
+  - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_inline.rs

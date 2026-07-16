@@ -35,13 +35,11 @@ fn sdf_draw_plan_reuses_fixed_bake_slot_while_scaling_display_size() {
     assert_eq!(plan.runs[1].glyph_slot_indices, vec![Some(0)]);
     assert_eq!(plan.slots[0].key.bake_params, SdfBakeParams::default());
 
-    let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    let (_, _, asset_manager, atlas_bake) = bake_atlas(&plan);
     let vertices = build_sdf_vertices(
         &[small, large],
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(256, 160),
     );
@@ -100,13 +98,11 @@ fn sdf_vertices_propagate_mode_for_horizontal_and_vertical_glyphs() {
             slot.key.bake_params.mode = mode;
             slot.page_key = GlyphAtlasPageKey::new(mode.atlas_format(), 0);
         }
-        let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+        let (_, _, asset_manager, atlas_bake) = bake_atlas(&plan);
         let vertices = build_sdf_vertices(
             &[text],
             &plan,
             &atlas_bake,
-            &mut font_bake,
-            &mut font_database,
             &asset_manager,
             UVec2::new(256, 160),
         );

@@ -22,6 +22,8 @@ use zircon_runtime::graphics::{
 };
 use zircon_runtime::render_graph::QueueLane;
 
+mod support;
+
 const OUTPUT_SIZE: UVec2 = UVec2::new(320, 240);
 const LEFT_PMREM_COLOR: [f32; 4] = [0.9, 0.01, 0.01, 1.0];
 const RIGHT_PMREM_COLOR: [f32; 4] = [0.01, 0.01, 0.9, 1.0];
@@ -40,8 +42,9 @@ fn reflection_probe_feature_off_matches_skybox_and_enabled_probes_change_pixels(
         "res://generated/integration-probe-right.zpmrem",
         RIGHT_PMREM_COLOR,
     );
+    let asset_runtime = support::ProjectAssetTestRuntime::new(Arc::clone(&asset_manager));
     let framework = WgpuRenderFramework::new_with_plugin_render_features(
-        Arc::clone(&asset_manager),
+        asset_runtime.access(),
         [reflection_probe_render_feature_descriptor()],
         Vec::new(),
         Vec::new(),

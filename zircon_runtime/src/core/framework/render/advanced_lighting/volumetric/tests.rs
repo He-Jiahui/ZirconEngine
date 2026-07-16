@@ -25,6 +25,30 @@ fn render_volumetric_froxel_slice_depth_matches_closed_form() {
 }
 
 #[test]
+fn render_volumetric_froxel_slice_depth_matches_all_quality_bounds() {
+    for quality in [
+        FroxelGridQuality::Low,
+        FroxelGridQuality::Medium,
+        FroxelGridQuality::High,
+    ] {
+        let params = FroxelGridParams::for_quality(quality, 0.1, 1_000.0, 2.0);
+        let slice_count = params.dimensions[2];
+        let depths = (0..slice_count)
+            .map(|slice| params.slice_depth(slice))
+            .collect::<Vec<_>>();
+
+        assert!(depths
+            .iter()
+            .all(|depth| *depth >= 0.1 && *depth <= 1_000.0));
+        assert!(depths.windows(2).all(|pair| pair[0] < pair[1]));
+        assert_eq!(
+            params.slice_depth(slice_count),
+            depths[slice_count as usize - 1]
+        );
+    }
+}
+
+#[test]
 fn render_volumetric_quality_table_matches_plan18() {
     assert_eq!(FroxelGridQuality::Low.dimensions(), [160, 90, 48]);
     assert_eq!(FroxelGridQuality::Medium.dimensions(), [160, 90, 64]);
@@ -61,6 +85,28 @@ fn render_volumetric_henyey_greenstein_matches_isotropic_and_directional_contrac
     let backward = henyey_greenstein_phase(0.6, -1.0);
     assert!(forward > perpendicular);
     assert!(perpendicular > backward);
+}
+
+#[test]
+fn render_volumetric_hg_phase_normalizes() {
+    const SAMPLE_COUNT: usize = 32_768;
+    for phase_g in [-0.85, -0.5, 0.0, 0.5, 0.85] {
+        let delta_cos = 2.0 / SAMPLE_COUNT as Real;
+        let integral = (0..SAMPLE_COUNT)
+            .map(|sample| {
+                let cos_theta = -1.0 + (sample as Real + 0.5) * delta_cos;
+                henyey_greenstein_phase(phase_g, cos_theta)
+            })
+            .sum::<Real>()
+            * delta_cos
+            * 2.0
+            * std::f32::consts::PI;
+
+        assert!(
+            (integral - 1.0).abs() <= 0.002,
+            "HG sphere integral for g={phase_g} was {integral}"
+        );
+    }
 }
 
 #[test]

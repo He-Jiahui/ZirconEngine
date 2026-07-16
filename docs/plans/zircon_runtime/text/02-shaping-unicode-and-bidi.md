@@ -1,32 +1,32 @@
 ---
 related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
-  - zircon_runtime/src/core/framework/render/text/shaped_run.rs
+  - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/ui/surface/render/resolve.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/shaper.rs
   - zircon_runtime/src/ui/text/layout_engine.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/grapheme.rs
-  - zircon_runtime/src/graphics/text/mod.rs
-  - zircon_runtime/src/graphics/text/layout/mod.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/shaping/bidi.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic/font_system_cache.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal/backend.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal/projection.rs
-  - zircon_runtime/src/graphics/text/shaping/horizontal/tests.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/backend.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/orientation.rs
-  - zircon_runtime/src/graphics/text/shaping/vertical/projection.rs
-  - zircon_runtime/src/graphics/text/shaping/normalize.rs
-  - zircon_runtime/src/graphics/text/shaping/script_segment.rs
-  - zircon_runtime/src/graphics/text/shaping/fallback_spans.rs
-  - zircon_runtime/src/graphics/text/font/backend.rs
-  - zircon_runtime/src/graphics/text/shaping/tests.rs
+  - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/layout/mod.rs
+  - zircon_runtime/src/text/layout/measure.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/shaping/bidi.rs
+  - zircon_runtime/src/text/shaping/cosmic.rs
+  - zircon_runtime/src/text/shaping/cosmic/font_system_cache.rs
+  - zircon_runtime/src/text/shaping/horizontal/backend.rs
+  - zircon_runtime/src/text/shaping/horizontal/projection.rs
+  - zircon_runtime/src/text/shaping/horizontal/tests.rs
+  - zircon_runtime/src/text/shaping/vertical.rs
+  - zircon_runtime/src/text/shaping/vertical/backend.rs
+  - zircon_runtime/src/text/shaping/vertical/orientation.rs
+  - zircon_runtime/src/text/shaping/vertical/projection.rs
+  - zircon_runtime/src/text/shaping/normalize.rs
+  - zircon_runtime/src/text/shaping/script_segment.rs
+  - zircon_runtime/src/text/shaping/fallback_spans.rs
+  - zircon_runtime/src/text/font/backend.rs
+  - zircon_runtime/src/text/shaping/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime_interface/src/ui/surface/render/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
@@ -64,10 +64,23 @@ status: in_progress
 4. **竖排**:朝向枚举(对齐 godot `Orientation::{Horizontal,Vertical}`);竖排主轴 advance、baseline 居中、横排正字(`upright`)/旋转(`mixed`/`sideways`)模式;CJK 标点竖排形。
 5. **cluster→source 映射**:每字形携 `source_range`(源文本字节区间),供命中测试/光标/选区/IME 精确反查。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-text-shaping-unicode-bidi",
+  "goal": "完成共享文本整形、Unicode/BIDI 与竖排字形数据主链",
+  "milestones": [
+    {"id": "M1", "title": "整形后端接入与启发式硬切", "depends_on": []},
+    {"id": "M2", "title": "Unicode、script segmentation 与 BIDI", "depends_on": []},
+    {"id": "M3", "title": "竖排 shaping 与 glyph orientation", "depends_on": []}
+  ]
+}
+```
+
 ## 2. 现状与差距
 
-- `graphics/text/shaping/cosmic.rs` 已是共享整形 owner，输出真实 glyph id/advance/source range/cluster flags/script；UI measurement/layout 可复用 shaped-run cache，不再以全局等宽近似作为权威度量。
-- `graphics/text/shaping/bidi.rs` 已用 `unicode-bidi` 落地段落基方向、isolate 与逻辑序 glyph 的 `bidi_level`，并提供断行后 L1/L2 visual index mapping。Text 03 已把旧 `layout_engine/visual_order.rs` 的脚本范围/neutral span/mirror table 硬切到共享 owner，并以完整段落+绝对行 range 保留 wrapped isolate context；hit-test/caret 仍需直接消费 visual index/source cluster，避免长期物化 visual line text。
+- `text/shaping/cosmic.rs` 已是共享整形 owner，输出真实 glyph id/advance/source range/cluster flags/script；UI measurement/layout 可复用 shaped-run cache，不再以全局等宽近似作为权威度量。
+- `text/shaping/bidi.rs` 已用 `unicode-bidi` 落地段落基方向、isolate 与逻辑序 glyph 的 `bidi_level`，并提供断行后 L1/L2 visual index mapping。Text 03 已把旧 `layout_engine/visual_order.rs` 的脚本范围/neutral span/mirror table 硬切到共享 owner，并以完整段落+绝对行 range 保留 wrapped isolate context；hit-test/caret 仍需直接消费 visual index/source cluster，避免长期物化 visual line text。
 - grapheme/ZWJ/VS 已进入 cluster/source range 与 script-tag 数据面；V1 NFC 按计划默认关闭，`normalize.rs::ShapingTextView` 已显式承接 identity shaping view 与 shaping→原文 source byte range 投影，cosmic/fallback 都经该 owner。未来启用 NFC 时仍需把 identity 投影升级为完整 pre↔post 双向映射。
 - script segment tag 已落地，但 actual per-script shaping/fallback face reconciliation 仍由 Text 02/06 后续完成。
 - `TextShapeRequest` 已携 language 与排序去重的 OpenType features，二者进入 shaped cache key；features 已传入 cosmic backend。language 已从可序列化 `UiResolvedStyle.language` 经模板解析、layout/shaped cache、direct/parallel request、native batch 与 SDF atlas/bake fallback 贯通；独立 `cosmic/font_system_cache.rs` 规范化并选择最多四个 locale-specific `FontSystem`。cosmic-text 0.18.2 的 `Attrs` 不暴露 language，因此 folder-backed `shaping/horizontal/` leaf 现按 cosmic 实际 face/cluster 分段交给 RustyBuzz，并在 language 存在时设置 per-run language 触发默认 `locl`；真实 Windows `Calibri` 俄语/塞尔维亚语 glyph 差异 exact 已落代码但尚未执行，不计完成。
@@ -90,7 +103,7 @@ status: in_progress
 
 ## 4. 目标架构
 
-归属:契约层 `core/framework/render/text/{shaped_run.rs,shaping_service.rs}`(已由 `render/14` 定稿,本计划扩展朝向/标志位);实现层 `graphics/text/shaping/`(`cosmic_text` 隔离于 `cosmic.rs`)。
+归属:契约层 ``text/model/shaped_run.rs` 数据模型 + `core/framework/text/layout_service.rs` 中立服务契约`(已由 `render/14` 定稿,本计划扩展朝向/标志位);实现层 `text/shaping/`(`cosmic_text` 隔离于 `cosmic.rs`)。
 
 ```
 TextShapeRequest { text, style, base_direction, orientation, language, features }
@@ -110,7 +123,7 @@ TextShapeRequest { text, style, base_direction, orientation, language, features 
 ### SH-M1 整形后端接入(替换启发式)
 
 实施切片:
-1. `graphics/text/shaping/cosmic.rs` 隔离层:`TextShapeRequest → cosmic-text Buffer → ShapedGlyphRun`;cluster→`source_range`;断点机会位标注(交 03)。
+1. `text/shaping/cosmic.rs` 隔离层:`TextShapeRequest → cosmic-text Buffer → ShapedGlyphRun`;cluster→`source_range`;断点机会位标注(交 03)。
 2. `ShapedGlyph` 扩展:`source_range`、`cluster_flags`(RTL/space/mandatory-break/whitespace,对齐 godot `GraphemeFlag`)、命中 `font_id`(回退后实际 face)。
 3. `ui/text/shaper.rs` 适配:`UiTextShaperStack` 改持 `&dyn TextShapingService`,`shape_text` 投影 `ShapedGlyphRun → UiResolvedTextLayout`;删除 `UiTextBackendIntent`/`active_layout_backend_for_intent`/`fallback_reason_for_backend`(`render/14` 硬切换清单 #1)。
 
@@ -137,7 +150,7 @@ TextShapeRequest { text, style, base_direction, orientation, language, features 
 
 ### 模块与文件落点
 
-实现层 `zircon_runtime/src/graphics/text/shaping/`:
+实现层 `zircon_runtime/src/text/shaping/`:
 
 | 文件 | 内容 |
 |------|------|
@@ -254,4 +267,4 @@ V2(本计划不实现,留接口):双向竖排混排、`text-combine-upright`(纵
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`02/2026-07-09-shaping-unicode-and-bidi-output-records.md`](02/2026-07-09-shaping-unicode-and-bidi-output-records.md)
-- open 待修复（variable shaping helper 可见性阻断共享 Runtime 编译）：[variable-shaping-visibility-compilation](02/failure-2026-07-14-variable-shaping-visibility-compilation.md)
+- fixed 已修复：[variable-shaping-visibility-compilation](../../zircon_editor/editor/07/fixed-2026-07-14-variable-shaping-visibility-compilation.md)

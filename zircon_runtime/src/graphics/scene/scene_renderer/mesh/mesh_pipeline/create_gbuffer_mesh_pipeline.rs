@@ -71,10 +71,11 @@ mod tests {
     use crate::core::framework::render::GEOMETRY_SOURCE_ID_STATIC_MESH;
     use crate::graphics::scene::gpu_scene::GpuScene;
     use crate::graphics::scene::resources::{default_pipeline_key, GPU_MATERIAL_UNIFORM_MIN_SIZE};
-    use crate::graphics::scene::scene_renderer::environment::{
-        lightmap_bind_group_layout_entries, scene_bind_group_layout_entries,
+    use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
+    use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::{
+        create_forward_shadow_receiver_layout,
+        mesh_pipeline_deferred_gbuffer_template_source_for_geometry,
     };
-    use crate::graphics::scene::scene_renderer::mesh::mesh_pipeline_cache::mesh_pipeline_deferred_gbuffer_template_source_for_geometry;
 
     use super::create_gbuffer_mesh_pipeline;
 
@@ -114,7 +115,7 @@ mod tests {
             source: wgpu::ShaderSource::Wgsl(Cow::Owned(shader_source.wgsl_source)),
         });
         let scene_layout = create_test_scene_layout(device);
-        let shadow_receiver_layout = create_gbuffer_scene_data_layout(device);
+        let shadow_receiver_layout = create_forward_shadow_receiver_layout(device);
         let material_layout = create_test_material_layout(device);
         let gpu_scene = create_test_gpu_scene(device);
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -146,14 +147,6 @@ mod tests {
         })
     }
 
-    fn create_gbuffer_scene_data_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-        let entries = lightmap_bind_group_layout_entries();
-        device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-            label: Some("zircon-test-gbuffer-scene-data-layout"),
-            entries: &entries,
-        })
-    }
-
     fn create_test_material_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
         device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: Some("zircon-test-material-set-layout"),
@@ -169,6 +162,8 @@ mod tests {
                 material_sampler_entry(8),
                 material_texture_entry(9),
                 material_sampler_entry(10),
+                material_texture_entry(11),
+                material_sampler_entry(12),
             ],
         })
     }

@@ -4,6 +4,7 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::{
     paint_template_nodes_for_test_with_background, TemplateNodeFrameData, TemplatePaneNodeData,
 };
+use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 
 const FIELD_COMPONENT_SCREENSHOT: &str = "editor-components-fields-900x360.png";
 const FIELD_ATLAS_WIDTH: u32 = 900;
@@ -50,6 +51,11 @@ fn field_component_visual_paints_input_search_stepper_focus_and_disabled() {
         ) > 0,
         "search field should paint placeholder text after icon inset"
     );
+    assert_eq!(
+        pixel_at(&bytes, 300, 186),
+        EditorPaletteTokens::WORKBENCH_FOCUS_RING,
+        "focused search should share the editable-text primary focus outline"
+    );
 
     let stepper_surface = pixel_at(&bytes, 474, 148);
     assert!(
@@ -64,10 +70,11 @@ fn field_component_visual_paints_input_search_stepper_focus_and_disabled() {
         "stepper field should paint divider and up/down arrows"
     );
 
-    let focused_border = pixel_at(&bytes, 678, 130);
-    assert_ne!(
-        focused_border, FIELD_ATLAS_BACKGROUND,
-        "focused field should paint a visible neutral border"
+    let focused_border = pixel_at(&bytes, 728, 130);
+    assert_eq!(
+        focused_border,
+        EditorPaletteTokens::WORKBENCH_FOCUS_RING,
+        "focused field should paint the shared Starship primary focus outline"
     );
     assert!(
         distinct_pixel_count(
@@ -275,7 +282,7 @@ fn field_component_nodes() -> Vec<TemplatePaneNodeData> {
         ),
         label(
             "FieldStateCopy",
-            "Neutral focus; muted disabled label",
+            "Teal focus; muted disabled label",
             672.0,
             232.0,
             196.0,

@@ -83,11 +83,72 @@ class GitFinalizeTests(unittest.TestCase):
             text=True,
         ).stdout.strip()
 
+    def _commit_milestone(self, *args, **kwargs):
+        return self.service.commit_milestone(
+            *args,
+            failure_workflow_node_keys=("M1",),
+            **kwargs,
+        )
+
     def test_completed_session_never_commits_without_explicit_finalize(self) -> None:
         before = self._head()
         self._complete_with_changes()
 
         self.assertEqual(before, self._head())
+
+    def test_cleanup_shared_index_restores_head_index_without_changing_worktree(self) -> None:
+        paths = ("src/stale_stage.py", "docs/stale-stage.md")
+        for path in paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"staged but retained worktree: {path}\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
+        before_worktree = {
+            path: (self.repo / path).read_bytes()
+            for path in paths
+        }
+
+        result = self.service.cleanup_shared_index("maintenance:index-cleanup")
+
+        self.assertEqual(self._head(), result["head"])
+        self.assertEqual(sorted(paths), result["paths"])
+        self.assertEqual(0, result["remaining_staged_count"])
+        self.assertEqual("", self._staged_names())
+        self.assertEqual(before_worktree, {
+            path: (self.repo / path).read_bytes()
+            for path in paths
+        })
+
+    def test_maintenance_finalize_preserves_foreign_staged_index_on_degraded_baseline(self) -> None:
+        maintenance_path = "tools/coordinator_repair.py"
+        foreign_path = "src/foreign_staged.py"
+        for path, content in (
+            (maintenance_path, "repair = True\n"),
+            (foreign_path, "foreign = True\n"),
+        ):
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", foreign_path], cwd=self.repo, check=True)
+        self.assertEqual(foreign_path, self._staged_names())
+
+        result = self.service.finalize(
+            "session-a",
+            paths=[maintenance_path],
+            message="fix(tooling): preserve shared index during maintenance finalize",
+            maintenance=True,
+        )
+
+        committed = subprocess.run(
+            ["git", "diff-tree", "--no-commit-id", "--name-only", "-r", result.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual([maintenance_path], committed)
+        self.assertEqual(foreign_path, self._staged_names())
+        self.assertEqual("foreign = True\n", (self.repo / foreign_path).read_text(encoding="utf-8"))
 
     def test_milestone_commit_is_scoped_atomic_and_keeps_session_active(self) -> None:
         paths = ["src/milestone.py", "tests/test_milestone.py"]
@@ -100,7 +161,7 @@ class GitFinalizeTests(unittest.TestCase):
         self.baselines.attribute("session-a", paths)
         subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
 
-        result = self.service.commit_milestone(
+        result = self._commit_milestone(
             "session-a", paths=paths, message="feat(runtime): complete M2 milestone"
         )
 
@@ -115,6 +176,362 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
         self.assertEqual(result.commit_sha, self._head())
         self.assertEqual("feat(runtime): complete M2 milestone", result.message)
+
+    def test_milestone_commit_chunks_add_and_post_commit_reset_pathspecs(self) -> None:
+        paths = [f"src/chunked/path_{index}.py" for index in range(8)]
+        self.assertTrue(self.leases.acquire("session-a", paths).acquired)
+        for path in paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"value = {path!r}\n", encoding="utf-8")
+        self.baselines.attribute("session-a", paths)
+        original_git = self.service._git
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize._GIT_PATHSPEC_CHUNK_CHARS", 80
+        ), mock.patch.object(self.service, "_git", wraps=original_git) as git_call:
+            self._commit_milestone(
+                "session-a",
+                paths=paths,
+                message="fix(runtime): chunk milestone pathspec mutations",
+            )
+
+        add_calls = [
+            call
+            for call in git_call.call_args_list
+            if call.args and call.args[0] == "add"
+        ]
+        reset_calls = [
+            call
+            for call in git_call.call_args_list
+            if call.args and call.args[0] == "reset" and "--quiet" in call.args
+        ]
+        self.assertGreater(len(add_calls), 1)
+        self.assertGreater(len(reset_calls), 1)
+
+    def test_milestone_commit_keeps_attributed_tracked_change_after_global_baseline_absorbs_hash(
+        self,
+    ) -> None:
+        path = "src/session_owned.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("committed\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", path], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add tracked ownership fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        self.baselines.refresh_for_head_change()
+
+        target.write_text("session change\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        self.baselines.attribute("session-a", [path])
+        self.baselines.accept(reason="simulate a later global baseline capture")
+        self.assertNotIn(path, {change.path for change in self.baselines.diff()})
+
+        result = self._commit_milestone(
+            "session-a",
+            paths=[path],
+            message="fix(runtime): preserve attributed tracked ownership",
+        )
+
+        committed = subprocess.run(
+            ["git", "show", f"{result.commit_sha}:{path}"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout
+        self.assertEqual("session change\n", committed)
+
+    def test_milestone_commit_owned_scope_does_not_scan_global_baseline(self) -> None:
+        """Finalize must inspect only this Session's attributed paths under its mutex."""
+        path = "src/session_local_scope.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("owned = True\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        self.baselines.attribute("session-a", [path])
+
+        with mock.patch.object(
+            self.baselines,
+            "diff",
+            side_effect=AssertionError("finalize must not scan the global workspace"),
+        ):
+            result = self._commit_milestone(
+                "session-a",
+                paths=[path],
+                message="fix(runtime): scope finalize ownership to session paths",
+            )
+
+        self.assertEqual(result.commit_sha, self._head())
+
+    def test_milestone_commit_ignores_clean_attributed_lf_file_with_autocrlf(self) -> None:
+        clean_path = "src/already_committed.py"
+        clean_target = self.repo / clean_path
+        clean_target.parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(
+            ["git", "config", "core.autocrlf", "true"], cwd=self.repo, check=True
+        )
+        clean_target.write_bytes(b"first line\nsecond line\n")
+        self.baselines.attribute("session-a", [clean_path])
+        subprocess.run(["git", "add", "--", clean_path], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add LF ownership fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        self.baselines.refresh_for_head_change()
+        self.assertEqual(
+            "",
+            subprocess.run(
+                ["git", "status", "--short", "--", clean_path],
+                cwd=self.repo,
+                check=True,
+                capture_output=True,
+                text=True,
+            ).stdout,
+        )
+        self.assertEqual(
+            set(), self.service._worktree_paths_differing_from_head([clean_path])
+        )
+
+        changed_path = "src/current_milestone.py"
+        changed_target = self.repo / changed_path
+        changed_target.write_text("milestone change\n", encoding="utf-8", newline="\n")
+        self.assertTrue(self.leases.acquire("session-a", [changed_path]).acquired)
+        self.baselines.attribute("session-a", [changed_path])
+
+        result = self._commit_milestone(
+            "session-a",
+            paths=[changed_path],
+            message="fix(runtime): ignore clean attributed LF paths",
+        )
+
+        committed = subprocess.run(
+            ["git", "show", "--pretty=", "--name-only", result.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual([changed_path], [item for item in committed if item])
+
+    def test_session_dirty_scan_batches_git_queries(self) -> None:
+        tracked_paths = [f"src/batch_{index}.py" for index in range(20)]
+        tracked_paths.append(" leading_batch.py")
+        for path in tracked_paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"value = {path!r}\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", *tracked_paths], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add batch dirty fixtures"],
+            cwd=self.repo,
+            check=True,
+        )
+        (self.repo / tracked_paths[0]).write_text("modified = True\n", encoding="utf-8")
+        (self.repo / tracked_paths[1]).unlink()
+        untracked_path = "src/untracked_batch.py"
+        (self.repo / untracked_path).write_text("untracked = True\n", encoding="utf-8")
+        paths = [*tracked_paths, untracked_path, "src/missing_batch.py"]
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", wraps=subprocess.run
+        ) as runner:
+            dirty = self.service._worktree_paths_differing_from_head(paths)
+
+        git_calls = [
+            call
+            for call in runner.call_args_list
+            if call.args and call.args[0] and call.args[0][0] == "git"
+        ]
+        self.assertEqual({tracked_paths[0], tracked_paths[1], untracked_path}, dirty)
+        self.assertEqual(2, len(git_calls))
+
+    def test_session_dirty_scan_surfaces_git_failures(self) -> None:
+        failure = subprocess.CalledProcessError(
+            128, ["git", "ls-tree"], stderr="fatal: object database unavailable"
+        )
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", side_effect=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._worktree_paths_differing_from_head(["src/feature.py"])
+
+        self.assertEqual("finalize_head_content_failed", rejected.exception.code)
+
+    def test_git_command_failure_preserves_bounded_stderr_for_finalize_audit(self) -> None:
+        failure = subprocess.CalledProcessError(
+            128,
+            ["git", "write-tree"],
+            stderr="fatal: index file is corrupt\n" + ("x" * 4_096),
+        )
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", side_effect=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._git("write-tree")
+
+        self.assertEqual("finalize_git_command_failed", rejected.exception.code)
+        self.assertEqual("git write-tree", rejected.exception.details["command"])
+        self.assertEqual(128, rejected.exception.details["exit_code"])
+        self.assertIn("fatal: index file is corrupt", rejected.exception.details["stderr"])
+        self.assertLessEqual(len(rejected.exception.details["stderr"]), 2_048)
+
+    def test_staged_blob_scan_batches_git_queries_and_preserves_path_bytes(self) -> None:
+        paths = [f"src/staged_batch_{index}.py" for index in range(20)]
+        paths.append(" leading_staged_batch.py")
+        for path in paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"value = {path!r}\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
+        missing_path = "src/deleted_staged_batch.py"
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", wraps=subprocess.run
+        ) as runner:
+            blobs = self.service._staged_blobs((*paths, missing_path))
+
+        git_calls = [
+            call
+            for call in runner.call_args_list
+            if call.args and call.args[0] and call.args[0][0] == "git"
+        ]
+        self.assertEqual(1, len(git_calls))
+        self.assertIn("ls-files", git_calls[0].args[0])
+        self.assertIn("--stage", git_calls[0].args[0])
+        self.assertEqual(set(paths), {path for path, blob in blobs.items() if blob})
+        self.assertIsNone(blobs[missing_path])
+        self.assertRegex(blobs[" leading_staged_batch.py"] or "", r"^[0-9a-f]{40,64}$")
+
+    def test_staged_blob_scan_surfaces_git_failures(self) -> None:
+        failure = subprocess.CalledProcessError(
+            128, ["git", "ls-files"], stderr="fatal: index unavailable"
+        )
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", side_effect=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._staged_blobs(("src/feature.py",))
+
+        self.assertEqual("finalize_index_blob_scan_failed", rejected.exception.code)
+
+    def test_staged_blob_scan_batches_a_large_milestone_manifest(self) -> None:
+        paths = tuple(f"src/large_manifest/path_{index:03}.py" for index in range(320))
+        for path in paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"value = {path!r}\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", wraps=subprocess.run
+        ) as runner:
+            blobs = self.service._staged_blobs(paths)
+
+        scan_calls = [
+            call
+            for call in runner.call_args_list
+            if call.args
+            and call.args[0]
+            and call.args[0][0] == "git"
+            and "ls-files" in call.args[0]
+            and "--stage" in call.args[0]
+        ]
+        self.assertEqual(set(paths), {path for path, blob in blobs.items() if blob})
+        self.assertLessEqual(
+            len(scan_calls),
+            2,
+            "staged blob verification must scale by Windows pathspec chunks, not paths",
+        )
+
+    def test_ignored_path_scan_batches_git_queries_and_preserves_path_bytes(self) -> None:
+        exclude = self.repo / ".git" / "info" / "exclude"
+        with exclude.open("a", encoding="utf-8") as stream:
+            stream.write("/ignored_batch/\n/ leading_ignored_batch.py\n")
+        paths = [f"ignored_batch/path_{index}.py" for index in range(20)]
+        paths.extend([" leading_ignored_batch.py", "src/not_ignored_batch.py"])
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", wraps=subprocess.run
+        ) as runner:
+            ignored = self.service._ignored_paths(tuple(paths))
+
+        git_calls = [
+            call
+            for call in runner.call_args_list
+            if call.args and call.args[0] and call.args[0][0] == "git"
+        ]
+        self.assertEqual(1, len(git_calls))
+        self.assertIn("check-ignore", git_calls[0].args[0])
+        self.assertEqual(set(paths[:-1]), ignored)
+
+    def test_ignored_path_scan_surfaces_git_failures(self) -> None:
+        failure = subprocess.CompletedProcess(
+            ["git", "check-ignore"], 128, stdout=b"", stderr=b"fatal: index unavailable"
+        )
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", return_value=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._ignored_paths(("src/feature.py",))
+
+        self.assertEqual("finalize_ignore_scan_failed", rejected.exception.code)
+
+    def test_pathspec_chunks_use_utf16_budget_and_reject_oversize_path(self) -> None:
+        astral_path = "\U0001f600" * 7_000
+        chunks = list(self.service._pathspec_chunks((astral_path, astral_path)))
+        self.assertEqual(2, len(chunks))
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            list(self.service._pathspec_chunks(("\U0001f600" * 12_000,)))
+
+        self.assertEqual("finalize_pathspec_too_long", rejected.exception.code)
+
+    def test_milestone_commit_includes_an_explicitly_owned_ignored_skill(self) -> None:
+        path = ".codex/skills/runtime-new/SKILL.md"
+        exclude = self.repo / ".git" / "info" / "exclude"
+        with exclude.open("a", encoding="utf-8") as stream:
+            stream.write("/.codex/\n")
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("---\nname: runtime-new\n---\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        self.baselines.attribute("session-a", [path])
+
+        result = self._commit_milestone(
+            "session-a", paths=[path], message="feat(runtime): add managed skill"
+        )
+
+        committed = subprocess.run(
+            ["git", "show", "--pretty=", "--name-only", result.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual([path], [item for item in committed if item])
+
+    def test_milestone_commit_rejects_ignored_session_notes(self) -> None:
+        path = ".codex/sessions/temporary.md"
+        exclude = self.repo / ".git" / "info" / "exclude"
+        with exclude.open("a", encoding="utf-8") as stream:
+            stream.write("/.codex/\n")
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("temporary session note\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        self.baselines.attribute("session-a", [path])
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self._commit_milestone(
+                "session-a", paths=[path], message="feat(runtime): add local state"
+            )
+
+        self.assertEqual("milestone_ignored_path_forbidden", rejected.exception.code)
 
     def test_preview_preserves_conventional_commit_without_module_prefix(self) -> None:
         paths = self._complete_with_changes()
@@ -146,7 +563,7 @@ class GitFinalizeTests(unittest.TestCase):
         subprocess.run(["git", "add", "--", path], cwd=self.repo, check=True)
 
         with self.assertRaises(CoordinatorError) as rejected:
-            self.service.commit_milestone(
+            self._commit_milestone(
                 "session-a", paths=[path], message="feat(runtime): complete M2 milestone"
             )
 
@@ -162,7 +579,7 @@ class GitFinalizeTests(unittest.TestCase):
         subprocess.run(["git", "add", "--", path], cwd=self.repo, check=True)
 
         with self.assertRaises(CoordinatorError) as rejected:
-            self.service.commit_milestone(
+            self._commit_milestone(
                 "session-a",
                 paths=[path],
                 message="feat(runtime): complete M2 milestone",
@@ -186,7 +603,7 @@ class GitFinalizeTests(unittest.TestCase):
         self.baselines.attribute("session-a", [path])
         subprocess.run(["git", "add", "-u", "--", path], cwd=self.repo, check=True)
 
-        result = self.service.commit_milestone(
+        result = self._commit_milestone(
             "session-a", paths=[path], message="fix(runtime): remove obsolete milestone file"
         )
 
@@ -240,6 +657,60 @@ class GitFinalizeTests(unittest.TestCase):
             )
 
         self.assertEqual("finalize_owned_path_omitted", rejected.exception.code)
+
+    def test_owned_scope_ignores_git_ignored_codex_session_state(self) -> None:
+        ignore = self.repo / ".gitignore"
+        ignore.write_text("/.codex\n", encoding="utf-8")
+        subprocess.run(["git", "add", ".gitignore"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: ignore local codex state"],
+            cwd=self.repo,
+            check=True,
+        )
+        feature = self.repo / "src" / "feature.py"
+        feature.parent.mkdir(parents=True, exist_ok=True)
+        feature.write_text("accepted feature\n", encoding="utf-8")
+        note = self.repo / ".codex" / "sessions" / "active.md"
+        note.parent.mkdir(parents=True, exist_ok=True)
+        note.write_text("live session state\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["src/feature.py", ".codex/sessions/active.md"])
+
+        self.service._require_owned_scope(
+            "session-a", ("src/feature.py",), maintenance=False
+        )
+
+    def test_plan_output_allows_owned_fixed_return_in_origin_child(self) -> None:
+        fixed_path = "docs/plans/render/18/fixed-2026-07-16-contract-drift.md"
+        target = self.repo / fixed_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("---\nhandoff_kind: fixed\nstatus: fixed\n---\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [fixed_path])
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO failure_nodes(
+                    lifecycle_key, artifact_path, kind, status, created_at, resolved_at,
+                    summary_slug, origin_plan, fixing_plan, origin_child_dir,
+                    fixing_child_dir, priority, imported_at, origin_workflow_node
+                ) VALUES (?, ?, 'fixed', 'fixed', ?, ?, ?, ?, ?, ?, ?, 100, ?, NULL)
+                """,
+                (
+                    "render18-contract-drift",
+                    fixed_path,
+                    "2026-07-16T00:00:00+00:00",
+                    "2026-07-16T00:00:00+00:00",
+                    "contract-drift",
+                    "docs/plans/render/18-plan.md",
+                    "docs/plans/runtime/01-feature.md",
+                    "docs/plans/render/18",
+                    "docs/plans/runtime/01",
+                    "2026-07-16T00:00:00+00:00",
+                ),
+            )
+
+        self.service._require_plan_outputs(
+            self.sessions.get("session-a"), (fixed_path,), maintenance=False
+        )
 
     def test_finalize_rejects_wecom_webhook_material(self) -> None:
         paths = self._complete_with_changes()
@@ -333,6 +804,34 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("finalize_staged_attribution_mismatch", rejected.exception.code)
         self.assertEqual("", self._staged_names())
         self.assertEqual("foreign race\n", (self.repo / paths[0]).read_text(encoding="utf-8"))
+
+    def test_stage_blob_injection_restored_to_attributed_worktree_is_rejected(self) -> None:
+        paths = self._complete_with_changes()
+        original_git = self.service._git
+
+        def injecting_git(*arguments: str) -> str:
+            if arguments and arguments[0] == "add":
+                target = self.repo / paths[0]
+                approved = target.read_text(encoding="utf-8")
+                target.write_text("injected staged blob\n", encoding="utf-8")
+                try:
+                    return original_git(*arguments)
+                finally:
+                    target.write_text(approved, encoding="utf-8")
+            return original_git(*arguments)
+
+        self.service._git = injecting_git  # type: ignore[method-assign]
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): add feature"
+            )
+
+        self.assertEqual("finalize_staged_attribution_mismatch", rejected.exception.code)
+        self.assertEqual("", self._staged_names())
+        self.assertEqual(
+            "content for src/feature.py\n",
+            (self.repo / paths[0]).read_text(encoding="utf-8"),
+        )
 
     def test_validation_command_cannot_expand_staged_scope(self) -> None:
         paths = self._complete_with_changes()

@@ -92,7 +92,7 @@ fn render_product_many_point_lights_forward_deferred_capture_parity() {
         "res://materials/many_point_lights_product.zmaterial",
         many_point_light_product_material(),
     );
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
 
     let (forward_baseline, _) = render_many_point_light_product_frame(
         &server,
@@ -210,7 +210,7 @@ fn render_product_hundred_point_lights_report_local_density_stats() {
         spread_grid.stats
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let (_, dense_stats) = render_many_point_light_product_frame(
         &server,
         viewport_size,

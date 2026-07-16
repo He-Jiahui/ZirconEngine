@@ -2,12 +2,16 @@ use super::*;
 use crate::bake_panel::{
     NavigationBakeAction, NavigationBakeBackend, NavigationBakePanel,
     NavigationBakePanelController, NavigationBakePhase, NavigationBakeProgress,
+    NavigationBakeSelectedSubmitError, NavigationBakeSelectionError, NavigationBakeSurfaceRow,
 };
 use crate::overlay::{
     build_navigation_overlay, NavigationOverlayController, NavigationOverlayOptions,
     NavigationViewportGizmoSink, NAVIGATION_OVERLAY_MODE_ID, NAVIGATION_OVERLAY_PROVIDER_ID,
 };
 use crate::runtime_mirror::{NavigationPieFrame, NavigationPieMirror, NavigationPieMirrorApply};
+use std::sync::{Arc, Mutex};
+use zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerHost;
+use zircon_editor::{EditorRuntimeGateway, GatewayError};
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavPathStatus, NavigationAgentDebugState,
     NavigationGizmoSnapshot, NavigationGizmoTriangle, AREA_JUMP, AREA_WALKABLE,
@@ -17,6 +21,14 @@ use zircon_runtime::core::framework::navigation::{
 };
 use zircon_runtime::core::framework::render::SceneGizmoKind;
 use zircon_runtime::core::framework::render::SceneGizmoOverlayExtract;
+use zircon_runtime_interface::{
+    ZrRuntimeEventV1, ZrRuntimeFrameV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
+    ZrRuntimeViewportSizeV1,
+};
+
+mod bake_panel_retained;
+mod operation_command;
 
 #[derive(Default)]
 struct RecordingBakeBackend {
@@ -40,6 +52,88 @@ impl NavigationBakeBackend for RecordingBakeBackend {
 #[derive(Default)]
 struct RecordingOverlaySink {
     submissions: Vec<Option<SceneGizmoOverlayExtract>>,
+}
+
+struct NavigationMirrorRuntimeGateway {
+    deliveries: Mutex<Vec<ZrRuntimePluginEventDeliveryV1>>,
+}
+
+impl NavigationMirrorRuntimeGateway {
+    fn new(delivery: ZrRuntimePluginEventDeliveryV1) -> Self {
+        Self {
+            deliveries: Mutex::new(vec![delivery]),
+        }
+    }
+}
+
+impl EditorRuntimeGateway for NavigationMirrorRuntimeGateway {
+    fn session_handle(&self) -> ZrRuntimeSessionHandle {
+        ZrRuntimeSessionHandle::new(42)
+    }
+
+    fn handle_event(&self, _event: ZrRuntimeEventV1) -> Result<(), GatewayError> {
+        Ok(())
+    }
+
+    fn capture_frame(
+        &self,
+        _viewport: ZrRuntimeViewportHandle,
+        _size: ZrRuntimeViewportSizeV1,
+    ) -> Result<ZrRuntimeFrameV1, GatewayError> {
+        Ok(ZrRuntimeFrameV1::empty(1))
+    }
+
+    fn subscribe_plugin_event(
+        &self,
+        event_id: &str,
+        payload_schema: &str,
+    ) -> Result<Option<ZrRuntimePluginEventSubscriptionHandle>, GatewayError> {
+        assert_eq!(event_id, NAVIGATION_TICK_EVENT_ID);
+        assert_eq!(payload_schema, NAVIGATION_TICK_PAYLOAD_SCHEMA);
+        Ok(Some(ZrRuntimePluginEventSubscriptionHandle::new(9)))
+    }
+
+    fn unsubscribe_plugin_event(
+        &self,
+        subscription: ZrRuntimePluginEventSubscriptionHandle,
+    ) -> Result<bool, GatewayError> {
+        assert_eq!(subscription.raw(), 9);
+        Ok(true)
+    }
+
+    fn drain_plugin_events(
+        &self,
+        _subscription: ZrRuntimePluginEventSubscriptionHandle,
+    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, GatewayError> {
+        Ok(std::mem::take(&mut *self.deliveries.lock().unwrap()))
+    }
+
+    fn submit_operation(
+        &self,
+        _request: zircon_runtime_interface::ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationHandle, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.submit",
+        })
+    }
+
+    fn poll_operation(
+        &self,
+        _handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
+    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationProgressV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.poll",
+        })
+    }
+
+    fn harvest_operation(
+        &self,
+        _handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
+    ) -> Result<zircon_runtime_interface::ZrRuntimeOperationResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.harvest",
+        })
+    }
 }
 
 impl NavigationViewportGizmoSink for RecordingOverlaySink {
@@ -148,6 +242,10 @@ fn navigation_editor_sdk_declaration_and_capability_diagnostics_are_authoritativ
         zircon_editor::EditorPlugin::descriptor(&plugin)
     );
     assert_eq!(declaration.package_manifest(), package_manifest());
+    assert_eq!(
+        declaration.mirrored_runtime_package_id(),
+        Some("navigation")
+    );
 
     let catalog = zircon_editor::EditorPluginCatalog::from_plugins([(
         &plugin as &dyn zircon_editor::EditorPlugin,
@@ -163,6 +261,51 @@ fn navigation_editor_sdk_declaration_and_capability_diagnostics_are_authoritativ
     assert!(catalog
         .validate_capabilities(EDITOR_CAPABILITIES)
         .is_success());
+}
+
+#[test]
+fn navigation_editor_consumer_is_manifest_projected_and_receives_pie_delivery() {
+    let plugin = editor_plugin();
+    let mirror = plugin.pie_mirror();
+    let registration = plugin.registration_report();
+    assert!(registration.is_success(), "{:?}", registration.diagnostics);
+    let manifest = registration
+        .package_manifest
+        .modules
+        .iter()
+        .find(|module| module.name == "navigation.editor")
+        .and_then(|module| module.event_consumers.first())
+        .expect("navigation editor consumer manifest");
+    assert_eq!(manifest.consumer_id, NAVIGATION_TICK_CONSUMER_ID);
+    assert_eq!(manifest.event_id, NAVIGATION_TICK_EVENT_ID);
+    assert_eq!(manifest.payload_schema, NAVIGATION_TICK_PAYLOAD_SCHEMA);
+
+    let payload = NavAgentTickReport {
+        scanned_agents: 5,
+        moved_agents: 4,
+        ..NavAgentTickReport::default()
+    };
+    let delivery = ZrRuntimePluginEventDeliveryV1::new(
+        42,
+        ZrRuntimePluginEventSubscriptionHandle::new(9),
+        NAVIGATION_TICK_EVENT_ID,
+        NAVIGATION_TICK_PAYLOAD_SCHEMA,
+        1,
+        serde_json::to_value(payload).unwrap(),
+    );
+    let host = EditorRuntimeEventConsumerHost::new(zircon_editor::EditorRuntimeGatewayHandle::new(
+        Arc::new(NavigationMirrorRuntimeGateway::new(delivery)),
+    ));
+    host.register(registration.runtime_event_consumers).unwrap();
+    host.begin_play_session(42, &[NAVIGATION_GIZMOS_CAPABILITY.to_string()])
+        .unwrap();
+    assert_eq!(host.pump().unwrap(), 1);
+    assert_eq!(
+        mirror.lock().unwrap().tick_report().unwrap().moved_agents,
+        4
+    );
+    host.end_play_session(42).unwrap();
+    assert!(mirror.lock().unwrap().tick_report().is_none());
 }
 
 fn navigation_editor_documents() -> &'static [&'static str] {
@@ -270,7 +413,75 @@ fn navigation_bake_controller_submits_typed_requests_and_surfaces_backend_reject
 }
 
 #[test]
-fn navigation_bake_commands_keep_pending_operation_payload_and_undo_contracts() {
+fn navigation_bake_selection_projects_stable_surface_entities_into_typed_actions() {
+    let mut panel = NavigationBakePanel::default();
+    panel.replace_surface_rows([
+        NavigationBakeSurfaceRow::new(41, "Upper Deck"),
+        NavigationBakeSurfaceRow::new(73, "Lower Deck"),
+    ]);
+
+    assert_eq!(panel.selected_surface_entity(), None);
+    assert!(panel.select_surface(41));
+    panel.set_force_full_rebuild(true);
+    assert_eq!(
+        panel.bake_selected_action(),
+        Ok(NavigationBakeAction::bake_selected_surface(41, true))
+    );
+
+    assert!(panel.select_surface(73));
+    assert_eq!(
+        panel.clear_selected_action(),
+        Ok(NavigationBakeAction::ClearSelectedSurface { entity: 73 })
+    );
+    assert_eq!(panel.selected_surface_entity(), Some(73));
+}
+
+#[test]
+fn navigation_bake_selection_never_submits_without_a_current_surface() {
+    let mut controller = NavigationBakePanelController::new(RecordingBakeBackend::default());
+    controller.replace_surface_rows([NavigationBakeSurfaceRow::new(41, "Upper Deck")]);
+
+    assert_eq!(
+        controller.bake_selected(),
+        Err(NavigationBakeSelectedSubmitError::Selection(
+            NavigationBakeSelectionError::NoSurfaceSelected
+        ))
+    );
+    assert_eq!(
+        controller.clear_selected(),
+        Err(NavigationBakeSelectedSubmitError::Selection(
+            NavigationBakeSelectionError::NoSurfaceSelected
+        ))
+    );
+    assert!(controller.backend().requests.is_empty());
+}
+
+#[test]
+fn navigation_bake_selection_drops_removed_and_stale_surface_entities() {
+    let mut panel = NavigationBakePanel::default();
+    panel.replace_surface_rows([
+        NavigationBakeSurfaceRow::new(41, "Upper Deck"),
+        NavigationBakeSurfaceRow::new(73, "Lower Deck"),
+    ]);
+    assert!(panel.select_surface(41));
+
+    panel.replace_surface_rows([NavigationBakeSurfaceRow::new(73, "Lower Deck")]);
+    assert_eq!(panel.selected_surface_entity(), None);
+    assert!(!panel.select_surface(999));
+    assert_eq!(
+        panel.clear_selected_action(),
+        Err(NavigationBakeSelectionError::NoSurfaceSelected)
+    );
+
+    assert!(panel.select_surface(73));
+    assert_eq!(
+        panel.bake_selected_action(),
+        Ok(NavigationBakeAction::bake_selected_surface(73, false))
+    );
+}
+
+#[test]
+fn navigation_bake_commands_keep_operation_payload_and_undo_contracts() {
     let registration = plugin_registration();
     for (operation, payload_schema) in [
         (NAVIGATION_BAKE_SCENE_OPERATION, "navigation.bake.scene.v1"),
@@ -291,7 +502,17 @@ fn navigation_bake_commands_keep_pending_operation_payload_and_undo_contracts() 
             .expect("navigation bake command must remain an edit operation");
         assert!(command.event().is_none());
         assert_eq!(command.payload_schema_id(), Some(payload_schema));
-        assert!(command.undoable().is_some());
+        assert!(matches!(
+            command.action(),
+            zircon_editor::core::commands::EditorCommandAction::Operation
+        ));
+        assert_eq!(
+            registration
+                .extensions
+                .operation_factory(&operation)
+                .map(|factory| factory.undo_display_name()),
+            Some(command.display_name())
+        );
     }
 }
 

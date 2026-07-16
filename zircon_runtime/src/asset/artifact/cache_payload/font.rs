@@ -6,7 +6,8 @@ use crate::asset::{
     FontAssetParsedFace, FontAssetRenderStrategy, FontAssetSourceFormat, FontAssetVariableInstance,
     FontAssetVariationAxis, FontAssetVariationCoord,
 };
-use crate::core::framework::render::CompositeFontDescriptor;
+#[cfg(feature = "text")]
+use crate::text::CompositeFontDescriptor;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 /// Bincode-safe font cache payload. Authoring serde attributes must not decide
@@ -20,6 +21,7 @@ pub(in crate::asset::artifact) struct ArtifactCacheFontAsset {
     family_members: Vec<ArtifactCacheFontAssetFamilyMember>,
     variable_instances: Vec<ArtifactCacheFontAssetVariableInstance>,
     fallback_families: Vec<String>,
+    #[cfg(feature = "text")]
     composite_font: Option<CompositeFontDescriptor>,
     render_strategy: ArtifactCacheFontAssetRenderStrategy,
     metadata: Option<ArtifactCacheFontAssetMetadata>,
@@ -43,6 +45,7 @@ impl From<&FontAsset> for ArtifactCacheFontAsset {
                 .map(ArtifactCacheFontAssetVariableInstance::from)
                 .collect(),
             fallback_families: asset.fallback_families.clone(),
+            #[cfg(feature = "text")]
             composite_font: asset.composite_font.clone(),
             render_strategy: ArtifactCacheFontAssetRenderStrategy::from(&asset.render_strategy),
             metadata: asset
@@ -71,6 +74,7 @@ impl ArtifactCacheFontAsset {
                 .map(ArtifactCacheFontAssetVariableInstance::into_asset)
                 .collect(),
             fallback_families: self.fallback_families,
+            #[cfg(feature = "text")]
             composite_font: self.composite_font,
             render_strategy: self.render_strategy.into_asset(),
             metadata: self

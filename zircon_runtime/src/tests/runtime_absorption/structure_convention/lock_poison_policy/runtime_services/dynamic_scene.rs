@@ -3,6 +3,7 @@ use super::*;
 #[test]
 fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry() {
     let dynamic_session = read_runtime_src("dynamic_api/session.rs");
+    let dynamic_session_ffi = read_runtime_src("dynamic_api/session/ffi.rs");
     let dynamic_session_registry = read_runtime_src("dynamic_api/session/registry.rs");
     let dynamic_session_tests = read_runtime_src("dynamic_api/session/tests/lock_poison.rs");
     let runtime_15_plan =
@@ -17,12 +18,15 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
     );
 
     assert_contains_all(
-        "dynamic API session registry owner mount",
+        "dynamic API session registry module mount",
         &dynamic_session,
+        &["mod registry;"],
+    );
+    assert_contains_all(
+        "dynamic API session FFI registry consumer",
+        &dynamic_session_ffi,
         &[
-            "mod registry;",
-            "use registry::lock_session;",
-            "use registry::{insert_session, lock_registry, with_session};",
+            "use super::registry::{insert_session, lock_registry, with_session};",
             "let mut registry = lock_registry();",
             "with_session(handle, |session|",
         ],
@@ -48,6 +52,10 @@ fn runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_regi
     assert!(
         !dynamic_session.contains("session.lock().unwrap()"),
         "dynamic API session execution should use lock_session() instead of direct lock unwrap"
+    );
+    assert!(
+        !dynamic_session_ffi.contains("session.lock().unwrap()"),
+        "dynamic API session FFI execution should route through registry helpers"
     );
     assert!(
         !dynamic_session_registry.contains("registry().lock().unwrap()"),

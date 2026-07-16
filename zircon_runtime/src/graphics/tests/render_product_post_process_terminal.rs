@@ -152,7 +152,7 @@ fn terminal_product_framework() -> WgpuRenderFramework {
 fn terminal_product_framework_with_capabilities(
     capabilities: RenderCapabilitySummary,
 ) -> WgpuRenderFramework {
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+    let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor()],
         [RenderPassExecutorRegistration::new(

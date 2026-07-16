@@ -27,7 +27,7 @@ fn viewport_edit_mode_projection_consumes_runtime_reflection_inspector_fields() 
         .expect("dynamic component should attach");
 
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-    controller.set_selected_node(Some(entity));
+    controller.selection_mut().select_only_active(entity);
 
     let projection = controller.build_edit_mode_projection(&scene);
 
@@ -69,7 +69,7 @@ fn viewport_edit_mode_projection_exposes_ambient_and_rect_light_fields() {
     let rect = scene.spawn_node(NodeKind::RectLight);
 
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-    controller.set_selected_node(Some(ambient));
+    controller.selection_mut().select_only_active(ambient);
 
     let ambient_projection = controller.build_edit_mode_projection(&scene);
     assert_eq!(ambient_projection.stats.light_count, 2);
@@ -88,7 +88,7 @@ fn viewport_edit_mode_projection_exposes_ambient_and_rect_light_fields() {
             && field.editable
     }));
 
-    controller.set_selected_node(Some(rect));
+    controller.selection_mut().select_only_active(rect);
 
     let rect_projection = controller.build_edit_mode_projection(&scene);
     assert!(rect_projection.inspector_fields.iter().any(|field| {

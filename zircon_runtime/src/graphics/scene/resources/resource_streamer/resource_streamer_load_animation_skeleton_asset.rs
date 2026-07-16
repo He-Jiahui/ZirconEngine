@@ -8,6 +8,9 @@ impl ResourceStreamer {
         &self,
         id: ResourceId,
     ) -> Option<AnimationSkeletonAsset> {
-        self.asset_manager.load_animation_skeleton_asset(id).ok()
+        self.asset_manager()
+            .ok()?
+            .load_animation_skeleton_asset(id)
+            .ok()
     }
 }

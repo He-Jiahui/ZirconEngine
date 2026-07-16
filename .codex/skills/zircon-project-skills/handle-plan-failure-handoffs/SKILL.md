@@ -32,7 +32,7 @@ When the local coordinator is available, run `tools/zircon-session.ps1 failure i
 2. Create `docs/plans/{fixing-family}/{fixing-id}/failure-{YYYY-MM-DD}-{summary}.md`.
 3. Keep `{summary}` lowercase, hyphenated, specific, and stable for the entire failure/fix lifecycle.
 4. Record the originating executor plan and slice, the fixing plan, reproduction evidence, lowest known cause, architectural acceptance criteria, and forbidden temporary workarounds.
-5. Add a concise open-status summary and relative link in both numbered plan documents.
+5. Default: add a concise open-status summary and relative link in both numbered plan documents. When repository policy prohibits writes to global plan definitions, set `plan_link_mode: child_record_only` in the artifact instead; the canonical child-plan record and coordinator Failure graph then carry the status, and no plan-definition links are required.
 6. Continue independent work in the originating session. Do not claim its affected gate passed.
 
 Use a handoff only for a repository failure owned by another numbered plan. Fix current-plan failures locally. Treat external outages without a repository owner as environment evidence, not a plan handoff.

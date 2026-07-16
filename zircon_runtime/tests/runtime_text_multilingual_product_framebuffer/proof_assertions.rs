@@ -109,10 +109,11 @@ pub(super) fn assert_mixed_bidi_editable_pixels(
 fn assert_near_color_coverage(
     capture: &zircon_runtime::core::framework::render::CapturedFrame,
     frame: zircon_runtime_interface::ui::layout::UiFrame,
-    expected: [u8; 3],
+    expected_linear: [u8; 3],
     minimum: usize,
     label: &str,
 ) {
+    let expected = expected_linear.map(linear_channel_to_srgb_byte);
     let width = capture.width as usize;
     let height = capture.height as usize;
     let left = frame.x.max(0.0).floor() as usize;
@@ -136,6 +137,28 @@ fn assert_near_color_coverage(
         matching >= minimum.max(1),
         "{label} must expose its own framebuffer color: frame={frame:?}, matching={matching}, minimum={}",
         minimum.max(1),
+    );
+}
+
+fn linear_channel_to_srgb_byte(channel: u8) -> u8 {
+    let linear = channel as f32 / 255.0;
+    let srgb = if linear <= 0.003_130_8 {
+        linear * 12.92
+    } else {
+        1.055 * linear.powf(1.0 / 2.4) - 0.055
+    };
+    (srgb.clamp(0.0, 1.0) * 255.0).round() as u8
+}
+
+#[test]
+fn framebuffer_decoration_expectations_encode_linear_vertex_colors_as_srgb() {
+    assert_eq!(
+        [0x4d, 0x89, 0xff].map(linear_channel_to_srgb_byte),
+        [149, 194, 255]
+    );
+    assert_eq!(
+        [0xe8, 0xee, 0xf7].map(linear_channel_to_srgb_byte),
+        [245, 247, 251]
     );
 }
 

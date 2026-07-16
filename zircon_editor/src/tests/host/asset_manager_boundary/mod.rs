@@ -63,12 +63,12 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         "editor event runtime accessors should import editor asset snapshot types from crate::ui::host::editor_asset_manager"
     );
     assert!(
-        startup_managers_source.contains("use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;"),
-        "editor host lifecycle should resolve the editor asset server through crate::ui::host::editor_asset_manager"
+        startup_managers_source.contains("use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;"),
+        "editor host lifecycle should resolve the editor asset server through a versioned editor-owned handle"
     );
     assert!(
-        startup_managers_source.contains("use zircon_runtime::asset::pipeline::manager::resolve_asset_manager;"),
-        "editor host lifecycle should resolve the generic asset server through zircon_runtime::asset::pipeline::manager"
+        startup_managers_source.contains("use zircon_runtime::asset::asset_manager_handle;"),
+        "editor host lifecycle should resolve the generic asset server through a versioned runtime handle"
     );
     assert!(
         !startup_managers_source.contains("resolver.editor_asset()?"),
@@ -79,8 +79,8 @@ fn editor_asset_boundary_lives_in_editor_crate() {
         "editor host lifecycle should not resolve generic asset API from zircon_runtime::core::manager::ManagerResolver"
     );
     assert!(
-        project_access_source.contains("use zircon_runtime::asset::pipeline::manager::{resolve_asset_manager, AssetManager};"),
-        "editor manager project access should resolve the asset server through zircon_runtime::asset::pipeline::manager"
+        project_access_source.contains("use zircon_runtime::asset::{asset_manager_handle, AssetManager};"),
+        "editor manager project access should resolve the asset server through a versioned runtime handle"
     );
     assert!(
         !runtime_asset_root_source.contains("pub mod editor;"),

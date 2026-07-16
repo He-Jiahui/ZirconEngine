@@ -14,6 +14,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn is_work
                 | "WorkbenchViewportAngle"
                 | "WorkbenchViewportSpeed"
         )
+        || node.component_variant.as_str() == "chip"
         || (node.control_id.as_str().starts_with("Workbench")
             && matches!(node.component_role.as_str(), "chip" | "pill"))
 }

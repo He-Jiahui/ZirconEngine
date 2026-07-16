@@ -13,6 +13,7 @@ use super::super::mesh_pipeline::{
     create_shadow_mesh_pipeline, create_taa_reactive_mask_mesh_pipeline,
     create_velocity_mesh_pipeline,
 };
+use super::create_forward_shadow_receiver_layout;
 
 pub(crate) fn validate_mesh_prewarm_request_render_pipeline(
     device: &wgpu::Device,
@@ -36,7 +37,7 @@ pub(crate) fn create_mesh_prewarm_validation_pipeline_layout(
     device: &wgpu::Device,
 ) -> wgpu::PipelineLayout {
     let scene_layout = create_validation_scene_layout(device);
-    let shadow_receiver_layout = create_validation_shadow_receiver_layout(device);
+    let shadow_receiver_layout = create_forward_shadow_receiver_layout(device);
     let material_layout = create_validation_material_layout(device);
     let gpu_scene_layout = create_validation_gpu_scene_layout(device);
     device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
@@ -121,6 +122,10 @@ fn pipeline_key_from_prewarm_request(request: &ShaderVariantPrewarmRequest) -> P
         .key
         .features
         .contains(ShaderFeatureBits::PBR_TRANSMISSION);
+    pipeline_key.volumetric_fog = request
+        .key
+        .features
+        .contains(ShaderFeatureBits::VOLUMETRIC_FOG);
     pipeline_key.shading_model_id = request.key.shading_model;
     pipeline_key
 }
@@ -138,75 +143,6 @@ fn create_validation_scene_layout(device: &wgpu::Device) -> wgpu::BindGroupLayou
     device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
         label: Some("zircon-shader-prewarm-validation-scene-layout"),
         entries: &scene_layout_entries,
-    })
-}
-
-fn create_validation_shadow_receiver_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
-    use crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_apply_bind_group_layout_entries;
-    use crate::graphics::scene::scene_renderer::advanced_lighting::transmission::transmission_scene_color_bind_group_layout_entries;
-    use crate::graphics::scene::scene_renderer::environment::lightmap_bind_group_layout_entries;
-    use crate::graphics::scene::scene_renderer::lighting::light_grid_builder::LightGridParams;
-    use crate::graphics::scene::scene_renderer::shadow::atlas::{
-        shadow_atlas_bind_group_layout_entries, SHADOW_ATLAS_SLOT_BUFFER_BINDING,
-        SHADOW_GLOBALS_BINDING,
-    };
-
-    let mut entries = Vec::new();
-    entries.extend(shadow_atlas_bind_group_layout_entries(
-        wgpu::ShaderStages::FRAGMENT,
-    ));
-    entries.extend(
-        crate::graphics::scene::scene_renderer::environment::reflection_probe_bind_group_layout_entries(),
-    );
-    entries.extend(lightmap_bind_group_layout_entries());
-    entries.extend(volumetric_apply_bind_group_layout_entries(
-        wgpu::ShaderStages::FRAGMENT,
-    ));
-    entries.extend(transmission_scene_color_bind_group_layout_entries());
-    entries.extend([
-        wgpu::BindGroupLayoutEntry {
-            binding: 20,
-            visibility: wgpu::ShaderStages::FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Uniform,
-                has_dynamic_offset: false,
-                min_binding_size: wgpu::BufferSize::new(
-                    std::mem::size_of::<LightGridParams>() as u64
-                ),
-            },
-            count: None,
-        },
-        wgpu::BindGroupLayoutEntry {
-            binding: 21,
-            visibility: wgpu::ShaderStages::FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: true },
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            },
-            count: None,
-        },
-        wgpu::BindGroupLayoutEntry {
-            binding: 22,
-            visibility: wgpu::ShaderStages::FRAGMENT,
-            ty: wgpu::BindingType::Buffer {
-                ty: wgpu::BufferBindingType::Storage { read_only: true },
-                has_dynamic_offset: false,
-                min_binding_size: None,
-            },
-            count: None,
-        },
-    ]);
-    for entry in &mut entries {
-        if entry.binding == SHADOW_ATLAS_SLOT_BUFFER_BINDING
-            || entry.binding == SHADOW_GLOBALS_BINDING
-        {
-            entry.visibility = wgpu::ShaderStages::FRAGMENT;
-        }
-    }
-    device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
-        label: Some("zircon-shader-prewarm-validation-shadow-receiver-layout"),
-        entries: &entries,
     })
 }
 

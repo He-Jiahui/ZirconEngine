@@ -25,6 +25,11 @@ fn workbench_button_state_palette_projects_from_host_palette() {
     let button_palette = workbench_button_palette_from_host(host_palette);
 
     assert_eq!(button_palette.surface_base, host_palette.surface_pressed);
+    assert_eq!(button_palette.surface_primary_rest, host_palette.accent);
+    assert_eq!(
+        button_palette.surface_primary_hover,
+        host_palette.focus_ring
+    );
     assert_eq!(button_palette.surface_hover, host_palette.surface_hover);
     assert_eq!(
         button_palette.surface_primary_pressed,
@@ -125,7 +130,7 @@ fn button_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn primary_button_owns_low_emphasis_chrome_tokens() {
+fn primary_button_uses_the_starship_primary_surface_role() {
     let mut node = TemplatePaneNodeData {
         control_id: "WorkbenchPrimaryButton".into(),
         button_variant: "filled".into(),
@@ -141,10 +146,28 @@ fn primary_button_owns_low_emphasis_chrome_tokens() {
     let style = select_workbench_button_style(&node, WorkbenchButtonKind::Primary, false);
     let button_palette = expected_button_palette();
 
-    assert_eq!(style.surface, button_palette.surface_base);
+    assert_eq!(style.surface, button_palette.surface_primary_rest);
     assert_eq!(style.border, button_palette.border);
     assert_eq!(style.text, button_palette.text);
     assert_eq!(style.glyph, button_palette.text);
+}
+
+#[test]
+fn primary_button_hover_uses_the_brighter_primary_surface_role() {
+    let node = TemplatePaneNodeData {
+        control_id: "WorkbenchPrimaryButton".into(),
+        button_variant: "filled".into(),
+        hovered: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_button_style(&node, WorkbenchButtonKind::Primary, false);
+    let button_palette = expected_button_palette();
+
+    assert_eq!(style.interaction, ButtonInteractionState::Hover);
+    assert_eq!(style.surface, button_palette.surface_primary_hover);
+    assert_eq!(style.border, button_palette.border);
+    assert_eq!(style.text, button_palette.text);
 }
 
 #[test]

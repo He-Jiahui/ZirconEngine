@@ -9,12 +9,16 @@ pub use crate::core::asset::{
     AssetTypeRegistryError, ThumbnailProviderDescriptor,
 };
 pub use crate::core::commands::{EditorCommandDescriptor, EditorCommandRegistryError};
+pub use crate::core::editing::operation::{
+    OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
+    OperationCommandFactoryRegistration,
+};
 pub use crate::core::editor_extension::{
     AssetImporterDescriptor, ComponentDrawerDescriptor, DrawerDescriptor,
     EditorExtensionRegistration, EditorExtensionRegistry, EditorExtensionRegistryError,
     EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
 };
-pub use crate::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+pub use crate::core::editor_operation::EditorOperationPath;
 pub use crate::core::editor_plugin::{
     EditorExtensionCatalogReport, EditorPlugin, EditorPluginCatalog, EditorPluginDescriptor,
     EditorPluginRegistrationReport,

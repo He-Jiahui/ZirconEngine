@@ -1,4 +1,4 @@
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
 use zircon_runtime_interface::serialization::MigrateError;
 
 use crate::scene::components::default_render_layer_mask;
@@ -48,7 +48,6 @@ fn dynamic_scene_from_world_value(world: Value) -> Result<Value, MigrateError> {
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(json!({
-        "format_version": 1,
         "entities": entities,
         "resources": []
     }))

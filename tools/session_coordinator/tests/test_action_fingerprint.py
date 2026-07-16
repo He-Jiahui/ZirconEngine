@@ -15,6 +15,7 @@ from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import SessionStatus
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
+from tools.session_coordinator.workflows.plan_import import TopologyImporter
 
 
 class ActionFingerprintTests(unittest.TestCase):
@@ -182,6 +183,41 @@ class ActionFingerprintTests(unittest.TestCase):
             spec, parameters, bound_session_id="session-a"
         ).digest
         self.assertEqual(before, after)
+
+    def test_milestone_reconciliation_fingerprint_tracks_both_run_evidence(self) -> None:
+        plan_path = "docs/plans/runtime/01-feature.md"
+        plan = self.repo / plan_path
+        plan.parent.mkdir(parents=True, exist_ok=True)
+        plan.write_text(
+            "```zircon-workflow\n"
+            '{"schema":1,"workflow_id":"fingerprint","goal":"test",'
+            '"milestones":[{"id":"M1","title":"one","depends_on":[]}]}\n'
+            "```\n",
+            encoding="utf-8",
+        )
+        self.sessions.register(session_id="session-c", plan_path=plan_path)
+        self.sessions.set_status("session-c", SessionStatus.ACTIVE)
+        importer = TopologyImporter(self.database, self.repo)
+        source = importer.import_plan("session-a", plan_path)
+        target = importer.import_plan("session-c", plan_path)
+        spec = action_spec(ActionKind.MILESTONE_RECONCILE.value)
+        parameters = spec.parse_parameters(
+            {
+                "sourceRunId": source.run_id,
+                "targetRunId": target.run_id,
+                "milestoneIds": ["M1"],
+            }
+        )
+
+        before = self.fingerprinter.capture(spec, parameters, bound_session_id=None).digest
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE workflow_runs SET updated_at='changed' WHERE run_id=?",
+                (target.run_id,),
+            )
+        after = self.fingerprinter.capture(spec, parameters, bound_session_id=None).digest
+
+        self.assertNotEqual(before, after)
 
 
 if __name__ == "__main__":

@@ -4,7 +4,6 @@ mod danger;
 mod declared;
 mod glyph;
 mod radius;
-mod toolbar_chrome;
 
 use super::super::resolved_state_for_node;
 use super::super::workbench_command::{workbench_command_visual_role, WorkbenchCommandVisualRole};

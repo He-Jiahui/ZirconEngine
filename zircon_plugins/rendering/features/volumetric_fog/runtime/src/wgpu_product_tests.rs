@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use image::{ImageBuffer, ImageFormat, Rgba};
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
+use zircon_runtime::asset::pipeline::manager::{ProjectAssetManager, ProjectAssetManagerAccess};
 use zircon_runtime::asset::{AlphaMode, AssetReference, AssetUri, MaterialAsset};
 use zircon_runtime::core::framework::render::{
     AdvancedLightingExtract, CapturedFrame, EnvironmentExtract, FallbackSkyboxKind,
@@ -16,9 +16,14 @@ use zircon_runtime::core::framework::render::{
     VolumetricFogSettings, DEFAULT_RENDER_LAYER_MASK,
 };
 use zircon_runtime::core::framework::scene::Mobility;
+use zircon_runtime::core::manager::{manager_service_handle, RegisteredManagerService};
 use zircon_runtime::core::math::{Transform, UVec2, Vec3, Vec4};
 use zircon_runtime::core::resource::{
     MaterialMarker, ModelMarker, ResourceHandle, ResourceId, ResourceKind, ResourceRecord,
+};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{
+    CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
 };
 use zircon_runtime::graphics::WgpuRenderFramework;
 
@@ -28,6 +33,9 @@ use super::{
     MEDIA_INJECT_EXECUTOR, MEDIA_INJECT_PASS,
 };
 
+#[cfg(windows)]
+mod renderdoc_capture;
+
 const VIEWPORT_SIZE: UVec2 = UVec2::new(192, 128);
 const EXPECTED_HIGH_QUALITY_DISPATCHES: usize = 3;
 const EXPECTED_HIGH_QUALITY_DISPATCH_GROUPS: usize = 44_400;
@@ -35,11 +43,63 @@ const EXPECTED_FRAME_UPLOAD_BYTES: u64 = 624;
 const PNG_NAME: &str = "plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.png";
 const REPORT_NAME: &str =
     "plan18_volumetric_compiled_scene_window_light_shaft_perf_wgpu_20260711.txt";
+const TEST_ASSET_MODULE_NAME: &str = "VolumetricFogProductAssetRuntime";
+const TEST_ASSET_SERVICE_NAME: &str =
+    "VolumetricFogProductAssetRuntime.Manager.ProjectAssetManager";
+
+struct ProjectAssetTestRuntime {
+    _runtime: CoreRuntime,
+    access: ProjectAssetManagerAccess,
+}
+
+impl ProjectAssetTestRuntime {
+    fn new(manager: Arc<ProjectAssetManager>) -> Self {
+        let runtime = CoreRuntime::new();
+        runtime
+            .register_module(
+                ModuleDescriptor::new(
+                    TEST_ASSET_MODULE_NAME,
+                    "volumetric fog product asset runtime",
+                )
+                .with_manager(ManagerDescriptor::new(
+                    RegistryName::from_parts(
+                        TEST_ASSET_MODULE_NAME,
+                        ServiceKind::Manager,
+                        "ProjectAssetManager",
+                    ),
+                    StartupMode::Immediate,
+                    Vec::new(),
+                    Arc::new(move |_| {
+                        Ok(
+                            Arc::new(RegisteredManagerService::new(Arc::clone(&manager)))
+                                as ServiceObject,
+                        )
+                    }),
+                )),
+            )
+            .expect("volumetric product ProjectAssetManager service should register");
+        runtime
+            .activate_module(TEST_ASSET_MODULE_NAME)
+            .expect("volumetric product ProjectAssetManager module should activate");
+        let core = runtime.handle();
+        let handle = manager_service_handle(&core, TEST_ASSET_SERVICE_NAME)
+            .expect("volumetric product ProjectAssetManager handle should resolve");
+        Self {
+            _runtime: runtime,
+            access: ProjectAssetManagerAccess::new(core, handle),
+        }
+    }
+
+    fn access(&self) -> ProjectAssetManagerAccess {
+        self.access.clone()
+    }
+}
 
 #[test]
 #[ignore = "writes reviewed WGPU product evidence under docs/tests/runtime/render"]
 fn export_volumetric_compiled_scene_window_light_shaft_perf_wgpu_png() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime = ProjectAssetTestRuntime::new(asset_manager.clone());
     let room_material = register_material(
         asset_manager.as_ref(),
         "res://materials/volumetric_window_room.zmaterial",
@@ -58,14 +118,14 @@ fn export_volumetric_compiled_scene_window_light_shaft_perf_wgpu_png() {
     );
 
     let volumetric_framework = WgpuRenderFramework::new_with_plugin_render_features(
-        asset_manager.clone(),
+        asset_runtime.access(),
         [render_feature_descriptor()],
         render_pass_executor_registrations(),
         Vec::new(),
     )
     .expect("volumetric fog pluginized WGPU framework");
     let baseline_framework =
-        WgpuRenderFramework::new(asset_manager).expect("baseline WGPU framework");
+        WgpuRenderFramework::new(asset_runtime.access()).expect("baseline WGPU framework");
 
     let (baseline_frame, baseline_stats) = render_frame(
         &baseline_framework,
@@ -117,6 +177,59 @@ fn export_volumetric_compiled_scene_window_light_shaft_perf_wgpu_png() {
         product_gate_passed,
         "compiled-scene volumetric pass should produce a visible light-shaft/fog composite; metrics={metrics:?}"
     );
+}
+
+#[test]
+#[cfg(windows)]
+#[ignore = "captures the shadowed volumetric compiled scene through RenderDoc"]
+fn capture_volumetric_compiled_scene_window_light_shaft_renderdoc() {
+    let asset_manager = Arc::new(ProjectAssetManager::default());
+    let asset_runtime = ProjectAssetTestRuntime::new(asset_manager.clone());
+    let room_material = register_material(
+        asset_manager.as_ref(),
+        "res://materials/volumetric_window_room_capture.zmaterial",
+        "VolumetricWindowRoomCapture",
+        [0.18, 0.20, 0.23, 1.0],
+        false,
+        true,
+    );
+    let frame_material = register_material(
+        asset_manager.as_ref(),
+        "res://materials/volumetric_window_frame_capture.zmaterial",
+        "VolumetricWindowFrameCapture",
+        [0.11, 0.12, 0.13, 1.0],
+        true,
+        true,
+    );
+    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+        asset_runtime.access(),
+        [render_feature_descriptor()],
+        render_pass_executor_registrations(),
+        Vec::new(),
+    )
+    .expect("volumetric fog RenderDoc framework");
+
+    let capture_template =
+        render_output_dir().join("plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_capture");
+    let ((_, stats), capture_path) =
+        renderdoc_capture::capture_offscreen_frame(&capture_template, || {
+            render_frame(
+                &framework,
+                "volumetric-window-renderdoc",
+                window_light_shaft_extract(room_material, frame_material, true, true),
+                // Keep both submissions in one offscreen capture so replay can compare
+                // the history-prime frame with the measured product frame.
+                true,
+            )
+        })
+        .expect("RenderDoc should capture the offscreen volumetric frame");
+
+    assert_volumetric_stats(&stats);
+    assert!(
+        capture_path.is_file(),
+        "missing RenderDoc capture {capture_path:?}"
+    );
+    eprintln!("renderdoc_capture={}", capture_path.display());
 }
 
 fn volumetric_product_gate_passed(metrics: FrameComparisonMetrics) -> bool {
@@ -183,6 +296,32 @@ fn volumetric_product_gate_rejects_uniform_full_frame_fog_change() {
             < 0.01
     );
     assert!(!volumetric_product_gate_passed(metrics));
+}
+
+#[test]
+fn volumetric_product_report_exposes_visibility_material_and_mesh_diagnostics() {
+    let metrics = compare_frames(
+        &comparison_frame(vec![0, 0, 0, 255, 0, 0, 0, 255]),
+        &comparison_frame(vec![1, 2, 3, 255, 1, 2, 3, 255]),
+    );
+    let report = format_report(
+        &RenderStats::default(),
+        &RenderStats::default(),
+        metrics,
+        metrics,
+        false,
+    );
+
+    for field in [
+        "baseline_visibility_inputs=0",
+        "baseline_materials_ready=0",
+        "baseline_mesh_draws=0",
+        "volumetric_visibility_inputs=0",
+        "volumetric_materials_ready=0",
+        "volumetric_mesh_draws=0",
+    ] {
+        assert!(report.contains(field), "missing report field `{field}`");
+    }
 }
 
 fn comparison_frame(rgba: Vec<u8>) -> CapturedFrame {
@@ -365,6 +504,7 @@ fn window_light_shaft_extract(
                 depth_distribution_exp: 2.0,
                 temporal: true,
             }),
+            volumetric_light_ids: vec![73_200],
             ..AdvancedLightingExtract::default()
         };
     }
@@ -689,9 +829,27 @@ fn format_report(
             "unshadowed_brighter_pixels={}\n",
             "unshadowed_color_shifted_pixels={}\n",
             "unshadowed_rgb_abs_delta={}\n",
+            "baseline_visibility_inputs={}\n",
+            "baseline_visibility_frustum_culled={}\n",
+            "baseline_visibility_visible={}\n",
+            "baseline_materials={}\n",
+            "baseline_materials_ready={}\n",
+            "baseline_material_fallbacks={}\n",
+            "baseline_mesh_draws={}\n",
+            "baseline_mesh_opaque_draws={}\n",
+            "baseline_mesh_commands={}\n",
             "baseline_volumetric_dispatches={}\n",
             "baseline_volumetric_dispatch_groups={}\n",
             "baseline_volumetric_uploaded_bytes={}\n",
+            "volumetric_visibility_inputs={}\n",
+            "volumetric_visibility_frustum_culled={}\n",
+            "volumetric_visibility_visible={}\n",
+            "volumetric_materials={}\n",
+            "volumetric_materials_ready={}\n",
+            "volumetric_material_fallbacks={}\n",
+            "volumetric_mesh_draws={}\n",
+            "volumetric_mesh_opaque_draws={}\n",
+            "volumetric_mesh_commands={}\n",
             "volumetric_dispatches={}\n",
             "volumetric_dispatch_groups={}\n",
             "volumetric_uploaded_bytes={}\n",
@@ -730,9 +888,27 @@ fn format_report(
         unshadowed_metrics.brighter_pixels,
         unshadowed_metrics.color_shifted_pixels,
         unshadowed_metrics.rgb_abs_delta,
+        baseline_stats.last_visibility_input_count,
+        baseline_stats.last_visibility_frustum_culled_count,
+        baseline_stats.last_visibility_visible_count,
+        baseline_stats.last_material_count,
+        baseline_stats.last_material_ready_count,
+        baseline_stats.last_material_fallback_count,
+        baseline_stats.last_mesh_draw_count,
+        baseline_stats.last_mesh_opaque_draw_count,
+        baseline_stats.last_mesh_command_count,
         baseline_stats.last_volumetric_fog_compute_dispatch_count,
         baseline_stats.last_volumetric_fog_compute_dispatch_group_count,
         baseline_stats.last_volumetric_fog_uploaded_bytes,
+        volumetric_stats.last_visibility_input_count,
+        volumetric_stats.last_visibility_frustum_culled_count,
+        volumetric_stats.last_visibility_visible_count,
+        volumetric_stats.last_material_count,
+        volumetric_stats.last_material_ready_count,
+        volumetric_stats.last_material_fallback_count,
+        volumetric_stats.last_mesh_draw_count,
+        volumetric_stats.last_mesh_opaque_draw_count,
+        volumetric_stats.last_mesh_command_count,
         volumetric_stats.last_volumetric_fog_compute_dispatch_count,
         volumetric_stats.last_volumetric_fog_compute_dispatch_group_count,
         volumetric_stats.last_volumetric_fog_uploaded_bytes,

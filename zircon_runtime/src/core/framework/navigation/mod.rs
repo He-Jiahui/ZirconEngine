@@ -11,6 +11,7 @@ mod manager;
 mod modifier;
 mod obstacle;
 mod off_mesh_link;
+mod operation;
 mod query;
 mod settings;
 mod stats;
@@ -46,6 +47,11 @@ pub use off_mesh_link::{
     NavLinkMotion, NavLinkTraversalMode, NavMeshOffMeshBridgeDescriptor,
     NavMeshOffMeshLinkDescriptor, OffMeshTraverseEvent, OffMeshTraverseEventKind,
     OffMeshTraversePhase, OffMeshTraverseState,
+};
+pub use operation::{
+    NavigationClearBakeRequest, NavigationGeneratedBakeChange, NavigationGeneratedBakeSnapshot,
+    NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
+    NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_RESTORE_BAKE_OPERATION,
 };
 pub use query::{
     nav_area_flag, NavPathPoint, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter,

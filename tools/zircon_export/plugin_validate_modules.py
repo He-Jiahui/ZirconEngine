@@ -29,6 +29,7 @@ PLUGIN_VALIDATE_MODULE_FIELDS = frozenset(
         "capabilities",
         "system_sets",
         "system_anchors",
+        "event_consumers",
     )
 )
 
@@ -163,6 +164,9 @@ def validate_plugin_module_row(
             capabilities, module_kind, f"{row_label}.capabilities", diagnostics
         )
     validate_plugin_module_system_contracts(module, module_kind, row_label, namespace_id, diagnostics)
+    validate_plugin_module_event_consumers(
+        module, module_kind, row_label, namespace_id, diagnostics
+    )
     if crate_name is not None:
         validate_plugin_module_workspace_crate(
             crate_name,
@@ -172,6 +176,61 @@ def validate_plugin_module_row(
             workspace_crate_index,
             diagnostics,
         )
+
+
+def validate_plugin_module_event_consumers(
+    module: Manifest,
+    module_kind: str | None,
+    row_label: str,
+    namespace_id: str,
+    diagnostics: Diagnostics,
+) -> None:
+    consumers = module.get("event_consumers")
+    if consumers is None:
+        return
+    if module_kind != "editor":
+        diagnostics.append(
+            f"{row_label}.event_consumers may only be declared by editor modules"
+        )
+    if not isinstance(consumers, list) or not consumers:
+        diagnostics.append(f"{row_label}.event_consumers must be a non-empty array")
+        return
+    known_fields = {"consumer_id", "event_id", "payload_schema", "required_capability"}
+    seen_ids: set[str] = set()
+    for index, consumer in enumerate(consumers):
+        label = f"{row_label}.event_consumers[{index}]"
+        if not isinstance(consumer, dict):
+            diagnostics.append(f"{label} must be a table")
+            continue
+        for field in sorted(consumer):
+            if field not in known_fields:
+                diagnostics.append(f"{label}.{field} is not a known event consumer field")
+        values: dict[str, str] = {}
+        for field in ("consumer_id", "event_id", "payload_schema", "required_capability"):
+            value = consumer.get(field)
+            if not isinstance(value, str) or not value.strip() or value.strip() != value:
+                diagnostics.append(f"{label}.{field} must be a non-empty trimmed string")
+            else:
+                values[field] = value
+        consumer_id = values.get("consumer_id")
+        if consumer_id is not None:
+            if consumer_id in seen_ids:
+                diagnostics.append(f"{label}.consumer_id {consumer_id} is duplicated")
+            seen_ids.add(consumer_id)
+            if not consumer_id.startswith(f"{namespace_id}."):
+                diagnostics.append(
+                    f"{label}.consumer_id {consumer_id} should stay under namespace {namespace_id}."
+                )
+        event_id = values.get("event_id")
+        if event_id is not None and not event_id.startswith(f"{namespace_id}."):
+            diagnostics.append(
+                f"{label}.event_id {event_id} should stay under namespace {namespace_id}."
+            )
+        capability = values.get("required_capability")
+        if capability is not None and not capability.startswith("editor."):
+            diagnostics.append(
+                f"{label}.required_capability {capability} should start with editor."
+            )
 
 
 def validate_plugin_module_name(

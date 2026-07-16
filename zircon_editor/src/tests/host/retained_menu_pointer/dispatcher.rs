@@ -1,5 +1,17 @@
+use std::any::Any;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
+
 use super::support::*;
 use crate::core::commands::EditorCommandDescriptor;
+use crate::core::editing::engine::{
+    CommandExecutionError, EditCommand, EditContext, HistoryContextId,
+};
+use crate::core::editing::operation::{
+    OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
+    OperationCommandFactoryRegistration,
+};
+use crate::core::editor_operation::EditorOperationInvocation;
 
 #[test]
 fn shared_menu_pointer_click_dispatches_reset_layout_through_runtime_dispatcher() {
@@ -124,13 +136,11 @@ fn shared_menu_pointer_click_dispatches_editor_operation_payloads_from_extension
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(operation_path.clone(), "Open Weather")
-                .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
+            EditorCommandDescriptor::operation(operation_path.clone(), "Open Weather").with_event(
+                EditorEvent::Layout(LayoutCommand::ActivateMainPage {
                     page_id: MainPageId::new("weather"),
-                }))
-                .with_undoable(crate::core::editor_operation::UndoableEditorOperation::new(
-                    "Open Weather",
-                )),
+                }),
+            ),
         )
         .expect("test operation should register in extension");
     harness
@@ -196,16 +206,10 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Refresh Cloud Layers",
-            )
-            .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
-                page_id: MainPageId::new("weather"),
-            }))
-            .with_undoable(
-                crate::core::editor_operation::UndoableEditorOperation::new("Refresh Cloud Layers"),
-            ),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::Layout(LayoutCommand::ActivateMainPage {
+                    page_id: MainPageId::new("weather"),
+                })),
         )
         .expect("test operation should register in extension");
     harness
@@ -296,4 +300,111 @@ fn shared_menu_pointer_click_dispatches_nested_editor_operation_leaf_from_workbe
             .and_then(|record| record.operation_id.as_deref()),
         Some("weather.cloud_layer.refresh")
     );
+}
+
+#[test]
+fn shared_menu_pointer_click_executes_registered_operation_factory_transaction() {
+    let _guard = env_lock().lock().unwrap();
+
+    let harness = EventRuntimeHarness::new("zircon_retained_menu_pointer_operation_factory");
+    let operation_path = EditorOperationPath::parse("test.operation.retained_apply").unwrap();
+    let applications = Arc::new(AtomicUsize::new(0));
+    let mut extension = EditorExtensionRegistry::default();
+    extension
+        .register_operation_command(
+            EditorCommandDescriptor::operation(operation_path.clone(), "Apply Retained Operation"),
+            OperationCommandFactoryRegistration::new(
+                operation_path.clone(),
+                "Apply Retained Operation",
+                Arc::new(CountingOperationFactory {
+                    applications: Arc::clone(&applications),
+                }),
+            ),
+        )
+        .unwrap();
+    harness
+        .runtime
+        .register_editor_extension(extension)
+        .unwrap();
+
+    let template_bridge = BuiltinHostWindowTemplateBridge::new(UiSize::new(1280.0, 720.0))
+        .expect("builtin workbench template bridge should build");
+    let mut pointer_bridge = HostMenuPointerBridge::new();
+    let mut layout = default_menu_layout();
+    layout.menus = vec![vec![crate::ui::retained_host::menu_pointer::MenuItemSpec {
+        action_id: Some(operation_path.to_string()),
+        enabled: true,
+        children: Vec::new(),
+    }]];
+    pointer_bridge.sync(
+        layout,
+        HostMenuPointerState {
+            open_menu_index: Some(0),
+            hovered_menu_index: Some(0),
+            hovered_item_index: None,
+            popup_scroll_offset: 0.0,
+            ..HostMenuPointerState::default()
+        },
+    );
+
+    dispatch_shared_menu_pointer_click(
+        &harness.runtime,
+        &template_bridge,
+        &mut pointer_bridge,
+        UiPoint::new(18.0, 42.0),
+    )
+    .expect("retained operation should execute through its registered factory");
+
+    assert_eq!(applications.load(Ordering::SeqCst), 1);
+    assert!(
+        harness
+            .runtime
+            .context()
+            .transactions()
+            .history_snapshot(HistoryContextId::Global)
+            .unwrap()
+            .can_undo
+    );
+}
+
+struct CountingOperationFactory {
+    applications: Arc<AtomicUsize>,
+}
+
+impl OperationCommandFactory for CountingOperationFactory {
+    fn create(
+        &self,
+        _invocation: &EditorOperationInvocation,
+    ) -> Result<OperationCommand, OperationCommandFactoryError> {
+        Ok(OperationCommand::new(
+            Box::new(CountingOperationCommand {
+                applications: Arc::clone(&self.applications),
+            }),
+            HistoryContextId::Global,
+        ))
+    }
+}
+
+struct CountingOperationCommand {
+    applications: Arc<AtomicUsize>,
+}
+
+impl EditCommand for CountingOperationCommand {
+    fn label(&self) -> &str {
+        "Apply Retained Operation"
+    }
+
+    fn apply(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+        self.applications.fetch_add(1, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn revert(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+        self.applications.fetch_sub(1, Ordering::SeqCst);
+        Ok(())
+    }
+
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
 }

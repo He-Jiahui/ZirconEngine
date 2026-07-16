@@ -45,7 +45,7 @@ fn editor_runtime_rejects_serde_retained_command_ids_as_menu_capability_owners_a
     let operation_path = EditorOperationPath::parse("weather.retained.refresh").unwrap();
     let mut retained = EditorExtensionRegistry::default();
     retained
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             operation_path.clone(),
             "Refresh Retained Weather",
         ))
@@ -223,7 +223,7 @@ fn editor_runtime_rejects_duplicate_extension_view_without_registering_operation
         ))
         .unwrap();
     duplicate_extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             operation_path.clone(),
             "Refresh Cloud Layers",
         ))
@@ -315,7 +315,7 @@ fn editor_runtime_rejects_explicit_view_command_with_the_wrong_target_atomically
         .unwrap();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(operation_path.clone(), "Open Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone(), "Open Cloud Layers")
                 .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
@@ -361,7 +361,7 @@ fn editor_runtime_accepts_explicit_view_command_only_for_the_matching_target() {
         .unwrap();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(operation_path.clone(), "Open Cloud Layers")
+            EditorCommandDescriptor::operation(operation_path.clone(), "Open Cloud Layers")
                 .with_event(expected_event.clone()),
         )
         .unwrap();
@@ -401,11 +401,8 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
     let mut first_extension = EditorExtensionRegistry::default();
     first_extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                first_operation.clone(),
-                "Refresh Cloud Layers",
-            )
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
+            EditorCommandDescriptor::operation(first_operation.clone(), "Refresh Cloud Layers")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout)),
         )
         .unwrap();
     first_extension
@@ -422,7 +419,7 @@ fn editor_runtime_rejects_duplicate_extension_menu_paths_without_registering_ope
     let second_operation = EditorOperationPath::parse("weather.cloud_layer.reset").unwrap();
     let mut duplicate_extension = EditorExtensionRegistry::default();
     duplicate_extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             second_operation.clone(),
             "Reset Cloud Layers",
         ))

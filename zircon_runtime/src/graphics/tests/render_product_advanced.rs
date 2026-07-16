@@ -357,7 +357,8 @@ fn render_hzb_occlusion_wall_scene(
     capabilities: RenderCapabilitySummary,
     viewport_size: UVec2,
 ) -> (CapturedFrame, RenderStats) {
-    let server = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let server =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     server.override_capabilities_for_tests(capabilities);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

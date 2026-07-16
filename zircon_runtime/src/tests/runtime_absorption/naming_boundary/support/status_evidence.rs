@@ -43,7 +43,7 @@ fn read_runtime_15_naming_map_evidence(manifest_root: &Path, relative_directory:
         ),
         read_repo_text(
             manifest_root,
-            "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+            "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
         ),
     ]
     .join("\n")

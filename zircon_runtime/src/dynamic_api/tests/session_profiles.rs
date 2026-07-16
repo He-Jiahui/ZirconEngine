@@ -11,30 +11,31 @@ fn create_session_accepts_named_headless_profile_without_render_bridge() {
 
 #[test]
 fn dev_profile_ticks_runtime_diagnostic_store_log_schedule() {
-    let session_source = include_str!("../session.rs");
+    let state_source = include_str!("../session/state.rs");
     let profile_source = include_str!("../session/profile.rs");
 
     assert!(profile_source.contains("RUNTIME_SESSION_PROFILE_DEV => Some(Self::Dev)"));
     assert!(profile_source.contains("DiagnosticStoreLogSchedule::repeating"));
     assert!(profile_source.contains("DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT"));
-    assert!(session_source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
-    assert!(session_source.contains("write_diagnostic_store_snapshot"));
+    assert!(state_source.contains("collect_runtime_diagnostics(&self.runtime.handle()).store"));
+    assert!(state_source.contains("write_diagnostic_store_snapshot"));
 }
 
 #[test]
 fn minimal_and_headless_profiles_skip_render_bridge_bootstrap() {
-    let session_source = include_str!("../session.rs");
+    let state_source = include_str!("../session/state.rs");
+    let construction_source = include_str!("../session/construction.rs");
     let profile_source = include_str!("../session/profile.rs");
 
     assert!(profile_source.contains("fn uses_render_bridge(self) -> bool"));
     assert!(profile_source.contains("matches!(self, Self::Runtime | Self::Editor | Self::Dev)"));
-    assert!(session_source.contains("runtime_dynamic_session_render_bridge_skipped"));
-    assert!(session_source.contains("let Some(render_bridge) = &mut self.render_bridge else"));
+    assert!(construction_source.contains("runtime_dynamic_session_render_bridge_skipped"));
+    assert!(state_source.contains("let Some(render_bridge) = &mut self.render_bridge else"));
 }
 
 #[test]
 fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
-    let source = include_str!("../session.rs");
+    let source = include_str!("../session/state.rs");
     let tick_start = source
         .find("fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>")
         .expect("runtime dynamic session tick_frame implementation");
@@ -42,8 +43,13 @@ fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
         .find(".tick(&self.runtime.handle(), advance)")
         .expect("runtime frame should tick the loaded LevelSystem");
     let input_begin_frame = source[tick_start..]
-        .find("self.input_manager.begin_frame();")
+        .find(".begin_frame();")
         .expect("runtime frame should clear per-frame input after gameplay tick");
+
+    assert!(
+        source[tick_start..tick_start + input_begin_frame].contains("self.resolve_input_manager()"),
+        "runtime frame should resolve the versioned input handle at the use point"
+    );
 
     assert!(
         !source[tick_start..].contains(".tick(&self.runtime.handle(), advance.real_delta()"),
@@ -57,7 +63,7 @@ fn tick_frame_drives_loaded_level_before_clearing_frame_input() {
 
 #[test]
 fn session_ui_extract_remains_documented_dynamic_session_side_path() {
-    let session_source = include_str!("../session.rs");
+    let session_source = include_str!("../session/state.rs");
     let extract_source = include_str!("../session/extract.rs");
     let capture_start = session_source
         .find("fn capture_frame(\n        &mut self,")
@@ -95,7 +101,7 @@ fn session_ui_extract_remains_documented_dynamic_session_side_path() {
 
 #[test]
 fn project_sessions_open_assets_before_loading_default_level() {
-    let source = include_str!("../session.rs");
+    let source = include_str!("../session/construction.rs");
     let level_start = source
         .find("runtime_session_level")
         .expect("runtime dynamic session project level bootstrap");

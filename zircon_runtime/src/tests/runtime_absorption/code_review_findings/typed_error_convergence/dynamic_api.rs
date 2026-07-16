@@ -1,6 +1,9 @@
 #[test]
 fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() {
     let session = include_str!("../../../../dynamic_api/session.rs");
+    let construction = include_str!("../../../../dynamic_api/session/construction.rs");
+    let ffi = include_str!("../../../../dynamic_api/session/ffi.rs");
+    let state = include_str!("../../../../dynamic_api/session/state.rs");
     let error = include_str!("../../../../dynamic_api/session/error.rs");
     let project = include_str!("../../../../dynamic_api/session/project.rs");
     let status = include_str!("../../../../dynamic_api/session/status.rs");
@@ -26,7 +29,7 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
 
     for required in [
         "mod error;",
-        "use error::{RuntimeDynamicSessionError, RuntimeDynamicSessionResult};",
+        "pub use error::{RuntimeDynamicSessionError, RuntimeProjectError};",
         ") -> RuntimeDynamicSessionResult<Self>",
         "fn tick_frame(&mut self) -> RuntimeDynamicSessionResult<()>",
         "RuntimeDynamicSessionError::RenderBridgeStep",
@@ -34,15 +37,17 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
         "RuntimeDynamicSessionError::EncodeAccessibilityTree",
     ] {
         assert!(
-            session.contains(required),
-            "dynamic API session should contain typed-error anchor `{required}`"
+            [session, construction, ffi, state]
+                .iter()
+                .any(|source| source.contains(required)),
+            "dynamic API session owners should contain typed-error anchor `{required}`"
         );
     }
     for required in [
         "pub(super) type RuntimeDynamicSessionResult<T>",
         "pub(super) type RuntimeProjectResult<T>",
-        "pub(super) enum RuntimeDynamicSessionError",
-        "pub(super) enum RuntimeProjectError",
+        "pub enum RuntimeDynamicSessionError",
+        "pub enum RuntimeProjectError",
         "ModuleDiscovery",
         "CoreStep",
         "ProjectStep",
@@ -83,16 +88,13 @@ fn review_f5_dynamic_api_session_uses_typed_errors_before_abi_status_boundary() 
         );
     }
 
-    let session_production = session
-        .split("#[cfg(test)]")
-        .next()
-        .expect("dynamic API session production source");
+    let session_production = [session, construction, ffi, state].concat();
     let project_production = project
         .split("#[cfg(test)]")
         .next()
         .expect("dynamic API project production source");
     for (label, source) in [
-        ("dynamic API session", session_production),
+        ("dynamic API session", session_production.as_str()),
         ("dynamic API project", project_production),
     ] {
         for forbidden in [

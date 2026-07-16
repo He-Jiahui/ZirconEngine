@@ -19,12 +19,14 @@ use crate::core::framework::render::{
     RenderVirtualGeometrySelectedClusterSource, RenderVirtualGeometryVisBuffer64Source,
     SolariRuntimeDegradation, SolariRuntimeReport, SolariRuntimeStatus, SolariSettings,
 };
+use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{ManagerDescriptor, ModuleDescriptor, RegistryName, StartupMode};
 use crate::engine_module::factory;
 use zircon_runtime_interface::ui::surface::UiRenderExtract;
 
-pub(super) const DIAGNOSTICS_TEST_MODULE: &str = crate::graphics::GRAPHICS_MODULE_NAME;
+pub(super) const DIAGNOSTICS_TEST_MODULE: &str =
+    crate::core::framework::render::GRAPHICS_MODULE_NAME;
 
 pub(super) fn fake_render_module() -> ModuleDescriptor {
     ModuleDescriptor::new(
@@ -37,9 +39,9 @@ pub(super) fn fake_render_module() -> ModuleDescriptor {
         Vec::new(),
         factory(|_| {
             Ok(
-                Arc::new(crate::core::manager::RenderFrameworkHandle::new(Arc::new(
-                    FakeRenderFramework,
-                ))) as ServiceObject,
+                Arc::new(RegisteredManagerService::<dyn RenderFramework>::new(
+                    Arc::new(FakeRenderFramework),
+                )) as ServiceObject,
             )
         }),
     ))

@@ -57,7 +57,8 @@ fn runtime_15_f2_lock_poison_recovery_guard_covers_scene_and_eventbus() {
         "level manager lifecycle delegates to shared helper",
         &level_manager_lifecycle,
         &[
-            "self.lock_levels().insert(handle, level.clone())",
+            "let mut levels = self.lock_levels();",
+            "levels.insert(handle, level.clone());",
             "self.lock_levels().get(&handle).cloned()",
         ],
     );

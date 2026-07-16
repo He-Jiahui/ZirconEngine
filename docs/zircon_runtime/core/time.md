@@ -72,7 +72,7 @@ Bevy's default plugin group in `dev/bevy/crates/bevy_internal/src/default_plugin
 - `CoreRuntimeInner` owns one `FrameClock` and one `RuntimeTimeClocks` bundle per runtime instance.
 - `CoreRuntime` and `CoreHandle` expose read snapshots plus deterministic `advance_time_by(...)` and wall-clock `tick_time(...)` entry points.
 - `CoreRuntime` also owns a `DiagnosticStore`; time advancement records frame-time diagnostics there.
-- `zircon_runtime_interface::ZrRuntimeApiV1::tick_frame` is an optional appended ABI entry that lets hosts advance a dynamic runtime session without importing runtime implementation types.
+- `zircon_runtime_interface::ZrRuntimeApiV2::tick_frame` is an optional function entry in the V2 table that lets hosts advance a dynamic runtime session without importing runtime implementation types.
 - `zircon_app::RuntimeEntryApp::about_to_wait` calls `RuntimeSession::tick_frame()` before `request_redraw()`, matching Bevy's model where the outer app loop advances time before the next frame's update/render work.
 
 This keeps the app host out of concrete clock storage. `zircon_app` can choose when to tick, but `zircon_runtime::core` remains the authority for the clocks and fixed-step plan.
@@ -103,7 +103,7 @@ Virtual-time settings are adjusted through explicit methods on `CoreRuntime` and
 
 Dynamic/app integration coverage now also verifies that:
 
-- `ZrRuntimeApiV1` records `tick_frame` as the appended optional ABI field after `profile_control`,
+- `ZrRuntimeApiV2` records `tick_frame` after `profile_control`; V2 table layout is negotiated as a whole while the function pointer remains capability-optional,
 - `zircon_runtime::dynamic_api` exports `tick_frame`, rejects unknown sessions, and accepts valid sessions,
 - dynamic session creation rejects unknown profile bytes before runtime bootstrap and accepts the named `dev` profile,
 - `zircon_app` loads the optional function through offset-gated table access, and

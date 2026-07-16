@@ -1,4 +1,4 @@
-use crate::graphics::text::layout::trailing_wrap_space_byte_len;
+use crate::text::layout::trailing_wrap_space_byte_len;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedTextRun, UiTextDirection, UiTextRange, UiTextRunKind,
 };

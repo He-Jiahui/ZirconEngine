@@ -30,9 +30,3 @@ pub struct EditorState {
     pub(crate) history: EditorHistory,
     pub(crate) play_session: Option<EditorPlaySession>,
 }
-
-impl EditorState {
-    pub(crate) fn clear_selected_node(&mut self) {
-        self.viewport_controller.set_selected_node(None);
-    }
-}

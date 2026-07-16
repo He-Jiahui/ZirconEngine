@@ -49,8 +49,8 @@ pub(super) fn assert_lock_poison_owner_budgets(sources: &LockPoisonSources) {
                 .split_layout_folder_backing
                 .matches(TEST_ATTRIBUTE)
                 .count(),
-        27,
-        "lock poison policy parent plus split children should preserve 21 original guards plus the production global gate, the ZrVM runtime lock guard, and four layout guards"
+        26,
+        "lock poison policy parent plus split children should preserve 21 Runtime-owned guards plus the production global gate and four layout guards"
     );
 
     for (path, source) in [

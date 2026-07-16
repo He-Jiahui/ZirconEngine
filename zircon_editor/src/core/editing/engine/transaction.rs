@@ -11,6 +11,11 @@ use super::{
     TransactionEventKind, TransactionId, TransactionRecord,
 };
 
+mod operation_group;
+
+use operation_group::ActiveOperationGroup;
+pub use operation_group::OperationTransactionResult;
+
 const DEFAULT_HISTORY_CAPACITY: usize = 128;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -38,6 +43,7 @@ struct EngineState {
     context: Option<Box<dyn EditContext>>,
     histories: BTreeMap<HistoryContextId, HistoryStore>,
     active: Vec<ActiveTransaction>,
+    operation_group: Option<ActiveOperationGroup>,
     events: Vec<TransactionEvent>,
     next_transaction: u64,
     current_frame: u64,
@@ -74,6 +80,7 @@ impl EditorTransactionEngine {
                 context: Some(Box::new(context)),
                 histories: BTreeMap::new(),
                 active: Vec::new(),
+                operation_group: None,
                 events: Vec::new(),
                 next_transaction: 1,
                 current_frame: 0,
@@ -99,6 +106,21 @@ impl EditorTransactionEngine {
         label: impl Into<String>,
         history: HistoryContextId,
     ) -> Result<TransactionScope<'_>, EditCommandError> {
+        self.flush_operation_group()?;
+        let id = self.begin_transaction(label, history)?;
+        Ok(TransactionScope {
+            engine: self,
+            id,
+            closed: false,
+            not_send: PhantomData,
+        })
+    }
+
+    fn begin_transaction(
+        &self,
+        label: impl Into<String>,
+        history: HistoryContextId,
+    ) -> Result<TransactionId, EditCommandError> {
         self.start_operation("begin transaction")?;
         let mut context = self.take_context()?;
         let selection_before = context.selection_snapshot();
@@ -150,23 +172,21 @@ impl EditorTransactionEngine {
         }
         state.context = Some(context);
         self.clear_operation_locked(&mut state);
-        Ok(TransactionScope {
-            engine: self,
-            id,
-            closed: false,
-            not_send: PhantomData,
-        })
+        Ok(id)
     }
 
     pub fn undo(&self, history: HistoryContextId) -> Result<bool, EditCommandError> {
+        self.flush_operation_group()?;
         self.replay(history, true)
     }
 
     pub fn redo(&self, history: HistoryContextId) -> Result<bool, EditCommandError> {
+        self.flush_operation_group()?;
         self.replay(history, false)
     }
 
     pub fn mark_saved(&self, history: HistoryContextId) -> Result<(), EditCommandError> {
+        self.flush_operation_group()?;
         self.start_operation("mark saved")?;
         let mut state = self.lock_state();
         let capacity = state.history_capacity;
@@ -183,6 +203,7 @@ impl EditorTransactionEngine {
     }
 
     pub fn is_dirty(&self, history: HistoryContextId) -> Result<bool, EditCommandError> {
+        self.flush_operation_group()?;
         self.start_operation("query dirty state")?;
         let mut state = self.lock_state();
         let dirty = state
@@ -197,6 +218,7 @@ impl EditorTransactionEngine {
         &self,
         history: HistoryContextId,
     ) -> Result<HistorySnapshot, EditCommandError> {
+        self.flush_operation_group()?;
         self.start_operation("snapshot history")?;
         let mut state = self.lock_state();
         let snapshot = match state.histories.get(&history) {

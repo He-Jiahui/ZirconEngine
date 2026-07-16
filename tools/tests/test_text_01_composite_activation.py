@@ -17,7 +17,7 @@ def between(document: str, start: str, end: str) -> str:
 
 class Text01CompositeActivationTests(unittest.TestCase):
     def test_registration_and_project_composite_activation_have_separate_owners(self) -> None:
-        database = source("zircon_runtime/src/graphics/text/font/database.rs")
+        database = source("zircon_runtime/src/text/font/database.rs")
         registration = between(
             database,
             "    pub(crate) fn register_font_asset(",
@@ -31,10 +31,10 @@ class Text01CompositeActivationTests(unittest.TestCase):
         self.assertIn("pub(crate) fn fallback_candidates_for_codepoint(", database)
 
     def test_composite_candidate_enumeration_is_a_folder_backed_leaf(self) -> None:
-        font_root = source("zircon_runtime/src/graphics/text/font/mod.rs")
-        fallback = source("zircon_runtime/src/graphics/text/font/fallback.rs")
+        font_root = source("zircon_runtime/src/text/font/mod.rs")
+        fallback = source("zircon_runtime/src/text/font/fallback.rs")
         composite_resolve = source(
-            "zircon_runtime/src/graphics/text/font/composite_resolve.rs"
+            "zircon_runtime/src/text/font/composite_resolve.rs"
         )
 
         self.assertIn("mod composite_resolve;", font_root)

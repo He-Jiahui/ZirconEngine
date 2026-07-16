@@ -114,9 +114,20 @@ impl RuntimePlugin for NavigationRuntimePlugin {
             owner,
             event("navigation.events.path_query_failed"),
         )?;
-        registry.register_event::<NavAgentTickReport>(
+        registry.register_mirrored_event::<NavAgentTickReport>(
             owner,
             event("navigation.events.agent_tick_completed"),
+            |world, reader_count| {
+                let capture = world
+                    .get_resource_mut::<NavigationDebugCapture>()
+                    .ok_or_else(|| {
+                        zircon_runtime::scene::SceneError::Message(
+                            "navigation debug capture resource is not registered".to_string(),
+                        )
+                    })?;
+                capture.enabled = reader_count > 0;
+                Ok(())
+            },
         )?;
         registry.register_event::<OffMeshTraverseEvent>(
             owner,

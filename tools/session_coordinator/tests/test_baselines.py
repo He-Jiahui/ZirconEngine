@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.session_coordinator.baselines import BaselineHealth, BaselineService
+from tools.session_coordinator.baselines import BaselineHealth, BaselineService, hash_bytes
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
@@ -67,6 +67,59 @@ class BaselineTests(unittest.TestCase):
         self.assertGreater(second.epoch_id, first.epoch_id)
         self.assertIn("second.txt", second.manifest)
         self.assertEqual(BaselineHealth.HEALTHY, second.health)
+
+    def test_head_refresh_uses_one_archive_instead_of_cat_file_per_tracked_path(self) -> None:
+        self.service.initialize()
+        for index in range(3):
+            (self.repo / f"archive-{index}.txt").write_text(
+                f"archive {index}\n", encoding="utf-8"
+            )
+        subprocess.run(["git", "add", "archive-0.txt", "archive-1.txt", "archive-2.txt"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add archive refresh fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        original_run = subprocess.run
+
+        def guarded_run(arguments, *args, **kwargs):
+            if len(arguments) > 1 and arguments[1] == "cat-file":
+                raise AssertionError("head refresh must not invoke git cat-file per path")
+            return original_run(arguments, *args, **kwargs)
+
+        with mock.patch("tools.session_coordinator.baselines.subprocess.run", side_effect=guarded_run):
+            refreshed = self.service.refresh_for_head_change()
+
+        self.assertIn("archive-2.txt", refreshed.manifest)
+
+    def test_archive_manifest_preserves_git_worktree_filters(self) -> None:
+        (self.repo / ".gitattributes").write_text(
+            "filtered.txt text eol=crlf\n", encoding="utf-8"
+        )
+        (self.repo / "filtered.txt").write_text("line1\nline2\n", encoding="utf-8")
+        subprocess.run(["git", "add", ".gitattributes", "filtered.txt"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: add filtered baseline fixture"],
+            cwd=self.repo,
+            check=True,
+        )
+        commit = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        filtered = subprocess.run(
+            ["git", "cat-file", "--filters", "--path=filtered.txt", f"{commit}:filtered.txt"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        ).stdout
+
+        manifest = self.service._commit_manifest(commit)
+
+        self.assertEqual(hash_bytes(filtered), manifest["filtered.txt"])
 
     def test_head_refresh_never_absorbs_other_session_dirty_worktree(self) -> None:
         dirty = self.repo / "other-session.txt"

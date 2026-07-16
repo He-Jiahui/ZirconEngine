@@ -1,3 +1,5 @@
+#![cfg(feature = "ui")]
+
 //! Public Runtime behavior gate for descriptor-authoritative cross-control bindings.
 
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;

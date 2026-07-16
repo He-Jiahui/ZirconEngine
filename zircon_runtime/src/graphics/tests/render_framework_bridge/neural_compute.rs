@@ -2,7 +2,7 @@ use super::*;
 
 #[test]
 fn render_framework_rejects_neural_compute_plugin_descriptor_without_executor_registration() {
-    let server = WgpuRenderFramework::new_with_plugin_render_features(
+    let server = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [neural_compute_render_feature_descriptor()],
         Vec::new(),
@@ -29,7 +29,7 @@ fn render_framework_rejects_neural_compute_plugin_descriptor_without_executor_re
 
 #[test]
 fn render_framework_rejects_neural_compute_plugin_pipeline_when_backend_capability_is_missing() {
-    let server = WgpuRenderFramework::new_with_plugin_render_features(
+    let server = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [neural_compute_render_feature_descriptor()],
         [RenderPassExecutorRegistration::new(

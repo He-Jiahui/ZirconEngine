@@ -5,7 +5,7 @@ use crate::core::commands::{
 use crate::core::editor_operation::EditorOperationPath;
 
 fn descriptor(id: &str) -> EditorCommandDescriptor {
-    EditorCommandDescriptor::pending_operation(EditorOperationPath::parse(id).unwrap(), id)
+    EditorCommandDescriptor::operation(EditorOperationPath::parse(id).unwrap(), id)
 }
 
 #[test]

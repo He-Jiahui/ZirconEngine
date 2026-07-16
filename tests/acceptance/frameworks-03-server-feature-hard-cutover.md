@@ -67,7 +67,7 @@ status: passed
 
 ## 硬切结果
 
-- `target-server` 只组合 `core-min`、`diagnostic-log`、`platform-headless`；不组合 graphics/text/ui/animation/navigation/script/dynamic-api。
+- `target-server` 只组合 `core-min`、`diagnostic-log`、`platform-headless`；不组合 graphics、text、ui、animation、navigation、script、dynamic-api。
 - 根模块与 prelude 按域 feature 声明；动态客户端 API 是显式组合，不在 server surface。
 - 字体解码/metadata/importer 只随 `text` 编译；Naga shader validation/package/GLSL/SPIR-V importer 只随 `graphics` 编译。
 - builtin runtime module assembly 在无 graphics 时没有 render 参数或 provider placeholder，在无 script 时不装配 `ScriptModule`；即使二进制已经编译 Script，运行期选择 `ServerRuntime` 也不会装入它。

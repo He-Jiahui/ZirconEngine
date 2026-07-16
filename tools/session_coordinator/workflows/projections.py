@@ -7,9 +7,26 @@ import sqlite3
 class WorkflowProjectionService:
     """Builds browser-safe workflow projections from one caller-owned transaction."""
 
-    def workflow_summaries(self, connection: sqlite3.Connection) -> list[dict[str, object]]:
-        rows = connection.execute(
+    def workflow_summaries(
+        self,
+        connection: sqlite3.Connection,
+        *,
+        terminal_history_limit: int | None = None,
+    ) -> list[dict[str, object]]:
+        parameters: tuple[object, ...] = ()
+        run_filter = ""
+        if terminal_history_limit is not None:
+            run_filter = """
+            WHERE run.state NOT IN ('archived', 'stale', 'succeeded', 'cancelled')
+               OR run.run_id IN (
+                    SELECT run_id FROM workflow_runs
+                    WHERE state IN ('archived', 'stale', 'succeeded', 'cancelled')
+                    ORDER BY updated_at DESC, run_id DESC LIMIT ?
+               )
             """
+            parameters = (terminal_history_limit,)
+        rows = connection.execute(
+            f"""
             SELECT run.*,
                    COUNT(node.node_id) AS node_count,
                    SUM(CASE WHEN COALESCE(current.state, node.state) = 'succeeded'
@@ -26,9 +43,11 @@ class WorkflowProjectionService:
                  FROM workflow_attempts latest
                  WHERE latest.node_id = node.node_id AND latest.accepted = 1
              )
+            {run_filter}
             GROUP BY run.run_id
             ORDER BY run.updated_at DESC, run.run_id
-            """
+            """,
+            parameters,
         ).fetchall()
         return [
             {

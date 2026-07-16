@@ -19,12 +19,14 @@ plan_sources:
   - docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
   - docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md
-status: planned
+status: in_progress
 ---
 
 # 05 编辑场景 / Hierarchy / Gizmos
 
 - 来自 Editor08 的失败交接（`open / SceneModeId 与 SelectionModel 权威投影`）：[`05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md`](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)
+- 向 Editor07 移交（`open / viewport 单选兼容消费者硬切`）：[`07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md`](07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md)
+- 向 Coordinator01 移交（`open / lifecycle orphan recovery 被 maintenance hold 阻断`）：[`../../zircon_tooling/session_coordinator/01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md`](../../zircon_tooling/session_coordinator/01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)
 
 本计划落地 00 §6 的「选中集」权威 `SelectionModel` 与场景交互层。
 
@@ -186,7 +188,10 @@ struct DragTxn {
 
 ## 产出记录与时间
 
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
+| 2026-07-16 | M1.1 基础切片：双域 SelectionModel、SceneModeStack 与 factory registry | 进行中 | 已新增 Edit/Play 双域有序选中权威、主选中/generation/revision 不变量、模式栈生命周期/栈顶输入分派，以及 descriptor-backed `SceneModeFactory/Registration/Registry`；viewport 旧存储和 controller 单选兼容 API 均已硬切删除，28 处 Editor07 生产 consumer 已直接迁移到 active-domain 模型，最终独立复审 `P0/P1/P2=0/0/0`，状态仍由 [Editor07 failure handoff](07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md) 跟踪。旧 10/10 证据仍有效，但新增多选/PIE/history/源码守卫尚因 stale foreign reservation 未获受管 current-source gate；该 Coordinator01 failure 已移交，`Cargo.lock` 也仍含 foreign 依赖变化。全量 3217-test 超时不声明全绿；内建 Select/Transform 注册、生产 CommandEval 投影与插件 overlay provider 生命周期仍未完成，故不提升 M1.1 或父计划状态。详见 [本子计划记录](05/2026-07-16-m1-selection-mode-stack-output-records.md)。 |
 | 2026-07-12 | Editor08 M1.2 失败移交：`SceneModeId` / `SelectionModel` 权威投影 | 待修复（open） | Editor08 已落地 `SceneModeActive` 与 `SelectionNonEmpty` when 谓词；当前宿主没有向 `CommandEvalCtx.scene_mode` 写入本计划模式栈权威值，`selection_count` 仍只是 inspector 是否存在的 0/1 临时投影。修复要求与静态复现证据见 [failure 交接](05/failure-2026-07-12-command-eval-scene-mode-selection-projection.md)。本行仅登记待修复，不声明本计划完成。 |
 | 2026-07-13 | Navigation M6 插件 viewport overlay provider 宿主接线 | 待修复（open） | tool-mode provider registry/factory、每帧 extract 合并及 lifecycle/toggle 验收见 [failure 交接](05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。 |

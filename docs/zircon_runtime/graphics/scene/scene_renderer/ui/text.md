@@ -30,7 +30,7 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_05_manager_access_lifetime.py
   - tools/tests/test_text_01_composite_activation.py
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
+  - zircon_runtime/src/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - python -m unittest tools.tests.test_frameworks_05_manager_access_lifetime tools.tests.test_frameworks_05_layer_direction -v (24/24 passed)
   - managed Windows default-feature cargo build -p zircon_runtime --locked (job c2db4e7bfe0647678e6334648b6df811; passed)

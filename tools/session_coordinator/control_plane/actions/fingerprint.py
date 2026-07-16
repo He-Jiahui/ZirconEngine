@@ -11,7 +11,7 @@ from ...baselines import hash_file
 from ...database import Database
 from ...failures import failure_artifact_snapshot
 from ...models import CoordinatorError
-from .models import ActionFingerprint, ActionKind, ActionParameters, ActionSpec
+from .models import ActionFingerprint, ActionKind, ActionParameters, ActionSpec, SessionParameters
 
 
 class ActionFingerprinter:
@@ -63,7 +63,7 @@ class ActionFingerprinter:
         *,
         bound_session_id: str | None,
     ) -> ActionFingerprint:
-        session_id = getattr(parameters, "session_id", None) or bound_session_id
+        session_id = self._session_id(spec, parameters, bound_session_id)
         session = (
             connection.execute(
                 "SELECT * FROM sessions WHERE session_id = ?", (session_id,)
@@ -126,7 +126,7 @@ class ActionFingerprinter:
     def impact(
         self, spec: ActionSpec, parameters: ActionParameters, *, bound_session_id: str | None
     ) -> tuple[str, ...]:
-        session_id = getattr(parameters, "session_id", None) or bound_session_id
+        session_id = self._session_id(spec, parameters, bound_session_id)
         with self.database.connect() as connection:
             session = (
                 connection.execute(
@@ -143,6 +143,18 @@ class ActionFingerprinter:
             impact.append(f"Additional targets: {len(targets) - 50}")
         impact.extend(self._resource_impact(resources))
         return tuple(impact)
+
+    @staticmethod
+    def _session_id(
+        spec: ActionSpec, parameters: ActionParameters, bound_session_id: str | None
+    ) -> str | None:
+        if (
+            spec.kind is ActionKind.SESSION_ACTIVATE
+            and isinstance(parameters, SessionParameters)
+            and parameters.maintenance_session_id is not None
+        ):
+            return parameters.maintenance_session_id
+        return getattr(parameters, "session_id", None) or bound_session_id
 
     def _action_resources(self, connection, spec, parameters, session_id: str | None) -> dict[str, object]:
         patches: list[dict[str, object]] = []
@@ -208,6 +220,92 @@ class ActionFingerprinter:
                 (session_id, session_id),
             )]
             failure_artifacts = failure_artifact_snapshot(self.repo_root)
+        if spec.kind is ActionKind.MILESTONE_RECONCILE:
+            source_run_id = getattr(parameters, "source_run_id", "")
+            target_run_id = getattr(parameters, "target_run_id", "")
+            rows = [
+                connection.execute(
+                    """SELECT run.run_id, run.session_id, run.plan_path, run.topology_hash,
+                              run.state, run.updated_at, run.current_topology_version_id,
+                              version.content_hash, version.topology_json
+                       FROM workflow_runs run
+                       LEFT JOIN workflow_topology_versions version
+                         ON version.topology_version_id=run.current_topology_version_id
+                       WHERE run.run_id=?""",
+                    (run_id,),
+                ).fetchone()
+                for run_id in (source_run_id, target_run_id)
+            ]
+            if any(row is None for row in rows):
+                raise CoordinatorError(
+                    "workflow_reconcile_run_not_found",
+                    "Both reconciliation workflow runs must exist",
+                )
+            reconciliation_runs: list[dict[str, object]] = []
+            plan_paths: set[str] = set()
+            for row in rows:
+                assert row is not None
+                run = dict(row)
+                plan_path = str(run["plan_path"])
+                plan_paths.add(plan_path)
+                run_id = str(run["run_id"])
+                reconciliation_runs.append(
+                    {
+                        "run": run,
+                        "nodes": [
+                            dict(item)
+                            for item in connection.execute(
+                                """SELECT node_id, node_key, kind, title, stage, state,
+                                          attempt_count, updated_at
+                                   FROM workflow_nodes WHERE run_id=? ORDER BY node_key""",
+                                (run_id,),
+                            )
+                        ],
+                        "attempts": [
+                            dict(item)
+                            for item in connection.execute(
+                                """SELECT attempt_id, node_id, attempt_number, state, accepted,
+                                          evidence_json, completed_at
+                                   FROM workflow_attempts WHERE run_id=? ORDER BY node_id, attempt_number""",
+                                (run_id,),
+                            )
+                        ],
+                        "manifests": [
+                            dict(item)
+                            for item in connection.execute(
+                                """SELECT manifest_id, topology_version_id, node_id, paths_json,
+                                          manifest_hash, created_at
+                                   FROM workflow_milestone_manifests
+                                   WHERE run_id=? ORDER BY node_id, created_at""",
+                                (run_id,),
+                            )
+                        ],
+                        "intents": [
+                            dict(item)
+                            for item in connection.execute(
+                                """SELECT intent_id, topology_version_id, node_id, gate_fingerprint,
+                                          paths_json, status, commit_sha, updated_at
+                                   FROM workflow_commit_intents
+                                   WHERE run_id=? ORDER BY node_id, created_at""",
+                                (run_id,),
+                            )
+                        ],
+                    }
+                )
+            plan_values = tuple(sorted(plan_paths))
+            placeholders = ",".join("?" for _ in plan_values)
+            failure_nodes = [
+                dict(row)
+                for row in connection.execute(
+                    f"""SELECT lifecycle_key, artifact_path, kind, status, origin_plan,
+                               fixing_plan, imported_at
+                        FROM failure_nodes
+                        WHERE origin_plan IN ({placeholders}) OR fixing_plan IN ({placeholders})
+                        ORDER BY lifecycle_key""",
+                    (*plan_values, *plan_values),
+                )
+            ]
+            workflow = {"reconciliationRuns": reconciliation_runs}
         if spec.kind in {
             ActionKind.VALIDATION_START,
             ActionKind.TOPOLOGY_REFRESH,

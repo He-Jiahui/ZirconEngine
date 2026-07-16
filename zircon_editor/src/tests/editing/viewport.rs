@@ -191,6 +191,15 @@ fn viewport_perspective_camera_navigation_uses_runtime_orbit_controller() {
 }
 
 #[test]
+fn viewport_controller_has_no_legacy_single_selection_accessors() {
+    let accessors_source =
+        include_str!("../../scene/viewport/controller/scene_viewport_controller_accessors.rs");
+
+    assert!(!accessors_source.contains("fn selected_node("));
+    assert!(!accessors_source.contains("fn set_selected_node("));
+}
+
+#[test]
 fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_only() {
     let scene = Scene::new();
     let selected = scene
@@ -200,7 +209,7 @@ fn viewport_render_snapshot_keeps_authoring_overlay_and_preview_state_in_editor_
         .unwrap()
         .id;
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-    controller.set_selected_node(Some(selected));
+    controller.selection_mut().select_only_active(selected);
 
     let authored = controller.build_render_snapshot(&scene);
     assert_eq!(authored.overlays.selection.len(), 1);
@@ -246,7 +255,7 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
     scene.set_active_self(child, false).unwrap();
 
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-    controller.set_selected_node(Some(cube));
+    controller.selection_mut().select_only_active(cube);
     controller.settings_mut().tool = SceneViewportTool::Scale;
     controller.settings_mut().transform_space = TransformSpace::Global;
     controller.settings_mut().projection_mode = ProjectionMode::Orthographic;
@@ -318,7 +327,7 @@ fn viewport_edit_mode_projection_derives_authoring_panels_from_runtime_world() {
 fn viewport_edit_mode_projection_ignores_stale_editor_selection() {
     let scene = Scene::new();
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-    controller.set_selected_node(Some(999_999));
+    controller.selection_mut().select_only_active(999_999);
 
     let projection = controller.build_edit_mode_projection(&scene);
 
@@ -333,7 +342,7 @@ fn viewport_edit_mode_projection_ignores_stale_editor_selection() {
 fn viewport_render_snapshot_ignores_stale_editor_selection() {
     let scene = Scene::new();
     let mut controller = SceneViewportController::new(UVec2::new(1280, 720));
-    controller.set_selected_node(Some(999_999));
+    controller.selection_mut().select_only_active(999_999);
     controller.settings_mut().gizmos_enabled = false;
 
     let snapshot = controller.build_render_snapshot(&scene);

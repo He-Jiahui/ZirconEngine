@@ -19,7 +19,8 @@ impl RetainedEditorHost {
                 "retained_host",
                 "asset_refresh_runtime_project"
             );
-            self.editor_asset_manager
+            self.editor_asset_manager_at_use_point()
+                .map_err(|error| error.to_string())?
                 .refresh_from_runtime_project()
                 .map_err(|error| error.to_string())?;
         }
@@ -33,7 +34,8 @@ impl RetainedEditorHost {
             .asset_activity
             .selected_asset_uuid;
         let default_scene_uri = self
-            .asset_manager
+            .asset_manager_at_use_point()
+            .map_err(|error| error.to_string())?
             .current_project()
             .map(|project| project.default_scene_uri);
         let plan = plan_asset_backend_refresh(

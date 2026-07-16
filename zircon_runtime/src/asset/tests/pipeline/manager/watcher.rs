@@ -21,11 +21,11 @@ fn asset_manager_watcher_reports_changes_from_the_second_manifest_root() {
     write_valid_wgsl(game_root.join("shaders/pbr.wgsl"));
     write_checker_png(game_root.join("textures/checker.png"));
     write_triangle_obj(game_root.join("models/triangle.obj"));
-    write_default_scene(game_root.join("scenes/main.scene.toml"));
     let material_path = paths
         .asset_root(&shared_assets)
         .join("materials/grid.zmaterial");
     write_default_material(material_path.clone());
+    write_default_scene(game_root.join("scenes/main.scene.toml"));
 
     let manager = project_asset_manager_with_first_wave_plugin_fixtures();
     let changes = manager.subscribe_asset_changes();
@@ -34,10 +34,9 @@ fn asset_manager_watcher_reports_changes_from_the_second_manifest_root() {
         .unwrap();
     while changes.recv_timeout(Duration::from_millis(50)).is_ok() {}
 
-    let mut material =
-        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    let mut material = read_project_material(&material_path);
     material.base_color = [0.1, 0.4, 0.8, 1.0];
-    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+    write_project_material(&material_path, &material);
 
     let deadline = Instant::now() + Duration::from_secs(2);
     let mut observed_uri = None;
@@ -117,10 +116,9 @@ fn asset_manager_watcher_reimports_modified_assets() {
         .unwrap();
     while changes.recv_timeout(Duration::from_millis(50)).is_ok() {}
 
-    let mut material =
-        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    let mut material = read_project_material(&material_path);
     material.base_color = [0.2, 0.7, 0.9, 1.0];
-    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+    write_project_material(&material_path, &material);
 
     let mut modified = None;
     for _ in 0..10 {
@@ -302,10 +300,9 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
         .resource_revision("res://models/triangle.obj")
         .expect("baseline model revision");
 
-    let mut material =
-        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    let mut material = read_project_material(&material_path);
     material.base_color = [0.7, 0.3, 0.2, 1.0];
-    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+    write_project_material(&material_path, &material);
 
     let deadline = Instant::now() + Duration::from_secs(2);
     let mut material_changes = 0;
@@ -337,6 +334,68 @@ fn watcher_reimports_modified_asset_once_without_revision_loop() {
         manager.resource_revision("res://models/triangle.obj"),
         Some(baseline_model_revision),
         "watcher reimport should not bump unrelated resource revisions",
+    );
+
+    let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn project_manager_split_move_events_reconcile_sidecar_identity_as_rename() {
+    let root = unique_temp_project_root("project_manager_added_move_identity");
+    let paths = ProjectPaths::from_root(&root).unwrap();
+    let asset_root =
+        paths.asset_root(&zircon_runtime_interface::project::RelPath::project_assets());
+    paths
+        .ensure_layout(&[zircon_runtime_interface::project::RelPath::project_assets()])
+        .unwrap();
+
+    let old_uri = AssetUri::parse("res://data/original.json").unwrap();
+    let new_uri = AssetUri::parse("res://data/moved.json").unwrap();
+    ProjectManifest::new("AddedMoveIdentity", new_uri.clone(), 1)
+        .save(paths.manifest_path())
+        .unwrap();
+
+    let old_source = asset_root.join("data/original.json");
+    fs::create_dir_all(old_source.parent().unwrap()).unwrap();
+    fs::write(&old_source, r#"{ "moved": true }"#).unwrap();
+
+    let mut manager = ProjectManager::open(&root).unwrap();
+    manager.scan_and_import().unwrap();
+    let old_meta = old_source.with_file_name("original.json.zmeta");
+    let original_uuid = AssetMetaDocument::load(&old_meta).unwrap().uuid;
+
+    let new_source = old_source.with_file_name("moved.json");
+    let new_meta = old_source.with_file_name("moved.json.zmeta");
+    fs::rename(&old_source, &new_source).unwrap();
+    fs::rename(&old_meta, &new_meta).unwrap();
+
+    manager
+        .scan_and_import_watch_changes(&[
+            AssetChange::new(AssetChangeKind::Removed, old_uri.clone(), None),
+            AssetChange::new(AssetChangeKind::Added, new_uri.clone(), None),
+        ])
+        .unwrap();
+
+    assert!(manager.registry().get_by_locator(&old_uri).is_none());
+    assert_eq!(
+        manager
+            .registry()
+            .get_by_locator(&new_uri)
+            .expect("moved resource record")
+            .id(),
+        crate::asset::AssetId::from_asset_uuid(original_uuid),
+    );
+    assert!(manager
+        .asset_registry()
+        .resolve_asset_id_by_path(&old_uri)
+        .is_err());
+    assert_eq!(
+        manager.asset_registry().resolve_asset_id_by_path(&new_uri),
+        Ok(crate::asset::AssetId::from_asset_uuid(original_uuid)),
+    );
+    assert_eq!(
+        AssetMetaDocument::load(&new_meta).unwrap().uuid,
+        original_uuid
     );
 
     let _ = fs::remove_dir_all(root);

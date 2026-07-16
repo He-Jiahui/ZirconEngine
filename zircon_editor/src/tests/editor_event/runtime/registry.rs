@@ -1,5 +1,5 @@
 use super::*;
-use crate::core::commands::{EditorCommandDescriptor, EditorCommandRegistry};
+use crate::core::commands::{EditorCommandAction, EditorCommandDescriptor, EditorCommandRegistry};
 
 #[test]
 fn editor_command_registry_exposes_builtin_menu_operations_by_path() {
@@ -15,7 +15,8 @@ fn editor_command_registry_exposes_builtin_menu_operations_by_path() {
     assert_eq!(reset.display_name(), "Reset Layout");
     assert_eq!(reset.menu_path(), Some("Window/Reset Layout"));
     assert!(reset.callable_from_remote());
-    assert!(reset.undoable().is_some());
+    assert!(matches!(reset.action(), EditorCommandAction::Operation));
+    assert!(registry.operation_factory(&reset_path).is_none());
 
     for (path, menu_path) in [
         ("file.project.open", "File/Open Project"),
@@ -84,6 +85,33 @@ fn editor_operation_path_requires_namespace_action_and_leaf_segments() {
 }
 
 #[test]
+fn editor_operation_path_serde_enforces_canonical_parse() {
+    use crate::core::editor_operation::EditorOperationPath;
+
+    let path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
+    let encoded = serde_json::to_value(&path).expect("serialize canonical operation path");
+    assert_eq!(encoded, json!("weather.cloud_layer.refresh"));
+    assert_eq!(
+        serde_json::from_value::<EditorOperationPath>(encoded)
+            .expect("deserialize canonical operation path"),
+        path
+    );
+
+    for invalid in [
+        "weather.refresh",
+        "Weather.CloudLayer.Refresh",
+        "weather.cloud_layer.re-fresh",
+        "weather.cloud layer.refresh",
+        "weather..refresh",
+    ] {
+        assert!(
+            serde_json::from_value::<EditorOperationPath>(json!(invalid)).is_err(),
+            "serde must reject non-canonical operation path `{invalid}`"
+        );
+    }
+}
+
+#[test]
 fn editor_command_registry_rejects_invalid_menu_paths() {
     use crate::core::editor_operation::EditorOperationPath;
 
@@ -99,11 +127,8 @@ fn editor_command_registry_rejects_invalid_menu_paths() {
         let mut registry = EditorCommandRegistry::default();
         let error = registry
             .register(
-                EditorCommandDescriptor::pending_operation(
-                    operation_path.clone(),
-                    "Refresh Cloud Layers",
-                )
-                .with_menu_path(menu_path),
+                EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+                    .with_menu_path(menu_path),
             )
             .unwrap_err();
 
@@ -120,13 +145,12 @@ fn editor_extension_registry_collects_plugin_windows_menus_drawers_and_operation
         ComponentDrawerDescriptor, DrawerDescriptor, EditorExtensionRegistry,
         EditorMenuItemDescriptor, EditorUiTemplateDescriptor, ViewDescriptor,
     };
-    use crate::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+    use crate::core::editor_operation::EditorOperationPath;
 
     let operation_path = EditorOperationPath::parse("weather.cloud_layer.refresh").unwrap();
     let operation =
-        EditorCommandDescriptor::pending_operation(operation_path.clone(), "Refresh Cloud Layers")
-            .with_menu_path("Tools/Weather/Refresh Cloud Layers")
-            .with_undoable(UndoableEditorOperation::new("Refresh Cloud Layers"));
+        EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Cloud Layers")
+            .with_menu_path("Tools/Weather/Refresh Cloud Layers");
 
     let mut registry = EditorExtensionRegistry::default();
     registry
@@ -440,12 +464,9 @@ fn remote_and_cli_operation_invocation_respects_callable_from_remote_gate() {
     let mut extension = EditorExtensionRegistry::default();
     extension
         .register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Refresh Secret Weather",
-            )
-            .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
-            .with_callable_from_remote(false),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Refresh Secret Weather")
+                .with_event(EditorEvent::WorkbenchMenu(MenuAction::ResetLayout))
+                .with_callable_from_remote(false),
         )
         .unwrap();
     extension
@@ -557,7 +578,7 @@ fn operation_control_request_lists_registered_operations_for_remote_discovery() 
             && operation
                 .get("undoable")
                 .and_then(serde_json::Value::as_bool)
-                == Some(true)
+                == Some(false)
             && operation
                 .get("required_capabilities")
                 .and_then(serde_json::Value::as_array)
@@ -591,10 +612,8 @@ fn operation_control_request_lists_registered_operations_for_remote_discovery() 
 }
 
 #[test]
-fn operation_history_query_reports_typed_pending_factory_error() {
-    use crate::core::editor_operation::{
-        EditorOperationControlErrorKind, EditorOperationControlRequest,
-    };
+fn operation_history_query_returns_global_transaction_snapshot() {
+    use crate::core::editor_operation::EditorOperationControlRequest;
 
     let _guard = env_lock().lock().unwrap();
     let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_history_pending");
@@ -603,13 +622,94 @@ fn operation_history_query_reports_typed_pending_factory_error() {
         .runtime
         .handle_operation_control_request(EditorOperationControlRequest::QueryOperationHistory);
 
-    assert!(response.value.is_none());
-    assert_eq!(
-        response.error_kind,
-        Some(EditorOperationControlErrorKind::OperationHistoryPendingFactory)
+    assert!(response.error.is_none());
+    let history = response.value.unwrap();
+    assert_eq!(history["history"], "global");
+    assert_eq!(history["len"], 0);
+    assert_eq!(history["records"], serde_json::json!([]));
+}
+
+#[test]
+fn operation_control_request_executes_registered_factory_through_transaction_engine() {
+    use std::any::Any;
+    use std::sync::Arc;
+
+    use crate::core::commands::{EditorCommandCategory, EditorCommandDescriptor};
+    use crate::core::editing::engine::{
+        CommandExecutionError, EditCommand, EditContext, HistoryContextId,
+    };
+    use crate::core::editing::operation::{
+        OperationCommand, OperationCommandFactory, OperationCommandFactoryError,
+        OperationCommandFactoryRegistration,
+    };
+    use crate::core::editor_operation::{
+        EditorOperationControlRequest, EditorOperationInvocation, EditorOperationPath,
+    };
+
+    struct Factory;
+
+    impl OperationCommandFactory for Factory {
+        fn create(
+            &self,
+            _invocation: &EditorOperationInvocation,
+        ) -> Result<OperationCommand, OperationCommandFactoryError> {
+            Ok(OperationCommand::new(
+                Box::new(Command),
+                HistoryContextId::Global,
+            ))
+        }
+    }
+
+    struct Command;
+
+    impl EditCommand for Command {
+        fn label(&self) -> &str {
+            "Execute Factory"
+        }
+
+        fn apply(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+            Ok(())
+        }
+
+        fn revert(&mut self, _context: &mut dyn EditContext) -> Result<(), CommandExecutionError> {
+            Ok(())
+        }
+
+        fn as_any(&self) -> &dyn Any {
+            self
+        }
+    }
+
+    let _guard = env_lock().lock().unwrap();
+    let runtime = EventRuntimeHarness::new("zircon_editor_event_operation_factory");
+    let operation_id = EditorOperationPath::parse("test.operation.execute_factory").unwrap();
+    runtime
+        .runtime
+        .commands()
+        .lock()
+        .register_operation(
+            EditorCommandDescriptor::operation(operation_id.clone(), "Execute Factory"),
+            OperationCommandFactoryRegistration::new(
+                operation_id.clone(),
+                "Execute Factory",
+                Arc::new(Factory),
+            ),
+        )
+        .unwrap();
+
+    let invocation = runtime.runtime.handle_operation_control_request(
+        EditorOperationControlRequest::InvokeOperation(EditorOperationInvocation::new(
+            operation_id,
+        )),
     );
-    assert!(response
-        .error
-        .as_deref()
-        .is_some_and(|error| error.contains("edit-command factory")));
+    assert!(invocation.error.is_none(), "{:?}", invocation.error);
+
+    let history = runtime
+        .runtime
+        .handle_operation_control_request(EditorOperationControlRequest::QueryOperationHistory)
+        .value
+        .unwrap();
+    assert_eq!(history["len"], 1);
+    assert_eq!(history["records"][0]["label"], "Execute Factory");
+    assert_eq!(history["records"][0]["command_count"], 1);
 }

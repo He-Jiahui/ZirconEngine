@@ -15,7 +15,6 @@ description: Use when `zircon-dev` work needs the repository-specific editing, r
 - Read `refactor-rules.md` before changing behavior or deleting compatibility paths.
 - Read `workspace-map.md` before crossing crate boundaries or editing shared runtime contracts.
 - Read `testing/mod-rs-map.md` before reorganizing crate unit tests, replacing inline `mod tests`, or scaffolding new test trees.
-- Read `testing/first-wave-skeleton.md` before bootstrapping the first unit-test coverage wave across the shared crates.
 - If a touched implementation file is approaching or exceeding roughly 1000 lines, also apply `../../zircon-project-skills/modularize-large-files/SKILL.md`.
 
 ## Non-Negotiable Rules
@@ -33,7 +32,7 @@ description: Use when `zircon-dev` work needs the repository-specific editing, r
 - Reserve `server` naming for true network or service-host semantics. Do not introduce or preserve non-network architecture names that use `server`.
 - Prefer direct replacement over keeping old and new paths alive at the same time. Do not keep shims, alias crates, or legacy-path re-exports unless the user explicitly requires temporary coexistence.
 - If the current task is running inside a directory, crate, or module tree that the convergence rules already mark as the wrong home, stop expanding that area and migrate the work to the compliant destination first. Only continue the task after the move.
-- Re-run workspace-level validation during the milestone testing stage when you touch shared crates, workspace manifests, cross-cutting types, or public APIs consumed by multiple crates. During implementation slices, prefer scoped Rust syntax/type checks unless a blocker requires earlier evidence.
+- Scope milestone-stage validation per `docs/plans/milestone-validation-policy.md`: package-level batches for the changed crates, expanding to multi-package or workspace validation only when shared crates, workspace manifests, cross-cutting types, or public APIs consumed by multiple crates actually moved. During implementation slices, prefer scoped Rust syntax/type checks unless a blocker requires earlier evidence.
 - Prefer hierarchical source trees for both production code and tests. Keep crate roots and `mod.rs` files navigational, and move behavior into focused child modules grouped by subsystem.
 - Keep `binding.rs`, `lib.rs`, `main.rs`, and production `mod.rs` files simple, short, and structural. If they start owning parsing, routing, state mutation, orchestration, or multi-domain declarations, push that behavior into child modules immediately.
 - Prefer `src/tests/` trees for crate-level and public-surface unit tests. Use module-local `tests.rs` or `tests/mod.rs` only when a source module has private helpers that need direct coverage.

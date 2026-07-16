@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn render_framework_tracks_viewports_and_accepts_frame_extract_submission() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -41,7 +41,7 @@ fn render_framework_tracks_viewports_and_accepts_frame_extract_submission() {
 #[test]
 fn render_framework_stats_report_scene_camera_ordering_metadata() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -89,7 +89,7 @@ fn render_framework_stats_report_scene_camera_ordering_metadata() {
 #[test]
 fn render_framework_uses_default_forward_plus_pipeline_when_viewport_has_no_explicit_pipeline() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -108,7 +108,7 @@ fn render_framework_uses_default_forward_plus_pipeline_when_viewport_has_no_expl
 #[test]
 fn render_framework_stats_report_executed_render_graph_passes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -231,7 +231,7 @@ fn render_framework_stats_report_executed_render_graph_passes() {
 #[test]
 fn render_framework_stats_report_executed_product_postprocess_nodes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -285,7 +285,7 @@ fn render_framework_stats_report_executed_product_postprocess_nodes() {
 #[test]
 fn render_framework_stats_report_neutral_color_lut_readback_identity() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -330,7 +330,7 @@ fn render_framework_stats_report_neutral_color_lut_readback_identity() {
 #[test]
 fn render_framework_stats_report_effect_stack_product_node_when_authored() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -434,7 +434,7 @@ fn render_framework_stats_report_effect_stack_product_node_when_authored() {
 #[test]
 fn render_framework_stats_report_volume_effect_stack_product_node_when_authored() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

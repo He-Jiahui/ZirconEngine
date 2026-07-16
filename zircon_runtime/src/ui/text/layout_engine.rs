@@ -1,17 +1,19 @@
-use crate::graphics::text::layout::{
-    line_metrics_with_provider, measure_text_size as measure_backend_text_size,
+use crate::text::layout::{
+    line_metrics_with_provider,
     measure_text_size_with_provider as measure_backend_text_size_with_provider,
-    measure_text_source_range_width as measure_backend_text_source_range_width, TextLineMetrics,
+    measure_text_source_range_width_with_provider as measure_backend_text_source_range_width_with_provider,
+    TextLineMetrics,
 };
-use crate::graphics::text::shaping::{DirectTextShapeRunProvider, TextShapeRunProvider};
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::{UiFrame, UiSize};
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextAlign, UiTextOverflow,
     UiTextRange, UiTextWritingMode,
 };
 
-use crate::core::framework::render::ParagraphOverride;
+use crate::text::ParagraphOverride;
 
+use super::adapter::text_style;
 use super::rich_text::parse_source_text;
 
 mod candidate_line;
@@ -38,20 +40,17 @@ use wrapping::wrap_source_runs_with_provider;
 pub(crate) use direction::resolve_direction as resolve_text_direction;
 
 pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
-    let parsed = parse_source_text(text, style.rich_text_format);
-    measure_backend_text_size(&parsed.text, style)
+    let mut session = SharedTextLayoutSession::new();
+    measure_text_size_with_provider(text, style, &mut session)
 }
 
-pub(crate) fn measure_text_size_with_provider<P>(
+pub(crate) fn measure_text_size_with_provider(
     text: &str,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> UiSize
-where
-    P: TextShapeRunProvider + ?Sized,
-{
-    let parsed = parse_source_text(text, style.rich_text_format);
-    measure_backend_text_size_with_provider(&parsed.text, style, provider)
+    provider: &mut SharedTextLayoutSession,
+) -> UiSize {
+    let parsed = parse_source_text(text, style.rich_text_format.into());
+    measure_backend_text_size_with_provider(&parsed.text, &text_style(style), provider).into()
 }
 
 pub(crate) fn measure_text_source_range_width(
@@ -59,8 +58,14 @@ pub(crate) fn measure_text_source_range_width(
     style: &UiResolvedStyle,
     range: UiTextRange,
 ) -> f32 {
-    let parsed = parse_source_text(text, style.rich_text_format);
-    measure_backend_text_source_range_width(&parsed.text, style, range)
+    let parsed = parse_source_text(text, style.rich_text_format.into());
+    let mut session = SharedTextLayoutSession::new();
+    measure_backend_text_source_range_width_with_provider(
+        &parsed.text,
+        &text_style(style),
+        range.into(),
+        &mut session,
+    )
 }
 
 pub(crate) fn layout_text(
@@ -69,34 +74,28 @@ pub(crate) fn layout_text(
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
 ) -> UiResolvedTextLayout {
-    let mut provider = DirectTextShapeRunProvider;
+    let mut provider = SharedTextLayoutSession::new();
     layout_text_with_provider(text, style, frame, clip_frame, &mut provider)
 }
 
-pub(crate) fn layout_text_with_provider<P>(
+pub(crate) fn layout_text_with_provider(
     text: &str,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
-    let parsed = parse_source_text(text, style.rich_text_format);
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
+    let parsed = parse_source_text(text, style.rich_text_format.into());
     layout_parsed_text_with_provider(&parsed, style, frame, clip_frame, provider)
 }
 
-pub(super) fn layout_parsed_text_with_provider<P>(
+pub(super) fn layout_parsed_text_with_provider(
     parsed: &super::rich_text::UiParsedText,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     if let Some(layout) =
         rich_table::layout_rich_tables_with_provider(parsed, style, frame, clip_frame, provider)
     {
@@ -105,22 +104,19 @@ where
     layout_parsed_text_without_tables_with_provider(parsed, style, frame, clip_frame, provider)
 }
 
-pub(super) fn layout_parsed_text_without_tables_with_provider<P>(
+pub(super) fn layout_parsed_text_without_tables_with_provider(
     parsed: &super::rich_text::UiParsedText,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     let visible_text = parsed.text.as_str();
     let effective_style =
         resolve_overflow_style_with_provider(visible_text, style, frame, provider);
     let style = &effective_style;
     let font_size = style.font_size.max(MIN_TEXT_FONT_SIZE);
-    let metrics: TextLineMetrics = line_metrics_with_provider(style, provider);
+    let metrics: TextLineMetrics = line_metrics_with_provider(&text_style(style), provider);
     let line_height = metrics.line_height;
     if matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl) {
         return vertical::layout_vertical_text_with_provider(
@@ -264,17 +260,14 @@ where
     }
 }
 
-fn block_line_constraints<P>(
+fn block_line_constraints(
     parsed: &super::rich_text::UiParsedText,
     style: &UiResolvedStyle,
     frame_width: f32,
     lines: &[candidate_line::CandidateLine],
     index: usize,
-    provider: &mut P,
-) -> paragraph_layout::LineConstraints
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> paragraph_layout::LineConstraints {
     let line = &lines[index];
     let paragraph_start =
         paragraph_layout::physical_paragraph_start(&parsed.text, line.source_range.start);
@@ -302,26 +295,27 @@ fn paragraph_align_for_offset(
     paragraphs
         .iter()
         .find(|(range, _)| range.0 <= offset && offset < range.1)
-        .and_then(|(_, paragraph)| paragraph.align)
+        .and_then(|(_, paragraph)| paragraph.align.map(Into::into))
         .unwrap_or(fallback)
 }
 
-fn resolve_overflow_style_with_provider<P>(
+fn resolve_overflow_style_with_provider(
     text: &str,
     style: &UiResolvedStyle,
     frame: UiFrame,
-    provider: &mut P,
-) -> UiResolvedStyle
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedStyle {
     let max_extent = if matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl) {
         frame.height
     } else {
         frame.width
     };
     overflow_style::resolve(text, style, max_extent, |text, style| {
-        measure_backend_text_size_with_provider(text, style, provider)
+        UiSize::from(measure_backend_text_size_with_provider(
+            text,
+            &text_style(style),
+            provider,
+        ))
     })
 }
 

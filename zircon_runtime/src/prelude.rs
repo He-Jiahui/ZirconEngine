@@ -39,10 +39,10 @@ pub use crate::core::runtime::tasks::{
     TASKS_SCHEDULED_DIAGNOSTIC,
 };
 pub use crate::core::{
-    CoreError, CoreHandle, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor, EngineEvent,
-    EventBus, FrameClock, JobScheduler, LifecycleState, ManagerDescriptor, ModuleContext,
-    ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
-    RuntimeTimeAdvance, RuntimeTimeClocks, ServiceFactory, ServiceKind, StartupMode, ZirconError,
+    CoreError, CoreHandle, CoreResult, CoreRuntime, CoreWeak, DependencySpec, DriverDescriptor,
+    EngineEvent, EventBus, FrameClock, JobScheduler, LifecycleState, ManagerDescriptor,
+    ModuleContext, ModuleDescriptor, PluginContext, PluginDescriptor, PluginFactory, RegistryName,
+    RuntimeTimeAdvance, RuntimeTimeClocks, ServiceFactory, ServiceKind, StartupMode,
     TIME_FIXED_STEPS_DIAGNOSTIC, TIME_FPS_DIAGNOSTIC, TIME_FRAME_COUNT_DIAGNOSTIC,
     TIME_FRAME_TIME_DIAGNOSTIC,
 };

@@ -6,7 +6,7 @@ related_code:
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_runtime/src/script/vm/host/reflection_docs/mod.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs/args.rs
@@ -26,7 +26,7 @@ implementation_files:
   - zircon_runtime/src/script/vm/host/bridge_host_module.rs
   - zircon_runtime/src/script/vm/host/host_export_registry.rs
   - zircon_runtime/src/script/vm/host/script_call_table.rs
-  - zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs/args.rs
   - zircon_runtime/src/bin/zircon_host_reflection_docs/error.rs
@@ -226,3 +226,5 @@ M2 aligns script-held entity ids with the ECS stable-id invalidation rule. `scri
 `script_ecs_access_path_stays_on_gameplay_facade_not_native_ecs_abi` keeps the access-path judgement executable. It scans the current `zircon_runtime/src/script` Rust files for native ECS ABI symbols such as `ZrHostEcsApiV1` and locks the `zr.zircon.gameplay` / `ScriptRuntimeCallContext` anchors as the script-facing gameplay facade.
 
 `script_binding_boundary` mirrors these Runtime 13 facts through the Python structural audit, while `script_binding_markdown.py` owns the Markdown renderer. Current evidence reports `script_binding_boundary.py = 352`, `script_binding_markdown.py = 106`, `expected_source_file_count = 19`, `expected_test_file_count = 3`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_13_script_binding_mirror_docs_match_structure_audit_counts` keeps this ledger, Runtime 13, the runtime index, the M0 review, and runtime-interface convergence aligned with those structure-audit counts. `cargo test -p zircon_runtime --lib --locked script::vm -- --nocapture` passed 48/48 on 2026-06-14; the broader `cargo test -p zircon_runtime --lib script --locked -- --nocapture` gate remains pending because current failures are outside the gameplay host owner split.
+
+Current owner hard-cut sync 2026-07-14: `script_binding_boundary` now reports `expected_source_file_count = 18`, `expected_test_file_count = 3`, `expected_guard_file_count = 9`, `missing_source_files = []`, `missing_guard_files = []`, `fixed_host_module_count = 6`, `fixed_host_function_count = 52`, `type_descriptor_count = 2`, `builtin_callback_count = 11`, `gameplay_callback_count = 39`, `macro_host_function_count = 2`, `host_capability_count = 11`, `guard_anchor_count = 9`, `native_ecs_abi_references = []`, `oversized_test_files = []`, `mirror_docs_guard_present = true`, and `risks = []`. The concrete ZrVM host-module implementation is plugin-owned and is no longer counted as a Runtime13 source owner.

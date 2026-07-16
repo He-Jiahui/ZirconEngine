@@ -75,7 +75,6 @@ fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() 
     let scene_mod_source =
         std::fs::read_to_string(dynamic_scene_root.join("scene").join("mod.rs")).unwrap();
     for required in [
-        "pub const DYNAMIC_SCENE_FORMAT_VERSION",
         "pub struct DynamicScene",
         "pub fn empty()",
         "pub fn from_world(",
@@ -85,6 +84,12 @@ fn dynamic_scene_root_owner_tree_stays_folder_backed_after_runtime_05_cutover() 
         assert!(
             scene_mod_source.contains(required),
             "dynamic_scene/scene/mod.rs should keep DynamicScene facade anchor `{required}`"
+        );
+    }
+    for retired in ["DYNAMIC_SCENE_FORMAT_VERSION", "pub format_version"] {
+        assert!(
+            !scene_mod_source.contains(retired) && !root_mod_source.contains(retired),
+            "Plan 11 M2.2 retired DynamicScene version surface `{retired}` must stay deleted"
         );
     }
 }

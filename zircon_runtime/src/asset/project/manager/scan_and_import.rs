@@ -69,10 +69,17 @@ impl ProjectManager {
         let sources = self.collect_import_sources()?;
         let asset_roots = self.registry_scan_roots();
         let registry_root = self.paths.registry_root().to_path_buf();
+        // A moved sidecar still names its old URI until this preflight aligns it.
+        let preflight_changes = self.prepare_reference_resolution_metadata(&sources)?;
+        // Apply the authoritative sidecar rename before split remove/add watcher deltas.
+        let mut identity_changes = preflight_changes;
+        identity_changes.extend_from_slice(watch_changes.unwrap_or_default());
         // Normalize duplicated sidecar identities before resource ids are derived from them.
+        let identity_changes =
+            (!identity_changes.is_empty()).then_some(identity_changes.as_slice());
         let duplicate_diagnostics = self
             .asset_registry
-            .prepare_duplicate_guids(&asset_roots, watch_changes)?;
+            .prepare_duplicate_guids(&asset_roots, identity_changes)?;
         let project_roots = self
             .manifest
             .asset_roots
@@ -80,7 +87,9 @@ impl ProjectManager {
             .cloned()
             .zip(self.package_assets.project_roots().iter().cloned())
             .collect::<Vec<_>>();
-        let import_registry = std::sync::Arc::new(self.reference_resolution_registry(&sources)?);
+        let import_registry = std::sync::Arc::new(AssetRegistryIndex::inspect_project(
+            self.package_assets.project_roots(),
+        )?);
         let project_roots = std::sync::Arc::new(project_roots);
 
         let mut registry = ResourceRegistry::default();
@@ -232,11 +241,11 @@ impl ProjectManager {
         resolve_imported_dependencies(&mut registry, &mut imported, &dependencies_by_id);
 
         let mut asset_registry = self.asset_registry.clone();
-        if let Some(changes) = watch_changes {
+        if watch_changes.is_some() {
             asset_registry.apply_watch_changes_with_atomic_fault(
                 &asset_roots,
                 &registry_root,
-                changes,
+                identity_changes.unwrap_or_default(),
                 registry_fault,
             )?;
         } else {
@@ -263,25 +272,40 @@ impl ProjectManager {
         settings
     }
 
-    fn reference_resolution_registry(
+    fn prepare_reference_resolution_metadata(
         &self,
         sources: &[AssetImportSource],
-    ) -> Result<AssetRegistryIndex, AssetImportError> {
+    ) -> Result<Vec<crate::asset::watch::AssetChange>, AssetImportError> {
+        let mut changes = Vec::new();
         for source in sources {
-            if source.meta_path.exists() {
-                continue;
-            }
+            let previous = if source.meta_path.exists() {
+                Some(crate::asset::project::AssetMetaDocument::load(
+                    &source.meta_path,
+                )?)
+            } else {
+                None
+            };
             let fallback_kind = self
                 .importer
                 .descriptor_for_source(&source.path)
                 .map(|descriptor| descriptor.output_kind)
                 .unwrap_or(AssetKind::Data);
             let meta = load_or_create_meta(&source.meta_path, &source.uri, fallback_kind)?;
-            meta.save(&source.meta_path)?;
+            if previous.as_ref() != Some(&meta) {
+                if let Some(previous) = previous
+                    .as_ref()
+                    .filter(|previous| previous.url != meta.url)
+                {
+                    changes.push(crate::asset::watch::AssetChange::new(
+                        crate::asset::watch::AssetChangeKind::Renamed,
+                        meta.url.clone(),
+                        Some(previous.url.clone()),
+                    ));
+                }
+                meta.save(&source.meta_path)?;
+            }
         }
-        Ok(AssetRegistryIndex::inspect_project(
-            self.package_assets.project_roots(),
-        )?)
+        Ok(changes)
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -333,11 +357,6 @@ impl ProjectManager {
                 return Ok(None);
             };
             if let Err(_error) = self.artifact_store.read(&self.paths, artifact_uri) {
-                #[cfg(feature = "backend-zr-vm")]
-                eprintln!(
-                    "stale artifact cache for {} at {}: {_error}",
-                    entry.url, artifact_uri
-                );
                 return Ok(None);
             }
         }

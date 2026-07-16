@@ -86,7 +86,7 @@ fn directory_project_scene_renders_non_background_frame_with_gizmo_overlay() {
         virtual_geometry_debug: None,
     });
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
 
     let background = [20_u8, 23_u8, 28_u8, 255_u8];
@@ -123,7 +123,7 @@ fn example_vampire_scene_renders_visible_mesh_pixels() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
     let background: [u8; 4] = frame.rgba[..4].try_into().unwrap();
     let visible_pixels = frame
@@ -169,7 +169,7 @@ fn export_example_vampire_scene_png() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let frame = renderer.render(snapshot, UVec2::new(1280, 720)).unwrap();
     let output =
         shader_test_output_dir().join("runtime_shader_material_vampire_offscreen_20260703.png");
@@ -267,7 +267,7 @@ fn export_runtime_shader_material_sphere_png() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let frame = renderer.render(snapshot, output_size).unwrap();
     let background: [u8; 4] = frame.rgba[..4].try_into().unwrap();
     let visible_pixels = frame
@@ -362,7 +362,7 @@ fn export_runtime_render_ibl_cache_second_launch_dispatch_zero_png() {
     let cache_path = cache_store.runtime_cache_path(&request);
     let _ = fs::remove_file(&cache_path);
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(
             crate::core::framework::render::RenderViewportDescriptor::new(PBR_MATRIX_OUTPUT_SIZE),
@@ -534,7 +534,7 @@ fn directory_project_material_shader_drives_pipeline_color_output() {
         ..RenderOverlayExtract::default()
     };
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let frame = renderer.render(snapshot, UVec2::new(320, 240)).unwrap();
 
     let green_pixels = frame
@@ -623,7 +623,7 @@ fn wire_only_mode_reduces_filled_surface_pixels() {
     let mut wire_only = shaded.clone();
     wire_only.overlays.display_mode = DisplayMode::WireOnly;
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let shaded_frame = renderer.render(shaded, UVec2::new(320, 240)).unwrap();
     let wire_frame = renderer.render(wire_only, UVec2::new(320, 240)).unwrap();
 

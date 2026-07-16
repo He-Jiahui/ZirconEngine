@@ -58,9 +58,8 @@ fn workbench_field_selector_uses_shared_text_field_state_priority() {
     node.pressed = false;
     assert_eq!(field_visual_state(&node), UiPainterResolvedState::Focused);
     assert_eq!(field_border(&node), FIELD_FOCUSED_BORDER);
-    assert_eq!(FIELD_FOCUSED_BORDER, PALETTE.border);
+    assert_eq!(FIELD_FOCUSED_BORDER, PALETTE.focus_ring);
     assert_ne!(FIELD_FOCUSED_BORDER, PALETTE.accent);
-    assert_ne!(FIELD_FOCUSED_BORDER, PALETTE.focus_ring);
 
     node.disabled = true;
     assert_eq!(field_visual_state(&node), UiPainterResolvedState::Disabled);
@@ -72,7 +71,7 @@ fn workbench_field_selector_uses_shared_text_field_state_priority() {
 }
 
 #[test]
-fn workbench_field_uses_slate_recessed_surface_neutral_focus_and_muted_placeholder() {
+fn workbench_field_uses_starship_recessed_surface_primary_focus_and_muted_placeholder() {
     let node = positioned_field_node("WorkbenchInputText", "Text field", 12.0, 8.0, 170.0, 32.0);
     assert_eq!(field_surface(&node), FIELD_SURFACE);
     assert_eq!(field_surface(&node), PALETTE.surface_inset);
@@ -88,9 +87,9 @@ fn workbench_field_uses_slate_recessed_surface_neutral_focus_and_muted_placehold
         32.0,
     );
     focused.focused = true;
-    assert_eq!(field_surface(&focused), PALETTE.surface);
+    assert_eq!(field_surface(&focused), PALETTE.surface_inset);
     assert_eq!(field_border(&focused), FIELD_FOCUSED_BORDER);
-    assert_eq!(field_border(&focused), PALETTE.border);
+    assert_eq!(field_border(&focused), PALETTE.focus_ring);
     assert_ne!(field_border(&focused), PALETTE.accent);
 
     let mut placeholder = positioned_field_node("SearchEdited", "", 12.0, 8.0, 170.0, 32.0);

@@ -49,7 +49,7 @@ reference_engines:
 | S4 | 各域 → core/manager 具名服务 | 已完成 current-source 分类：`core/manager` 的 14 个 holder 仍全部内持 `Arc<dyn Trait>`；跨域 `ProjectAssetManager` 有 34 条 production 引用（animation 6 / dynamic_api 2 / graphics 25 / plugin 1），graphics 内另有 27 处 `Arc<ProjectAssetManager>` 字段/签名传播与 3 个跨域 concrete `resolve_manager` 调用 | 复核 manager 面：跨域访问一律 `ManagerServiceHandle<T>{index,generation,service}` + use-point resolver，句柄携带 index+generation（godot RID 纪律），禁止跨域长期持有 `Arc<具体类型>` 或 `Arc<dyn Trait>` |
 | S5 | lib.rs 声明顺序耦合 | "ui must be declared before asset" 注释 | S2 完成后该顺序约束自然消失，删除注释并加守卫（声明顺序不再承载语义） |
 
-M1 全量扫描已落地；M2 基线 [`05/baselines/2026-07-10-runtime-domain-dependencies.json`](05/baselines/2026-07-10-runtime-domain-dependencies.json) 持有 asset→ui 3→0 的历史证据。M3 基线 [`05/baselines/2026-07-13-runtime-domain-dependencies.json`](05/baselines/2026-07-13-runtime-domain-dependencies.json) 保留旧审计口径下 graphics→ui 1→0 的历史切片证据；当前 production-only 机器基线 [`05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json`](05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json) 排除内联 `cfg(test)` 项及测试入口递归挂载的支持文件，持有 2,290 条生产逐行证据与 72-edge 矩阵，asset→ui=0、graphics→ui=0、ui→graphics=28、graphics→scene=1，且本次 handoff 九组禁止方向全部为 0。初始 2,151 / 77 数值只保留在 M4 历史产出行中，不再冒充当前机器基线。另由 [`05/baselines/2026-07-10-contract-signatures.md`](05/baselines/2026-07-10-contract-signatures.md) 继续锁定 S1–S4 签名和计数验收规则。后续切片必须使用 production-only 口径复测。
+M1 全量扫描已落地；M2 基线 [`../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json`](../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json) 持有 asset→ui 3→0 的历史证据。M3 基线 [`05/baselines/2026-07-13-runtime-domain-dependencies.json`](05/baselines/2026-07-13-runtime-domain-dependencies.json) 保留旧审计口径下 graphics→ui 1→0 的历史切片证据；当前 production-only 机器基线 [`05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json`](05/baselines/2026-07-13-runtime-domain-dependencies-production-only.json) 排除内联 `cfg(test)` 项及测试入口递归挂载的支持文件，持有 2,290 条生产逐行证据与 72-edge 矩阵，asset→ui=0、graphics→ui=0、ui→graphics=28、graphics→scene=1，且本次 handoff 九组禁止方向全部为 0。初始 2,151 / 77 数值只保留在 M4 历史产出行中，不再冒充当前机器基线。另由 [`05/baselines/2026-07-10-contract-signatures.md`](05/baselines/2026-07-10-contract-signatures.md) 继续锁定 S1–S4 签名和计数验收规则。后续切片必须使用 production-only 口径复测。
 
 ## 3. 设计决策
 
@@ -70,16 +70,16 @@ M1 全量扫描已落地；M2 基线 [`05/baselines/2026-07-10-runtime-domain-de
 
 实现切片：复用现有 `AssetImporterHandler` + `AssetImporterRegistry` 唯一扩展契约；`.zui` loader/映射由 `ui_document_importer` runtime plugin 注册；asset 内旧 builtin `.zui` backend/转换 owner 硬删除；asset DTO wrapper 改用本域 local codec/reference helper；删除 asset→ui 引用与 lib.rs 顺序注释。
 
-测试阶段：
-- `cargo check -p zircon_runtime --lib --locked`、`cargo test -p zircon_runtime --lib --locked`（loader 注册/解析单测 + 现有 asset 测试零回归）；
+测试阶段（按 `docs/plans/milestone-validation-policy.md` §3 最小批次）：
+- `cargo check -p zircon_runtime --lib --locked` + focused 过滤词批：`cargo test -p zircon_runtime --lib --locked asset loader importer`（loader 注册/解析单测 + 变更面 asset 回归）；全量 lib 回归留给波次收口（policy §4）；
 - 验收证据：`grep -r "use crate::ui" zircon_runtime/src/asset/` 为空。
 
 ### M3 S1：共享文本服务契约
 
 实现切片：framework::text 契约（shaping 请求/字形度量/render mode）；graphics 侧改走契约；ui/text 实现挂注册。实现搬迁到独立域（zr_text 目录形态）可与计划 01 M3 合批。
 
-测试阶段：
-- `cargo test -p zircon_runtime --lib --locked`（文本渲染现有测试全量，graphics/text 与 ui/text 两侧）；
+测试阶段（policy §3 最小批次）：
+- focused 过滤词批：`cargo test -p zircon_runtime --lib --locked text shaping glyph`（graphics/text 与 ui/text 两侧变更面）；全量 lib 回归留给波次收口；
 - 渲染冒烟：editor-host 启动含文本场景截屏对比；
 - 验收证据：`grep -r "use crate::ui" zircon_runtime/src/graphics/` 为空。
 
@@ -87,8 +87,8 @@ M1 全量扫描已落地；M2 基线 [`05/baselines/2026-07-10-runtime-domain-de
 
 实现切片：35 处 scene 引用逐条归类（extract DTO 可保留的、需要换句柄的、违规触 ECS 内部的），违规项改契约；manager 面跨域裸类型复核清零。
 
-测试阶段：
-- `cargo test -p zircon_runtime --lib --locked` + editor/runtime 双启动冒烟；
+测试阶段（policy §3 最小批次）：
+- focused 过滤词批：`cargo test -p zircon_runtime --lib --locked graphics scene extract` + editor/runtime 双启动冒烟；全量 lib 回归留给波次收口；
 - 验收证据：引用矩阵复测——graphics 对 scene 的引用只剩 framework 契约路径与公开句柄；守卫脚本（计划 06）就位后此矩阵成为常驻断言。
 
 ## 5. 风险与回退
@@ -111,7 +111,11 @@ M1 全量扫描已落地；M2 基线 [`05/baselines/2026-07-10-runtime-domain-de
 
 已回传 Failure 概述：[`core/contracts` 反向依赖上层域与 facade](01/fixed-2026-07-13-core-contract-reverse-dependencies.md)（Frameworks01 M0 发现；current-source 禁止边清零，受管 Windows 编译与核心行为门已通过）；[runtime-profile-id-consumer-cutover](../../zircon_editor/editor/09/fixed-2026-07-13-runtime-profile-id-consumer-cutover.md)；[level-manager-export-cutover-incomplete](../runtime/02/fixed-2026-07-14-level-manager-export-cutover-incomplete.md)；[level-manager-name-core-error-import-drift](../../zircon_editor/editor/02/fixed-2026-07-14-level-manager-name-core-error-import-drift.md)；[project-asset-manager-access-test-consumer-drift](../../zircon_editor/editor/02/fixed-2026-07-14-project-asset-manager-access-test-consumer-drift.md)；[editor-retained-host-manager-resolver-consumer-drift](../../zircon_editor/editor/02/fixed-2026-07-14-editor-retained-host-manager-resolver-consumer-drift.md)；[manager-service-reactivation-lifecycle](../runtime/15/fixed-2026-07-14-manager-service-reactivation-lifecycle.md)；[ui-text-project-asset-manager-access-consumer-drift](../runtime/15/fixed-2026-07-14-ui-text-project-asset-manager-access-consumer-drift.md)；[ui-text-manager-access-cross-frame-retention](../runtime/15/fixed-2026-07-14-ui-text-manager-access-cross-frame-retention.md)。
 - 产出记录：[`05/2026-07-10-subsystem-decoupling-contracts-output-records.md`](05/2026-07-10-subsystem-decoupling-contracts-output-records.md)
-- M3 当前状态：`in_progress`。共享文本中立契约、旧 owner 路径硬切、canonical UI/prewarm 链、公开 RenderStats fallback 投影、generation-aware font handle、graphics/text transport 与 SDF CPU batch owner 已落地；静态、定向行为、feature/upward 与 exact SDF WGPU 门均通过，最终独立复审为 Critical 0 / Important 0 / Minor 0。但 fresh current-source multilingual exporter job `628183cb5e034e8d9ebf9dd85e4bf1a3` 运行约 60 分钟仍未写回 PNG，暴露 `prepare_run_cpu` 丢失 shaped identity 且每帧重复 fallback/metrics 解析的性能回归；该 job 已按 exit 124 释放。修复、fresh GPU 复验和 coordinator milestone commit 完成前不得恢复 `completed`。详细证据见 [`05/2026-07-15-m3-shared-text-service-contract-closeout.md`](05/2026-07-15-m3-shared-text-service-contract-closeout.md)。M4/M5、Text03/Shader06 外部行为待办和整份计划仍未完成。
+- M3 当前状态：`completed`。共享文本中立契约、单一 `zircon_runtime::text` implementation owner、旧 owner 物理删除、canonical UI/prewarm/fallback 链、generation-aware font/SDF invalidation、graphics-only neutral transport 与所有 production consumer 已完成硬切。fresh current-source 证据包括 static 13/13、default/target-server/graphics-only production exit 0、neutral transport 5/5、source-manifest 5/5、font-asset 4/4、default/UI integration 6/6、graphics-only upward 28/28，以及 multilingual GPU exporter 1/1；真实 1080x2000 framebuffer 位于 `docs/tests/runtime/text` 且受管 target PNG 计数为 0。独立复审 **Critical 0 / Important 0 / Minor 0**，最终 543-path manifest 已冻结。详细证据见 [`05/2026-07-15-m3-shared-text-service-contract-closeout.md`](05/2026-07-15-m3-shared-text-service-contract-closeout.md)。M4/M5、Text03/Shader06 外部行为待办和整份计划仍未完成。
 - 当前状态：M1 已完成；M2 S2/S5 代码与静态门已完成，asset→ui 3→0，旧 builtin `.zui` owner 和声明顺序注释均已删除；历史 focused/package 验证由编号归档持有，完整 Runtime 门仍 pending。M3 已删除无 production 调用者的 graphics→`PublicRuntimeFrame` 转换 owner，不保留 UI 反向 shim，graphics→ui 由 1 收敛为 0。M4 的 dependency audit 已修复测试 owner 与分组导入误判，graphics→scene 的真实接缝由统计值 13 收敛为 1；2026-07-14 完成 versioned manager identity、registration adapter、lifecycle stale/unloaded、single-flight、跨线程依赖环与 Immediate activation reentry 约束，以及 asset/graphics/editor use-point access 硬切，删除 14 组旧 Arc holder、asset 旧 resolver 与 `IntoProjectAssetManagerAccess` 隐式 Arc adapter。Frameworks05 lib-test consumer failure 已按协调器流程 fixed 回传 Editor02，真实 CoreRuntime 测试 owner 覆盖 framework/renderer/streamer，不恢复兼容转换；静态门 22/22、Immediate integration 1/1，最终独立 review Critical=0、Important=0，因此 M4 manager hard-cut owner slice 已完成并进入 coordinator milestone 精确提交。完整 Runtime/lib-test 仍分别被 Shader06/Render18 活动错误和外部 `host_modules.rs` 缺失阻断，不冒充全包通过。Frameworks01 layer audit 的旧口径 56 条移交已完成十八类最低层硬切，最终 current-source matrix 为 2,290 / 72，reverse-layer=0、facade-inbound=0，总违规 0。计划 05 的其他 M4/M5 范围（模块依赖名称中立 owner、ui→graphics 文本服务与全工作区验证）仍独立 pending，不能用本切片冒充整份计划完成。
 2026-07-14 M4 correction 概述：单模块与批量 activation 已按完整 `ModuleEntry::service_names` 恢复 `Unloaded` slot，当前状态为 `frameworks_05_m4_manager_service_reactivation_lifecycle_current_source_passed`。UI text 的初次 constructor 类型修复经独立 review 发现长期 text owner 仍跨帧保存 concrete manager；现已硬切为跨帧只存 versioned access、构造与每帧 use point 各解析一次，专门守卫、24/24 layer suite 与 fresh managed default-feature Runtime build 通过，Failure 已原子回传，状态为 `frameworks_05_ui_text_manager_access_cross_frame_retention_fixed_returned_re_review_pending`。两项工作均不改变其余 M3/M4/M5 pending 范围，详细证据由 `05/` 编号归档持有。
 - fixed 已修复：[manager-resolver-weak-core-test-consumer-drift](../../zircon_editor/editor/03/fixed-2026-07-15-manager-resolver-weak-core-test-consumer-drift.md)
+
+2026-07-16 current-source 恢复补录：Text owner 已补齐 `ScreenSpaceUiNativePrepareReport::font_faces_changed` 两处测试夹具，并完成 font-face generation rollover 后的 SDF atlas 全页 dirty-until-upload 语义；独立复审最终为 **Critical 0 / Important 0 / Minor 0**。fresh `python -m unittest tools.tests.test_frameworks_05_text_boundary -v` 为 **13/13**。Windows managed job `70627811c1204085a79ca1ef08772262` 顺序通过 default production 与 target-server 编译，graphics-only production job `ebf608cbe64f414797afe4edf9511bf5` 也以 exit 0 release。fresh multilingual GPU job `294971bdfc37467c80858318c6e4edfd` 通过 exact exporter **1/1**；docs PNG 已 fresh 写回并完成尺寸、哈希、target 零副本与目检。最终 source-manifest 5/5、font-asset 4/4、default/UI integration 6/6 与 graphics-only upward 28/28 均受管通过，M3 不再受 Runtime15 外部 test-anchor 漂移阻塞。
+
+2026-07-16 M3 收口续录：Runtime15 archive-anchor Failure 已 fixed return，五处 active anchor 归零；managed exact job `eaebe4e27b7c4f6ab267a512c0854a2b` 为 **1/1**、released / exit 0。Frameworks05 current-source neutral transport job `139ecf26f34b4a578edf4cbb98bec8fe` 为 **5/5**、released / exit 0；最终 `773e431acb27467694f41861660ad0d4` graphics-only upward **28/28**、`e306fe34652c49c58edd0f1c59976418` default/UI **6/6**、`e1fdd58a751144f4a319787038c2f1f3` source-manifest **5/5**、`c3b71610d86f494bbcd40691d6fd32a5` font-asset **4/4** 均通过。M3 已完成并冻结 543-path exact manifest；M4/M5 与 Text03/Shader06 外部行为范围不随本切片提升。

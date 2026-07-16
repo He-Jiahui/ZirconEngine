@@ -11,7 +11,9 @@ impl SceneViewportController {
         &self,
         scene: &Scene,
     ) -> Option<u64> {
-        self.selected_node()
+        self.state
+            .selection
+            .active_primary()
             .filter(|entity| scene.contains_entity(*entity))
     }
 

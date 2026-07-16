@@ -1,6 +1,4 @@
-use crate::graphics::text::atlas::{
-    GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes,
-};
+use crate::text::atlas::{GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes};
 
 use super::frame::{
     glyph_atlas_bitmap_texture_upload_frame_plan_for_atlas,

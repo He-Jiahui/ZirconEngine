@@ -27,6 +27,7 @@ pub(in crate::graphics::scene::scene_renderer::core) struct SceneRendererAdvance
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 struct SceneRendererAdvancedPluginResourceCapabilities {
     virtual_geometry: bool,
+    volumetric_fog: bool,
     #[cfg(test)]
     hybrid_gi: bool,
 }
@@ -66,6 +67,10 @@ impl SceneRendererAdvancedPluginResources {
         self.capabilities.virtual_geometry
     }
 
+    pub(in crate::graphics::scene::scene_renderer::core) fn volumetric_fog_enabled(&self) -> bool {
+        self.capabilities.volumetric_fog
+    }
+
     #[cfg(test)]
     pub(in crate::graphics::scene::scene_renderer::core) fn hybrid_gi_enabled(&self) -> bool {
         self.capabilities.hybrid_gi
@@ -80,6 +85,9 @@ fn advanced_plugin_resource_capabilities(
             render_features,
             RenderFeatureCapabilityRequirement::VirtualGeometry,
         ),
+        volumetric_fog: render_features
+            .iter()
+            .any(|feature| feature.name == "volumetric_fog"),
         #[cfg(test)]
         hybrid_gi: render_features_require(
             render_features,
@@ -162,6 +170,7 @@ mod tests {
             .with_capability_requirement(
                 RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
             ),
+            RenderFeatureDescriptor::new("volumetric_fog", Vec::new(), Vec::new(), Vec::new()),
         ];
         let capabilities = advanced_plugin_resource_capabilities(&render_features);
 
@@ -178,10 +187,12 @@ mod tests {
             runtime_prepare_collectors: Vec::new(),
         };
         assert!(resources.hybrid_gi_enabled());
+        assert!(resources.volumetric_fog_enabled());
         assert_eq!(
             capabilities,
             SceneRendererAdvancedPluginResourceCapabilities {
                 virtual_geometry: true,
+                volumetric_fog: true,
                 hybrid_gi: true,
             }
         );

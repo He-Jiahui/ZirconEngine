@@ -9,6 +9,7 @@ mod derived_state;
 mod dirty_state;
 mod dynamic_components;
 mod error;
+mod event_mirror;
 mod events;
 mod generation;
 mod hierarchy;

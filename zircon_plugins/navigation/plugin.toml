@@ -48,4 +48,10 @@ name = "navigation.editor"
 kind = "editor"
 crate_name = "zircon_plugin_navigation_editor"
 target_modes = ["editor_host"]
-capabilities = ["editor.extension.navigation_authoring"]
+capabilities = ["editor.extension.navigation_authoring", "editor.extension.navigation_gizmos"]
+
+[[modules.event_consumers]]
+consumer_id = "navigation.editor.agent_tick"
+event_id = "navigation.events.agent_tick_completed"
+payload_schema = "navigation.events.nav_agent_tick_report.v1"
+required_capability = "editor.extension.navigation_gizmos"

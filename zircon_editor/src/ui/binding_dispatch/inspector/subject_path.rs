@@ -8,9 +8,13 @@ pub(super) fn resolve_subject_path(
     subject_path: &str,
 ) -> Result<NodeId, EditorBindingDispatchError> {
     if subject_path == "entity://selected" {
-        return state.viewport_controller.selected_node().ok_or_else(|| {
-            EditorBindingDispatchError::InvalidSubjectPath(subject_path.to_string())
-        });
+        return state
+            .viewport_controller
+            .selection()
+            .active_primary()
+            .ok_or_else(|| {
+                EditorBindingDispatchError::InvalidSubjectPath(subject_path.to_string())
+            });
     }
 
     if let Some(raw) = subject_path.strip_prefix("node://") {

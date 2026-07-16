@@ -112,7 +112,7 @@ fn render_product_post_motion_blur_split_uses_velocity_and_changes_final_frame()
 }
 
 fn motion_blur_product_framework() -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_features(
+    WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor_with_velocity()],
         [RenderPassExecutorRegistration::new(
@@ -125,7 +125,7 @@ fn motion_blur_product_framework() -> WgpuRenderFramework {
 }
 
 fn particle_color_product_framework() -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_features(
+    WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor()],
         [RenderPassExecutorRegistration::new(

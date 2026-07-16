@@ -94,7 +94,7 @@ fn create_and_context_dispatch_resolve_operations_from_the_materialized_registry
     ] {
         extension
             .register_command(
-                EditorCommandDescriptor::pending_operation(operation, display_name)
+                EditorCommandDescriptor::operation(operation, display_name)
                     .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
             )
             .unwrap();

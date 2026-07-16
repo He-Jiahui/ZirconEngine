@@ -8,6 +8,9 @@ import re
 from ...models import CoordinatorError, WebControlRole
 
 
+_COMMIT_NODE_ID = re.compile(r"M[1-9]\d*(?:\.[1-9]\d*)?")
+
+
 class ActionRisk(StrEnum):
     GREEN = "green"
     YELLOW = "yellow"
@@ -40,6 +43,7 @@ class ActionKind(StrEnum):
     SERVICE_RESUME = "service.resume"
     SERVICE_STOP = "service.stop"
     MILESTONE_COMMIT = "milestone.commit"
+    MILESTONE_RECONCILE = "milestone.reconcile_accepted"
     SESSION_COMPLETE = "session.complete"
     SERVICE_RESTART = "service.restart"
     SERVICE_FORCE_STOP = "service.force_stop"
@@ -82,9 +86,53 @@ class ActionParameters:
 
 
 @dataclass(frozen=True, slots=True)
+class MaintenanceCleanupParameters(ActionParameters):
+    """Bind shared-index cleanup to the loaded maintenance Session."""
+
+    session_id: str
+    fields: ClassVar[frozenset[str]] = frozenset({"sessionId"})
+
+    @classmethod
+    def _from_payload(cls, payload: Mapping[str, object]) -> "MaintenanceCleanupParameters":
+        session_id = payload.get("sessionId")
+        if not isinstance(session_id, str) or not session_id.strip() or len(session_id.strip()) > 200:
+            raise CoordinatorError("action_parameters_invalid", "Session ID is invalid")
+        return cls(session_id.strip())
+
+    def to_payload(self) -> dict[str, object]:
+        return {"sessionId": self.session_id}
+
+
+@dataclass(frozen=True, slots=True)
 class LifecycleParameters(ActionParameters):
     timeout_seconds: int
-    fields: ClassVar[frozenset[str]] = frozenset({"timeoutSeconds"})
+    gpu_reservation_session_id: str | None = None
+    release_maintenance_hold: bool = False
+    maintenance_hold_action_id: str | None = None
+    maintenance_session_ids: tuple[str, ...] = ()
+    maintenance_session_id: str | None = None
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {
+            "timeoutSeconds",
+            "gpuReservationSessionId",
+            "releaseMaintenanceHold",
+            "maintenanceHoldActionId",
+            "maintenanceSessionIds",
+            "maintenanceSessionId",
+        }
+    )
+
+    @classmethod
+    def parse(cls, payload: Mapping[str, object]) -> "LifecycleParameters":
+        required = {"timeoutSeconds"}
+        actual = set(payload)
+        if not required.issubset(actual) or not actual.issubset(cls.fields):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Lifecycle parameters must contain timeoutSeconds and may include maintenance scope or release proof",
+                details={"expected": sorted(cls.fields), "actual": sorted(payload)},
+            )
+        return cls._from_payload(payload)
 
     @classmethod
     def _from_payload(cls, payload: Mapping[str, object]) -> "LifecycleParameters":
@@ -98,26 +146,194 @@ class LifecycleParameters(ActionParameters):
             raise CoordinatorError(
                 "action_parameters_invalid", "Lifecycle timeout must be within 1-300 seconds"
             )
-        return cls(timeout)
+        reserved_session = payload.get("gpuReservationSessionId")
+        if reserved_session is not None and (
+            not isinstance(reserved_session, str) or not reserved_session.strip()
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "GPU reservation Session must be a non-empty string",
+            )
+        release_hold = payload.get("releaseMaintenanceHold", False)
+        if not isinstance(release_hold, bool):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "releaseMaintenanceHold must be a boolean",
+            )
+        maintenance_hold_action_id = payload.get("maintenanceHoldActionId")
+        if maintenance_hold_action_id is not None and (
+            not isinstance(maintenance_hold_action_id, str)
+            or not maintenance_hold_action_id.strip()
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "maintenanceHoldActionId must be a non-empty action ID",
+            )
+        if release_hold and maintenance_hold_action_id is None:
+            raise CoordinatorError(
+                "maintenance_hold_release_id_required",
+                "Releasing a maintenance hold requires its controlled drain action ID",
+            )
+        raw_scope = payload.get("maintenanceSessionIds", [])
+        if not isinstance(raw_scope, list) or len(raw_scope) > 16:
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "maintenanceSessionIds must contain at most sixteen Session IDs",
+            )
+        maintenance_session_ids = tuple(
+            session_id.strip() if isinstance(session_id, str) else ""
+            for session_id in raw_scope
+        )
+        if (
+            any(not session_id or len(session_id) > 200 for session_id in maintenance_session_ids)
+            or len(set(maintenance_session_ids)) != len(maintenance_session_ids)
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "maintenanceSessionIds must be unique non-empty Session IDs",
+            )
+        maintenance_session_id = payload.get("maintenanceSessionId")
+        if maintenance_session_id is not None and (
+            not isinstance(maintenance_session_id, str)
+            or not maintenance_session_id.strip()
+            or len(maintenance_session_id.strip()) > 200
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "maintenanceSessionId must be a non-empty Session ID",
+            )
+        if maintenance_session_id is not None and not release_hold:
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "maintenanceSessionId is valid only for an explicit maintenance release",
+            )
+        return cls(
+            timeout,
+            reserved_session.strip() if isinstance(reserved_session, str) else None,
+            release_hold,
+            (
+                maintenance_hold_action_id.strip()
+                if isinstance(maintenance_hold_action_id, str)
+                else None
+            ),
+            maintenance_session_ids,
+            maintenance_session_id.strip() if isinstance(maintenance_session_id, str) else None,
+        )
 
     def to_payload(self) -> dict[str, object]:
-        return {"timeoutSeconds": self.timeout_seconds}
+        payload: dict[str, object] = {"timeoutSeconds": self.timeout_seconds}
+        if self.gpu_reservation_session_id is not None:
+            payload["gpuReservationSessionId"] = self.gpu_reservation_session_id
+        if self.release_maintenance_hold:
+            payload["releaseMaintenanceHold"] = True
+        if self.maintenance_hold_action_id is not None:
+            payload["maintenanceHoldActionId"] = self.maintenance_hold_action_id
+        if self.maintenance_session_ids:
+            payload["maintenanceSessionIds"] = list(self.maintenance_session_ids)
+        if self.maintenance_session_id is not None:
+            payload["maintenanceSessionId"] = self.maintenance_session_id
+        return payload
 
 
 @dataclass(frozen=True, slots=True)
 class SessionParameters(ActionParameters):
     session_id: str
-    fields: ClassVar[frozenset[str]] = frozenset({"sessionId"})
+    display_name: str | None = None
+    plan_path: str | None = None
+    write_scope: tuple[str, ...] = ()
+    maintenance_session_id: str | None = None
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {
+            "sessionId",
+            "displayName",
+            "planPath",
+            "writeScope",
+            "maintenanceSessionId",
+        }
+    )
+
+    @classmethod
+    def parse(cls, payload: Mapping[str, object]) -> "SessionParameters":
+        if "sessionId" not in payload or not set(payload).issubset(cls.fields):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Session parameters require sessionId and may include scoped bootstrap metadata",
+                details={"expected": sorted(cls.fields), "actual": sorted(payload)},
+            )
+        return cls._from_payload(payload)
 
     @classmethod
     def _from_payload(cls, payload: Mapping[str, object]) -> "SessionParameters":
         session_id = str(payload["sessionId"]).strip()
         if not session_id or len(session_id) > 200:
             raise CoordinatorError("action_parameters_invalid", "Session ID is invalid")
-        return cls(session_id)
+        display_name = payload.get("displayName")
+        if display_name is not None and (
+            not isinstance(display_name, str) or not display_name.strip() or len(display_name.strip()) > 200
+        ):
+            raise CoordinatorError("action_parameters_invalid", "displayName is invalid")
+        plan_path = payload.get("planPath")
+        if plan_path is not None and (
+            not isinstance(plan_path, str)
+            or not plan_path.strip()
+            or len(plan_path.strip()) > 500
+            or plan_path.replace("\\", "/").startswith("/")
+            or ":" in plan_path
+        ):
+            raise CoordinatorError("action_parameters_invalid", "planPath must be repository-relative")
+        raw_scope = payload.get("writeScope", [])
+        if not isinstance(raw_scope, list) or len(raw_scope) > 64:
+            raise CoordinatorError(
+                "action_parameters_invalid", "writeScope must contain at most sixty-four paths"
+            )
+        write_scope = tuple(
+            path.strip().replace("\\", "/") if isinstance(path, str) else ""
+            for path in raw_scope
+        )
+        if (
+            any(not path or len(path) > 500 or path.startswith("/") or ":" in path for path in write_scope)
+            or len(set(write_scope)) != len(write_scope)
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid", "writeScope must contain unique repository-relative paths"
+            )
+        maintenance_session_id = payload.get("maintenanceSessionId")
+        if maintenance_session_id is not None and (
+            not isinstance(maintenance_session_id, str)
+            or not maintenance_session_id.strip()
+            or len(maintenance_session_id.strip()) > 200
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid", "maintenanceSessionId is invalid"
+            )
+        if maintenance_session_id is None and (
+            display_name is not None or plan_path is not None or write_scope
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Session bootstrap metadata requires maintenanceSessionId",
+            )
+        return cls(
+            session_id,
+            display_name.strip() if isinstance(display_name, str) else None,
+            plan_path.strip().replace("\\", "/") if isinstance(plan_path, str) else None,
+            write_scope,
+            maintenance_session_id.strip()
+            if isinstance(maintenance_session_id, str)
+            else None,
+        )
 
     def to_payload(self) -> dict[str, object]:
-        return {"sessionId": self.session_id}
+        payload: dict[str, object] = {"sessionId": self.session_id}
+        if self.display_name is not None:
+            payload["displayName"] = self.display_name
+        if self.plan_path is not None:
+            payload["planPath"] = self.plan_path
+        if self.write_scope:
+            payload["writeScope"] = list(self.write_scope)
+        if self.maintenance_session_id is not None:
+            payload["maintenanceSessionId"] = self.maintenance_session_id
+        return payload
 
 
 class ValidationTemplate(StrEnum):
@@ -196,8 +412,10 @@ class MilestoneParameters(ActionParameters):
         milestone_id = str(payload["milestoneId"]).strip().upper()
         if not run_id or len(run_id) > 128 or not re.fullmatch(r"[a-zA-Z0-9-]+", run_id):
             raise CoordinatorError("action_parameters_invalid", "Workflow run ID is invalid")
-        if not re.fullmatch(r"M[1-9]\d*", milestone_id):
-            raise CoordinatorError("action_parameters_invalid", "Milestone ID is invalid")
+        if _COMMIT_NODE_ID.fullmatch(milestone_id) is None:
+            raise CoordinatorError(
+                "action_parameters_invalid", "Milestone or slice ID is invalid"
+            )
         return cls(session.session_id, run_id, milestone_id)
 
     def to_payload(self) -> dict[str, object]:
@@ -205,6 +423,104 @@ class MilestoneParameters(ActionParameters):
             "sessionId": self.session_id,
             "runId": self.run_id,
             "milestoneId": self.milestone_id,
+        }
+
+
+@dataclass(frozen=True, slots=True)
+class MilestoneCommitParameters(MilestoneParameters):
+    """Require executor-owned change context for every Git milestone commit."""
+
+    summary: str
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {"sessionId", "runId", "milestoneId", "summary"}
+    )
+
+    @classmethod
+    def _from_payload(cls, payload: Mapping[str, object]) -> "MilestoneCommitParameters":
+        milestone = MilestoneParameters._from_payload(payload)
+        summary = str(payload["summary"]).strip()
+        normalized = re.sub(r"\s+", " ", summary).casefold().strip(".。")
+        generic = {
+            "workflow",
+            "milestone",
+            "complete milestone",
+            "completed milestone",
+            "finish milestone",
+            "done",
+            "完成里程碑",
+            "里程碑完成",
+        }
+        if (
+            not summary
+            or len(summary) > 120
+            or "\r" in summary
+            or "\n" in summary
+            or normalized in generic
+            or re.fullmatch(
+                r"(?:complete|completed|finish|finished) m[1-9]\d*(?:\.[1-9]\d*)? (?:milestone|slice)",
+                normalized,
+            )
+        ):
+            raise CoordinatorError(
+                "milestone_commit_summary_invalid",
+                "Milestone commit summary must describe the delivered change, not workflow completion",
+            )
+        return cls(milestone.session_id, milestone.run_id, milestone.milestone_id, summary)
+
+    def to_payload(self) -> dict[str, object]:
+        payload = super().to_payload()
+        payload["summary"] = self.summary
+        return payload
+
+
+@dataclass(frozen=True, slots=True)
+class MilestoneReconciliationParameters(ActionParameters):
+    """Identify the two runs and immutable milestone evidence to reconcile."""
+
+    source_run_id: str
+    target_run_id: str
+    milestone_ids: tuple[str, ...]
+    fields: ClassVar[frozenset[str]] = frozenset(
+        {"sourceRunId", "targetRunId", "milestoneIds"}
+    )
+
+    @classmethod
+    def _from_payload(cls, payload: Mapping[str, object]) -> "MilestoneReconciliationParameters":
+        source_run_id = str(payload["sourceRunId"]).strip()
+        target_run_id = str(payload["targetRunId"]).strip()
+        raw_milestones = payload["milestoneIds"]
+        if (
+            not source_run_id
+            or not target_run_id
+            or source_run_id == target_run_id
+            or len(source_run_id) > 128
+            or len(target_run_id) > 128
+            or not re.fullmatch(r"[a-zA-Z0-9-]+", source_run_id)
+            or not re.fullmatch(r"[a-zA-Z0-9-]+", target_run_id)
+            or not isinstance(raw_milestones, list)
+            or not raw_milestones
+            or len(raw_milestones) > 64
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Milestone reconciliation requires two distinct runs and milestones",
+            )
+        milestones = tuple(str(item).strip().upper() for item in raw_milestones)
+        if (
+            any(not re.fullmatch(r"M[1-9]\d*", item) for item in milestones)
+            or len(set(milestones)) != len(milestones)
+        ):
+            raise CoordinatorError(
+                "action_parameters_invalid",
+                "Milestone reconciliation IDs must be unique canonical milestones",
+            )
+        return cls(source_run_id, target_run_id, milestones)
+
+    def to_payload(self) -> dict[str, object]:
+        return {
+            "sourceRunId": self.source_run_id,
+            "targetRunId": self.target_run_id,
+            "milestoneIds": list(self.milestone_ids),
         }
 
 

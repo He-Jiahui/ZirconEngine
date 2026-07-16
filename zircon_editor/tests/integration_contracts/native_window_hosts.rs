@@ -12,7 +12,7 @@ use zircon_editor::ui::workbench::view::{
     ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId,
 };
 use zircon_editor::{module_descriptor, EDITOR_MANAGER_NAME};
-use zircon_runtime::core::manager::resolve_config_manager;
+use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::{
     module_descriptor as foundation_module_descriptor, FOUNDATION_MODULE_NAME,
@@ -162,7 +162,8 @@ fn native_window_hosts_remain_empty_after_config_bootstrap() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_native_window_config_bootstrap");
     let runtime = editor_runtime_with_config_path(&path);
-    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     config
         .set_value(
             "editor.workbench.default_layout",

@@ -24,7 +24,8 @@ use crate::scene::components::{default_render_layer_mask, Mobility};
 
 #[test]
 fn graphics_debugger_status_defaults_to_idle_for_wgpu() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
 
     let status = framework.query_graphics_debugger_status().unwrap();
 
@@ -78,7 +79,8 @@ fn renderdoc_capture_next_environment_arms_first_created_viewport_only() {
     assert!(!renderdoc_capture_next_from_value(Some("0")));
     assert!(!renderdoc_capture_next_from_value(None));
 
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     framework.request_next_created_viewport_graphics_debugger_capture_for_tests();
     let first = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
@@ -115,7 +117,8 @@ fn renderdoc_capture_next_environment_arms_first_created_viewport_only() {
 
 #[test]
 fn renderdoc_pending_capture_clears_when_armed_viewport_is_destroyed() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     framework.request_next_created_viewport_graphics_debugger_capture_for_tests();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
@@ -182,7 +185,8 @@ fn renderdoc_debug_marker_registry_covers_capture_timeline() {
 
 #[test]
 fn graphics_debugger_capture_request_consumes_only_matching_viewport_submit() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let requested = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -224,7 +228,8 @@ fn graphics_debugger_capture_request_consumes_only_matching_viewport_submit() {
 
 #[test]
 fn graphics_debugger_capture_rejects_unknown_viewport() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
 
     let error = framework
         .request_graphics_debugger_capture(
@@ -240,7 +245,8 @@ fn graphics_debugger_capture_rejects_unknown_viewport() {
 
 #[test]
 fn graphics_debugger_capture_request_is_consumed_when_matching_submit_fails_before_capture_start() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -407,7 +413,8 @@ fn frame_history_validation_key_rejects_lighting_and_post_process_changes() {
 
 #[test]
 fn temporal_history_requires_explicit_compile_opt_in() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();

@@ -12,7 +12,7 @@ use crate::graphics::scene::scene_renderer::mesh::mesh_pass::{
     MeshSceneDataBindHandle,
 };
 use crate::graphics::scene::scene_renderer::mesh::MeshPipelineCache;
-use crate::graphics::scene::scene_renderer::primitives::SceneUniform;
+use crate::graphics::scene::scene_renderer::primitives::{SceneEnvironmentSh9, SceneUniform};
 use crate::graphics::types::ViewportRenderFrame;
 use crate::graphics::visibility::VisibilityViewKey;
 use crate::render_graph::RenderGraphAttachmentOps;
@@ -30,6 +30,7 @@ pub(crate) struct ShadowMapRenderer {
     environment_specular_cube_view: wgpu::TextureView,
     _environment_irradiance_cube_texture: wgpu::Texture,
     environment_irradiance_cube_view: wgpu::TextureView,
+    environment_sh9_buffer: wgpu::Buffer,
 }
 
 impl ShadowMapRenderer {
@@ -54,6 +55,11 @@ impl ShadowMapRenderer {
                 "zircon-shadow-map-scene-environment-irradiance-cube",
                 "zircon-shadow-map-scene-environment-irradiance-cube-view",
             );
+        let environment_sh9_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("zircon-shadow-map-scene-environment-sh9"),
+            contents: bytes_of(&SceneEnvironmentSh9::default()),
+            usage: wgpu::BufferUsages::UNIFORM,
+        });
         Self {
             scene_layout: scene_layout.clone(),
             _environment_cube_texture: environment_cube_texture,
@@ -65,6 +71,7 @@ impl ShadowMapRenderer {
             environment_specular_cube_view,
             _environment_irradiance_cube_texture: environment_irradiance_cube_texture,
             environment_irradiance_cube_view,
+            environment_sh9_buffer,
         }
     }
 
@@ -199,6 +206,10 @@ impl ShadowMapRenderer {
                     resource: wgpu::BindingResource::TextureView(
                         &self.environment_irradiance_cube_view,
                     ),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 6,
+                    resource: self.environment_sh9_buffer.as_entire_binding(),
                 },
             ],
         })
@@ -425,7 +436,11 @@ fn finite_mat4_or_identity(value: Mat4) -> Mat4 {
 mod tests {
     use std::collections::BTreeSet;
 
+    use bytemuck::bytes_of;
+    use wgpu::util::DeviceExt;
+
     use crate::core::framework::render::RenderPhase;
+    use crate::core::math::Mat4;
     use crate::graphics::backend::RenderBackend;
     use crate::graphics::scene::resources::default_pipeline_key;
     use crate::graphics::scene::scene_renderer::environment::scene_bind_group_layout_entries;
@@ -489,7 +504,18 @@ mod tests {
         let error_scope = backend
             .device
             .push_error_scope(wgpu::ErrorFilter::Validation);
-        let _renderer = super::ShadowMapRenderer::new(&backend.device, &scene_layout);
+        let renderer = super::ShadowMapRenderer::new(&backend.device, &scene_layout);
+        let scene_uniform = super::scene_uniform_for_view_projection(Mat4::IDENTITY);
+        let scene_uniform_buffer =
+            backend
+                .device
+                .create_buffer_init(&wgpu::util::BufferInitDescriptor {
+                    label: Some("zircon-test-shadow-map-scene-uniform"),
+                    contents: bytes_of(&scene_uniform),
+                    usage: wgpu::BufferUsages::UNIFORM,
+                });
+        let _scene_bind_group =
+            renderer.create_slot_scene_bind_group(&backend.device, &scene_uniform_buffer);
         let error = pollster::block_on(error_scope.pop());
 
         assert!(

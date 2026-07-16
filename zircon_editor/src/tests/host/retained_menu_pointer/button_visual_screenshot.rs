@@ -4,6 +4,7 @@ use crate::ui::layouts::common::model_rc;
 use crate::ui::retained_host::{
     paint_template_nodes_for_test_with_background, TemplateNodeFrameData, TemplatePaneNodeData,
 };
+use zircon_runtime_interface::ui::design_tokens::EditorPaletteTokens;
 
 const BUTTON_COMPONENT_SCREENSHOT: &str = "editor-components-buttons-900x360.png";
 const BUTTON_ATLAS_WIDTH: u32 = 900;
@@ -15,6 +16,11 @@ fn button_component_visual_paints_text_icon_pressed_disabled_and_tabs() {
     let bytes = button_component_bytes();
 
     let filled_surface = pixel_at(&bytes, 48, 148);
+    assert_eq!(
+        filled_surface,
+        EditorPaletteTokens::WORKBENCH_ACCENT,
+        "filled primary button should use the centralized primary accent surface"
+    );
     assert!(
         distinct_pixel_count(
             &bytes,

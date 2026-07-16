@@ -1,3 +1,5 @@
+#![cfg(feature = "ui")]
+
 use toml::Value;
 
 use zircon_runtime::ui::template::{UiAssetLoader, UiDocumentCompiler};

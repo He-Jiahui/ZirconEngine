@@ -2,12 +2,14 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use super::render::ScreenSpaceUiTextBatch;
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     GlyphAtlasAllocation, GlyphAtlasDirtyPage, GlyphAtlasFormat, GlyphAtlasPageKey,
     GlyphAtlasPageReservation, GlyphAtlasPageResidencyDecision, GlyphAtlasRect, GlyphAtlasSet,
     GlyphAtlasShelfAllocator, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
-use crate::graphics::text::sdf::{SdfBakeParams, SdfGlyphGenerationError};
+use crate::text::sdf::{
+    SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams, SdfGlyphGenerationError,
+};
 
 #[path = "sdf_atlas/text_keys.rs"]
 mod text_keys;
@@ -82,6 +84,7 @@ pub(super) struct ScreenSpaceUiSdfAtlas {
     cached_slots: Vec<SdfAtlasCachedSlot>,
     generation: u64,
     quality: SdfAtlasQuality,
+    full_page_dirty_until_upload: bool,
     last_report: SdfAtlasCacheReport,
 }
 
@@ -89,13 +92,6 @@ pub(super) struct ScreenSpaceUiSdfAtlas {
 struct SdfAtlasCachedSlot {
     key: SdfAtlasGlyphKey,
     last_seen_generation: u64,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(super) struct SdfAtlasSlot {
-    pub(super) key: SdfAtlasGlyphKey,
-    pub(super) page_key: GlyphAtlasPageKey,
-    pub(super) rect: SdfAtlasRect,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -110,27 +106,6 @@ pub(super) struct SdfAtlasAllocationFailure {
 pub(super) enum SdfAtlasAllocationFailureReason {
     PageLimit,
     OversizedSlot,
-}
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(super) struct SdfAtlasRect {
-    pub(super) x: u32,
-    pub(super) y: u32,
-    pub(super) width: u32,
-    pub(super) height: u32,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(super) struct SdfAtlasGlyphKey {
-    pub(super) glyph: char,
-    pub(super) glyph_id: Option<u32>,
-    pub(super) font_id: Option<u64>,
-    pub(super) font_instance_id: Option<u64>,
-    pub(super) font: Option<String>,
-    pub(super) font_family: Option<String>,
-    pub(super) language: Option<String>,
-    pub(super) font_weight: u16,
-    pub(super) bake_params: SdfBakeParams,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -157,13 +132,14 @@ impl ScreenSpaceUiSdfAtlas {
             cached_slots: Vec::new(),
             generation: 0,
             quality: SdfAtlasQuality::default(),
+            full_page_dirty_until_upload: false,
             last_report: SdfAtlasCacheReport::default(),
         }
     }
 
     pub(super) fn prepare(&mut self, texts: &[ScreenSpaceUiTextBatch]) {
         let (current_keys, run_keys) = collect_sdf_atlas_text_keys(texts);
-        let next_plan = if current_keys.is_empty() {
+        let mut next_plan = if current_keys.is_empty() {
             self.cached_slots.clear();
             plan_sdf_atlas_from_slot_keys(Vec::new(), run_keys, self.quality)
         } else {
@@ -180,8 +156,30 @@ impl ScreenSpaceUiSdfAtlas {
                 self.quality,
             )
         };
+        if self.full_page_dirty_until_upload && !next_plan.slots.is_empty() {
+            next_plan.rebuilt_pages = next_plan
+                .slots
+                .iter()
+                .map(|slot| slot.page_key)
+                .collect::<BTreeSet<_>>()
+                .into_iter()
+                .collect();
+        }
         self.last_report = cache_report_for_plan_transition(&self.plan, &next_plan);
         self.plan = next_plan;
+    }
+
+    pub(super) fn invalidate_font_faces(&mut self) {
+        self.plan = SdfAtlasPlan::default();
+        self.cached_slots.clear();
+        self.full_page_dirty_until_upload = true;
+        self.last_report = SdfAtlasCacheReport::default();
+    }
+
+    pub(super) fn mark_prepared_pages_uploaded(&mut self) {
+        if !self.plan.slots.is_empty() {
+            self.full_page_dirty_until_upload = false;
+        }
     }
 
     pub(super) fn plan(&self) -> &SdfAtlasPlan {

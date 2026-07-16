@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 
 from tools.session_coordinator.processes import current_process_identity
+from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.migrations import LATEST_SCHEMA_VERSION
 from tools.session_coordinator.supervision.repository_identity import repository_identity
 from tools.session_coordinator.supervision.runtime_descriptor import RuntimeDescriptor
@@ -16,11 +17,20 @@ class RuntimeDescriptorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             first = repository_identity(directory)
             second = repository_identity(Path(directory).resolve())
+            extended = repository_identity(f"\\\\?\\{Path(directory).resolve()}")
 
         self.assertEqual(1, first.version)
         self.assertEqual(first, second)
+        self.assertEqual(first, extended)
         self.assertEqual(64, len(first.key))
         self.assertEqual(first.key[:10].upper(), first.short_key)
+
+    def test_config_normalizes_windows_extended_repo_path(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            config = CoordinatorConfig.for_repo(f"\\\\?\\{root}")
+
+        self.assertEqual(root, config.repo_root)
 
     def test_descriptor_binds_process_repository_schema_and_capability(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

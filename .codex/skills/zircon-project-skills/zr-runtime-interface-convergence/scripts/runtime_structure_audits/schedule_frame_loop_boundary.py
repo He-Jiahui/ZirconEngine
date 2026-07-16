@@ -108,7 +108,7 @@ def _current_ui_extract_body(session_source: str) -> str:
 
 def schedule_frame_loop_boundary_audit(root: Path) -> dict[str, object]:
     system_stage = root / "zircon_runtime/src/core/framework/scene/system_stage.rs"
-    session = root / "zircon_runtime/src/dynamic_api/session.rs"
+    session = root / "zircon_runtime/src/dynamic_api/session/state.rs"
     session_profile = root / "zircon_runtime/src/dynamic_api/session/profile.rs"
     session_extract = root / "zircon_runtime/src/dynamic_api/session/extract.rs"
     runtime_loop = root / "zircon_runtime/src/dynamic_api/runtime_loop.rs"

@@ -20,6 +20,7 @@ impl ViewportOverlayRenderer {
         scene_layout: &wgpu::BindGroupLayout,
         texture_layout: &wgpu::BindGroupLayout,
         icon_source: Arc<dyn ViewportIconSource>,
+        volumetric_enabled: bool,
     ) -> Self {
         let line_pipeline = create_line_pipeline(device, final_color_format, scene_layout);
         let sky_volumetric_layout =
@@ -32,6 +33,7 @@ impl ViewportOverlayRenderer {
             scene_color_format,
             scene_layout,
             &sky_volumetric_layout,
+            volumetric_enabled,
         );
         let sky_volumetric_apply = VolumetricApplyFallbackResources::new(device, "zircon-sky");
         let (grid_vertex_buffer, grid_vertex_count) = create_grid_buffer(device);

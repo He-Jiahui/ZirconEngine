@@ -41,7 +41,7 @@ fn register_asset_type(
     let operation = EditorOperationPath::parse(operation_path)
         .map_err(EditorExtensionRegistryError::OperationPath)?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(operation.clone(), operation_name)
+        EditorCommandDescriptor::operation(operation.clone(), operation_name)
             .with_callable_from_remote(false)
             .with_event(EditorEvent::Asset(EditorAssetEvent::OpenAssetBrowser)),
     )?;

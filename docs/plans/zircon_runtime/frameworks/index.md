@@ -157,7 +157,7 @@ graphics↔ui（文本 shaper）、asset↔ui（模板 loader）、graphics↔sc
 3. 动态边界继续只传 ABI 安全值与序列化载荷（`zircon_runtime_interface` 规则不变）。
 4. 迁移一律硬切换：调用方同批迁移，禁止 `legacy/compat/shim` 与迁移语境 bridge；非网络语义禁用 `server` 命名。
 5. 根文件（lib.rs/mod.rs/main.rs）保持薄；1000 行生产文件门槛维持；docs 源路径镜像规则维持。
-6. 每个里程碑遵循 milestone-first 政策：实现切片不逐片编译，测试阶段统一跑声明的命令集（见各子计划"测试阶段"）。
+6. 每个里程碑遵循 [`milestone-validation-policy.md`](../../milestone-validation-policy.md)：实现切片不逐片编译，里程碑测试阶段统一批量运行声明的命令集。
 7. 与 `runtime/`、`render/` 等计划集冲突时：组织与工程化条目以本目录为准，子系统语义以对应计划集为准；发现实质冲突先回写双方 index 勾稽，再动代码。
 
 ## 6. 验收总纲

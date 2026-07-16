@@ -2,7 +2,9 @@ use std::collections::HashMap;
 
 use zircon_plugin_navigation_recast::RecastTiledBakePlan;
 use zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic;
-use zircon_runtime::core::framework::navigation::{NavMeshAsset, NavigationSettingsAsset};
+use zircon_runtime::core::framework::navigation::{
+    NavMeshAsset, NavigationGeneratedBakeSnapshot, NavigationSettingsAsset,
+};
 use zircon_runtime::core::framework::navigation::{
     NavMeshHandle, NavMeshSurfaceDescriptor, NavigationRuntimeStats,
 };
@@ -27,6 +29,12 @@ pub(super) struct LastTiledBake {
 }
 
 #[derive(Clone, Debug)]
+pub(super) struct GeneratedBakeState {
+    pub(super) snapshot: NavigationGeneratedBakeSnapshot,
+    pub(super) loaded_handle: Option<NavMeshHandle>,
+}
+
+#[derive(Clone, Debug)]
 pub(super) struct BakeContextState {
     pub(super) next_generation: u64,
     pub(super) current_generation: u64,
@@ -47,6 +55,7 @@ impl Default for BakeContextState {
 pub(crate) struct NavigationRuntimeState {
     pub(super) next_handle: u64,
     pub(super) loaded: HashMap<NavMeshHandle, NavMeshAsset>,
+    pub(super) generated_bakes: HashMap<Option<u64>, GeneratedBakeState>,
     pub(super) settings: NavigationSettingsAsset,
     pub(crate) stats: NavigationRuntimeStats,
     pub(super) agent_motion: HashMap<u64, NavigationAgentMotionState>,
@@ -67,6 +76,7 @@ impl Default for NavigationRuntimeState {
         Self {
             next_handle: 1,
             loaded: HashMap::new(),
+            generated_bakes: HashMap::new(),
             settings: NavigationSettingsAsset::default(),
             stats: NavigationRuntimeStats::default(),
             agent_motion: HashMap::new(),
@@ -84,6 +94,68 @@ impl Default for NavigationRuntimeState {
 }
 
 impl NavigationRuntimeState {
+    pub(super) fn generated_snapshot(
+        &self,
+        surface_entity: Option<u64>,
+    ) -> NavigationGeneratedBakeSnapshot {
+        self.generated_bakes
+            .get(&surface_entity)
+            .or_else(|| {
+                surface_entity
+                    .is_none()
+                    .then(|| {
+                        self.generated_bakes
+                            .iter()
+                            .min_by_key(|(surface, _)| **surface)
+                            .map(|(_, state)| state)
+                    })
+                    .flatten()
+            })
+            .map(|state| state.snapshot.clone())
+            .unwrap_or_else(|| NavigationGeneratedBakeSnapshot::empty(surface_entity))
+    }
+
+    pub(super) fn replace_generated_snapshot(&mut self, snapshot: NavigationGeneratedBakeSnapshot) {
+        let key = snapshot.surface_entity;
+        if let Some(previous) = self.generated_bakes.remove(&key) {
+            if let Some(handle) = previous.loaded_handle {
+                self.loaded.remove(&handle);
+            }
+        }
+        let loaded_handle = snapshot
+            .asset
+            .as_ref()
+            .filter(|asset| !asset.is_empty())
+            .map(|asset| {
+                let handle = NavMeshHandle(self.next_handle);
+                self.next_handle = self.next_handle.saturating_add(1);
+                self.loaded.insert(handle, asset.clone());
+                handle
+            });
+        if snapshot.asset.is_some() {
+            self.generated_bakes.insert(
+                key,
+                GeneratedBakeState {
+                    snapshot,
+                    loaded_handle,
+                },
+            );
+        }
+        self.stats.loaded_nav_meshes = self.loaded.len();
+    }
+
+    pub(super) fn clear_generated_snapshots(&mut self) {
+        let handles = self
+            .generated_bakes
+            .drain()
+            .filter_map(|(_, generated)| generated.loaded_handle)
+            .collect::<Vec<_>>();
+        for handle in handles {
+            self.loaded.remove(&handle);
+        }
+        self.stats.loaded_nav_meshes = self.loaded.len();
+    }
+
     pub(super) fn advance_bake_context(&mut self, surface: Option<u64>) -> u64 {
         let context = self.bake_contexts.entry(surface).or_default();
         let generation = context.next_generation;

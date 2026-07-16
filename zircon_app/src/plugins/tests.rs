@@ -212,13 +212,13 @@ fn builtin_plugin_groups_resolve_expected_module_sets() {
         .contains(&zircon_runtime::core::runtime::modules::LOG_MODULE_NAME));
     assert!(default
         .module_keys()
-        .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert!(default
         .module_keys()
         .contains(&zircon_runtime::script::SCRIPT_MODULE_NAME));
     assert!(!headless
         .module_keys()
-        .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
 }
 
 #[test]

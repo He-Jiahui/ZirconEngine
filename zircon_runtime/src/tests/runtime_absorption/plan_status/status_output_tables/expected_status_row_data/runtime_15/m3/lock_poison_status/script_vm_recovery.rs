@@ -13,16 +13,6 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         ],
     ),
     (
-        "Runtime 15 M3 ZrVM real backend runtime lock poison recovery",
-        &[
-            "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_static_passed_cargo_timeout_no_result",
-            "script/vm/backend/zr_vm_project_backend/real_backend/lock.rs",
-            "script/vm/backend/zr_vm_project_backend/real_backend/package.rs",
-            "zr_vm_real_backend_runtime_lock_recovers_after_poison",
-            "runtime_15_zr_vm_real_backend_runtime_lock_poison_recovery_guard_covers_global_runtime_lock",
-        ],
-    ),
-    (
         "Runtime 15 M3 VM plugin manager selected-backend lock poison recovery",
         &[
             "runtime_15_vm_plugin_manager_selected_backend_lock_poison_recovery_static_passed_cargo_deferred",

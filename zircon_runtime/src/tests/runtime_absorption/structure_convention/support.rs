@@ -33,6 +33,7 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
         Some(priority_plan_doc_current_owner_archive_source())
     } else if normalized_label.to_ascii_lowercase().contains("row data")
         || normalized_label.to_ascii_lowercase().contains("row_data")
+        || normalized_label.to_ascii_lowercase().contains("row owner")
         || normalized_label.to_ascii_lowercase().contains(" rows")
         || normalized_label.to_ascii_lowercase().ends_with(" row")
         || normalized_label
@@ -100,21 +101,41 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
 fn current_status_row_owner_inventory_source() -> &'static str {
     static SOURCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     SOURCE.get_or_init(|| {
-        let parent = repo_path(
-            "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/current_structure_owner_inventory.rs",
-        );
-        let child_dir = repo_path(
-            "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/current_structure_owner_inventory",
-        );
-        let mut paths = std::fs::read_dir(&child_dir)
-            .unwrap_or_else(|error| panic!("failed to read {}: {error}", child_dir.display()))
-            .map(|entry| entry.expect("current row inventory entry should be readable").path())
-            .filter(|path| path.extension().and_then(|extension| extension.to_str()) == Some("rs"))
-            .collect::<Vec<_>>();
+        let mut paths = vec![
+            repo_path(
+                "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/current_structure_owner_inventory.rs",
+            ),
+            repo_path(
+                "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status.rs",
+            ),
+        ];
+        for child_dir in [
+            repo_path(
+                "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/current_structure_owner_inventory",
+            ),
+            repo_path(
+                "zircon_runtime/src/tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/lock_poison_status",
+            ),
+        ] {
+            paths.extend(
+                std::fs::read_dir(&child_dir)
+                    .unwrap_or_else(|error| {
+                        panic!("failed to read {}: {error}", child_dir.display())
+                    })
+                    .map(|entry| {
+                        entry
+                            .expect("current row inventory entry should be readable")
+                            .path()
+                    })
+                    .filter(|path| {
+                        path.extension().and_then(|extension| extension.to_str()) == Some("rs")
+                    }),
+            );
+        }
         paths.sort();
 
-        std::iter::once(parent)
-            .chain(paths)
+        paths
+            .into_iter()
             .map(|path| {
                 std::fs::read_to_string(&path)
                     .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()))
@@ -180,7 +201,7 @@ fn engine_code_review_findings_archive_source() -> &'static str {
         format!(
             "{}\n{}\n{}",
             read_output_archive(
-                "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+                "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
             ),
             read_output_archive(
                 "docs/plans/zircon_runtime/runtime/15/2026-07-11-stable-evidence-owner-hard-cutover.md",
@@ -196,7 +217,7 @@ fn engine_code_structure_archive_source() -> &'static str {
         format!(
             "{}\n{}\n{}",
             read_output_archive(
-                "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+                "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
             ),
             read_output_archive(
                 "docs/plans/zircon_runtime/runtime/15/2026-07-11-stable-evidence-owner-hard-cutover.md",

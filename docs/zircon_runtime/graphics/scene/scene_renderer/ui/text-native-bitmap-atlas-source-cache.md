@@ -1,11 +1,11 @@
 ---
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
 plan_sources:
   - user: 2026-07-05 shader cubemap validation continuation; current workspace integration-test compile unblock
@@ -13,7 +13,7 @@ plan_sources:
 tests:
   - cargo check -p zircon_runtime --lib --no-default-features --features core-min --locked
   - cargo test -p zircon_runtime --test runtime_texture_cube_resource_contract --no-default-features --features core-min --locked
-  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - cargo test -p zircon_runtime text_prepare_report_exposes_raster_upload_scroll_counters --lib --no-default-features --locked --jobs 1 (2026-07-10 blocked before compile by zircon_runtime/Cargo.toml and Cargo.lock mismatch)
 doc_type: module-detail
 ---

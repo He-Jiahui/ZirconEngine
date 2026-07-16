@@ -88,7 +88,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 
 测试阶段：
 - 编译门：`cargo check -p zircon_runtime --lib --locked`、`cargo check -p zircon_editor --lib --locked`、`cargo check -p zircon_app --locked`
-- 测试门：`cargo test -p zircon_runtime --lib --locked`、`cargo test -p zircon_runtime_interface --locked`
+- 测试门（policy §3 最小批次）：focused 过滤词批 `cargo test -p zircon_runtime --lib --locked framework kernel resource diagnostic`（脊柱迁移域变更面回归）、`cargo test -p zircon_runtime_interface --locked`；全量 lib 回归留给波次收口（policy §4）
 - 插件工作区防回归：`cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked`
 - 验收证据：以上命令通过；`grep` 证明无 `path = "src/core/framework"` 类残留与迁移桥；增量基线复测记录。
 - 文档更新：`docs/zircon_runtime/` 受影响模块文档的 `related_code` 路径、本文件状态表。

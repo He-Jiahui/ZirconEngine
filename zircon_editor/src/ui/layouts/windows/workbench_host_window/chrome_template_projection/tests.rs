@@ -416,6 +416,10 @@ fn status_bar_nodes_project_text_overrides_from_flat_asset() {
         node(&nodes, STATUS_PRIMARY_CONTROL_ID).font_size,
         EditorTypographyTokens::WORKBENCH_BODY_SIZE
     );
+    assert!(
+        maybe_node(&nodes, "WorkbenchStatusBarRoot").is_some(),
+        "generic host status projection should preserve the authored responsive root instead of taking the procedural pixel fallback"
+    );
     assert!(node(&nodes, "StatusBarPanel").frame.width > 0.0);
 }
 

@@ -180,12 +180,7 @@ mod tests {
     fn blob_for_request(
         request: &crate::core::framework::render::IblBakeArtifactRequest,
     ) -> IblBakeArtifactBlob {
-        let descriptor = IblBakeArtifactDescriptor::current(
-            request.bake_key(),
-            request.pmrem_face_size(),
-            request.pmrem_mip_count(),
-            request.required_contents(),
-        );
+        let descriptor = IblBakeArtifactDescriptor::current_for_request(request);
         let readback = IblBakeArtifactReadbackSections::new(descriptor)
             .with_pmrem_rgba16f_bytes(vec![
                 0;

@@ -1,5 +1,5 @@
 use crate::core::framework::input::InputManager;
-use crate::core::manager::{resolve_input_action_manager, resolve_input_manager};
+use crate::core::manager::ManagerResolver;
 use crate::core::CoreRuntime;
 
 use crate::input::{
@@ -370,9 +370,17 @@ fn input_action_manager_resolves_from_runtime_module_descriptor() {
     runtime
         .activate_module(INPUT_MODULE_NAME)
         .expect("activate input module");
-    let input = resolve_input_manager(&runtime.handle()).expect("resolve input manager");
-    let actions =
-        resolve_input_action_manager(&runtime.handle()).expect("resolve input action manager");
+    let resolver = ManagerResolver::new(runtime.handle());
+    let input = resolver
+        .resolve(resolver.input_handle().expect("input manager handle"))
+        .expect("resolve input manager");
+    let actions = resolver
+        .resolve(
+            resolver
+                .input_actions_handle()
+                .expect("input action manager handle"),
+        )
+        .expect("resolve input action manager");
 
     input.begin_frame();
     input.submit_event(InputEvent::ButtonPressed(activate));

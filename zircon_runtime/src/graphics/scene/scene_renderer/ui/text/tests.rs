@@ -1,12 +1,10 @@
-use super::super::sdf_atlas::{SdfAtlasDirtyPageReport, SdfAtlasRect};
+use super::super::sdf_atlas::SdfAtlasDirtyPageReport;
 use super::super::sdf_upload::SdfAtlasUploadPageReport;
 use super::font_assets::{effective_text_render_mode, ensure_font_asset_record};
 use super::resolved_batches::ResolvedScreenSpaceUiTextBatches;
 use super::*;
+use crate::text::sdf::SdfAtlasRect;
 use zircon_runtime_interface::ui::surface::{UiTextRange, UiTextWritingMode};
-
-#[path = "tests/native_bitmap_atlas.rs"]
-mod native_bitmap_atlas_tests;
 
 #[cfg(target_os = "windows")]
 #[test]
@@ -18,9 +16,7 @@ fn screen_space_ui_font_initialization_discovers_system_faces_from_empty_snapsho
 
     assert!(discovered > 0);
     assert!(font_database
-        .match_face(&crate::core::framework::render::FontQuery::single_family(
-            "Segoe UI"
-        ))
+        .match_face(&crate::text::FontQuery::single_family("Segoe UI"))
         .is_some());
     assert!(font_system.db().faces().next().is_some());
 }
@@ -59,20 +55,14 @@ fn text_backend_routing_respects_auto_font_mode_without_crossing_backends() {
 
 #[test]
 fn text_font_asset_load_failure_does_not_create_a_negative_cache_record() {
-    let mut font_system = FontSystem::new();
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let mut text_state = TextRenderState::new(NATIVE_BITMAP_ATLAS_RASTER_WORKER_COUNT);
     let mut font_assets = HashMap::new();
     let asset_manager = ProjectAssetManager::default();
     let missing = "res://fonts/late-project-font.font.toml";
 
     for _ in 0..2 {
-        let ensured = ensure_font_asset_record(
-            &mut font_system,
-            &mut font_database,
-            &mut font_assets,
-            &asset_manager,
-            missing,
-        );
+        let ensured =
+            ensure_font_asset_record(&mut text_state, &mut font_assets, &asset_manager, missing);
         assert!(ensured.record.is_none());
         assert!(!ensured.loaded);
         assert!(!ensured.faces_changed);
@@ -127,8 +117,8 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             height: 64,
         }),
         dirty_pages: vec![SdfAtlasDirtyPageReport {
-            page_key: crate::graphics::text::atlas::GlyphAtlasPageKey::new(
-                crate::graphics::text::atlas::GlyphAtlasFormat::Sdf,
+            page_key: crate::text::atlas::GlyphAtlasPageKey::new(
+                crate::text::atlas::GlyphAtlasFormat::Sdf,
                 0,
             ),
             dirty_rect: SdfAtlasRect {
@@ -165,8 +155,8 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             }),
             dirty_byte_len: 4096,
             dirty_pages: vec![SdfAtlasUploadPageReport {
-                page_key: crate::graphics::text::atlas::GlyphAtlasPageKey::new(
-                    crate::graphics::text::atlas::GlyphAtlasFormat::Sdf,
+                page_key: crate::text::atlas::GlyphAtlasPageKey::new(
+                    crate::text::atlas::GlyphAtlasFormat::Sdf,
                     0,
                 ),
                 dirty_rect: SdfAtlasRect {
@@ -194,6 +184,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
         &resolved,
         ScreenSpaceUiTextSdfFallbackReport::default(),
         ScreenSpaceUiNativePrepareReport {
+            font_faces_changed: false,
             font_ids: ScreenSpaceUiTextFontIdReport::default(),
             bitmap_atlas: NativeBitmapAtlasPrepareReport {
                 frame_index: 0,
@@ -241,6 +232,7 @@ fn text_prepare_report_summarizes_input_routing_and_sdf_reports() {
             sdf_fallback: ScreenSpaceUiTextSdfFallbackReport::default(),
             native_font_ids: ScreenSpaceUiTextFontIdReport::default(),
             missing_glyphs: MissingGlyphDiagnosticsReport::default(),
+            layout_fallbacks: crate::text::TextLayoutFallbackReport::default(),
             raster_upload: ScreenSpaceUiTextRasterUploadReport {
                 visible_raster_glyph_count: 2,
                 source_image_count: 1,
@@ -302,7 +294,7 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
             worker_request_failed_count: 2,
             ..Default::default()
         },
-        submission: crate::graphics::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
+        submission: crate::text::atlas::GlyphAtlasBitmapRenderSubmissionReport {
             upload_command_count: 3,
             upload_copy_count: 3,
             upload_byte_len: 384,
@@ -320,6 +312,7 @@ fn text_prepare_report_exposes_raster_upload_scroll_counters() {
         &resolved,
         ScreenSpaceUiTextSdfFallbackReport::default(),
         ScreenSpaceUiNativePrepareReport {
+            font_faces_changed: false,
             font_ids: ScreenSpaceUiTextFontIdReport::default(),
             bitmap_atlas: native_bitmap_atlas,
         },
@@ -392,60 +385,26 @@ fn auto_text_mode_falls_back_to_native_without_font_asset_default() {
 }
 
 #[test]
-fn text_attrs_maps_shared_rich_run_style_to_glyphon_attrs() {
-    let attrs = text_attrs(
-        Some("Zircon Sans"),
-        650,
-        UiTextRunPaintStyle {
-            strong: true,
-            emphasis: true,
-            code: false,
-        },
-    );
-
-    assert_eq!(attrs.family, Family::Name("Zircon Sans"));
-    assert_eq!(attrs.weight, Weight::BOLD);
-    assert_eq!(attrs.style, Style::Italic);
-
-    let medium_attrs = text_attrs(Some("Zircon Sans"), 500, UiTextRunPaintStyle::default());
-
-    assert_eq!(medium_attrs.weight, Weight(500));
-
-    let code_attrs = text_attrs(
-        Some("Zircon Sans"),
-        450,
-        UiTextRunPaintStyle {
-            strong: false,
-            emphasis: false,
-            code: true,
-        },
-    );
-
-    assert_eq!(code_attrs.family, Family::Monospace);
-    assert_eq!(code_attrs.weight, Weight(450));
-}
-
-#[test]
 fn native_text_align_maps_start_end_through_text_direction() {
     assert_eq!(
         native_text_align(UiTextAlign::Start, UiTextDirection::LeftToRight),
-        Align::Left
+        NativeTextAlign::Left
     );
     assert_eq!(
         native_text_align(UiTextAlign::End, UiTextDirection::LeftToRight),
-        Align::Right
+        NativeTextAlign::Right
     );
     assert_eq!(
         native_text_align(UiTextAlign::Start, UiTextDirection::RightToLeft),
-        Align::Right
+        NativeTextAlign::Right
     );
     assert_eq!(
         native_text_align(UiTextAlign::End, UiTextDirection::RightToLeft),
-        Align::Left
+        NativeTextAlign::Left
     );
     assert_eq!(
         native_text_align(UiTextAlign::Justify, UiTextDirection::LeftToRight),
-        Align::Justified
+        NativeTextAlign::Justified
     );
 }
 
@@ -486,6 +445,7 @@ fn text_batch(text: &str, mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         source_range: None,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
+        layout_error: None,
         color: [1.0, 1.0, 1.0, 1.0],
         background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),
@@ -500,10 +460,10 @@ fn text_batch(text: &str, mode: UiTextRenderMode) -> ScreenSpaceUiTextBatch {
         wrap: UiTextWrap::None,
         style: Default::default(),
         distance_field_mode: match mode {
-            UiTextRenderMode::Msdf => crate::graphics::text::sdf::SdfMode::Msdf,
-            UiTextRenderMode::Mtsdf => crate::graphics::text::sdf::SdfMode::Mtsdf,
+            UiTextRenderMode::Msdf => crate::text::sdf::SdfMode::Msdf,
+            UiTextRenderMode::Mtsdf => crate::text::sdf::SdfMode::Mtsdf,
             UiTextRenderMode::Auto | UiTextRenderMode::Native | UiTextRenderMode::Sdf => {
-                crate::graphics::text::sdf::SdfMode::Sdf
+                crate::text::sdf::SdfMode::Sdf
             }
         },
         text_effects: Default::default(),

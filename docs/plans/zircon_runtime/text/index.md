@@ -14,30 +14,30 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/range_mapping.rs
   - zircon_runtime/src/ui/text/layout_engine/visual_order.rs
   - zircon_runtime/src/ui/text/layout_engine/wrapping.rs
-  - zircon_runtime/src/graphics/text/mod.rs
-  - zircon_runtime/src/graphics/text/cache/mod.rs
-  - zircon_runtime/src/graphics/text/cache/frame_dedup.rs
-  - zircon_runtime/src/graphics/text/cache/layout_cache.rs
-  - zircon_runtime/src/graphics/text/cache/measure_cache.rs
-  - zircon_runtime/src/graphics/text/cache/shaped_cache.rs
-  - zircon_runtime/src/graphics/text/cache/tests.rs
-  - zircon_runtime/src/graphics/text/parallel/mod.rs
-  - zircon_runtime/src/graphics/text/parallel/shape_pool.rs
-  - zircon_runtime/src/graphics/text/parallel/raster_pool.rs
-  - zircon_runtime/src/graphics/text/parallel/tests.rs
-  - zircon_runtime/src/graphics/text/layout/mod.rs
-  - zircon_runtime/src/graphics/text/layout/align.rs
-  - zircon_runtime/src/graphics/text/layout/overflow.rs
-  - zircon_runtime/src/graphics/text/layout/tab.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/tests.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glue.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/smart.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/soft_hyphen.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/wrap_space.rs
-  - zircon_runtime/src/graphics/text/layout/kinsoku.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
+  - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/cache/mod.rs
+  - zircon_runtime/src/text/cache/frame_dedup.rs
+  - zircon_runtime/src/text/cache/layout_cache.rs
+  - zircon_runtime/src/text/cache/measure_cache.rs
+  - zircon_runtime/src/text/cache/shaped_cache.rs
+  - zircon_runtime/src/text/cache/tests.rs
+  - zircon_runtime/src/text/parallel/mod.rs
+  - zircon_runtime/src/text/parallel/shape_pool.rs
+  - zircon_runtime/src/text/parallel/raster_pool.rs
+  - zircon_runtime/src/text/parallel/tests.rs
+  - zircon_runtime/src/text/layout/mod.rs
+  - zircon_runtime/src/text/layout/align.rs
+  - zircon_runtime/src/text/layout/overflow.rs
+  - zircon_runtime/src/text/layout/tab.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/tests.rs
+  - zircon_runtime/src/text/layout/line_break/glue.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/layout/line_break/smart.rs
+  - zircon_runtime/src/text/layout/line_break/soft_hyphen.rs
+  - zircon_runtime/src/text/layout/line_break/wrap_space.rs
+  - zircon_runtime/src/text/layout/kinsoku.rs
+  - zircon_runtime/src/text/layout/measure.rs
   - zircon_runtime/src/ui/text/grapheme.rs
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/text/geometry.rs
@@ -46,9 +46,9 @@ related_code:
   - zircon_runtime/src/ui/tests/text_pipeline
   - zircon_runtime/src/ui/text/font_registry.rs
   - zircon_runtime/src/ui/text/rich_text.rs
-  - zircon_runtime/src/graphics/text/raster/mod.rs
-  - zircon_runtime/src/graphics/text/raster/policy.rs
-  - zircon_runtime/src/graphics/text/raster/swash/mod.rs
+  - zircon_runtime/src/text/raster/mod.rs
+  - zircon_runtime/src/text/raster/policy.rs
+  - zircon_runtime/src/text/raster/swash/mod.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
   - zircon_runtime/src/ui/text/edit_state.rs
   - zircon_runtime/src/ui/dispatch/input_manager/ime_host_requests.rs
@@ -65,57 +65,57 @@ related_code:
   - zircon_app/src/entry/runtime_entry_app/host_requests/ime/request.rs
   - zircon_app/src/entry/runtime_entry_app/host_requests/ime/geometry.rs
   - zircon_app/src/entry/tests/runtime_entry_source_guards/host_requests.rs
-  - zircon_runtime/src/graphics/text/font/mod.rs
-  - zircon_runtime/src/graphics/text/atlas/mod.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/allocation.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/failure.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/placeholder.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/retry.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/staged_upload.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/staging.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/types.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/upload.rs
-  - zircon_runtime/src/graphics/text/atlas/bitmap_run/validation.rs
-  - zircon_runtime/src/graphics/text/atlas/render_contract.rs
-  - zircon_runtime/src/graphics/text/atlas/render_contract/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/render_plan.rs
-  - zircon_runtime/src/graphics/text/atlas/render_plan/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/render_batch.rs
-  - zircon_runtime/src/graphics/text/atlas/render_batch/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/render_gpu_plan.rs
-  - zircon_runtime/src/graphics/text/atlas/render_submission.rs
-  - zircon_runtime/src/graphics/text/atlas/render_submission/frame_driver.rs
-  - zircon_runtime/src/graphics/text/atlas/render_submission/frame_state.rs
-  - zircon_runtime/src/graphics/text/atlas/render_submission/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/shaders/glyph_atlas_sampling.wgsl
-  - zircon_runtime/src/graphics/text/atlas/page_residency.rs
-  - zircon_runtime/src/graphics/text/atlas/page_residency/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/upload.rs
-  - zircon_runtime/src/graphics/text/atlas/upload/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/dirty.rs
-  - zircon_runtime/src/graphics/text/atlas/dirty/tests.rs
-  - zircon_runtime/src/graphics/text/atlas/raster_key/mod.rs
-  - zircon_runtime/src/graphics/text/atlas/raster_key/tests.rs
-  - zircon_runtime/src/graphics/text/font/database.rs
-  - zircon_runtime/src/graphics/text/font/fallback.rs
-  - zircon_runtime/src/graphics/text/font/fallback/tests.rs
-  - zircon_runtime/src/graphics/text/font/coverage.rs
+  - zircon_runtime/src/text/font/mod.rs
+  - zircon_runtime/src/text/atlas/mod.rs
+  - zircon_runtime/src/text/atlas/bitmap_run.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/allocation.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/failure.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/placeholder.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/retry.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/staged_upload.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/staging.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/tests.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/types.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/upload.rs
+  - zircon_runtime/src/text/atlas/bitmap_run/validation.rs
+  - zircon_runtime/src/text/atlas/render_contract.rs
+  - zircon_runtime/src/text/atlas/render_contract/tests.rs
+  - zircon_runtime/src/text/atlas/render_plan.rs
+  - zircon_runtime/src/text/atlas/render_plan/tests.rs
+  - zircon_runtime/src/text/atlas/render_batch.rs
+  - zircon_runtime/src/text/atlas/render_batch/tests.rs
+  - zircon_runtime/src/text/atlas/render_gpu_plan.rs
+  - zircon_runtime/src/text/atlas/render_submission.rs
+  - zircon_runtime/src/text/atlas/render_submission/frame_driver.rs
+  - zircon_runtime/src/text/atlas/render_submission/frame_state.rs
+  - zircon_runtime/src/text/atlas/render_submission/tests.rs
+  - zircon_runtime/src/text/atlas/shaders/glyph_atlas_sampling.wgsl
+  - zircon_runtime/src/text/atlas/page_residency.rs
+  - zircon_runtime/src/text/atlas/page_residency/tests.rs
+  - zircon_runtime/src/text/atlas/upload.rs
+  - zircon_runtime/src/text/atlas/upload/tests.rs
+  - zircon_runtime/src/text/atlas/dirty.rs
+  - zircon_runtime/src/text/atlas/dirty/tests.rs
+  - zircon_runtime/src/text/atlas/raster_key/mod.rs
+  - zircon_runtime/src/text/atlas/raster_key/tests.rs
+  - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/fallback.rs
+  - zircon_runtime/src/text/font/fallback/tests.rs
+  - zircon_runtime/src/text/font/coverage.rs
   - zircon_runtime/src/ui/surface/input/editable_text/ime_context.rs
   - zircon_runtime/src/ui/tests/widget_text_input_ime_context.rs
   - zircon_runtime/src/asset/assets/font.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/retry_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/handoff.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/retry_frame.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/source_cache.rs
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/handoff.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source.rs
+  - zircon_runtime/src/text/native_bitmap_atlas/tests/source_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/write.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_texture_upload/binding.rs
@@ -130,9 +130,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/atlas_renderer/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_char_run.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/mod.rs
@@ -189,26 +189,26 @@ related_code:
   - zircon_runtime/src/ui/tests/text_layout/overflow.rs
   - zircon_runtime/src/ui/tests/text_layout/direction.rs
   - zircon_runtime/src/ui/tests/text_layout/edit_state.rs
-  - zircon_runtime/src/graphics/text/shaping/mod.rs
-  - zircon_runtime/src/graphics/text/shaping/cosmic.rs
-  - zircon_runtime/src/graphics/text/shaping/fallback_spans.rs
-  - zircon_runtime/src/graphics/text/shaping/script_segment.rs
-  - zircon_runtime/src/graphics/text/shaping/line_break.rs
-  - zircon_runtime/src/core/framework/render/text/shaped_run.rs
-  - zircon_runtime/src/graphics/text/font/backend.rs
-  - zircon_runtime/src/graphics/text/font/shared.rs
-  - zircon_runtime/src/core/framework/render/text/shaping_service.rs
-  - zircon_runtime/src/core/framework/render/text/font/
-  - zircon_runtime/src/graphics/text/layout/line_break/greedy.rs
-  - zircon_runtime/src/graphics/text/atlas/page.rs
-  - zircon_runtime/src/graphics/text/atlas/shelf_allocator.rs
-  - zircon_runtime/src/graphics/text/atlas/dirty.rs
-  - zircon_runtime/src/graphics/text/font/descriptors.rs
-  - zircon_runtime/src/graphics/text/font/matching.rs
-  - zircon_runtime/src/graphics/text/font/default_families.rs
-  - zircon_runtime/src/graphics/text/font/asset_registration.rs
+  - zircon_runtime/src/text/shaping/mod.rs
+  - zircon_runtime/src/text/shaping/cosmic.rs
+  - zircon_runtime/src/text/shaping/fallback_spans.rs
+  - zircon_runtime/src/text/shaping/script_segment.rs
+  - zircon_runtime/src/text/shaping/line_break.rs
+  - zircon_runtime/src/text/model/shaped_run.rs
+  - zircon_runtime/src/text/font/backend.rs
+  - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/core/framework/text/layout_service.rs
+  - zircon_runtime/src/text/model/font/
+  - zircon_runtime/src/text/layout/line_break/greedy.rs
+  - zircon_runtime/src/text/atlas/page.rs
+  - zircon_runtime/src/text/atlas/shelf_allocator.rs
+  - zircon_runtime/src/text/atlas/dirty.rs
+  - zircon_runtime/src/text/font/descriptors.rs
+  - zircon_runtime/src/text/font/matching.rs
+  - zircon_runtime/src/text/font/default_families.rs
+  - zircon_runtime/src/text/font/asset_registration.rs
   - zircon_runtime/src/ui/text/layout_engine/vertical.rs
-- zircon_runtime/src/graphics/text/sdf/params.rs
+- zircon_runtime/src/text/sdf/params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/rhi_wgpu/ui_surface/text.rs
   - zircon_runtime/Cargo.toml
@@ -247,9 +247,9 @@ status: in_progress
 
 ## 0. 为什么单独立这条线
 
-`render/14`(2D 栈)的 `TD-M1` 已经决定"把文本 shaping/字形图集**下沉为 `graphics/text/` 共享服务**,UI 与场景 2D 共用"。但 `render/14` 的篇幅集中在**2D 场景渲染器、sprite 批集成、UI 文本路径硬切换**,并未展开文本子系统**内部**的高精度细节(BIDI/竖排/MSDF/字体回退/富文本/IME/多线程)。`editor_layout/17` 是**编辑器侧排版规范**(度量=绘制、DPI 重栅格、换行自适应),`editor_ui/03` 是**编辑器文本栈定稿**(主链贯通)。三者都**消费**一个尚未深描的运行时文本服务。
+`render/14`(2D 栈)的 `TD-M1` 已经决定"把文本 shaping/字形图集**下沉为 `text/` 共享服务**,UI 与场景 2D 共用"。但 `render/14` 的篇幅集中在**2D 场景渲染器、sprite 批集成、UI 文本路径硬切换**,并未展开文本子系统**内部**的高精度细节(BIDI/竖排/MSDF/字体回退/富文本/IME/多线程)。`editor_layout/17` 是**编辑器侧排版规范**(度量=绘制、DPI 重栅格、换行自适应),`editor_ui/03` 是**编辑器文本栈定稿**(主链贯通)。三者都**消费**一个尚未深描的运行时文本服务。
 
-本目录就是那个服务的实现权威:**`graphics/text/**` 共享服务内部 + `core/framework/render/text/**` 契约深化**,把用户要求的 15 项能力(glyphon、SDF/MSDF 动态与预生成、UE 风格度量算法、多语言 BIDI/竖排、换行规则、渲染规则、分辨率精度、字体文件处理、图集化、多线程、Unicode、FontFace、回退规则、富文本、多平台 IME、字体回退)逐项落到文件级实施权威。
+本目录就是那个服务的实现权威:**`text/**` 共享服务内部 + `core/framework/text/**` 契约深化**,把用户要求的 15 项能力(glyphon、SDF/MSDF 动态与预生成、UE 风格度量算法、多语言 BIDI/竖排、换行规则、渲染规则、分辨率精度、字体文件处理、图集化、多线程、Unicode、FontFace、回退规则、富文本、多平台 IME、字体回退)逐项落到文件级实施权威。
 
 ## 1. 边界与归属(与三份既有计划的勾稽)
 
@@ -257,7 +257,7 @@ status: in_progress
 
 | 计划 | 拥有 | 与本目录关系 |
 |------|------|------------|
-| 本目录 `text/**` | 文本服务内部:字体库/FontFace/回退、shaping/Unicode/BIDI/竖排、换行/度量算法、栅格/图集、SDF/MSDF、富文本预处理、IME 接口、多线程与缓存 | **实现权威**;`graphics/text/**` + `core/framework/render/text/**` |
+| 本目录 `text/**` | 文本服务内部:字体库/FontFace/回退、shaping/Unicode/BIDI/竖排、换行/度量算法、栅格/图集、SDF/MSDF、富文本预处理、IME 接口、多线程与缓存 | **实现权威**;`text/**` + `core/framework/text/**` |
 | `render/14`(2D 栈) | 场景 `TextRenderer` 组件、glyph quad→sprite 批、UI 文本路径**硬切换**装配、2D 排序 | `TD-M1` 的"共享服务内部"**委托本目录**;`render/14` 持有"如何把 `ShapedGlyphRun` 变成场景顶点/批" |
 | `editor_layout/17` | 编辑器排版**规范**:度量=绘制四规则、字形随 `scale_factor` 重栅格、换行自适应两阶段、shrink-to-fit | **消费方**:本目录服务必须满足其度量一致性与 DPI 重栅格契约(本目录 §6.2/04) |
 | `editor_ui/03` | 编辑器文本栈**贯通**:Label/Field/Console/树表同一链、CJK 一等公民、编辑链与候选窗实机 | **消费方**:其"shaping 权威未定/栅格策略未书面化/字体注册表缺失/IME 不闭环"四缺口由本目录 01/02/04/06/08 正面补齐 |
@@ -265,7 +265,7 @@ status: in_progress
 
 **契约名权威**:`render/14` 已定稿契约层类型(`ShapedGlyphRun`/`ShapedGlyph`/`ShapedLine`/`TextShapingService`/`TextStyle`/`ShapedTextCacheKey`/`GlyphAtlasFormat`/`GlyphAtlasRef`/`RenderTextSnapshot`,见 `render/14` §核心类型与接口)。本目录**沿用并扩展**这些类型,不另造同义类型;扩展项(变量字体轴、竖排朝向、富文本 span、回退命中 face)以本目录各子计划"工程落地细化"为准,扩展后回填 `render/14` 契约定义。
 
-**契约名勘误注(2026-07-02 评审收口)**:按代码核实,上述契约名与实际落地存在如下偏差,以本注为准:`ShapedLine` 实际落地名为 `ShapedTextLine`(`core/framework/render/text/shaped_run.rs`);`GlyphAtlasRef`/`RenderTextSnapshot`/`ShapedTextCacheKey`/`TextStyle` 尚未落地,属待建契约;`GlyphAtlasFormat` 已落地但位于实现层 `graphics/text/atlas/page.rs` 且为 `pub(crate)`,尚未提升到契约层;另有已落地但 `render/14` 未收录的契约名:`TextShapeRequest`/`TextOrientation`/`VerticalMode`/`ShapedGlyphScript`,需回填 `render/14` 契约定义。
+**契约名勘误注(2026-07-02 评审收口)**:按代码核实,上述契约名与实际落地存在如下偏差,以本注为准:`ShapedLine` 实际落地名为 `ShapedTextLine`(`core/framework/text/shaped_run.rs`);`GlyphAtlasRef`/`RenderTextSnapshot`/`ShapedTextCacheKey`/`TextStyle` 尚未落地,属待建契约;`GlyphAtlasFormat` 已落地但位于实现层 `text/atlas/page.rs` 且为 `pub(crate)`,尚未提升到契约层;另有已落地但 `render/14` 未收录的契约名:`TextShapeRequest`/`TextOrientation`/`VerticalMode`/`ShapedGlyphScript`,需回填 `render/14` 契约定义。
 
 ## 2. 现状评审(按代码核实,2026-06-27)
 
@@ -275,7 +275,7 @@ status: in_progress
 
 已成立能力的详细明细已迁入 Text 09 产出目录；此处只保留当前能力概述。
 
-- 迁入记录：[`09/2026-07-09-index-output-records.md`](09/2026-07-09-index-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md`](../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md)
 
 | 能力 | 当前概述 |
 |------|----------|
@@ -355,7 +355,7 @@ status: in_progress
 | 富文本解析 | **自研 BBCode + HTML 子集解析器** | 标签 schema 受控、对齐 godot `RichTextLabel` BBCode 与 UE marshaller | html5ever(过重,安全面大) |
 | IME 平台层 | **winit IME 事件 + 平台扩展抽象** | 复用既有 `ime_context` 出入站契约;平台特化经 `zircon_app` 注入 | 直接绑 TSF/IBus(放入平台插件) |
 
-**隔离硬规则**:`cosmic_text`/`fontsdf`/`fdsm`/`fontdb`/`swash` 等第三方类型**只允许**出现在 `graphics/text/` 实现层的指定隔离文件内(见各子计划),出口一律契约层类型(`ShapedGlyphRun` 等 serde 可序列化、无 wgpu/无第三方句柄)。`core/framework/render/text/**` 与 `zircon_editor`/`zircon_app` 不得直接 import 上述库。
+**隔离硬规则**:`cosmic_text`/`fontsdf`/`fdsm`/`fontdb`/`swash` 等第三方类型**只允许**出现在 `zircon_runtime/src/text/` 实现域的指定隔离文件内(见各子计划),出口一律使用 `zircon_runtime::text` 的实现 DTO 或 `core/framework/text` 的中立服务契约,不向 UI/graphics 暴露第三方句柄。退役的 `graphics/text/**`、`core/framework/render/text/**` 以及 `zircon_editor`/`zircon_app` 不得直接 import 上述库。
 
 **现状违例记录(2026-07-02)**:按代码核实,当前存在以下隔离硬规则违例——`zircon_editor` 直接依赖并 import `fontdb`/`fontdue`/`swash`(`ui/retained_host/host_contract/paint_text/{font,raster}.rs`);`rhi_wgpu/ui_surface/text.rs` 直接 import `glyphon`;`cosmic-text` 实为经 glyphon re-export 使用而非直接依赖;`fdsm` 尚未引入。这些违例的收束路径:editor retained-host 路径迁移到 runtime 文本服务后删除直依;收束前该违例冻结不扩大(不得新增直接 import 点)。
 
@@ -364,11 +364,11 @@ status: in_progress
 
 Text 总索引中 2026-07 的 editor retained-host、runtime text cache、native atlas 与验证证据明细已迁入 Text 09 产出目录；此处只保留选型、边界与全局工程约定。
 
-- 迁入记录：[`09/2026-07-09-index-output-records.md`](09/2026-07-09-index-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md`](../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md)
 
 ## 6. 全局工程约定(各子计划"工程落地细化"共享,不重定)
 
-1. **模块归属**:契约层 `zircon_runtime::core::framework::render::text`(serde、无 wgpu);实现层 `zircon_runtime::graphics::text`(共享服务,持缓存/图集/隔离层);场景渲染器 `graphics/scene/scene_renderer/text`(归 `render/14`);UI 消费方 `ui/text`(硬切换为服务适配器)。不新增 crate。
+1. **模块归属**:中立服务契约层为 `zircon_runtime::core::framework::text`；完整实现层为 `zircon_runtime::text`(共享服务,持模型/字体/shaping/layout/raster/SDF/atlas/cache/parallel/rich owner)；场景/UI renderer 仅在 `graphics/scene/scene_renderer/ui` 消费；UI 消费方 `ui/text` 负责 widget/layout/hit-test 适配。`graphics/text` 与 `core/framework/render/text` 已于 Frameworks05 M3 hard cut 删除，不保留兼容模块；后续由 Frameworks01 M3 抽取 `zr_text`，当前不新增中间 crate。
 2. **度量=绘制(继承 `editor_layout/17` 四规则)**:任何布局几何(advance/kerning/ascent/descent/换行点)必须来自 shaping 服务的真实字形度量,与绘制端**同一来源**。禁止任何路径回退到等宽近似。
 3. **字形随 DPI 重栅格**:栅格输入 `physical_px = logical_px × scale_factor`;图集 key 含 `scale_factor` 量化桶(接 `editor_layout/17 §3.4`、`render/14`)。SDF/MSDF 因分辨率无关,bake 尺寸固定、运行时按 `font_size` 缩放采样。
 4. **缓存键不持引用**:shaped run / measure / atlas 的缓存键一律用 `font_id + size_bits(f32::to_bits) + features_hash + 文本 hash`,不持文本/字体对象引用(改造自 UE `FCachedShapedTextKey`,见 `render/14` §核心类型)。features_hash 的来源见 02 `TextShapeRequest.features`(规范化=按 tag 排序后 hash)(2026-07-02 评审收口)。命中后必须等值比较文本副本防 hash 碰撞(缓存值持 `Arc<str>` 副本 verify,见 D6/09)(2026-07-02 评审收口)。
@@ -442,4 +442,4 @@ Text 总索引中 2026-07 的 editor retained-host、runtime text cache、native
 
 Runtime Text 总索引中的状态与验证明细已迁入 Text 09 产出目录。
 
-- 迁入记录：[`09/2026-07-09-index-output-records.md`](09/2026-07-09-index-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md`](../../_archive/zircon_runtime/text/09/2026-07-09-index-output-records.md)

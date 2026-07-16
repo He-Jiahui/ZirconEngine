@@ -15,10 +15,6 @@ use zircon_runtime::core::framework::window::{
     WindowDescriptor, WindowResolution, PRIMARY_WINDOW_DESCRIPTOR_CONFIG_KEY,
 };
 use zircon_runtime::core::manager::ManagerResolver;
-#[cfg(feature = "target-editor-host")]
-use zircon_runtime::core::manager::{
-    resolve_config_manager, resolve_event_manager, resolve_input_manager, resolve_rendering_manager,
-};
 use zircon_runtime::core::math::UVec2;
 use zircon_runtime::core::ModuleDescriptor;
 use zircon_runtime::graphics::{
@@ -36,7 +32,7 @@ use zircon_runtime::render_graph::QueueLane;
 use zircon_runtime::scene::World;
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime::{
-    asset::pipeline::manager::resolve_asset_manager,
+    asset::asset_manager_handle,
     input::{InputButton, InputEvent},
     scene::create_default_level,
 };
@@ -66,17 +62,22 @@ const EDITOR_MODULE_NAME: &str = "EditorModule";
 #[test]
 fn editor_bootstrap_registers_editor_and_primary_managers() {
     let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Editor)).unwrap();
-    let asset_manager = resolve_asset_manager(&core).unwrap();
-    let rendering_manager = resolve_rendering_manager(&core).unwrap();
-    let input_manager = resolve_input_manager(&core).unwrap();
-    let config_manager = resolve_config_manager(&core).unwrap();
-    let event_manager = resolve_event_manager(&core).unwrap();
+    let resolver = ManagerResolver::new(core.clone());
+    let asset_manager = resolver
+        .resolve(asset_manager_handle(&core).unwrap())
+        .unwrap();
+    let rendering_manager = resolver
+        .resolve(resolver.rendering_handle().unwrap())
+        .unwrap();
+    let input_manager = resolver.resolve(resolver.input_handle().unwrap()).unwrap();
+    let config_manager = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
+    let event_manager = resolver.resolve(resolver.event_handle().unwrap()).unwrap();
     let level = create_default_level(&core).unwrap();
     let _editor_manager = core
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
 
-    assert!(asset_manager.shared().pipeline_info().default_worker_count > 0);
+    assert!(asset_manager.pipeline_info().default_worker_count > 0);
     assert!(level.snapshot().nodes().len() >= 3);
     assert_eq!(rendering_manager.backend_info().backend_name, "wgpu");
     input_manager.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
@@ -109,7 +110,11 @@ fn runtime_bootstrap_excludes_editor_module() {
     assert!(core
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .is_err());
-    assert!(ManagerResolver::new(core).rendering().is_ok());
+    let resolver = ManagerResolver::new(core.clone());
+    assert!(resolver
+        .rendering_handle()
+        .and_then(|handle| resolver.resolve(handle))
+        .is_ok());
 }
 
 #[test]
@@ -612,8 +617,10 @@ fn runtime_bootstrap_ignores_linked_plugin_registration_for_other_target_modes()
 #[test]
 fn runtime_bootstrap_without_linked_virtual_geometry_keeps_base_pipeline_lightweight() {
     let core = EntryRunner::bootstrap(EntryConfig::new(EntryProfile::Runtime)).unwrap();
-    let render_framework = ManagerResolver::new(core)
-        .render_framework()
+    let resolver = ManagerResolver::new(core.clone());
+    let render_framework = resolver
+        .render_framework_handle()
+        .and_then(|handle| resolver.resolve(handle))
         .expect("runtime bootstrap should expose render framework");
     let viewport = render_framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(32, 32)))
@@ -768,8 +775,10 @@ fn linked_runtime_render_feature_descriptors_rebuild_default_pipelines() {
     });
     let core = EntryRunner::bootstrap_with_runtime_plugin_registrations(config, [report])
         .expect("linked render feature plugin should bootstrap");
-    let render_framework = ManagerResolver::new(core)
-        .render_framework()
+    let resolver = ManagerResolver::new(core.clone());
+    let render_framework = resolver
+        .render_framework_handle()
+        .and_then(|handle| resolver.resolve(handle))
         .expect("runtime bootstrap should expose render framework");
     let viewport = render_framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(32, 32)))
@@ -859,8 +868,10 @@ target_modes = ["client_runtime"]
         EntryRunner::bootstrap_with_native_plugins_from_export_root(config, &export_root)
             .expect("native dynamic load manifest should satisfy required plugin availability");
 
-    assert!(ManagerResolver::new(bootstrap.clone_core())
-        .rendering()
+    let resolver = ManagerResolver::new(bootstrap.clone_core());
+    assert!(resolver
+        .rendering_handle()
+        .and_then(|handle| resolver.resolve(handle))
         .is_ok());
     assert!(bootstrap
         .module_selection_report()

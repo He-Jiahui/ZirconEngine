@@ -106,7 +106,7 @@ fn render_hybrid_gi_visual_frame(
 }
 
 fn hybrid_gi_visual_framework(probe_irradiance_rgb: Option<[u8; 3]>) -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_extensions(
+    WgpuRenderFramework::new_for_test_with_plugin_render_extensions(
         Arc::new(ProjectAssetManager::default()),
         [direct_hybrid_gi_render_feature_descriptor()],
         direct_hybrid_gi_executor_registrations(),

@@ -3,9 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crossbeam_channel::TryRecvError;
 
-use crate::core::manager::{
-    resolve_config_manager, ManagerResolver, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
-};
+use crate::core::manager::{ManagerResolver, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME};
 use crate::core::CoreRuntime;
 use serde_json::json;
 
@@ -47,7 +45,8 @@ fn config_manager_roundtrip_works_through_resolver() {
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
 
-    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     config
         .set_value("editor.layout", json!({"dock": "main"}))
         .unwrap();
@@ -59,12 +58,54 @@ fn config_manager_roundtrip_works_through_resolver() {
 }
 
 #[test]
+fn versioned_manager_handle_rejects_the_unloaded_generation() {
+    let runtime = CoreRuntime::new();
+    runtime.register_module(module_descriptor()).unwrap();
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let stale_handle = resolver.config_handle().unwrap();
+
+    resolver.resolve(stale_handle.clone()).unwrap();
+    runtime.deactivate_module(FOUNDATION_MODULE_NAME).unwrap();
+
+    assert!(matches!(
+        resolver.config_handle(),
+        Err(crate::core::CoreError::ServiceUnavailable(name)) if name == CONFIG_MANAGER_NAME
+    ));
+
+    let error = match resolver.resolve(stale_handle.clone()) {
+        Ok(_) => panic!("stale manager generation unexpectedly resolved"),
+        Err(error) => error,
+    };
+    assert!(matches!(
+        error,
+        crate::core::CoreError::StaleServiceHandle {
+            expected_index,
+            expected_generation,
+            actual_index,
+            actual_generation,
+            ..
+        } if expected_index == stale_handle.index
+            && expected_generation == stale_handle.generation
+            && actual_index == stale_handle.index
+            && actual_generation == stale_handle.generation + 1
+    ));
+
+    runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
+    let current_handle = resolver.config_handle().unwrap();
+    assert_eq!(current_handle.index, stale_handle.index);
+    assert_eq!(current_handle.generation, stale_handle.generation + 1);
+    resolver.resolve(current_handle).unwrap();
+}
+
+#[test]
 fn event_manager_publish_subscribe_roundtrip_works() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
 
-    let events = ManagerResolver::new(runtime.handle()).event().unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let events = resolver.resolve(resolver.event_handle().unwrap()).unwrap();
     let receiver = events.subscribe("engine.ready");
     events.publish("engine.ready", json!({"ok": true}));
 
@@ -79,8 +120,9 @@ fn foundation_registry_services_do_not_retain_the_runtime_root() {
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
     let weak = runtime.weak();
 
-    let config = ManagerResolver::new(runtime.handle()).config().unwrap();
-    let events = ManagerResolver::new(runtime.handle()).event().unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
+    let events = resolver.resolve(resolver.event_handle().unwrap()).unwrap();
 
     drop(runtime);
 
@@ -112,7 +154,8 @@ fn config_manager_persists_values_to_disk() {
     let runtime = CoreRuntime::new();
     runtime.register_module(module_descriptor()).unwrap();
     runtime.activate_module(FOUNDATION_MODULE_NAME).unwrap();
-    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     config
         .set_value("editor.workbench.default_layout", json!({"page": "main"}))
         .unwrap();
@@ -122,11 +165,10 @@ fn config_manager_persists_values_to_disk() {
     second_runtime
         .activate_module(FOUNDATION_MODULE_NAME)
         .unwrap();
-    let second_config = second_runtime
-        .handle()
-        .resolve_manager::<crate::core::manager::ConfigManagerHandle>(CONFIG_MANAGER_NAME)
-        .unwrap()
-        .shared();
+    let second_resolver = ManagerResolver::new(second_runtime.handle());
+    let second_config = second_resolver
+        .resolve(second_resolver.config_handle().unwrap())
+        .unwrap();
 
     assert_eq!(
         second_config.get_value("editor.workbench.default_layout"),

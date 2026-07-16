@@ -26,7 +26,7 @@ impl ResourceStreamer {
         }
 
         let mesh = self
-            .asset_manager
+            .asset_manager()?
             .load_mesh_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let primitive = mesh

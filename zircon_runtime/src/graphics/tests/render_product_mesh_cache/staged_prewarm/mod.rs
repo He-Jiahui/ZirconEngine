@@ -105,7 +105,7 @@ fn submit_base_mesh_with_staged_cache(
         "staged-prewarm-product-skeleton-v1",
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).expect("WGPU framework");
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).expect("WGPU framework");
     framework.replace_shader_variant_disk_cache_for_tests(
         ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root]),
     );

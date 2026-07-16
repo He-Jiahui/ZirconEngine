@@ -12,7 +12,7 @@ use crate::ui::workbench::layout::{
 use crate::ui::workbench::project::ProjectEditorWorkspace;
 use crate::ui::workbench::startup::EditorSessionMode;
 use crate::ui::workbench::view::{ViewDescriptorId, ViewHost, ViewInstance, ViewInstanceId};
-use zircon_runtime::core::manager::resolve_config_manager;
+use zircon_runtime::core::manager::ManagerResolver;
 
 use super::support::*;
 
@@ -21,7 +21,8 @@ fn editor_manager_bootstrap_prefers_global_default_layout() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_workbench_global");
     let runtime = editor_runtime_with_config_path(&path);
-    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     let custom_layout = empty_layout_with_page("global-layout");
     config
         .set_value(
@@ -48,7 +49,8 @@ fn editor_manager_bootstrap_repairs_empty_global_default_layout() {
     let _guard = env_lock().lock().unwrap();
     let path = unique_temp_path("zircon_editor_workbench_global_empty");
     let runtime = editor_runtime_with_config_path(&path);
-    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     let empty_layout = empty_layout_with_page("global-layout");
     config
         .set_value(
@@ -767,7 +769,8 @@ fn project_open_with_corrupt_workspace_falls_back_to_global_layout_with_diagnost
     let path = unique_temp_path("zircon_editor_corrupt_workspace_fallback");
     let project_root = unique_temp_dir("zircon_editor_corrupt_workspace_project");
     let runtime = editor_runtime_with_config_path(&path);
-    let config = resolve_config_manager(&runtime.handle()).unwrap();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let config = resolver.resolve(resolver.config_handle().unwrap()).unwrap();
     let custom_layout = empty_layout_with_page("global-layout");
     config
         .set_value(

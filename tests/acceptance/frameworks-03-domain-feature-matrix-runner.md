@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_runtime/Cargo.toml
-  - zircon_runtime/src/graphics/text
+  - zircon_runtime/src/text
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - zircon_runtime/src/graphics/types/mod.rs

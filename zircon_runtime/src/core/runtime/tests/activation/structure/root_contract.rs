@@ -17,6 +17,7 @@ fn activation_structure_roots_stay_navigational() {
     assert!(!activation_mod_source.contains("#[test]"));
     assert!(activation_behavior_mod_source.contains("mod activation;"));
     assert!(activation_behavior_mod_source.contains("mod deactivation;"));
+    assert!(activation_behavior_mod_source.contains("mod reactivation;"));
     assert!(!activation_behavior_mod_source.contains("#[test]"));
     assert!(deactivation_behavior_mod_source.contains("mod blocked;"));
     assert!(deactivation_behavior_mod_source.contains("mod clean;"));
@@ -26,6 +27,7 @@ fn activation_structure_roots_stay_navigational() {
 
     assert!(activation_source.contains("mod blocked_dependencies;"));
     assert!(activation_source.contains("mod blocked_unload;"));
+    assert!(activation_source.contains("mod service_lifecycle;"));
     assert!(activation_source.contains("mod startup;"));
     assert!(activation_source.contains("mod unload_mutation;"));
     assert!(

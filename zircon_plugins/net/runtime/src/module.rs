@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::manager::NetManagerHandle;
+use zircon_runtime::core::framework::net::NetManager;
+use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
@@ -46,7 +47,10 @@ pub fn module_descriptor() -> ModuleDescriptor {
             factory(|core| {
                 let manager =
                     core.resolve_manager::<DefaultNetManager>(DEFAULT_NET_MANAGER_NAME)?;
-                Ok(Arc::new(NetManagerHandle::new(manager)) as ServiceObject)
+                Ok(
+                    Arc::new(RegisteredManagerService::<dyn NetManager>::new(manager))
+                        as ServiceObject,
+                )
             }),
         ))
 }

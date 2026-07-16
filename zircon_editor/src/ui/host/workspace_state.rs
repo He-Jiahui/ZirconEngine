@@ -244,7 +244,7 @@ impl EditorUiHost {
         if session
             .focused_view
             .as_ref()
-            .is_none_or(|instance_id| !session.open_view_instances.contains_key(instance_id))
+            .is_some_and(|instance_id| !session.open_view_instances.contains_key(instance_id))
         {
             session.focused_view = active_main_page_view(session);
         }

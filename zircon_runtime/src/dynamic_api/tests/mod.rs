@@ -3,6 +3,8 @@ mod api_table;
 mod host_request_payloads;
 mod host_requests;
 mod input_events;
+mod linked_plugins;
+mod operation;
 mod profile_control;
 mod session_entry_points;
 mod session_lifecycle;

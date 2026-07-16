@@ -48,7 +48,7 @@ fn physics_domain_keeps_framework_contract_and_plugin_owns_runtime_behavior() {
     );
     assert!(
         physics_plugin_module.contains("PhysicsDriver")
-            && physics_plugin_module.contains("PhysicsManagerHandle")
+            && physics_plugin_module.contains("RegisteredManagerService::<dyn PhysicsManager>")
             && physics_plugin_module.contains("module_descriptor")
             && physics_plugin_manager_service
                 .contains("impl PhysicsManager for DefaultPhysicsManager")

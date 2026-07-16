@@ -27,21 +27,19 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
         added_slot_count: 2,
         evicted_slot_count: 0,
         atlas_resized: true,
-        dirty_rect: Some(
-            crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasRect {
-                x: 0,
-                y: 0,
-                width: 128,
-                height: 64,
-            },
-        ),
+        dirty_rect: Some(crate::text::sdf::SdfAtlasRect {
+            x: 0,
+            y: 0,
+            width: 128,
+            height: 64,
+        }),
         dirty_pages: vec![
             crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasDirtyPageReport {
-                page_key: crate::graphics::text::atlas::GlyphAtlasPageKey::new(
-                    crate::graphics::text::atlas::GlyphAtlasFormat::Sdf,
+                page_key: crate::text::atlas::GlyphAtlasPageKey::new(
+                    crate::text::atlas::GlyphAtlasFormat::Sdf,
                     0,
                 ),
-                dirty_rect: crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasRect {
+                dirty_rect: crate::text::sdf::SdfAtlasRect {
                     x: 0,
                     y: 0,
                     width: 128,
@@ -86,27 +84,24 @@ fn sdf_prepare_report_summarizes_atlas_bake_and_vertices() {
                 byte_len: 512 * 512,
                 full_texture: true,
                 dirty_slot_count: 2,
-                dirty_rect: Some(
-                    crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasRect {
+                dirty_rect: Some(crate::text::sdf::SdfAtlasRect {
+                    x: 0,
+                    y: 0,
+                    width: 512,
+                    height: 512,
+                },),
+                dirty_byte_len: 512 * 512,
+                dirty_pages: vec![SdfAtlasUploadPageReport {
+                    page_key: crate::text::atlas::GlyphAtlasPageKey::new(
+                        crate::text::atlas::GlyphAtlasFormat::Sdf,
+                        0,
+                    ),
+                    dirty_rect: crate::text::sdf::SdfAtlasRect {
                         x: 0,
                         y: 0,
                         width: 512,
                         height: 512,
                     },
-                ),
-                dirty_byte_len: 512 * 512,
-                dirty_pages: vec![SdfAtlasUploadPageReport {
-                    page_key: crate::graphics::text::atlas::GlyphAtlasPageKey::new(
-                        crate::graphics::text::atlas::GlyphAtlasFormat::Sdf,
-                        0,
-                    ),
-                    dirty_rect:
-                        crate::graphics::scene::scene_renderer::ui::sdf_atlas::SdfAtlasRect {
-                            x: 0,
-                            y: 0,
-                            width: 512,
-                            height: 512,
-                        },
                     byte_len: 512 * 512,
                 }],
             },

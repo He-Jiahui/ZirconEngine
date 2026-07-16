@@ -24,7 +24,7 @@ impl EditorState {
         let Some((component_type_path, field_name)) = field_id.rsplit_once('.') else {
             return false;
         };
-        let Some(selected) = self.viewport_controller.selected_node() else {
+        let Some(selected) = self.viewport_controller.selection().active_primary() else {
             return false;
         };
         self.world

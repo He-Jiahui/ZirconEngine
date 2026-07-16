@@ -1,3 +1,5 @@
+#![cfg(feature = "ui")]
+
 use zircon_runtime::ui::surface::layout_text;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,

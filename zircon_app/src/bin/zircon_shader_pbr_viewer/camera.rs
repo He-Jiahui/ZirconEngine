@@ -107,7 +107,7 @@ fn stable_camera_up(forward: Vec3) -> Vec3 {
 
 #[cfg(test)]
 mod tests {
-    use super::{OrbitCamera, CAMERA_PITCH_LIMIT_DEGREES};
+    use super::{OrbitCamera, CAMERA_PITCH_LIMIT_DEGREES, MAX_CAMERA_RADIUS, MIN_CAMERA_RADIUS};
 
     #[test]
     fn initial_angles_preserve_yaw_and_clamp_pitch() {
@@ -118,5 +118,24 @@ mod tests {
         assert_eq!(upper.pitch_degrees(), CAMERA_PITCH_LIMIT_DEGREES);
         assert_eq!(lower.yaw_degrees(), 120.0);
         assert_eq!(lower.pitch_degrees(), -CAMERA_PITCH_LIMIT_DEGREES);
+    }
+
+    #[test]
+    fn mouse_wheel_zoom_changes_radius_and_clamps_to_orbit_limits() {
+        let mut camera = OrbitCamera::default();
+        let initial_radius = camera.radius;
+
+        camera.zoom(1.0);
+        assert!(camera.radius < initial_radius);
+
+        for _ in 0..100 {
+            camera.zoom(1.0);
+        }
+        assert_eq!(camera.radius, MIN_CAMERA_RADIUS);
+
+        for _ in 0..100 {
+            camera.zoom(-1.0);
+        }
+        assert_eq!(camera.radius, MAX_CAMERA_RADIUS);
     }
 }

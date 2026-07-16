@@ -29,9 +29,10 @@ pub use patch::{
     ScenePatchPreviewReport, ScenePatchPreviewResource,
 };
 pub use remap::EntityRemap;
-pub use scene::{DynamicScene, DYNAMIC_SCENE_FORMAT_VERSION};
+pub use scene::DynamicScene;
 pub use session::{
-    RuntimeSessionArchive, RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
+    RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION, RuntimeSessionArchive,
+    RuntimeSessionArchiveCaptureRetentionReport, RuntimeSessionArchiveError,
     RuntimeSessionArchiveManifest, RuntimeSessionArchiveMergePolicy,
     RuntimeSessionArchiveMergeReport, RuntimeSessionArchivePathStatus,
     RuntimeSessionArchivePruneReport, RuntimeSessionArchiveRetentionPolicy,
@@ -40,6 +41,6 @@ pub use session::{
     RuntimeSessionSlotCapturePreviewReport, RuntimeSessionSlotDiffReport,
     RuntimeSessionSlotExportPreviewReport, RuntimeSessionSlotImportPreviewReport,
     RuntimeSessionSlotMutationPreviewReport, RuntimeSessionSlotSelectionReport,
-    RuntimeSessionSlotSelector, RuntimeSessionSlotSummary, RUNTIME_SESSION_ARCHIVE_FORMAT_VERSION,
+    RuntimeSessionSlotSelector, RuntimeSessionSlotSummary,
 };
 pub use spawn_task::{DynamicSceneSpawnTask, PreparedDynamicSceneSpawn};

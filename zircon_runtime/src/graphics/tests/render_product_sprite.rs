@@ -176,7 +176,8 @@ fn render_product_sprite_phase_queue_honors_queue_and_order_in_layer() {
 
 #[test]
 fn render_product_sprite_submit_records_sprite_stats_without_particle_feature() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

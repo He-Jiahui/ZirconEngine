@@ -1,31 +1,37 @@
-use zircon_editor::core::commands::EditorCommandDescriptor;
+use std::sync::Arc;
+
+use zircon_editor::core::commands::{EditorCommandDescriptor, EditorCommandRegistryError};
+use zircon_editor::core::editing::operation::OperationCommandFactoryRegistration;
 use zircon_editor::core::editor_event::{EditorEvent, MenuAction, ViewDescriptorId};
 use zircon_editor::core::editor_extension::{
     EditorExtensionRegistry, EditorExtensionRegistryError, EditorMenuItemDescriptor,
 };
-use zircon_editor::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 
 use crate::capability::{NAVIGATION_AUTHORING_CAPABILITY, NAVIGATION_GIZMOS_CAPABILITY};
+use zircon_runtime::core::framework::navigation::{
+    NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
+    NAVIGATION_CLEAR_SURFACE_OPERATION,
+};
+
 use crate::extension_ids::{
-    NAVIGATION_AGENTS_VIEW_ID, NAVIGATION_BAKE_SCENE_OPERATION, NAVIGATION_BAKE_SURFACE_OPERATION,
-    NAVIGATION_CLEAR_SURFACE_OPERATION, NAVIGATION_OPEN_SETTINGS_OPERATION,
+    NAVIGATION_AGENTS_VIEW_ID, NAVIGATION_OPEN_SETTINGS_OPERATION,
     NAVIGATION_TOGGLE_GIZMOS_OPERATION,
 };
+use crate::operation_command::NavigationOperationCommandFactory;
 
 pub(super) fn register(
     registry: &mut EditorExtensionRegistry,
 ) -> Result<(), EditorExtensionRegistryError> {
     for spec in operation_specs() {
         let operation = parse_operation(spec.path)?;
-        let command =
-            EditorCommandDescriptor::pending_operation(operation.clone(), spec.display_name)
-                .with_menu_path(spec.menu_path)
-                .with_callable_from_remote(false)
-                .with_required_capabilities([spec.capability]);
+        let command = EditorCommandDescriptor::operation(operation.clone(), spec.display_name)
+            .with_menu_path(spec.menu_path)
+            .with_callable_from_remote(false)
+            .with_required_capabilities([spec.capability]);
         let command = match spec.route {
             OperationRoute::Edit { payload_schema } => command
-                .with_payload_schema_id(payload_schema)
-                .with_undoable(UndoableEditorOperation::new(spec.display_name)),
+                .with_payload_schema_id(payload_schema),
             OperationRoute::OpenView(view_id) => command.with_event(
                 EditorEvent::WorkbenchMenu(MenuAction::OpenView(ViewDescriptorId::new(view_id))),
             ),
@@ -33,7 +39,24 @@ pub(super) fn register(
                 .with_payload_schema_id("navigation.overlay.toggle.v1")
                 .with_description("Toggle the Navigation viewport provider; this view-state operation is intentionally non-undoable."),
         };
-        registry.register_command(command)?;
+        if matches!(spec.route, OperationRoute::Edit { .. }) {
+            let factory =
+                NavigationOperationCommandFactory::for_operation(&operation).map_err(|error| {
+                    EditorExtensionRegistryError::Command(
+                        EditorCommandRegistryError::OperationFactory(error),
+                    )
+                })?;
+            registry.register_operation_command(
+                command,
+                OperationCommandFactoryRegistration::new(
+                    operation.clone(),
+                    spec.display_name,
+                    Arc::new(factory),
+                ),
+            )?;
+        } else {
+            registry.register_command(command)?;
+        }
         registry.register_menu_item(
             EditorMenuItemDescriptor::new(spec.menu_path, operation)
                 .with_required_capabilities([spec.capability]),

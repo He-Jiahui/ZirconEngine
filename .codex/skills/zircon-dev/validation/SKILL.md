@@ -47,8 +47,9 @@ Read `../references/cargo-target-disk-policy.md` when shared-target setup, clean
 
 ## Validation Rules
 
-- In the milestone testing stage, match CI first: `cargo build --workspace --locked --verbose` and `cargo test --workspace --locked --verbose`.
-- If the milestone is clearly crate-local, start the testing stage with `cargo test -p <crate>` and then expand back to workspace validation when shared contracts or manifests move.
+- In the milestone testing stage, run the smallest complete batch per `docs/plans/milestone-validation-policy.md` §3: one package-scoped `cargo check` for the changed targets, then one focused `cargo test` batch for the milestone's changed behavior.
+- Reserve `cargo build --workspace` / `cargo test --workspace` for execution-wave closeout, release candidates, or root manifest/lockfile/toolchain changes (policy §4). Do not run them per milestone.
+- Expand a crate-local batch to multi-package validation only when shared contracts, DTOs, or manifests actually moved in the milestone.
 - Keep `--locked` on by default. Disable it only when lockfile work is explicitly in scope.
 - Every validator run submits the complete compatibility description to the local Session coordinator and acquires the corresponding single primary pool below an approved root.
 - Compatible work reuses that pool across Sessions. One task owns it at a time; contention reports busy instead of creating a fallback. Incomplete compatibility is ephemeral and is removed immediately after release.
@@ -56,7 +57,7 @@ Read `../references/cargo-target-disk-policy.md` when shared-target setup, clean
 - Before build or test, the validator checks remaining free space on the drive that hosts the active target directory. If that free space is `<= 50 GB`, it runs `cargo clean --target-dir <active-target-dir>` before continuing.
 - `-DryRun` renders selected commands without running `cargo`, requiring Cargo discovery, or running target-directory cleanup checks. It still asks the coordinator for a managed audit lane, does not create the directory, and releases the lane in `finally`.
 - Never create `target/<name>` directories in the repository. Use the validator or request an explicit path below an allowed drive-root `cargo-targets` directory.
-- The repository `PreToolUse` Hook rejects raw artifact-producing Cargo commands before execution. This is a guardrail, not a replacement for the coordinator: do not evade it through shell nesting, `cargo.exe`, aliases, or an ad-hoc `--target-dir`.
+- The repository `PreToolUse` Hook rejects raw artifact-producing Cargo commands and direct `git commit` before execution. This is a guardrail, not a replacement for the coordinator: do not evade it through shell nesting, `cargo.exe`, aliases, or an ad-hoc `--target-dir`; accepted business commits are created only by `milestone commit`.
 - At a child-plan milestone boundary, use `tools/zircon-session.ps1 milestone validate` instead of manually composing a Cargo command. The resulting validation copy lives under a managed drive-root `cargo-targets` verification directory and is terminally cleaned by the coordinator.
 - Use `-RunExportPlatformContract` to mirror the CI export-platform policy matrix locally. The matrix covers `windows`, `linux`, `macos`, `android`, `ios`, `web_gpu`, `wasm`, and `headless` by setting `ZR_EXPORT_CONTRACT_PLATFORM` for the focused `zircon_runtime` export policy test.
 - Add `-ExportContractPlatform <platform>` only with `-RunExportPlatformContract` when active shared compile lanes make a single low-interference export-platform check safer than the full eight-platform matrix. Passing `-ExportContractPlatform` without `-RunExportPlatformContract` is rejected so the selector cannot be silently ignored.

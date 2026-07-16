@@ -4,7 +4,7 @@ import threading
 import time
 from collections.abc import Callable
 
-from .models import CodexDiscoveryResult, CodexSyncTrigger
+from .models import CodexDiscoveryResult, CodexReconcileResult, CodexSyncTrigger
 
 
 class CodexSyncWorker:
@@ -17,6 +17,7 @@ class CodexSyncWorker:
         store,
         spool,
         writable: Callable[[], bool],
+        project: Callable[[CodexReconcileResult, bool], object] | None = None,
         membership_interval_seconds: float = 30.0,
         full_interval_seconds: float = 15 * 60.0,
         monotonic: Callable[[], float] = time.monotonic,
@@ -25,6 +26,7 @@ class CodexSyncWorker:
         self._store = store
         self._spool = spool
         self._writable = writable
+        self._project = project
         self._membership_interval = max(0.01, membership_interval_seconds)
         self._full_interval = max(self._membership_interval, full_interval_seconds)
         self._monotonic = monotonic
@@ -118,15 +120,16 @@ class CodexSyncWorker:
                     continue
                 started = self._monotonic()
                 items = self._spool.validated_pending()
-                discovery = self._discover(
-                    full_due or trigger is CodexSyncTrigger.STARTUP
-                )
+                include_history = full_due or trigger is CodexSyncTrigger.STARTUP
+                discovery = self._discover(include_history)
                 result = self._store.reconcile(
                     discovery,
                     trigger=trigger,
                     duration_ms=max(0, int((self._monotonic() - started) * 1000)),
                 )
                 self._spool.acknowledge_committed(items, run_id=result.run_id)
+                if self._project is not None:
+                    self._project(result, include_history)
                 with self._state_lock:
                     self._successful_runs += 1
                     self._last_run_id = result.run_id

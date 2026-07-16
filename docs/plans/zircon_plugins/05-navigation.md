@@ -1,5 +1,25 @@
 # 05 · Navigation 插件完善计划（Surface / Bakery / Agent / Obstacle / Modifier / OffMeshLink）
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "plugins-05-navigation",
+  "goal": "完成 Navigation 插件的 bake、crowd、obstacle、off-mesh 与 Editor 产品闭环，并保留逐层受管验证证据。",
+  "milestones": [
+    {"id": "M1", "title": "SimpleBake 闭环", "depends_on": []},
+    {"id": "M2", "title": "TiledBake 与异步", "depends_on": ["M1"]},
+    {"id": "M3", "title": "Agent 与 Crowd", "depends_on": ["M1"]},
+    {"id": "M4", "title": "Obstacle 与 Modifier", "depends_on": ["M2"]},
+    {"id": "M5", "title": "Off-mesh", "depends_on": ["M1", "M3"]},
+    {"id": "M6", "title": "Editor", "depends_on": ["M2", "M3"]},
+    {"id": "M7", "title": "UI binding shared support", "depends_on": []}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. -->
+<!-- M6 support slices use exact child-plan manifests and do not close unrelated open failures. -->
+
 > 状态：工程化细化版 v2 · M1 代码与隔离 Windows 验证完成，待共享检出 closeout · 优先级：P1 · 前置：[01 插件架构核心](01-plugin-architecture-core.md) M1–M2
 > 关联计划：`.codex/plans/ZirconEngine 导航寻路插件补齐计划.md` · 现状文档：`docs/zircon_plugins/navigation/{runtime,editor,native}.md`
 > 参考实现：Unity NavMesh 组件体验（Surface/Modifier/Agent/Obstacle/Link 五组件）、Unreal NavigationSystem（tile-based 异步重建）、Godot NavigationServer3D（map/region/agent/obstacle/link RID API）、upstream Recast/Detour/DetourCrowd
@@ -158,6 +178,12 @@ zircon_plugins/navigation/editor/src/   [扩展] 烘焙面板/overlay（M6）
 | M6-T2 | navmesh viewport overlay（按 area 着色，gizmos 通道，`View/Debug Overlays/Navigation`；契约 `gizmo.rs` 现有 DTO） | navigation/editor | M6-T1 | overlay 注册快照测试 |
 | M6-T3 | agent 路径/avoidance 调试视图（play-in-editor 只读镜像） | navigation/editor | M3 | 镜像通道契约测试 |
 
+### M7 UI binding shared support
+
+| 任务 | 内容 | 改动文件 | 依赖 | 新增测试 |
+|------|------|---------|------|---------|
+| M7-T1 | cross-control property parser、tree-scoped descriptor validation 与 Navigation payload kind | runtime interface / Runtime UI binding | 无 | parser 3 项、Runtime behavior 6 项、Runtime UI upward compile |
+
 ## 6. 验收命令
 
 ```bash
@@ -195,6 +221,7 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 - M6 Editor：`实现整改中，跨计划 gate 未关闭；注册层硬切代码与非 Cargo 门禁完成，当前源包复验排队`；产出记录：[2026-07-13 Navigation M6](05/2026-07-13-navigation-m6-output-records.md)、[2026-07-13 Navigation registration hard cut](05/2026-07-13-navigation-registration-hard-cut-output-records.md)。
 - fixed 已修复：[plugin-operation-factory-runtime-wiring](05/fixed-2026-07-15-plugin-operation-factory-runtime-wiring.md)
 - M6-T1 surface 选择态与 operation 参数投影：`待修复（open）`；[failure 交接](05/failure-2026-07-15-navigation-bake-selection-operation-arguments.md)。
+- fixed 已修复：[control-prop-ref-validation-runtime-gate](../zircon_runtime/render/18/fixed-2026-07-15-control-prop-ref-validation-runtime-gate.md)
 - M6-T2 viewport provider host：`待修复（open）`；[Editor 05 failure](../zircon_editor/editor/05/failure-2026-07-13-plugin-viewport-overlay-provider-runtime-wiring.md)。
 - fixed 已修复：[navigation-runtime-driver-manager-layering](../zircon_runtime/render/18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
 - fixed 已修复：[plugin-editor-runtime-mirror-consumer-wiring](05/fixed-2026-07-15-plugin-editor-runtime-mirror-consumer-wiring.md)
@@ -202,3 +229,4 @@ cargo test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_navigation
 ## 10. 治理失败交接
 
 - 产出记录归档上限：`已修复（fixed）`；[回传记录](../zircon_editor/editor/09/fixed-2026-07-15-navigation-plan-output-record-archive-limit.md)。
+<!-- M7 owns the independent Runtime UI binding support gate. -->

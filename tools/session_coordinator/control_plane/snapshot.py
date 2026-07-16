@@ -15,6 +15,9 @@ from ..workflows.projections import WorkflowProjectionService
 class ControlSnapshotService:
     """Reads all persisted control domains from one SQLite snapshot transaction."""
 
+    _TERMINAL_HISTORY_LIMIT = 50
+    _AUDIT_EVENT_LIMIT = 200
+
     def __init__(
         self,
         database: Database,
@@ -37,7 +40,9 @@ class ControlSnapshotService:
                     "projectionVersion": 1,
                     "eventCursor": cursor,
                     "service": service,
-                    "workflows": self.workflows.workflow_summaries(connection),
+                    "workflows": self.workflows.workflow_summaries(
+                        connection, terminal_history_limit=self._TERMINAL_HISTORY_LIMIT
+                    ),
                     "sessions": self._sessions(connection),
                     "codexSessions": self._codex_sessions(connection, service),
                     "failures": self._failures(connection),
@@ -157,13 +162,39 @@ class ControlSnapshotService:
                 "lastHeartbeatAt": row["last_heartbeat_at"],
             }
             for row in connection.execute(
-                "SELECT * FROM sessions ORDER BY updated_at DESC, session_id"
+                """
+                WITH recent_terminal AS (
+                    SELECT session_id FROM sessions
+                    WHERE status IN ('completed', 'stale', 'archived', 'cancelled')
+                    ORDER BY updated_at DESC, session_id DESC LIMIT ?
+                )
+                SELECT * FROM sessions
+                WHERE status NOT IN ('completed', 'stale', 'archived', 'cancelled')
+                   OR session_id IN (SELECT session_id FROM recent_terminal)
+                ORDER BY updated_at DESC, session_id
+                """,
+                (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
             )
         ]
 
     @staticmethod
     def _failures(connection) -> dict[str, object]:
-        nodes = [dict(row) for row in connection.execute("SELECT * FROM failure_nodes ORDER BY priority, created_at")]
+        nodes = [
+            dict(row)
+            for row in connection.execute(
+                """
+                WITH recent_fixed AS (
+                    SELECT node_id FROM failure_nodes
+                    WHERE status='fixed'
+                    ORDER BY resolved_at DESC, created_at DESC, node_id DESC LIMIT ?
+                )
+                SELECT * FROM failure_nodes
+                WHERE status='open' OR node_id IN (SELECT node_id FROM recent_fixed)
+                ORDER BY priority, created_at, node_id
+                """,
+                (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
+            )
+        ]
         diagnostics = [
             {
                 "diagnosticId": row["diagnostic_id"],
@@ -173,7 +204,8 @@ class ControlSnapshotService:
                 "createdAt": row["created_at"],
             }
             for row in connection.execute(
-                "SELECT * FROM failure_diagnostics ORDER BY diagnostic_id DESC LIMIT 500"
+                "SELECT * FROM failure_diagnostics ORDER BY diagnostic_id DESC LIMIT ?",
+                (ControlSnapshotService._AUDIT_EVENT_LIMIT,),
             )
         ]
         return {"nodes": nodes, "diagnostics": diagnostics}
@@ -211,7 +243,20 @@ class ControlSnapshotService:
     @staticmethod
     def _validation(connection) -> dict[str, object]:
         jobs = []
-        for row in connection.execute("SELECT * FROM cargo_jobs ORDER BY created_at DESC LIMIT 500"):
+        for row in connection.execute(
+            """
+            WITH recent_terminal AS (
+                SELECT job_id FROM cargo_jobs
+                WHERE status NOT IN ('leased', 'running')
+                ORDER BY created_at DESC, job_id DESC LIMIT ?
+            )
+            SELECT * FROM cargo_jobs
+            WHERE status IN ('leased', 'running')
+               OR job_id IN (SELECT job_id FROM recent_terminal)
+            ORDER BY created_at DESC, job_id DESC
+            """,
+            (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
+        ):
             item = dict(row)
             item["command"] = json.loads(item.pop("command_json"))
             jobs.append(item)
@@ -219,10 +264,24 @@ class ControlSnapshotService:
         for row in connection.execute(
             """
             SELECT job_id, session_id, job_root, source_root, target_root,
-                   head_commit, status, created_at, removed_at,
+                   head_commit,
+                   CASE
+                       WHEN status = 'planned' AND materialization_started_at IS NOT NULL
+                           THEN 'materializing'
+                       ELSE status
+                   END AS status,
+                   created_at, removed_at,
                    LENGTH(CAST(manifest_json AS BLOB)) AS manifest_bytes
-            FROM validation_copies ORDER BY created_at DESC LIMIT 500
-            """
+            FROM validation_copies
+            WHERE status IN ('planned', 'materialized', 'running', 'cleanup_pending')
+               OR job_id IN (
+                    SELECT job_id FROM validation_copies
+                    WHERE status NOT IN ('planned', 'materialized', 'running', 'cleanup_pending')
+                    ORDER BY created_at DESC, job_id DESC LIMIT ?
+               )
+            ORDER BY created_at DESC, job_id DESC
+            """,
+            (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
         ):
             copies.append(dict(row))
         current_targets = ControlSnapshotService._current_cargo_targets(connection)
@@ -294,13 +353,21 @@ class ControlSnapshotService:
         requests = []
         for row in connection.execute(
             """
+            WITH recent_terminal AS (
+                SELECT request_id FROM finalize_requests
+                WHERE status IN ('committed', 'failed')
+                ORDER BY created_at DESC, request_id DESC LIMIT ?
+            )
             SELECT request_id, session_id, message, paths_json, categories_json,
                    untracked_json, validation_json, maintenance, status,
                    commit_sha, error_text, created_at, completed_at, start_head,
                    index_existed, ref_updated_sha
             FROM finalize_requests
-            ORDER BY created_at DESC LIMIT 500
-            """
+            WHERE status NOT IN ('committed', 'failed')
+               OR request_id IN (SELECT request_id FROM recent_terminal)
+            ORDER BY created_at DESC, request_id DESC
+            """,
+            (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
         ):
             item = dict(row)
             for key in ("paths_json", "categories_json", "untracked_json", "validation_json"):
@@ -314,8 +381,9 @@ class ControlSnapshotService:
             f"""
             SELECT event_id, session_id, event_type, created_at,
                    {CONTROL_EVENT_PAYLOAD_COLUMNS}
-            FROM events ORDER BY event_id DESC LIMIT 200
-            """
+            FROM events ORDER BY event_id DESC LIMIT ?
+            """,
+            (ControlSnapshotService._AUDIT_EVENT_LIMIT,),
         ).fetchall()
         return [
             {

@@ -106,7 +106,17 @@ fn html_inline_image_respects_start_middle_and_word_ellipsis() {
             "{overflow:?}: {}",
             line.text
         );
-        assert_eq!(line.glyph_advances.len(), line.text.graphemes(true).count());
+        assert_eq!(
+            line.glyph_advances.len(),
+            line.text.graphemes(true).count(),
+            "{overflow:?}: text={:?}, runs={:?}, advances={:?}",
+            line.text,
+            line.runs
+                .iter()
+                .map(|run| run.text.as_str())
+                .collect::<Vec<_>>(),
+            line.glyph_advances
+        );
         assert!(line.measured_width <= frame.width + 0.01, "{overflow:?}");
         assert!(layout.measured_width <= frame.width + 0.01, "{overflow:?}");
         match overflow {

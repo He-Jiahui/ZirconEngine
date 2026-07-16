@@ -1,16 +1,21 @@
 use std::path::Path;
 use std::slice;
 
+use zircon_runtime::plugin::RuntimePluginRegistrationReport;
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime_interface::{ProfileControlRequest, ProfileControlResponse};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
+    ZrRuntimePluginEventDeliveryBatchV1, ZrRuntimePluginEventDeliveryV1,
+    ZrRuntimePluginEventSubscribeRequestV1, ZrRuntimePluginEventSubscriptionHandle,
     ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
 };
 
 use super::{LoadedRuntime, RuntimeLibraryError};
+
+mod operation;
 
 pub(crate) struct RuntimeSession {
     runtime: LoadedRuntime,
@@ -31,9 +36,7 @@ impl RuntimeSession {
         profile: &'static [u8],
         project_root: Option<&Path>,
     ) -> Result<Self, RuntimeLibraryError> {
-        let create_session = runtime
-            .create_session()
-            .ok_or_else(|| RuntimeLibraryError::new("runtime API missing create_session"))?;
+        let create_session = runtime.create_session();
         let mut handle = ZrRuntimeSessionHandle::invalid();
         let project_root = project_root
             .map(|path| path.to_string_lossy().into_owned())
@@ -65,11 +68,28 @@ impl RuntimeSession {
         Ok(Self { runtime, handle })
     }
 
+    pub(crate) fn create_linked_with_profile_and_project(
+        runtime: LoadedRuntime,
+        profile: &[u8],
+        project_root: Option<&Path>,
+        registrations: Vec<RuntimePluginRegistrationReport>,
+    ) -> Result<Self, RuntimeLibraryError> {
+        let handle = zircon_runtime::dynamic_api::create_linked_runtime_session(
+            profile,
+            project_root,
+            registrations,
+        )
+        .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
+        if !handle.is_valid() {
+            return Err(RuntimeLibraryError::new(
+                "linked runtime returned an invalid session handle",
+            ));
+        }
+        Ok(Self { runtime, handle })
+    }
+
     pub(crate) fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), RuntimeLibraryError> {
-        let handle_event = self
-            .runtime
-            .handle_event()
-            .ok_or_else(|| RuntimeLibraryError::new("runtime API missing handle_event"))?;
+        let handle_event = self.runtime.handle_event();
         let status = unsafe { handle_event(self.handle, event) };
         ensure_status(status, "send runtime event")
     }
@@ -79,10 +99,7 @@ impl RuntimeSession {
         viewport: ZrRuntimeViewportHandle,
         size: ZrRuntimeViewportSizeV1,
     ) -> Result<RuntimeFrame, RuntimeLibraryError> {
-        let capture_frame = self
-            .runtime
-            .capture_frame()
-            .ok_or_else(|| RuntimeLibraryError::new("runtime API missing capture_frame"))?;
+        let capture_frame = self.runtime.capture_frame();
         let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
         let status = unsafe {
             capture_frame(
@@ -183,6 +200,80 @@ impl RuntimeSession {
         self.runtime.supports_viewport_surface_present()
     }
 
+    pub(crate) fn subscribe_plugin_event(
+        &self,
+        event_id: &str,
+        payload_schema: &str,
+    ) -> Result<Option<ZrRuntimePluginEventSubscriptionHandle>, RuntimeLibraryError> {
+        let subscribe = self.runtime.subscribe_plugin_event();
+        let request = serde_json::to_vec(&ZrRuntimePluginEventSubscribeRequestV1::new(
+            ZIRCON_RUNTIME_ABI_VERSION_V1,
+            event_id,
+            payload_schema,
+        ))
+        .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
+        let mut subscription = ZrRuntimePluginEventSubscriptionHandle::invalid();
+        ensure_status(
+            unsafe {
+                subscribe(
+                    self.handle,
+                    ZrByteSlice {
+                        data: request.as_ptr(),
+                        len: request.len(),
+                    },
+                    &mut subscription,
+                )
+            },
+            "subscribe runtime plugin event",
+        )?;
+        if !subscription.is_valid() {
+            return Err(RuntimeLibraryError::new(
+                "runtime returned an invalid plugin event subscription",
+            ));
+        }
+        Ok(Some(subscription))
+    }
+
+    pub(crate) fn unsubscribe_plugin_event(
+        &self,
+        subscription: ZrRuntimePluginEventSubscriptionHandle,
+    ) -> Result<bool, RuntimeLibraryError> {
+        let unsubscribe = self.runtime.unsubscribe_plugin_event();
+        ensure_status(
+            unsafe { unsubscribe(self.handle, subscription) },
+            "unsubscribe runtime plugin event",
+        )?;
+        Ok(true)
+    }
+
+    pub(crate) fn drain_plugin_events(
+        &self,
+        subscription: ZrRuntimePluginEventSubscriptionHandle,
+    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, RuntimeLibraryError> {
+        let drain = self.runtime.drain_plugin_events();
+        let mut output = ZrOwnedByteBuffer::empty();
+        ensure_status(
+            unsafe { drain(self.handle, subscription, &mut output) },
+            "drain runtime plugin events",
+        )?;
+        if output.is_empty() {
+            return Ok(Vec::new());
+        }
+        let bytes = unsafe { slice::from_raw_parts(output.data.cast_const(), output.len) };
+        let decoded = serde_json::from_slice::<ZrRuntimePluginEventDeliveryBatchV1>(bytes)
+            .map_err(|error| RuntimeLibraryError::new(error.to_string()));
+        if let Some(free) = output.free {
+            ensure_status(unsafe { free(output) }, "free runtime plugin events")?;
+        }
+        let batch = decoded?;
+        if batch.abi_version != ZIRCON_RUNTIME_ABI_VERSION_V1 {
+            return Err(RuntimeLibraryError::new(
+                "runtime plugin event batch used an unsupported ABI version",
+            ));
+        }
+        Ok(batch.deliveries)
+    }
+
     #[cfg(feature = "target-editor-host")]
     pub(crate) fn profile_control(
         &self,
@@ -220,24 +311,28 @@ impl RuntimeSession {
 }
 
 #[cfg(feature = "target-editor-host")]
-impl zircon_editor::EditorRuntimeClient for RuntimeSession {
+impl zircon_editor::core::gateway::EditorRuntimeGateway for RuntimeSession {
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
         self.handle
     }
 
-    fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), String> {
-        RuntimeSession::handle_event(self, event).map_err(|error| error.to_string())
+    fn tick_frame(&self) -> Result<bool, zircon_editor::core::gateway::GatewayError> {
+        RuntimeSession::tick_frame(self).map_err(gateway_runtime_error)
+    }
+
+    fn handle_event(
+        &self,
+        event: ZrRuntimeEventV1,
+    ) -> Result<(), zircon_editor::core::gateway::GatewayError> {
+        RuntimeSession::handle_event(self, event).map_err(gateway_runtime_error)
     }
 
     fn capture_frame(
         &self,
         viewport: ZrRuntimeViewportHandle,
         size: ZrRuntimeViewportSizeV1,
-    ) -> Result<ZrRuntimeFrameV1, String> {
-        let capture_frame = self
-            .runtime
-            .capture_frame()
-            .ok_or_else(|| "runtime API missing capture_frame".to_string())?;
+    ) -> Result<ZrRuntimeFrameV1, zircon_editor::core::gateway::GatewayError> {
+        let capture_frame = self.runtime.capture_frame();
         let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
         let status = unsafe {
             capture_frame(
@@ -246,24 +341,87 @@ impl zircon_editor::EditorRuntimeClient for RuntimeSession {
                 &mut frame,
             )
         };
-        ensure_status(status, "capture runtime frame").map_err(|error| error.to_string())?;
+        ensure_status(status, "capture runtime frame").map_err(gateway_runtime_error)?;
         Ok(frame)
     }
 
     fn profile_control(
         &self,
         request: &ProfileControlRequest,
-    ) -> Result<Option<ProfileControlResponse>, String> {
-        RuntimeSession::profile_control(self, request).map_err(|error| error.to_string())
+    ) -> Result<Option<ProfileControlResponse>, zircon_editor::core::gateway::GatewayError> {
+        RuntimeSession::profile_control(self, request).map_err(gateway_runtime_error)
+    }
+
+    fn subscribe_plugin_event(
+        &self,
+        event_id: &str,
+        payload_schema: &str,
+    ) -> Result<
+        Option<ZrRuntimePluginEventSubscriptionHandle>,
+        zircon_editor::core::gateway::GatewayError,
+    > {
+        RuntimeSession::subscribe_plugin_event(self, event_id, payload_schema)
+            .map_err(gateway_runtime_error)
+    }
+
+    fn unsubscribe_plugin_event(
+        &self,
+        subscription: ZrRuntimePluginEventSubscriptionHandle,
+    ) -> Result<bool, zircon_editor::core::gateway::GatewayError> {
+        RuntimeSession::unsubscribe_plugin_event(self, subscription).map_err(gateway_runtime_error)
+    }
+
+    fn drain_plugin_events(
+        &self,
+        subscription: ZrRuntimePluginEventSubscriptionHandle,
+    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, zircon_editor::core::gateway::GatewayError>
+    {
+        RuntimeSession::drain_plugin_events(self, subscription).map_err(gateway_runtime_error)
+    }
+
+    fn submit_operation(
+        &self,
+        request: zircon_runtime_interface::ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<
+        zircon_runtime_interface::ZrRuntimeOperationHandle,
+        zircon_editor::core::gateway::GatewayError,
+    > {
+        RuntimeSession::submit_operation(self, request).map_err(gateway_runtime_error)
+    }
+
+    fn poll_operation(
+        &self,
+        handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
+    ) -> Result<
+        zircon_runtime_interface::ZrRuntimeOperationProgressV1,
+        zircon_editor::core::gateway::GatewayError,
+    > {
+        RuntimeSession::poll_operation(self, handle).map_err(gateway_runtime_error)
+    }
+
+    fn harvest_operation(
+        &self,
+        handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
+    ) -> Result<
+        zircon_runtime_interface::ZrRuntimeOperationResultV1,
+        zircon_editor::core::gateway::GatewayError,
+    > {
+        RuntimeSession::harvest_operation(self, handle).map_err(gateway_runtime_error)
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn gateway_runtime_error(error: RuntimeLibraryError) -> zircon_editor::core::gateway::GatewayError {
+    zircon_editor::core::gateway::GatewayError::Runtime {
+        message: error.to_string(),
     }
 }
 
 impl Drop for RuntimeSession {
     fn drop(&mut self) {
         let _ = self.unbind_viewport_surface(ZrRuntimeViewportHandle::new(1));
-        if let Some(destroy_session) = self.runtime.destroy_session() {
-            let _ = unsafe { destroy_session(self.handle) };
-        }
+        let destroy_session = self.runtime.destroy_session();
+        let _ = unsafe { destroy_session(self.handle) };
     }
 }
 

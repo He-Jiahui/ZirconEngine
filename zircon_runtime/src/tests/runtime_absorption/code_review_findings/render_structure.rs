@@ -36,9 +36,15 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
     let submit = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/submit_compiled_scene_frame.rs"
     );
+    let sprite_stage_selection = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/sprite_stage_selection.rs"
+    );
+    let pipeline_resource_usage = include_str!(
+        "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/pipeline_resource_usage.rs"
+    );
     let review_findings = concat!(
         include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let render_index = include_str!("../../../../../docs/plans/zircon_runtime/render/index.md");
     let runtime_07 = include_str!(
@@ -54,6 +60,8 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         &[
             "mod bind_compiled_scene_graph_resources;",
             "mod execute_compiled_scene_graph_stages;",
+            "mod pipeline_resource_usage;",
+            "mod sprite_stage_selection;",
             "mod submit_compiled_scene_frame;",
         ],
     );
@@ -65,6 +73,8 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
             "bind_compiled_scene_graph_resources(",
             "self.execute_compiled_scene_graph_stages(CompiledSceneGraphStageContext",
             "self.submit_compiled_scene_frame(CompiledSceneFrameSubmissionContext",
+            "use super::pipeline_resource_usage::pipeline_writes_resource;",
+            "use super::sprite_stage_selection::active_sprite_graph_stages;",
         ],
     );
     assert_not_contains(
@@ -76,6 +86,33 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
             "fn attach_scene_velocity_readback_stats",
             "fn active_late_graph_stages",
             "execute_graph_stage(",
+            "fn active_sprite_graph_stages(",
+            "fn pipeline_has_active_sprite_stage(",
+            "fn pipeline_writes_resource(",
+        ],
+    );
+
+    assert_contains_all(
+        "compiled-scene sprite-stage selection owner",
+        sprite_stage_selection,
+        &[
+            "pub(super) fn active_sprite_graph_stages(",
+            "fn pipeline_has_active_sprite_stage(",
+            "fn compiled_scene_sprite_stage_list_owns_core2d_product_stages(",
+            "fn active_sprite_graph_stages_follow_unculled_sprite_passes(",
+        ],
+    );
+    assert_not_contains(
+        "compiled-scene sprite-stage selection owner",
+        sprite_stage_selection,
+        &["fn pipeline_writes_resource("],
+    );
+    assert_contains_all(
+        "compiled-scene pipeline resource usage owner",
+        pipeline_resource_usage,
+        &[
+            "pub(super) fn pipeline_writes_resource(",
+            "RenderGraphResourceAccessKind::Write",
         ],
     );
 
@@ -133,6 +170,14 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         submit.lines().count() < 650,
         "submit_compiled_scene_frame.rs should remain a focused owner"
     );
+    assert!(
+        sprite_stage_selection.lines().count() < 180,
+        "sprite_stage_selection.rs should remain a focused owner"
+    );
+    assert!(
+        pipeline_resource_usage.lines().count() < 80,
+        "pipeline_resource_usage.rs should remain a focused owner"
+    );
 
     let docs = [
         review_findings,
@@ -152,6 +197,8 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
             "bind_compiled_scene_graph_resources.rs",
             "execute_compiled_scene_graph_stages.rs",
             "submit_compiled_scene_frame.rs",
+            "sprite_stage_selection.rs",
+            "pipeline_resource_usage.rs",
             "compiled_scene_render_split_coremin_and_focused_tests_passed",
         ],
     );

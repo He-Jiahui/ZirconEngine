@@ -19,12 +19,15 @@ fn register_single_service_reports_existing_service_table_key() {
         services.insert(
             service_name.clone(),
             ServiceEntry {
+                index: 1,
+                generation: ServiceEntry::initial_generation(),
                 startup_mode: StartupMode::Lazy,
                 dependencies: Arc::default(),
                 factory: ServiceEntryFactory::Service(Arc::new(|_| {
                     Ok(Arc::new(TestDriver { order: 0 }) as ServiceObject)
                 })),
                 lifecycle: LifecycleState::Registered,
+                initialization_owner: None,
                 instance: None,
             },
         );
@@ -82,12 +85,15 @@ fn register_exact_three_services_reports_existing_third_key_without_partial_comm
         services.insert(
             third_name.clone(),
             ServiceEntry {
+                index: 1,
+                generation: ServiceEntry::initial_generation(),
                 startup_mode: StartupMode::Lazy,
                 dependencies: Arc::default(),
                 factory: ServiceEntryFactory::Plugin(Arc::new(|_| {
                     Ok(Arc::new(TestManager) as ServiceObject)
                 })),
                 lifecycle: LifecycleState::Registered,
+                initialization_owner: None,
                 instance: None,
             },
         );
@@ -163,12 +169,15 @@ fn register_exact_four_services_reports_existing_fourth_key_without_partial_comm
         services.insert(
             fourth_name.clone(),
             ServiceEntry {
+                index: 1,
+                generation: ServiceEntry::initial_generation(),
                 startup_mode: StartupMode::Lazy,
                 dependencies: Arc::default(),
                 factory: ServiceEntryFactory::Plugin(Arc::new(|_| {
                     Ok(Arc::new(TestManager) as ServiceObject)
                 })),
                 lifecycle: LifecycleState::Registered,
+                initialization_owner: None,
                 instance: None,
             },
         );
@@ -256,12 +265,15 @@ fn register_exact_five_services_reports_existing_fifth_key_without_partial_commi
         services.insert(
             fifth_name.clone(),
             ServiceEntry {
+                index: 1,
+                generation: ServiceEntry::initial_generation(),
                 startup_mode: StartupMode::Lazy,
                 dependencies: Arc::default(),
                 factory: ServiceEntryFactory::Plugin(Arc::new(|_| {
                     Ok(Arc::new(TestManager) as ServiceObject)
                 })),
                 lifecycle: LifecycleState::Registered,
+                initialization_owner: None,
                 instance: None,
             },
         );

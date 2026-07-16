@@ -15,7 +15,8 @@ use crate::graphics::WgpuRenderFramework;
 #[test]
 fn render_product_post_volume_camera_transition() {
     let viewport_size = UVec2::new(128, 96);
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let outside_viewport =
         create_volume_product_viewport(&framework, viewport_size, "post-volume-outside");
     let transition_viewport =

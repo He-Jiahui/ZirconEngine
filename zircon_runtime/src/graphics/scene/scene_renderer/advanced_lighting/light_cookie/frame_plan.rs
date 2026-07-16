@@ -64,7 +64,7 @@ pub(crate) fn build_cookie_frame_plan(cookies: &[LightCookieData]) -> CookieFram
                 texture: cookie.texture,
                 metadata: CookieGpuMetadata {
                     uv_rect: [x as f32 * cell, y as f32 * cell, cell, cell],
-                    misc: [projection, wrap, slot, 1],
+                    misc: [projection, wrap, 0, 0],
                     directional_offset_scale: [offset.x, offset.y, scale.x, scale.y],
                 },
             }
@@ -147,7 +147,7 @@ mod tests {
         );
         assert_eq!(
             plan.entries()[1].metadata.misc,
-            [COOKIE_PROJECTION_DIRECTIONAL, 1, 1, 1]
+            [COOKIE_PROJECTION_DIRECTIONAL, 1, 0, 0]
         );
         assert_eq!(
             plan.entries()[1].metadata.directional_offset_scale,

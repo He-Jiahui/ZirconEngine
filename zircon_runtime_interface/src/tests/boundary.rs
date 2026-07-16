@@ -3,6 +3,7 @@ use std::ffi::OsStr;
 use std::path::{Path, PathBuf};
 
 const ALLOWED_DEPENDENCIES: &[&str] = &[
+    "bincode",
     "glam",
     "semver",
     "serde",
@@ -13,7 +14,7 @@ const ALLOWED_DEPENDENCIES: &[&str] = &[
     "uuid",
 ];
 
-const ALLOWED_DEV_DEPENDENCIES: &[&str] = &["bincode"];
+const ALLOWED_DEV_DEPENDENCIES: &[&str] = &[];
 
 const FORBIDDEN_SOURCE_NEEDLES: &[&str] = &[
     "#[path",
@@ -40,6 +41,8 @@ const EXPECTED_RUNTIME_API_MODULES: &[&str] = &[
     "constants",
     "events",
     "host_requests",
+    "operation",
+    "plugin_event_mirror",
     "requests",
     "viewport",
 ];

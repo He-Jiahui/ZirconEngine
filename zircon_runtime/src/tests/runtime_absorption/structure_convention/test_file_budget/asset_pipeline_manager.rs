@@ -74,8 +74,8 @@ fn runtime_15_asset_pipeline_manager_tests_are_folder_backed() {
             .iter()
             .map(|source| source.matches("#[test]").count())
             .sum::<usize>(),
-        12,
-        "asset pipeline manager child modules should preserve the current 12 parent tests"
+        13,
+        "asset pipeline manager child modules should preserve the current 13 parent tests"
     );
 
     assert_contains_all(
@@ -104,6 +104,7 @@ fn runtime_15_asset_pipeline_manager_tests_are_folder_backed() {
             "fn asset_manager_watcher_reimports_modified_assets",
             "fn watcher_ignores_meta_sidecar_updates_for_revision_tracking",
             "fn watcher_reimports_modified_asset_once_without_revision_loop",
+            "fn project_manager_split_move_events_reconcile_sidecar_identity_as_rename",
         ],
     );
     assert_contains_all(

@@ -11,7 +11,7 @@ pub(super) fn hover_button_style(
     let mut style = normal_button_style(kind, interaction);
     match kind {
         WorkbenchButtonKind::Primary => {
-            style.surface = button_palette.surface_hover;
+            style.surface = button_palette.surface_primary_hover;
         }
         WorkbenchButtonKind::Secondary => {
             style.surface = button_palette.surface_hover;

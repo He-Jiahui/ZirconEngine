@@ -116,7 +116,12 @@ class TopologyImporter:
         version_id: str,
     ) -> None:
         current = connection.execute(
-            "SELECT topology_hash FROM workflow_runs WHERE run_id=?", (run_id,)
+            """SELECT run.topology_hash, version.topology_json
+               FROM workflow_runs AS run
+               LEFT JOIN workflow_topology_versions AS version
+                 ON version.topology_version_id=run.current_topology_version_id
+               WHERE run.run_id=?""",
+            (run_id,),
         ).fetchone()
         if current["topology_hash"] == topology.topology_hash:
             connection.execute(
@@ -139,6 +144,13 @@ class TopologyImporter:
             (run_id,) * 7,
         ).fetchone()[0])
         if progressed:
+            if cls._can_append_milestones(current["topology_json"], topology) and not cls._has_live_attempts(
+                connection, run_id
+            ):
+                cls._activate_append_only(
+                    connection, run_id, session_id, topology, version_id
+                )
+                return
             raise CoordinatorError(
                 "workflow_topology_activation_requires_pristine_run",
                 "A structural plan revision cannot replace a workflow graph with accepted history",
@@ -149,6 +161,121 @@ class TopologyImporter:
             "DELETE FROM workflow_nodes WHERE run_id=? AND node_key <> 'goal'", (run_id,)
         )
         cls._activate(connection, run_id, session_id, topology)
+
+    @staticmethod
+    def _can_append_milestones(
+        previous_json: str | None, topology: WorkflowTopology
+    ) -> bool:
+        """Accept only a milestone tail; historic nodes and slices remain immutable."""
+        if not previous_json:
+            return False
+        try:
+            previous = json.loads(previous_json)
+        except (TypeError, json.JSONDecodeError):
+            return False
+        if not isinstance(previous, dict):
+            return False
+        if any(
+            previous.get(key) != value
+            for key, value in (
+                ("schema", topology.schema_version),
+                ("workflow_id", topology.workflow_id),
+                ("goal", topology.goal),
+                ("plan_path", topology.plan_path),
+                ("plan_id", topology.plan_id),
+                ("source", topology.source),
+            )
+        ):
+            return False
+        old_milestones = previous.get("milestones")
+        old_slices = previous.get("slices")
+        if not isinstance(old_milestones, list) or not isinstance(old_slices, list):
+            return False
+        candidate_slices = [
+            {
+                "node_id": item.node_id,
+                "title": item.title,
+                "depends_on": list(item.depends_on),
+                "milestone_id": item.milestone_id,
+            }
+            for item in topology.slices
+        ]
+        if old_slices != candidate_slices:
+            return False
+        old_by_id = {
+            item.get("node_id"): item
+            for item in old_milestones
+            if isinstance(item, dict) and isinstance(item.get("node_id"), str)
+        }
+        if len(old_by_id) != len(old_milestones):
+            return False
+        candidate_by_id = {
+            item.node_id: {
+                "node_id": item.node_id,
+                "title": item.title,
+                "depends_on": list(item.depends_on),
+                "milestone_id": item.milestone_id,
+            }
+            for item in topology.milestones
+        }
+        if not set(old_by_id) < set(candidate_by_id):
+            return False
+        return all(candidate_by_id[node_id] == prior for node_id, prior in old_by_id.items())
+
+    @staticmethod
+    def _has_live_attempts(connection: sqlite3.Connection, run_id: str) -> bool:
+        """Appending is safe only between attempts; never rewrite an active gate graph."""
+        return bool(connection.execute(
+            """SELECT 1
+               FROM workflow_attempts AS attempt
+               JOIN workflow_nodes AS node ON node.node_id=attempt.node_id
+               WHERE node.run_id=?
+                 AND node.kind <> 'goal'
+                 AND attempt.state IN ('pending', 'ready', 'running', 'waiting_external')
+               LIMIT 1""",
+            (run_id,),
+        ).fetchone())
+
+    @staticmethod
+    def _activate_append_only(
+        connection: sqlite3.Connection,
+        run_id: str,
+        session_id: str,
+        topology: WorkflowTopology,
+        version_id: str,
+    ) -> None:
+        """Advance only the new tail while keeping historical node identity and evidence."""
+        existing = {
+            row["node_key"]: row["node_id"]
+            for row in connection.execute(
+                "SELECT node_id, node_key FROM workflow_nodes WHERE run_id=?", (run_id,)
+            )
+        }
+        now = utc_text()
+        additions = [item for item in topology.milestones if item.node_id not in existing]
+        for item in additions:
+            node_id = f"{run_id}:{item.node_id}"
+            connection.execute(
+                """INSERT INTO workflow_nodes(
+                       node_id, run_id, node_key, kind, title, stage, state,
+                       owner_session_id, created_at, updated_at
+                   ) VALUES (?, ?, ?, 'milestone', ?, 'milestone', 'pending', ?, ?, ?)""",
+                (node_id, run_id, item.node_id, item.title, session_id, now, now),
+            )
+            existing[item.node_id] = node_id
+        for item in additions:
+            for dependency in item.depends_on:
+                connection.execute(
+                    """INSERT INTO workflow_edges(run_id, from_node_id, to_node_id, edge_kind)
+                       VALUES (?, ?, ?, 'depends_on')""",
+                    (run_id, existing[dependency], existing[item.node_id]),
+                )
+        connection.execute(
+            """UPDATE workflow_runs
+               SET topology_hash=?, current_topology_version_id=?, updated_at=?
+               WHERE run_id=?""",
+            (topology.topology_hash, version_id, now, run_id),
+        )
 
     @staticmethod
     def _activate(

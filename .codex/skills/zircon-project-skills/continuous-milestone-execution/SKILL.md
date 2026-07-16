@@ -22,10 +22,10 @@ Use this skill to enforce uninterrupted, plan-driven `zirconEngine` execution on
 ## Non-Negotiable Rules
 
 - Read the current code, tests, and relevant plan files before deciding what to build next.
-- **Failure Priority Gate:** scan the active numbered child-plan directory for `failure-*.md` before normal feature slices. When this Session owns the fixing plan, enter `resolving_failure` and complete the architectural repair, upward validation, and `failure return` before any normal slice. An origin Session may continue only dependency-independent slices.
+- Scan for applicable `failure-*.md` at milestone start and when related validation fails. A failure blocks dependent slices, while origin work may continue on independent slices.
 - Continue implementation and validation until the active milestone is complete.
 - During implementation slices, do not force immediate build/unit-test loops. Write tests and docs as needed, but defer compile and unit-test execution to the milestone testing stage unless the user asks otherwise or a blocker requires evidence.
-- After each completed slice, immediately update the active plan's required status/output table with one evidence row; do not batch-fill progress records later.
+- Do not create per-slice plan output rows. Record one concise accepted milestone outcome after its validation gate.
 - Do not stop after partial code generation, partial debugging, or partial test work just because a local subtask ended.
 - Ask the user only when multiple materially different branches remain valid and the choice is product-level, not merely technical effort.
 - Treat "need more analysis" as a reason to keep reading and executing, not as a reason to pause the work.

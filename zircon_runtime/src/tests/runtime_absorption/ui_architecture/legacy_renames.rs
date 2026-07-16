@@ -4,7 +4,7 @@ const RUNTIME_09_OUTPUT: &str = include_str!(
     "../../../../../docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md"
 );
 const RUNTIME_INDEX_OUTPUT: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+    "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
 );
 
 #[test]

@@ -1,6 +1,6 @@
 use crate::core::framework::render::{
     RenderColorLookupTextureLayout, RenderLayerSet, RenderPostProcessEffectStackSettings,
-    RenderPostProcessVolumeProfile, RenderTonemapOperator,
+    RenderPostProcessVolumeProfile, RenderTonemapOperator, VOLUMETRIC_FOG_COMPONENT_ID,
 };
 use crate::core::math::{Quat, Real, Vec3};
 
@@ -80,6 +80,20 @@ impl VolumeComponentOverride {
 
     pub fn from_profile(profile: &RenderPostProcessVolumeProfile) -> Vec<Self> {
         let mut overrides = Vec::new();
+        if let Some(volumetric_fog) = profile.volumetric_fog {
+            overrides.push(Self::from_values(
+                VOLUMETRIC_FOG_COMPONENT_ID,
+                [
+                    VolumeParamValue::Float(volumetric_fog.density),
+                    VolumeParamValue::Vec3(volumetric_fog.albedo),
+                    VolumeParamValue::Float(volumetric_fog.phase_g),
+                    VolumeParamValue::Float(volumetric_fog.height_falloff),
+                    VolumeParamValue::Float(volumetric_fog.scattering_intensity),
+                    VolumeParamValue::Float(volumetric_fog.depth_distribution_exp),
+                    VolumeParamValue::Bool(volumetric_fog.temporal),
+                ],
+            ));
+        }
         if let Some(bloom) = profile.bloom {
             overrides.push(Self::from_values(
                 "post.bloom",

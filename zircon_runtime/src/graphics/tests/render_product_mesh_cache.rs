@@ -47,7 +47,7 @@ fn render_product_static_mesh_second_submit_reports_pre_mesh_command_cache_reuse
     let material_id = ResourceId::from_locator(&material_uri);
     register_material_revision(&asset_manager, material_id, material_uri, "static-cache-v1");
 
-    let framework = WgpuRenderFramework::new(asset_manager.clone()).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager.clone()).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -120,7 +120,7 @@ fn render_product_static_mesh_material_revision_invalidates_pre_mesh_cache() {
         "material-revision-v1",
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager.clone()).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager.clone()).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -194,7 +194,7 @@ fn render_product_static_mesh_taa_reactive_mask_keeps_residual_mesh_draw_path() 
         1.0,
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -261,7 +261,7 @@ fn render_product_static_transparent_mesh_stays_out_of_pre_mesh_cache() {
         AlphaMode::Blend,
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -342,7 +342,7 @@ fn render_product_static_skinned_mesh_stays_out_of_pre_mesh_cache() {
         "skinned-cache-skeleton-v1",
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

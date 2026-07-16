@@ -5,6 +5,7 @@ mod layout_routes;
 mod notifications;
 mod status_bar;
 mod support;
+mod workbench_bridge_startup_profile;
 mod workbench_drawer_breakpoints;
 mod workbench_inspector_property_edit;
 mod workbench_module_navigation;

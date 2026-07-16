@@ -187,6 +187,35 @@ class PluginStructureAuditManifestSchemaModulesTests(unittest.TestCase):
         )
 
 
+    def test_manifest_schema_accepts_typed_editor_event_consumer(self):
+        violations: list[str] = []
+        manifest = plugin_manifest()
+        manifest["supported_targets"] = ["client_runtime", "editor_host"]
+        manifest["modules"].append(
+            {
+                "name": "sound.editor",
+                "kind": "editor",
+                "crate_name": "zircon_plugin_sound_editor",
+                "target_modes": ["editor_host"],
+                "capabilities": ["editor.extension.sound"],
+                "event_consumers": [
+                    {
+                        "consumer_id": "sound.editor.meter",
+                        "event_id": "sound.events.meter",
+                        "payload_schema": "sound.events.meter.v1",
+                        "required_capability": "editor.extension.sound",
+                    }
+                ],
+            }
+        )
+
+        collect_manifest_schema_violations(
+            "zircon_plugins/sound/plugin.toml", manifest, violations
+        )
+
+        self.assertEqual([], violations)
+
+
 def plugin_manifest() -> dict[str, object]:
     return {
         "id": "sound",

@@ -4,14 +4,12 @@ use super::*;
 fn sdf_draw_plan_clips_to_text_frame_without_explicit_clip() {
     let text = text_batch("AAAA", UiFrame::new(8.0, 12.0, 24.0, 20.0));
     let plan = plan_sdf_atlas(std::slice::from_ref(&text));
-    let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    let (_, _, asset_manager, atlas_bake) = bake_atlas(&plan);
 
     let vertices = build_sdf_vertices(
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -30,14 +28,12 @@ fn sdf_draw_plan_clips_glyph_vertices_and_uvs() {
     let mut text = text_batch("A", UiFrame::new(8.0, 12.0, 64.0, 20.0));
     text.clip_frame = Some(UiFrame::new(12.0, 12.0, 32.0, 20.0));
     let plan = plan_sdf_atlas(std::slice::from_ref(&text));
-    let (mut font_bake, mut font_database, asset_manager, atlas_bake) = bake_atlas(&plan);
+    let (_, _, asset_manager, atlas_bake) = bake_atlas(&plan);
 
     let vertices = build_sdf_vertices(
         &[text],
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 64),
     );
@@ -75,8 +71,6 @@ fn sdf_draw_plan_applies_text_alignment_inside_frame() {
         std::slice::from_ref(&centered),
         &centered_plan,
         &centered_atlas_bake,
-        &mut centered_bake,
-        &mut centered_database,
         &centered_assets,
         UVec2::new(128, 64),
     );
@@ -115,8 +109,6 @@ fn sdf_draw_plan_applies_text_alignment_inside_frame() {
         std::slice::from_ref(&right_aligned),
         &right_plan,
         &right_atlas_bake,
-        &mut right_bake,
-        &mut right_database,
         &right_assets,
         UVec2::new(128, 64),
     );
@@ -162,8 +154,6 @@ fn sdf_draw_plan_maps_start_end_through_rtl_direction() {
         std::slice::from_ref(&start_aligned),
         &start_plan,
         &start_atlas_bake,
-        &mut start_bake,
-        &mut start_database,
         &start_assets,
         UVec2::new(128, 64),
     );
@@ -195,8 +185,6 @@ fn sdf_draw_plan_maps_start_end_through_rtl_direction() {
         std::slice::from_ref(&end_aligned),
         &end_plan,
         &end_atlas_bake,
-        &mut end_bake,
-        &mut end_database,
         &end_assets,
         UVec2::new(128, 64),
     );
@@ -237,8 +225,6 @@ fn sdf_draw_plan_justifies_word_gaps_inside_frame() {
         std::slice::from_ref(&justified),
         &justified_plan,
         &justified_atlas_bake,
-        &mut justified_bake,
-        &mut justified_database,
         &justified_assets,
         UVec2::new(160, 64),
     );
@@ -357,8 +343,6 @@ fn sdf_draw_plan_trims_edge_spaces_for_justify() {
         std::slice::from_ref(&justified),
         &justified_plan,
         &justified_atlas_bake,
-        &mut justified_bake,
-        &mut justified_database,
         &justified_assets,
         UVec2::new(180, 64),
     );
@@ -418,8 +402,6 @@ fn sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis() {
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 128),
     );
@@ -564,14 +546,17 @@ fn sdf_vertical_cjk_mixed_mode_keeps_upright_glyphs_on_y_axis() {
     let mut font_database = FontDatabase::with_default_fallbacks();
     assert!(font_database.apply_system_font_policy(SystemFontPolicy::Discover) > 0);
     let asset_manager = ProjectAssetManager::default();
-    let atlas_bake = font_bake.build_atlas(&plan, &mut font_database, &asset_manager);
+    let atlas_bake = font_bake.build_atlas_from_slots(
+        plan.atlas_size,
+        &plan.slots,
+        &mut font_database,
+        &asset_manager,
+    );
 
     let vertices = build_sdf_vertices(
         std::slice::from_ref(&text),
         &plan,
         &atlas_bake,
-        &mut font_bake,
-        &mut font_database,
         &asset_manager,
         UVec2::new(128, 128),
     );

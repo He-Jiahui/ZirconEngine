@@ -113,8 +113,10 @@ impl EditorState {
                 })
                 .or_else(|| scene.nodes().first().map(|node| node.id))
         });
-        if let Some(selection) = selection {
-            self.viewport_controller.set_selected_node(selection);
+        if let Some(Some(selection)) = selection {
+            self.viewport_controller
+                .selection_mut()
+                .select_only_active(selection);
         }
     }
 }

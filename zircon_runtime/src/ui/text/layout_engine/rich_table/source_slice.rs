@@ -1,5 +1,4 @@
-use crate::core::framework::render::{RichParseResult, StyledRun};
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::{RichParseResult, SharedTextLayoutSession, StyledRun};
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     surface::{UiResolvedStyle, UiResolvedTextLayout, UiTextRange},
@@ -8,17 +7,14 @@ use zircon_runtime_interface::ui::{
 use super::super::super::rich_text::{UiParsedText, UiTextSourceRun};
 use super::super::layout_parsed_text_with_provider;
 
-pub(super) fn layout_range_with_provider<P>(
+pub(super) fn layout_range_with_provider(
     parsed: &UiParsedText,
     range: std::ops::Range<usize>,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip: UiFrame,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     let start = range.start.min(parsed.text.len());
     let end = range.end.min(parsed.text.len()).max(start);
     let local = slice_parsed(parsed, start..end);
@@ -27,18 +23,15 @@ where
     layout
 }
 
-pub(super) fn layout_cell_range_with_provider<P>(
+pub(super) fn layout_cell_range_with_provider(
     parsed: &UiParsedText,
     range: std::ops::Range<usize>,
     parent_table_depth: u16,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip: UiFrame,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     let start = range.start.min(parsed.text.len());
     let end = range.end.min(parsed.text.len()).max(start);
     let local = slice_parsed_with_table_depth(parsed, start..end, Some(parent_table_depth));

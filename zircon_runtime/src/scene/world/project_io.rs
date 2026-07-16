@@ -287,12 +287,14 @@ impl World {
                             direction: crate::core::math::Vec3::from_array(light.direction),
                             color: crate::core::math::Vec3::from_array(light.color),
                             intensity: light.intensity,
+                            volumetric: light.volumetric,
                         }
                     }),
                     point_light: entity.point_light.clone().map(|light| PointLight {
                         color: crate::core::math::Vec3::from_array(light.color),
                         intensity: light.intensity,
                         range: light.range,
+                        volumetric: light.volumetric,
                     }),
                     spot_light: entity.spot_light.clone().map(|light| SpotLight {
                         direction: crate::core::math::Vec3::from_array(light.direction),
@@ -301,12 +303,14 @@ impl World {
                         range: light.range,
                         inner_angle_radians: light.inner_angle_radians,
                         outer_angle_radians: light.outer_angle_radians,
+                        volumetric: light.volumetric,
                     }),
                     rect_light: entity.rect_light.clone().map(|light| RectLight {
                         color: crate::core::math::Vec3::from_array(light.color),
                         intensity: light.intensity,
                         range: light.range,
                         size: crate::core::math::Vec2::from_array(light.size),
+                        volumetric: light.volumetric,
                     }),
                     active: entity.active,
                     render_layer_mask: entity.render_layer_mask,
@@ -458,18 +462,21 @@ impl World {
                             direction: light.direction.to_array(),
                             color: light.color.to_array(),
                             intensity: light.intensity,
+                            volumetric: light.volumetric,
                         }
                     }),
                     point_light: record.point_light.map(|light| ScenePointLightAsset {
                         color: light.color.to_array(),
                         intensity: light.intensity,
                         range: light.range,
+                        volumetric: light.volumetric,
                     }),
                     rect_light: record.rect_light.map(|light| SceneRectLightAsset {
                         color: light.color.to_array(),
                         intensity: light.intensity,
                         range: light.range,
                         size: light.size.to_array(),
+                        volumetric: light.volumetric,
                     }),
                     spot_light: record.spot_light.map(|light| SceneSpotLightAsset {
                         direction: light.direction.to_array(),
@@ -478,6 +485,7 @@ impl World {
                         range: light.range,
                         inner_angle_radians: light.inner_angle_radians,
                         outer_angle_radians: light.outer_angle_radians,
+                        volumetric: light.volumetric,
                     }),
                     post_process_volume,
                     rigid_body: record.rigid_body.map(|rigid_body| SceneRigidBodyAsset {

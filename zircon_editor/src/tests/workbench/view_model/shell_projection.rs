@@ -413,14 +413,14 @@ fn workbench_view_model_filters_and_orders_plugin_menu_contributions() {
 
     let mut commands = crate::core::commands::EditorCommandRegistry::default_workbench();
     commands
-        .register(EditorCommandDescriptor::pending_operation(
+        .register(EditorCommandDescriptor::operation(
             public_operation,
             "Refresh Cloud Layers",
         ))
         .unwrap();
     commands
         .register(
-            EditorCommandDescriptor::pending_operation(gated_operation, "Secret Cloud Pass")
+            EditorCommandDescriptor::operation(gated_operation, "Secret Cloud Pass")
                 .with_required_capabilities([weather_capability]),
         )
         .unwrap();

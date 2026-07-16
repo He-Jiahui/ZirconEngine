@@ -9,6 +9,7 @@ use crate::core::asset::{
 use crate::core::commands::{
     EditorCommandContributionSet, EditorCommandDescriptor, EditorCommandRegistryError,
 };
+use crate::core::editing::operation::OperationCommandFactoryRegistration;
 use crate::core::editor_authoring_extension::{
     GraphEditorDescriptor, GraphNodePaletteDescriptor, TimelineEditorDescriptor,
     TimelineTrackDescriptor, ViewportToolModeDescriptor,
@@ -213,6 +214,16 @@ impl EditorExtensionRegistry {
             .map_err(EditorExtensionRegistryError::Command)
     }
 
+    pub fn register_operation_command(
+        &mut self,
+        descriptor: EditorCommandDescriptor,
+        factory: OperationCommandFactoryRegistration,
+    ) -> Result<(), EditorExtensionRegistryError> {
+        self.command_contributions
+            .register_operation(descriptor, factory)
+            .map_err(EditorExtensionRegistryError::Command)
+    }
+
     pub fn views(&self) -> Vec<&ViewDescriptor> {
         self.views.values().collect()
     }
@@ -273,8 +284,19 @@ impl EditorExtensionRegistry {
         self.command_contributions.pending_commands()
     }
 
+    pub fn operation_factory(
+        &self,
+        id: &EditorOperationPath,
+    ) -> Option<&OperationCommandFactoryRegistration> {
+        self.command_contributions.pending_factory(id)
+    }
+
     pub(crate) fn take_command_contributions(&mut self) -> Vec<EditorCommandDescriptor> {
         self.command_contributions.take_pending()
+    }
+
+    pub(crate) fn take_operation_factories(&mut self) -> Vec<OperationCommandFactoryRegistration> {
+        self.command_contributions.take_pending_factories()
     }
 
     pub(crate) fn record_registered_command_id(&mut self, id: EditorOperationPath) {

@@ -228,6 +228,7 @@ fn scene_assets_roundtrip_ambient_and_rect_light_product_fields() {
                 intensity: 72_000.0,
                 range: 18.0,
                 size: Vec2::new(3.5, 1.5),
+                volumetric: false,
             }),
         )
         .unwrap();

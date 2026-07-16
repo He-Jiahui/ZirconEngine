@@ -1,6 +1,7 @@
-use crate::core::framework::render::{InlineBaseline, InlineObjectRef, RichParseResult, StyledRun};
 use crate::core::math::Vec4;
-use crate::graphics::text::rich::parse_rich_text;
+use crate::text::{
+    rich::parse_rich_text, InlineBaseline, InlineObjectRef, RichParseResult, StyledRun,
+};
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -26,7 +27,7 @@ pub(super) fn parse_command_rich_text(command: &UiRenderCommand) -> Option<RichP
     (!matches!(command.style.rich_text_format, UiRichTextFormat::Plain)).then(|| {
         parse_rich_text(
             command.text.as_deref().unwrap_or_default(),
-            command.style.rich_text_format,
+            command.style.rich_text_format.into(),
         )
     })
 }
@@ -93,7 +94,10 @@ pub(super) fn inline_layout_frame(
     let line = layout.lines.iter().find(|line| {
         line.source_range.start <= range.start && range.end <= line.source_range.end
     })?;
-    let parsed = parse_rich_text(command.text.as_deref()?, command.style.rich_text_format);
+    let parsed = parse_rich_text(
+        command.text.as_deref()?,
+        command.style.rich_text_format.into(),
+    );
     let inline = run_for_range(&parsed, range)?.inline.as_ref()?;
     let visual_start = line
         .runs

@@ -91,7 +91,7 @@ fn register_physics_debug_overlay(
         "plugins://physics/editor/debug_overlay.zui",
     ))?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(operation.clone(), "Toggle Physics Overlay")
+        EditorCommandDescriptor::operation(operation.clone(), "Toggle Physics Overlay")
             .with_menu_path("View/Debug Overlays/Physics")
             .with_callable_from_remote(false)
             .with_required_capabilities([crate::capability::PHYSICS_AUTHORING_CAPABILITY])
@@ -135,7 +135,7 @@ fn register_ragdoll_profile_editor(
 
     let create_operation = parse_operation(PHYSICS_CREATE_RAGDOLL_PROFILE_OPERATION)?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(
+        EditorCommandDescriptor::operation(
             create_operation.clone(),
             "Generate Ragdoll Profile From Skeleton",
         )

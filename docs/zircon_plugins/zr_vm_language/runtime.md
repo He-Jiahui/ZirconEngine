@@ -16,11 +16,13 @@ related_code:
   - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/lock.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/values.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
@@ -70,11 +72,13 @@ implementation_files:
   - zircon_plugins/zr_vm_language/runtime/src/reflection_host/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/errors.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/extension_host.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/host_modules.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/lock.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/package.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/reflection_host.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/values.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/mod.rs
@@ -168,6 +172,14 @@ The plugin also contributes scene runtime hooks for entity-bound ZrVM scripts. T
 The plugin is optional and disabled by default in project selection. This keeps ZirconEngine buildable on machines that do not have `E:\Git\zr_vm` or the `zr_vm_rust_binding` dynamic library available.
 
 The crate root is a structural plugin surface: it declares backend/module children, exposes the plugin descriptor helpers, and delegates unit coverage to `src/tests/mod.rs`. Default-build registration and module tests live in `tests/registration.rs`; feature-gated native binding lifecycle tests live in `tests/real_backend.rs`; temporary ZrVM package fixtures and host-context helpers live in `tests/support.rs`.
+
+## Real backend ownership and native callbacks
+
+`backend-zr-vm` owns the ZrVM `ProjectSession`, native module registrations, and `Runtime` through the leaf `real_backend/runtime_owner.rs`. This is the only plugin type with `unsafe impl Send + Sync`; its invariant is narrow and explicit: every binding call and destruction path holds the process-wide ZrVM lock, and `Drop` releases session, registrations, then runtime. `ZrVmPluginInstance` therefore carries no unsafe marker and cannot accidentally drop raw-pointer-backed binding values outside the lock.
+
+`real_backend/extension_host.rs` supplies the previously missing `zr.zircon.extensions` native module. Its four callbacks authenticate the coordinator-assigned VM owner, enforce manifest capabilities through `VmHostInterfaceRegistry`, compile module/function names into dense callback handles at registration time, and return binding errors with function context. The external binding trampoline contains the FFI `catch_unwind` boundary, so the plugin does not add a second incompatible panic protocol.
+
+The real backend forwards `VmGcBudget.max_micros_per_frame` into `ProjectSession::gc_step` and projects pause, root, and cross-boundary counts into the neutral runtime contract. Feature tests cover manager-owned cooperative scheduling, persistent lifecycle and hot reload, extension registration, documented package loading, and the returned-value lifecycle: lowering a ZrVM string to `ScriptHostValue` releases the transient binding value before the next GC step, which then reports zero cross-boundary references.
 
 ## Unified Reflection And Dense Calls
 

@@ -141,7 +141,7 @@ fn runtime_15_module_convention_zero_debt_revalidation_is_status_locked() {
 #[test]
 fn runtime_15_module_convention_audit_script_family_uses_gate_names() {
     let structure_convention = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     assert_contains_all(
         "engine code structure convention audit script family names",
@@ -162,7 +162,7 @@ fn runtime_15_module_convention_audit_script_family_uses_gate_names() {
     );
 
     let runtime_15_plan = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     assert_contains_all(
         "Runtime 15 module convention script inventory uses current gate files",

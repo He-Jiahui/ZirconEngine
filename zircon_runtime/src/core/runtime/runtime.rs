@@ -39,6 +39,11 @@ impl CoreRuntime {
             inner: Arc::new(CoreRuntimeInner {
                 modules: Default::default(),
                 services: Default::default(),
+                service_resolution_changed: Default::default(),
+                service_resolution_waits: Default::default(),
+                service_activation_reentries: Default::default(),
+                #[cfg(test)]
+                service_resolution_claim_barrier: Default::default(),
                 event_bus: EventBus::default(),
                 config_store: ConfigStore::default(),
                 scheduler: JobScheduler::from_pool(task_pools.compute().clone()),

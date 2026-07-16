@@ -50,6 +50,7 @@ pub(in crate::graphics::scene) struct MaterialTextureSet {
     pub(in crate::graphics::scene) metallic_roughness: MaterialTextureBinding,
     pub(in crate::graphics::scene) occlusion: MaterialTextureBinding,
     pub(in crate::graphics::scene) emissive: MaterialTextureBinding,
+    pub(in crate::graphics::scene) clearcoat_normal: MaterialTextureBinding,
 }
 
 impl MaterialTextureSet {
@@ -59,6 +60,7 @@ impl MaterialTextureSet {
         metallic_roughness: MaterialTextureBinding,
         occlusion: MaterialTextureBinding,
         emissive: MaterialTextureBinding,
+        clearcoat_normal: MaterialTextureBinding,
     ) -> Self {
         Self {
             base_color,
@@ -66,6 +68,7 @@ impl MaterialTextureSet {
             metallic_roughness,
             occlusion,
             emissive,
+            clearcoat_normal,
         }
     }
 }

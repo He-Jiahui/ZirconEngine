@@ -30,9 +30,8 @@ fn builtin_engine_entry_reports_run_mode_and_owned_modules() {
         .modules()
         .iter()
         .all(|module| !module.module_name().is_empty()));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+    assert!(descriptors.iter().any(|descriptor| descriptor.name
+        == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != EDITOR_MODULE_NAME));
@@ -47,9 +46,8 @@ fn entry_config_selects_runtime_modules_explicitly_for_client_runtime() {
     let descriptors = entry.module_descriptors();
 
     assert_eq!(entry.run_mode(), EntryRunMode::Runtime);
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+    assert!(descriptors.iter().any(|descriptor| descriptor.name
+        == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert!(descriptors
         .iter()
         .any(|descriptor| descriptor.name == zircon_runtime::ui::UI_MODULE_NAME));
@@ -71,9 +69,8 @@ fn entry_config_can_define_headless_target_without_client_plugins() {
         entry.plugin_group().module_keys(),
         HeadlessPlugins.build().unwrap().finish().module_keys()
     );
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+    assert!(descriptors.iter().all(|descriptor| descriptor.name
+        != zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != zircon_runtime::ui::UI_MODULE_NAME));
@@ -109,9 +106,8 @@ fn minimal_runtime_profile_selects_minimal_plugin_group() {
     assert!(descriptors
         .iter()
         .all(|descriptor| descriptor.name != zircon_runtime::input::INPUT_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .all(|descriptor| descriptor.name != zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+    assert!(descriptors.iter().all(|descriptor| descriptor.name
+        != zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
 }
 
 #[test]
@@ -366,7 +362,6 @@ fn entry_config_keeps_editor_shell_while_runtime_plugins_are_explicit() {
     assert!(descriptors
         .iter()
         .any(|descriptor| descriptor.name == EDITOR_MODULE_NAME));
-    assert!(descriptors
-        .iter()
-        .any(|descriptor| descriptor.name == zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+    assert!(descriptors.iter().any(|descriptor| descriptor.name
+        == zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
 }

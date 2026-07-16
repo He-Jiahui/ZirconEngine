@@ -13,25 +13,33 @@ fn runtime_15_core_runtime_state_module_uses_owner_name() {
         &state_dir.join("core_runtime_state.rs"),
         "core runtime state owner should be readable",
     );
+    let core_handle = read_text(
+        &manifest_root.join("src/core/runtime/handle/core_handle.rs"),
+        "core runtime handle owner should be readable",
+    );
+    let core_runtime = read_text(
+        &manifest_root.join("src/core/runtime/runtime.rs"),
+        "core runtime facade should be readable",
+    );
     let registration_structure = read_text(
         &manifest_root.join("src/core/runtime/tests/registration/structure/mod.rs"),
         "registration structure source fixture should be readable",
     );
     let runtime_15_plan = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     let runtime_index = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     );
     let review_findings = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo_text(
         manifest_root,
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_doc = read_repo_text(
         manifest_root,
@@ -65,9 +73,40 @@ fn runtime_15_core_runtime_state_module_uses_owner_name() {
         &[
             "pub(crate) struct CoreRuntimeInner",
             "HashMap<RegistryName, ServiceEntry>",
-            "plugin_bridge_lifecycle",
+            "runtime_module_lifecycle_observer",
+            "RuntimeModuleLifecycleObserver",
         ],
     );
+    assert_contains_all(
+        "core runtime lifecycle observer access owner",
+        &core_handle,
+        &[
+            "fn lock_runtime_module_lifecycle_observer(",
+            "self.inner.runtime_module_lifecycle_observer",
+            "RuntimeModuleLifecycleObserver",
+        ],
+    );
+    assert_contains_all(
+        "core runtime lifecycle observer install facade",
+        &core_runtime,
+        &[
+            "pub fn install_runtime_module_lifecycle_observer(",
+            "observer: Arc<dyn RuntimeModuleLifecycleObserver>",
+            ".install_runtime_module_lifecycle_observer(observer)",
+        ],
+    );
+    for retired_plugin_owner in [
+        "plugin_bridge_lifecycle",
+        "RuntimePluginBridgeLifecycleState",
+        "install_plugin_bridge_lifecycle_state",
+    ] {
+        assert!(
+            !core_runtime_state.contains(retired_plugin_owner)
+                && !core_handle.contains(retired_plugin_owner)
+                && !core_runtime.contains(retired_plugin_owner),
+            "core runtime owners should not restore plugin-specific lifecycle state `{retired_plugin_owner}`"
+        );
+    }
     assert_contains_all(
         "core runtime registration structure fixture",
         &registration_structure,

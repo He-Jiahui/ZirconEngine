@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import sqlite3
 import subprocess
 import tempfile
 import time
@@ -101,6 +102,35 @@ class CargoJobTests(unittest.TestCase):
         self.assertEqual(CargoJobStatus.LEASED, first.status)
         self.assertEqual("cargo_lane_occupied", occupied.exception.code)
 
+    def test_reconcile_scans_processes_outside_the_database_write_transaction(self) -> None:
+        """A slow process-tree probe must not freeze unrelated coordinator writes."""
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["cargo", "test"],
+            root_is_supervisor=True,
+        )
+        blocked_writes: list[str] = []
+
+        def scan_live_process_tree(_pid: int) -> tuple[int, ...]:
+            connection = sqlite3.connect(self.database.path, timeout=0.05, isolation_level=None)
+            try:
+                connection.execute("BEGIN IMMEDIATE")
+                connection.rollback()
+            except sqlite3.OperationalError as error:
+                blocked_writes.append(str(error))
+            finally:
+                connection.close()
+            return (4242,)
+
+        self.service.process_tree_pids = scan_live_process_tree
+
+        self.service.reconcile_orphans()
+
+        self.assertEqual([], blocked_writes)
+
     def test_gpu_reservation_keeps_fifo_until_nominated_job_reaches_terminal_state(self) -> None:
         now = "2026-07-15T12:00:00+00:00"
         with self.database.transaction() as connection:
@@ -184,6 +214,56 @@ class CargoJobTests(unittest.TestCase):
         self.assertIn(job.target_dir, state["stdoutTail"])
         self.assertIn("runner-err", state["stderrTail"])
         self.assertEqual(CargoJobStatus.RELEASED, self.service.get(job.job_id).status)
+
+    def test_runner_reconciles_a_released_job_without_rewriting_raw_logs(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        log_root = Path(self.temporary_directory.name) / "terminal-run-logs"
+        run_root = log_root / job.job_id / "run-terminal"
+        run_root.mkdir(parents=True)
+        stdout_path = run_root / "stdout.log"
+        stderr_path = run_root / "stderr.log"
+        stdout_path.write_text("preserved stdout\n", encoding="utf-8")
+        stderr_path.write_text("preserved stderr\n", encoding="utf-8")
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=log_root,
+        )
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["cargo", "test"],
+        )
+        self.service.process_alive = lambda _pid: False
+        self.service.finish(job.job_id, session_id="session-a", exit_code=101)
+        self.service.release(job.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO cargo_job_runs(
+                       run_id, job_id, session_id, command_json, environment_json, status,
+                       stdout_path, stderr_path, started_at
+                   ) VALUES (?, ?, ?, '[]', '{}', 'running', ?, ?, ?)""",
+                (
+                    "run-terminal",
+                    job.job_id,
+                    "session-a",
+                    str(stdout_path),
+                    str(stderr_path),
+                    "2026-07-16T11:00:00+00:00",
+                ),
+            )
+
+        self.assertEqual(("run-terminal",), runner.reconcile_terminal_runs())
+        state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual("completed", state["status"])
+        self.assertEqual(101, state["exitCode"])
+        self.assertIn("preserved stdout", state["stdoutTail"])
+        self.assertIn("preserved stderr", state["stderrTail"])
+        self.assertTrue(stdout_path.exists())
+        self.assertTrue(stderr_path.exists())
 
     def test_runner_releases_bound_cpu_reservation_after_owner_becomes_stale(self) -> None:
         compatibility = self.compatibility()
@@ -764,6 +844,39 @@ class CargoJobTests(unittest.TestCase):
 
         self.assertEqual((), self.service.reconcile_orphans())
         self.assertEqual(CargoJobStatus.RUNNING, self.service.get(job.job_id).status)
+
+    def test_reconcile_reports_a_stale_live_job_without_freezing_other_lanes(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+        now = datetime.now(UTC)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET last_heartbeat_at=? WHERE job_id=?",
+                ((now - timedelta(seconds=61)).isoformat(), job.job_id),
+            )
+
+        self.assertEqual(
+            (),
+            self.service.reconcile_orphans(
+                now=now,
+                running_health_timeout_seconds=60,
+            ),
+        )
+        self.assertEqual(CargoJobStatus.RUNNING, self.service.get(job.job_id).status)
+        with self.database.connect() as connection:
+            events = connection.execute(
+                "SELECT event_type FROM events WHERE event_type='cargo.health_timeout'"
+            ).fetchall()
+        self.assertEqual(1, len(events))
+
+        self.service.reconcile_orphans(now=now, running_health_timeout_seconds=60)
+        with self.database.connect() as connection:
+            events = connection.execute(
+                "SELECT event_type FROM events WHERE event_type='cargo.health_timeout'"
+            ).fetchall()
+        self.assertEqual(1, len(events))
 
     def test_supervisor_finish_ignores_its_own_root_after_children_exit(self) -> None:
         job = self.service.acquire("session-a", CargoLaneKind.TEST)

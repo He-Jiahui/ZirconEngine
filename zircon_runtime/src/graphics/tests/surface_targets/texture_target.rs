@@ -25,7 +25,8 @@ use super::{
 #[test]
 fn graphics_camera_target_texture_missing_asset_reports_unsupported_without_primary_fallback_capture(
 ) {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -57,7 +58,7 @@ fn graphics_camera_target_texture_requires_render_target_usage() {
             TextureAsset::new_rgba8(texture_uri, 72, 40, vec![0; 72 * 40 * 4]),
         )
         .expect("texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -94,7 +95,7 @@ fn graphics_camera_target_texture_requires_renderable_render_target_format() {
             ),
         )
         .expect("texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -125,7 +126,7 @@ fn graphics_camera_target_texture_render_target_metadata_controls_offscreen_capt
             render_target_texture_asset(texture_uri, 72, 40),
         )
         .expect("texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -222,7 +223,7 @@ fn graphics_camera_target_texture_srgb_target_imports_direct_graph_final_target(
             srgb_render_target_texture_asset(texture_uri, 72, 40),
         )
         .expect("texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -307,7 +308,7 @@ fn graphics_camera_target_texture_overlay_stack_preserves_base_composite() {
             srgb_render_target_texture_asset(texture_uri, 64, 48),
         )
         .expect("texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -381,7 +382,7 @@ fn graphics_camera_target_texture_base_stacks_write_independent_texture_targets(
             srgb_render_target_texture_asset(green_texture_uri, 64, 48),
         )
         .expect("green texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -462,7 +463,7 @@ fn graphics_camera_target_texture_present_reports_unsupported_surface_fallback()
             render_target_texture_asset(texture_uri, 72, 40),
         )
         .expect("texture insert");
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();

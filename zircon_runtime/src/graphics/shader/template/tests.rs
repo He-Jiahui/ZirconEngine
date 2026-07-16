@@ -195,6 +195,67 @@ fn render_shader_template_assembles_static_and_skinned_geometry_sources() {
 }
 
 #[test]
+fn render_volumetric_forward_shader_variant_removes_bindings_when_disabled() {
+    let disabled = assemble_material_shader_template(material_template_request(
+        static_mesh_descriptor(),
+        ShaderPassType::Forward,
+    ))
+    .expect("disabled volumetric forward variant");
+    let enabled = assemble_material_shader_template(
+        material_template_request(static_mesh_descriptor(), ShaderPassType::Forward)
+            .with_features(ShaderFeatureBits::new(ShaderFeatureBits::VOLUMETRIC_FOG)),
+    )
+    .expect("enabled volumetric forward variant");
+
+    for binding in ["@binding(25)", "@binding(26)", "@binding(27)"] {
+        assert!(!disabled.wgsl_source.contains(binding));
+        assert!(enabled.wgsl_source.contains(binding));
+    }
+    assert!(disabled
+        .wgsl_source
+        .contains("const ZR_FEATURE_VOLUMETRIC_FOG: bool = false;"));
+    assert!(enabled
+        .wgsl_source
+        .contains("const ZR_FEATURE_VOLUMETRIC_FOG: bool = true;"));
+    validate_material_shader_template_wgsl(&disabled.wgsl_source)
+        .expect("disabled volumetric forward WGSL should validate");
+    validate_material_shader_template_wgsl(&enabled.wgsl_source)
+        .expect("enabled volumetric forward WGSL should validate");
+}
+
+#[test]
+fn render_transmission_uses_viewport_local_uv_for_nonzero_viewport_origins() {
+    let assembly = assemble_material_shader_template(
+        material_template_request(static_mesh_descriptor(), ShaderPassType::Forward)
+            .with_features(ShaderFeatureBits::new(ShaderFeatureBits::PBR_TRANSMISSION)),
+    )
+    .expect("transmission forward variant");
+
+    for expected in [
+        "fn zr_pbr_viewport_uv(world_position: vec3<f32>)",
+        "scene.view_proj * vec4<f32>(world_position, 1.0)",
+        "zr_pbr_viewport_uv(world_position)",
+        "ctx.position_ws",
+    ] {
+        assert!(
+            assembly.wgsl_source.contains(expected),
+            "transmission source should contain viewport-local contract `{expected}`"
+        );
+    }
+    assert!(!assembly
+        .wgsl_source
+        .contains("fragment_position / max(transmission_extent"));
+    assert!(!assembly
+        .wgsl_source
+        .contains("textureDimensions(zr_transmission_scene_color)"));
+    assert!(!assembly.wgsl_source.contains(
+        "zr_pbr_screen_space_transmission(\n        surface,\n        ctx.frag_coord.xy"
+    ));
+    validate_material_shader_template_wgsl(&assembly.wgsl_source)
+        .expect("viewport-local transmission WGSL should validate");
+}
+
+#[test]
 fn render_shader_template_validates_morphed_geometry_sources_with_payload_slots() {
     for (geometry_source_id, include_token, source_define) in [
         (

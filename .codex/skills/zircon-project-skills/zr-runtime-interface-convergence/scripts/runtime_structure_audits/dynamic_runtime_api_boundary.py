@@ -15,6 +15,8 @@ from runtime_structure_audits.dynamic_runtime_api_diagnostics_inventory import (
 )
 from runtime_structure_audits.dynamic_runtime_api_failure_inventory import (
     FFI_PANIC_ANCHORS,
+    LEGACY_RUNTIME_API_FILES,
+    LEGACY_RUNTIME_API_SYMBOLS,
     LOADER_FAILURE_ANCHORS,
 )
 from runtime_structure_audits.dynamic_runtime_api_host_request_inventory import (
@@ -101,6 +103,17 @@ def _missing_anchors(root: Path, anchors: tuple[tuple[str, str], ...]) -> list[d
     return missing
 
 
+def _legacy_runtime_api_hits(root: Path) -> list[dict[str, str]]:
+    hits: list[dict[str, str]] = []
+    for relative_path in LEGACY_RUNTIME_API_FILES:
+        path = root / relative_path
+        source = _read_text(path) if path.exists() else ""
+        for symbol in LEGACY_RUNTIME_API_SYMBOLS:
+            if symbol in source:
+                hits.append({"path": relative_path, "symbol": symbol})
+    return hits
+
+
 def _public_ui_type_duplicates(root: Path) -> list[dict[str, str]]:
     def collect_types(relative_root: str) -> dict[tuple[str, str], list[str]]:
         types: dict[tuple[str, str], list[str]] = {}
@@ -170,7 +183,10 @@ def _function_table_report(root: Path) -> dict[str, object]:
 
 def _ffi_wrapper_report(root: Path) -> dict[str, object]:
     exports_source = _read_text(root / "zircon_runtime/src/dynamic_api/exports.rs")
-    session_source = _read_text(root / "zircon_runtime/src/dynamic_api/session.rs")
+    session_source = _read_text(root / "zircon_runtime/src/dynamic_api/session/ffi.rs")
+    operation_source = _read_text(
+        root / "zircon_runtime/src/dynamic_api/session/operation.rs"
+    )
     missing_wrappers: list[dict[str, str]] = []
     direct_session_table_entry_bypasses: list[str] = []
     missing_session_owners: list[str] = []
@@ -187,7 +203,15 @@ def _ffi_wrapper_report(root: Path) -> dict[str, object]:
                 missing_wrappers.append({"operation": operation, "snippet": snippet})
         if f"Some({operation})," in exports_source:
             direct_session_table_entry_bypasses.append(operation)
-        if f"pub(super) unsafe fn {operation}(" not in session_source:
+        owner_source = (
+            operation_source if operation.endswith("_operation") else session_source
+        )
+        owner_visibility = (
+            "pub(crate)"
+            if operation.endswith("_operation")
+            else "pub(in crate::dynamic_api)"
+        )
+        if f"{owner_visibility} unsafe fn {operation}(" not in owner_source:
             missing_session_owners.append(operation)
 
     return {
@@ -195,7 +219,9 @@ def _ffi_wrapper_report(root: Path) -> dict[str, object]:
         "missing_wrappers": missing_wrappers,
         "direct_session_table_entry_bypasses": direct_session_table_entry_bypasses,
         "missing_session_owners": missing_session_owners,
-        "session_owner_extern_c_present": 'pub(super) unsafe extern "C" fn' in session_source,
+        "session_owner_extern_c_present": 'pub(in crate::dynamic_api) unsafe extern "C" fn'
+        in session_source
+        or 'pub(crate) unsafe extern "C" fn' in operation_source,
     }
 
 
@@ -203,6 +229,7 @@ def dynamic_runtime_api_boundary_audit(root: Path) -> dict[str, object]:
     source_files = _existing_files(root, SOURCE_FILES)
     function_tables = _function_table_report(root)
     ffi_wrappers = _ffi_wrapper_report(root)
+    legacy_runtime_api_hits = _legacy_runtime_api_hits(root)
 
     missing_headless_lifecycle_anchors = _missing_anchors(root, HEADLESS_LIFECYCLE_ANCHORS)
     missing_ffi_panic_anchors = _missing_anchors(root, FFI_PANIC_ANCHORS)
@@ -250,6 +277,8 @@ def dynamic_runtime_api_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("Runtime 10 function table bypasses exports.rs panic wrappers.")
     if ffi_wrappers["missing_session_owners"] or ffi_wrappers["session_owner_extern_c_present"]:
         risks.append("Runtime 10 session owner functions drifted from private Rust ABI.")
+    if legacy_runtime_api_hits:
+        risks.append("Runtime 10 legacy V1 runtime table, export, or loader fallback reappeared.")
     if missing_headless_lifecycle_anchors:
         risks.append("Runtime 10 headless/minimal lifecycle anchors are incomplete.")
     if missing_ffi_panic_anchors:
@@ -295,6 +324,7 @@ def dynamic_runtime_api_boundary_audit(root: Path) -> dict[str, object]:
         ],
         "missing_session_owners": ffi_wrappers["missing_session_owners"],
         "session_owner_extern_c_present": ffi_wrappers["session_owner_extern_c_present"],
+        "legacy_runtime_api_hits": legacy_runtime_api_hits,
         "headless_lifecycle_anchor_count": len(HEADLESS_LIFECYCLE_ANCHORS),
         "missing_headless_lifecycle_anchors": missing_headless_lifecycle_anchors,
         "ffi_panic_anchor_count": len(FFI_PANIC_ANCHORS),

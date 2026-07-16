@@ -54,15 +54,20 @@ impl CoreHandle {
             return;
         }
         let mut services = self.lock_services();
+        let mut changed = false;
         for service_name in startup_services {
             if let Some(entry) = services.get_mut(service_name) {
                 if entry.lifecycle == LifecycleState::Running
                     || entry.lifecycle == LifecycleState::Initializing
                 {
-                    entry.instance = None;
-                    entry.lifecycle = LifecycleState::Registered;
+                    entry.reset_after_failed_activation();
+                    changed = true;
                 }
             }
+        }
+        drop(services);
+        if changed {
+            self.notify_service_resolution_changed();
         }
     }
 

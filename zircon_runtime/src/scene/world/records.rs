@@ -65,6 +65,14 @@ impl World {
         if self.entities.contains(&record.id) {
             return Err(SceneError::DuplicateEntity { entity: record.id });
         }
+        let next_id = record
+            .id
+            .checked_add(1)
+            .ok_or(SceneError::EntityIdExhausted { entity: record.id })?;
+
+        // Validate every fallible invariant before the first world mutation so a
+        // rejected import cannot leave observable state behind at the old generation.
+        self.validate_node_record_mobility(&record)?;
 
         self.register_stable_entity(record.id)?;
         self.entities.push(record.id);
@@ -147,18 +155,48 @@ impl World {
                 .insert(record.id, animation_state_machine_player);
         }
 
-        self.next_id = self.next_id.max(record.id + 1);
-        self.validate_mobility_change(record.id, record.mobility)?;
+        self.next_id = self.next_id.max(next_id);
         self.rebuild_fixed_component_presence_for_entity(record.id);
         self.mark_derived_state_dirty();
         self.advance_world_generation();
         Ok(())
     }
 
-    pub fn insert_node_records(&mut self, records: &[NodeRecord]) -> SceneResult<()> {
-        for record in records {
-            self.insert_node_record(record.clone())?;
+    fn validate_node_record_mobility(&self, record: &NodeRecord) -> SceneResult<()> {
+        match record.mobility {
+            Mobility::Dynamic => {
+                for child in self.entities.iter().copied() {
+                    if self.parent_of(child) == Some(record.id)
+                        && self.mobility(child) == Some(Mobility::Static)
+                    {
+                        return Err(SceneError::DynamicMobilityWithStaticChildren {
+                            entity: record.id,
+                        });
+                    }
+                }
+            }
+            Mobility::Static => {
+                if let Some(parent) = record.parent {
+                    if self.mobility(parent) == Some(Mobility::Dynamic) {
+                        return Err(SceneError::StaticMobilityUnderDynamicParent {
+                            entity: record.id,
+                            parent,
+                        });
+                    }
+                }
+            }
         }
+        Ok(())
+    }
+
+    pub fn insert_node_records(&mut self, records: &[NodeRecord]) -> SceneResult<()> {
+        // Undo/import batches are one transaction: validate them against a scratch
+        // world before touching the authoritative instance.
+        let mut staged = self.clone();
+        for record in records {
+            staged.insert_node_record(record.clone())?;
+        }
+        *self = staged;
         Ok(())
     }
 

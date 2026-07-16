@@ -1,4 +1,3 @@
-use std::fmt;
 use std::sync::Arc;
 
 #[cfg(feature = "ai-contracts")]
@@ -18,7 +17,7 @@ use crate::core::framework::{
     render::{RenderFramework, RenderingManager},
     scene::LevelManager,
 };
-use crate::core::{CoreError, CoreHandle};
+use crate::core::{CoreError, CoreHandle, CoreWeak};
 
 #[cfg(feature = "ai-contracts")]
 use super::AI_MANAGER_NAME;
@@ -29,42 +28,24 @@ use super::PHYSICS_MANAGER_NAME;
 #[cfg(feature = "sound-contracts")]
 use super::SOUND_MANAGER_NAME;
 use super::{
-    ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME,
-    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, RENDERING_MANAGER_NAME,
-    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
+    manager_service_handle, ManagerServiceHandle, ManagerServiceResolver, ANIMATION_MANAGER_NAME,
+    CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME,
+    LEVEL_MANAGER_NAME, NAVIGATION_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    RESOURCE_MANAGER_NAME,
 };
 
-macro_rules! define_manager_holder {
-    ($holder:ident, $trait_name:ident, $resolver:ident, $service_name:ident, $method:ident) => {
-        #[derive(Clone)]
-        pub struct $holder {
-            inner: Arc<dyn $trait_name>,
-        }
-
-        impl $holder {
-            pub fn new(inner: Arc<dyn $trait_name>) -> Self {
-                Self { inner }
-            }
-
-            pub fn shared(&self) -> Arc<dyn $trait_name> {
-                self.inner.clone()
-            }
-        }
-
-        impl fmt::Debug for $holder {
-            fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-                f.debug_struct(stringify!($holder)).finish()
-            }
-        }
-
-        pub fn $resolver(core: &CoreHandle) -> Result<Arc<dyn $trait_name>, CoreError> {
-            let holder = core.resolve_manager::<$holder>($service_name)?;
-            Ok(holder.shared())
+macro_rules! define_manager_handle_access {
+    ($trait_name:ident, $handle_fn:ident, $service_name:ident, $method:ident) => {
+        pub fn $handle_fn(
+            core: &CoreHandle,
+        ) -> Result<ManagerServiceHandle<dyn $trait_name>, CoreError> {
+            manager_service_handle(core, $service_name)
         }
 
         impl ManagerResolver {
-            pub fn $method(&self) -> Result<Arc<dyn $trait_name>, CoreError> {
-                $resolver(&self.core)
+            pub fn $method(&self) -> Result<ManagerServiceHandle<dyn $trait_name>, CoreError> {
+                let core = self.upgrade_core()?;
+                $handle_fn(&core)
             }
         }
     };
@@ -72,118 +53,116 @@ macro_rules! define_manager_holder {
 
 #[derive(Clone, Debug)]
 pub struct ManagerResolver {
-    core: CoreHandle,
+    core: CoreWeak,
 }
 
 impl ManagerResolver {
     pub fn new(core: CoreHandle) -> Self {
-        Self { core }
+        Self {
+            core: core.downgrade(),
+        }
     }
 
-    pub fn core(&self) -> &CoreHandle {
-        &self.core
+    fn upgrade_core(&self) -> Result<CoreHandle, CoreError> {
+        self.core
+            .upgrade()
+            .ok_or_else(|| CoreError::ServiceUnavailable("CoreRuntime".to_owned()))
+    }
+
+    pub fn resolve<T: ?Sized + Send + Sync + 'static>(
+        &self,
+        handle: ManagerServiceHandle<T>,
+    ) -> Result<Arc<T>, CoreError> {
+        let core = self.upgrade_core()?;
+        ManagerServiceResolver::resolve(&core, handle)
     }
 }
 
-define_manager_holder!(
-    RenderingManagerHandle,
+impl ManagerServiceResolver for ManagerResolver {
+    fn resolve<T: ?Sized + Send + Sync + 'static>(
+        &self,
+        handle: ManagerServiceHandle<T>,
+    ) -> Result<Arc<T>, CoreError> {
+        let core = self.upgrade_core()?;
+        ManagerServiceResolver::resolve(&core, handle)
+    }
+}
+
+define_manager_handle_access!(
     RenderingManager,
-    resolve_rendering_manager,
+    rendering_manager_handle,
     RENDERING_MANAGER_NAME,
-    rendering
+    rendering_handle
 );
-define_manager_holder!(
-    RenderFrameworkHandle,
+define_manager_handle_access!(
     RenderFramework,
-    resolve_render_framework,
+    render_framework_handle,
     RENDER_FRAMEWORK_NAME,
-    render_framework
+    render_framework_handle
 );
-define_manager_holder!(
-    LevelManagerHandle,
+define_manager_handle_access!(
     LevelManager,
-    resolve_level_manager,
+    level_manager_handle,
     LEVEL_MANAGER_NAME,
-    level
+    level_handle
 );
-define_manager_holder!(
-    ResourceManagerHandle,
+define_manager_handle_access!(
     ResourceManager,
-    resolve_resource_manager,
+    resource_manager_handle,
     RESOURCE_MANAGER_NAME,
-    resource
+    resource_handle
 );
-define_manager_holder!(
-    InputManagerHandle,
+define_manager_handle_access!(
     InputManager,
-    resolve_input_manager,
+    input_manager_handle,
     INPUT_MANAGER_NAME,
-    input
+    input_handle
 );
-define_manager_holder!(
-    InputActionManagerHandle,
+define_manager_handle_access!(
     InputActionManager,
-    resolve_input_action_manager,
+    input_action_manager_handle,
     INPUT_ACTION_MANAGER_NAME,
-    input_actions
+    input_actions_handle
 );
-define_manager_holder!(
-    ConfigManagerHandle,
+define_manager_handle_access!(
     ConfigManager,
-    resolve_config_manager,
+    config_manager_handle,
     CONFIG_MANAGER_NAME,
-    config
+    config_handle
 );
-define_manager_holder!(
-    EventManagerHandle,
+define_manager_handle_access!(
     EventManager,
-    resolve_event_manager,
+    event_manager_handle,
     EVENT_MANAGER_NAME,
-    event
+    event_handle
 );
 #[cfg(feature = "ai-contracts")]
-define_manager_holder!(
-    AiManagerHandle,
-    AiManager,
-    resolve_ai_manager,
-    AI_MANAGER_NAME,
-    ai
-);
+define_manager_handle_access!(AiManager, ai_manager_handle, AI_MANAGER_NAME, ai_handle);
 #[cfg(feature = "net-contracts")]
-define_manager_holder!(
-    NetManagerHandle,
-    NetManager,
-    resolve_net_manager,
-    NET_MANAGER_NAME,
-    net
-);
+define_manager_handle_access!(NetManager, net_manager_handle, NET_MANAGER_NAME, net_handle);
 #[cfg(feature = "physics-contracts")]
-define_manager_holder!(
-    PhysicsManagerHandle,
+define_manager_handle_access!(
     PhysicsManager,
-    resolve_physics_manager,
+    physics_manager_handle,
     PHYSICS_MANAGER_NAME,
-    physics
+    physics_handle
 );
-define_manager_holder!(
-    AnimationManagerHandle,
+define_manager_handle_access!(
     AnimationManager,
-    resolve_animation_manager,
+    animation_manager_handle,
     ANIMATION_MANAGER_NAME,
-    animation
+    animation_handle
 );
 #[cfg(feature = "sound-contracts")]
-define_manager_holder!(
-    SoundManagerHandle,
+define_manager_handle_access!(
     SoundManager,
-    resolve_sound_manager,
+    sound_manager_handle,
     SOUND_MANAGER_NAME,
-    sound
+    sound_handle
 );
-define_manager_holder!(
-    NavigationManagerHandle,
+define_manager_handle_access!(
     NavigationManager,
-    resolve_navigation_manager,
+    navigation_manager_handle,
     NAVIGATION_MANAGER_NAME,
-    navigation
+    navigation_handle
 );

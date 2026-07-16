@@ -2,6 +2,7 @@
 fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     let resolution_mod_source = include_str!("mod.rs");
     let resolution_behavior_source = include_str!("behavior.rs");
+    let resolution_dependency_cycles_source = include_str!("behavior/dependency_cycles.rs");
     let resolution_source = include_str!("../../handle/resolution.rs");
     let devtools_source = include_str!("../../diagnostics/devtools.rs");
     let registration_source = [
@@ -27,6 +28,7 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_mod_source.contains("mod structure;"));
     assert!(!resolution_mod_source.contains("#[test]"));
     assert!(!resolution_mod_source.contains("use "));
+    assert!(resolution_behavior_source.contains("mod dependency_cycles;"));
     assert!(resolution_behavior_source.contains("fn lazy_manager_is_created_on_first_resolve()"));
     assert!(resolution_behavior_source
         .contains("fn failed_lazy_manager_initialization_resets_lifecycle_and_can_retry()"));
@@ -36,9 +38,13 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
         .contains("fn resolve_exact_four_dependencies_initializes_cached_keys_directly()"));
     assert!(resolution_behavior_source
         .contains("fn resolve_exact_five_dependencies_initializes_cached_keys_directly()"));
-    assert!(resolution_behavior_source
+    assert!(resolution_dependency_cycles_source
         .contains("fn four_frame_resolution_cycle_reports_canonical_registry_key()"));
-    assert!(resolution_behavior_source
+    assert!(resolution_dependency_cycles_source
+        .contains("fn five_frame_resolution_cycle_reports_canonical_registry_key()"));
+    assert!(!resolution_behavior_source
+        .contains("fn four_frame_resolution_cycle_reports_canonical_registry_key()"));
+    assert!(!resolution_behavior_source
         .contains("fn five_frame_resolution_cycle_reports_canonical_registry_key()"));
     assert!(!resolution_behavior_source.contains("include_str!(\"../../handle/resolution.rs\")"));
     assert!(resolution_source.contains("stack: &mut Vec<RegistryName>"));
@@ -110,10 +116,20 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source.contains("match modules.get(owner_module)"));
     assert!(resolution_source
         .contains("Some(module) => module.lifecycle == LifecycleState::Registered"));
-    assert!(resolution_source.contains("self.activate_module(owner_module)?"));
+    assert!(resolution_source
+        .contains("self.register_service_activation_reentry(current_thread, service_key.clone())"));
+    assert!(
+        resolution_source.contains("let activation_result = self.activate_module(owner_module)")
+    );
+    assert!(resolution_source
+        .contains("self.clear_service_activation_reentry(current_thread, service_key)"));
+    assert!(resolution_source.contains("activation_result?"));
     assert!(resolution_source.contains("self.resolved_service_instance(service_key)"));
     assert!(resolution_source.contains("plugin_name: canonical_service_name.to_owned()"));
-    assert!(resolution_source.contains("let (dependency_names, factory)"));
+    assert!(resolution_source
+        .contains("let (dependency_names, factory, resolution_index, resolution_generation)"));
+    assert!(resolution_source.contains("entry.index != resolution_index"));
+    assert!(resolution_source.contains("entry.generation != resolution_generation"));
     assert!(resolution_source.contains("let factory_result = match factory"));
     assert!(resolution_source.contains("let instance = match factory_result"));
     assert!(resolution_source.contains("Err(error) => {"));
@@ -178,11 +194,21 @@ fn resolution_uses_registry_names_for_recursion_stack_and_dependency_walk() {
     assert!(resolution_source.contains("stack.reserve(RESOLUTION_STACK_FRAME_CAPACITY)"));
     assert!(resolution_source
         .contains("self.resolve_registered_service_inner(dependency_name, None, stack)?"));
-    assert!(resolution_source.contains("if result.is_err()"));
-    assert!(resolution_source.contains("self.reset_initializing_service(service_key)"));
-    assert!(resolution_source
-        .contains("fn reset_initializing_service(&self, service_key: &RegistryName)"));
+    assert!(resolution_source.contains("if result.is_err() && claimed_initialization"));
+    assert!(
+        resolution_source.contains("self.reset_initializing_service(service_key, current_thread)")
+    );
+    assert!(resolution_source.contains("fn reset_initializing_service("));
+    assert!(resolution_source.contains("initialization_owner: thread::ThreadId"));
     assert!(resolution_source.contains("entry.lifecycle == LifecycleState::Initializing"));
+    assert!(resolution_source.contains("entry.initialization_owner == Some(initialization_owner)"));
+    assert!(resolution_source.contains("fn registered_service_resolution_for_identity("));
+    assert!(resolution_source.contains("fn validate_service_identity("));
+    assert!(resolution_source.contains("CoreError::StaleServiceHandle"));
+    assert!(resolution_source
+        .contains("try_register_service_resolution_wait(current_thread, initialization_owner)"));
+    assert!(resolution_source.contains("self.wait_for_service_resolution_change(services)"));
+    assert!(resolution_source.contains("self.notify_service_resolution_changed()"));
     assert!(registration_source.contains("dependencies: &[DependencySpec]"));
     assert!(registration_source.contains("fn prepare_four_descriptor_service_entries("));
     assert!(registration_source.contains("fn prepare_five_descriptor_service_entries("));

@@ -246,12 +246,14 @@ class MilestoneGateEvaluator:
                 )
             incoming = self._incoming_nodes(connection, run_id, milestone_key)
             milestone = connection.execute(
-                "SELECT node_id FROM workflow_nodes WHERE run_id=? AND node_key=? AND kind='milestone'",
+                """SELECT node_id FROM workflow_nodes
+                   WHERE run_id=? AND node_key=? AND kind IN ('milestone', 'slice')""",
                 (run_id, milestone_key),
             ).fetchone()
             if milestone is None:
                 raise CoordinatorError(
-                    "workflow_milestone_not_found", f"Unknown milestone {milestone_key}"
+                    "workflow_milestone_not_found",
+                    f"Unknown milestone or slice {milestone_key}",
                 )
             milestone_node_id = milestone["node_id"]
             blocking = tuple(

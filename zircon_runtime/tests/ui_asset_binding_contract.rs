@@ -1,3 +1,5 @@
+#![cfg(feature = "ui")]
+
 use zircon_runtime::ui::component::UiComponentDescriptorRegistry;
 use zircon_runtime::ui::template::{
     collect_asset_binding_report, UiAssetLoader, UiDocumentCompiler,

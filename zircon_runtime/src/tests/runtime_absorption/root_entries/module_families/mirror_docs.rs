@@ -73,7 +73,7 @@ fn runtime_14_module_family_mirror_docs_match_structure_audit_counts() {
         (
             "runtime index",
             include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
             ),
         ),
         (

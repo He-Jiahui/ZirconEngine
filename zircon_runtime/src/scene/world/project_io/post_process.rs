@@ -3,13 +3,13 @@ use crate::asset::assets::{
     SceneDitherSettingsAsset, SceneFilmGrainSettingsAsset, SceneFogSettingsAsset,
     ScenePostProcessEffectStackAsset, ScenePostProcessSettingsAsset, ScenePostProcessVolumeAsset,
     ScenePostProcessVolumeProfileAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,
-    SceneVignetteSettingsAsset,
+    SceneVignetteSettingsAsset, SceneVolumetricFogSettingsAsset,
 };
 use crate::core::framework::render::{
     RenderBloomSettings, RenderChromaticAberrationSettings, RenderColorGradingSettings,
     RenderDitherSettings, RenderFilmGrainSettings, RenderFogSettings,
     RenderPostProcessEffectStackSettings, RenderPostProcessVolumeProfile, RenderTonemapOperator,
-    RenderTonemapSettings, RenderVignetteSettings,
+    RenderTonemapSettings, RenderVignetteSettings, VolumetricFogSettings,
 };
 use crate::scene::components::{PostProcessSettingsComponent, PostProcessVolumeComponent};
 pub(super) fn post_process_settings_from_asset(
@@ -62,6 +62,7 @@ fn volume_profile_from_asset(
     profile: ScenePostProcessVolumeProfileAsset,
 ) -> RenderPostProcessVolumeProfile {
     RenderPostProcessVolumeProfile {
+        volumetric_fog: profile.volumetric_fog.map(volumetric_fog_from_asset),
         bloom: profile.bloom.map(bloom_from_asset),
         color_grading: profile.color_grading.map(color_grading_from_asset),
         effect_stack: profile.effect_stack.map(effect_stack_from_asset),
@@ -72,9 +73,35 @@ fn volume_profile_to_asset(
     profile: RenderPostProcessVolumeProfile,
 ) -> ScenePostProcessVolumeProfileAsset {
     ScenePostProcessVolumeProfileAsset {
+        volumetric_fog: profile.volumetric_fog.map(volumetric_fog_to_asset),
         bloom: profile.bloom.map(bloom_to_asset),
         color_grading: profile.color_grading.map(color_grading_to_asset),
         effect_stack: profile.effect_stack.map(effect_stack_to_asset),
+    }
+}
+
+fn volumetric_fog_from_asset(settings: SceneVolumetricFogSettingsAsset) -> VolumetricFogSettings {
+    VolumetricFogSettings {
+        density: settings.density,
+        albedo: crate::core::math::Vec3::from_array(settings.albedo),
+        phase_g: settings.phase_g,
+        height_falloff: settings.height_falloff,
+        scattering_intensity: settings.scattering_intensity,
+        depth_distribution_exp: settings.depth_distribution_exp,
+        temporal: settings.temporal,
+    }
+    .sanitized()
+}
+
+fn volumetric_fog_to_asset(settings: VolumetricFogSettings) -> SceneVolumetricFogSettingsAsset {
+    SceneVolumetricFogSettingsAsset {
+        density: settings.density,
+        albedo: settings.albedo.to_array(),
+        phase_g: settings.phase_g,
+        height_falloff: settings.height_falloff,
+        scattering_intensity: settings.scattering_intensity,
+        depth_distribution_exp: settings.depth_distribution_exp,
+        temporal: settings.temporal,
     }
 }
 

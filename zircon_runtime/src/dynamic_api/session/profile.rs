@@ -1,3 +1,4 @@
+use crate::core::framework::platform::RuntimeTargetMode;
 use crate::diagnostic_log::{DiagnosticStoreLogSchedule, DEFAULT_DIAGNOSTIC_STORE_LOG_WAIT};
 
 const DEFAULT_DYNAMIC_RUNTIME_MAX_FIXED_STEPS_PER_FRAME: u32 = 8;
@@ -43,5 +44,14 @@ impl RuntimeDynamicSessionProfile {
 
     pub(super) fn uses_render_bridge(self) -> bool {
         matches!(self, Self::Runtime | Self::Editor | Self::Dev)
+    }
+
+    pub(super) fn target_mode(self) -> RuntimeTargetMode {
+        match self {
+            Self::Editor => RuntimeTargetMode::EditorHost,
+            Self::Runtime | Self::Dev | Self::Minimal | Self::Headless => {
+                RuntimeTargetMode::ClientRuntime
+            }
+        }
     }
 }

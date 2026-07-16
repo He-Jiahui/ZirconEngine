@@ -1,3 +1,5 @@
+mod adapter;
+pub(crate) use adapter::text_style;
 mod edit_state;
 mod font_registry;
 mod geometry;

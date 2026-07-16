@@ -10,7 +10,7 @@ use crate::asset::{
     ScenePostProcessVolumeAsset, ScenePostProcessVolumeProfileAsset, SceneRectLightAsset,
     SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
     SceneTonemapOperatorAsset, SceneTonemapSettingsAsset, SceneViewportRectAsset,
-    SceneVignetteSettingsAsset, TransformAsset,
+    SceneVignetteSettingsAsset, SceneVolumetricFogSettingsAsset, TransformAsset,
 };
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::render::{CorePipelineKind, ProjectionMode, RenderCameraClearColor};

@@ -7,6 +7,7 @@ mod batch;
 mod blocked_dependencies;
 mod blocked_unload;
 mod module_lifecycle;
+mod service_lifecycle;
 mod startup;
 mod unload_mutation;
 
@@ -24,7 +25,7 @@ impl CoreHandle {
         ready_timeout: std::time::Duration,
     ) -> Result<(), CoreError> {
         crate::profile_scope!("runtime", "core", "activate_module");
-        let startup_services = {
+        let (previous_lifecycle, service_names, startup_services) = {
             let mut modules = self.lock_modules();
             let Some(entry) = modules.get_mut(module_name) else {
                 return Err(CoreError::MissingModule(module_name.to_string()));
@@ -32,16 +33,28 @@ impl CoreHandle {
             if entry.lifecycle == LifecycleState::Running {
                 return Ok(());
             }
+            let previous_lifecycle = entry.lifecycle;
             entry.lifecycle = LifecycleState::Initializing;
-            if entry.startup_service_names.is_empty() {
+            let service_names = if entry.service_names.is_empty() {
+                Default::default()
+            } else {
+                entry.service_names.clone()
+            };
+            let startup_services = if entry.startup_service_names.is_empty() {
                 Default::default()
             } else {
                 entry.startup_service_names.clone()
-            }
+            };
+            (previous_lifecycle, service_names, startup_services)
         };
 
         let mut built = false;
+        let mut reactivation_services_prepared = false;
         let result = (|| {
+            if previous_lifecycle == LifecycleState::Unloaded {
+                self.prepare_module_services_for_reactivation(service_names.as_ref())?;
+                reactivation_services_prepared = true;
+            }
             self.build_module(module_name)?;
             built = true;
 
@@ -61,8 +74,12 @@ impl CoreHandle {
                 .then(|| self.cleanup_module(module_name))
                 .transpose()
                 .err();
-            self.reset_started_services(startup_services.as_ref());
-            self.reset_initializing_module(module_name);
+            if reactivation_services_prepared {
+                self.rollback_module_services_after_failed_reactivation(service_names.as_ref());
+            } else {
+                self.reset_started_services(startup_services.as_ref());
+            }
+            self.reset_initializing_module(module_name, previous_lifecycle);
             return Err(CoreError::module_activation_failed(
                 activation_error,
                 rollback_error,
@@ -105,6 +122,8 @@ impl CoreHandle {
             if !unload_order.is_empty() {
                 let mut services = self.lock_services();
                 unload_services(&mut services, unload_order);
+                drop(services);
+                self.notify_service_resolution_changed();
             }
 
             self.finish_module_deactivation(module_name)
@@ -117,11 +136,11 @@ impl CoreHandle {
         result
     }
 
-    fn reset_initializing_module(&self, module_name: &str) {
+    fn reset_initializing_module(&self, module_name: &str, previous_lifecycle: LifecycleState) {
         let mut modules = self.lock_modules();
         if let Some(entry) = modules.get_mut(module_name) {
             if entry.lifecycle == LifecycleState::Initializing {
-                entry.lifecycle = LifecycleState::Registered;
+                entry.lifecycle = previous_lifecycle;
             }
         }
     }

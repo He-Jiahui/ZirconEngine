@@ -67,7 +67,6 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
             "use super::*;",
             "fn host_handles_are_stable_and_valid",
             "fn script_call_table_pre_resolves_host_export_callbacks",
-            "fn zr_vm_real_backend_uses_script_call_table_for_host_callbacks",
         ],
     );
     assert_contains_all(
@@ -143,8 +142,8 @@ pub(super) fn assert_script_vm_tests_are_folder_backed() {
     .map(|source| source.matches("#[test]").count())
     .sum::<usize>();
     assert_eq!(
-        migrated_test_count, 34,
-        "script VM child modules should preserve all 34 current tests including lifecycle and typed host-interface coverage"
+        migrated_test_count, 33,
+        "script VM child modules should preserve all 33 Runtime-neutral tests including lifecycle and typed host-interface coverage"
     );
 
     for (path, source) in [

@@ -42,6 +42,12 @@ related_code:
   - zircon_runtime/src/asset/tests/project/binary_artifact_cache.rs
   - zircon_runtime/src/asset/tests/project/manager.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager/watcher.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample/fixtures.rs
+  - zircon_runtime/src/asset/tests/support.rs
+  - zircon_runtime/src/asset/migration/transaction/journal.rs
+  - zircon_runtime/src/asset/tests/migration/project_commandlet/crash_windows.rs
   - zircon_runtime/src/asset/module.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/project_asset_manager.rs
@@ -279,6 +285,8 @@ plan_sources:
   - docs/superpowers/specs/2026-06-09-vampire-dark-content-upgrade-design.md
   - docs/superpowers/plans/2026-06-09-vampire-dark-content-upgrade.md
   - user: 2026-06-10 vampire roguelite animation state-machine follow-up
+  - user: 2026-07-13 implement the complete zircon_runtime architecture plan, prioritizing structure and review findings
+  - docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/zircon_runtime/render/08-material-shader-permutation.md
 tests:
@@ -293,6 +301,11 @@ tests:
   - project_asset_manager_runtime_accessors_recover_poisoned_locks
   - runtime_15_asset_project_manager_lock_poison_recovery_guard_covers_project_asset_manager
   - zircon_runtime/src/asset/tests/project/zmeta.rs
+  - zircon_runtime/src/asset/tests/project/asset_flow_sample/fixtures.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager/resource_revisions.rs
+  - zircon_runtime/src/asset/tests/pipeline/manager/watcher.rs
+  - zircon_runtime/src/asset/tests/support.rs
+  - asset::tests::migration::project_commandlet::crash_windows::minted_sidecar_commit_crash_is_whitelisted_and_next_apply_converges
   - zircon_runtime/src/asset/tests/project/package_assets.rs
   - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --lib --locked asset::tests::project::package_assets --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed, 3 passed)
   - CARGO_TARGET_DIR=D:\cargo-targets\zircon-asset-package-m2 cargo test -p zircon_runtime --locked package --jobs 1 --message-format short --color never -- --test-threads=1 (2026-05-20 package roots M2: passed after warm cache, 43 package-filtered runtime lib tests plus package-filtered integration binaries)
@@ -617,6 +630,10 @@ Plain `.toml` is a `DataAsset`. Typed `*.xxx.toml` requires a registered full-su
 
 The importer layer must not catch `Dangling` to retry without a label, add registry aliases, or silently delete subasset identity. Regression coverage lives in `asset::reference_resolver::tests::resolution_reports_guid_path_repair_dangling_and_conflict_states` and `asset::importer::ingest::import_model::tests::importer_outcome_exposes_complete_guid_repair`, sourced from `docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md` and its stale-subasset failure handoff.
 
+Project scan establishes reference identity before any importer reads an authored project document. `scan_and_import` first collects every source, then aligns each existing `.zmeta` root URL and kind with its current source path or mints the missing sidecar. URL alignment emits an in-memory `Renamed` identity change. During watcher scans, that authoritative rename is ordered before raw split `Removed` / `Added` events; the same merged change list drives duplicate-GUID normalization and the atomic resource-registry plus asset-registry commit. Only after path identity and duplicate ownership converge does `AssetRegistryIndex::inspect_project` build the read-only resolver index passed to importers. This ordering preserves the GUID of a source and sidecar moved together while still reminting a copied sidecar whose GUID has another live owner.
+
+Authored material and scene fixtures follow the production project-reference schema instead of the retired runtime `{uuid,url}` serializer. Their references are persisted as `{kind,guid,path_hint,sub}` records. The fixture writer resolves an existing target through exactly one manifest asset root; when a target is intentionally absent, it keeps a path hint under the source asset's root so missing references remain representable. Multiple matching roots remain an error because choosing one would conceal a real project ambiguity. Fixture edits deserialize the project document and write it back through the same formal serializer, so watcher and revision tests exercise the production contract rather than a test-only compatibility path. Runtime04 testing-stage coverage owns first-open resolution, stale-URL GUID preservation, rename preservation, watcher reimport, resource revision isolation, runtime lease rehydration, and the end-to-end asset-flow material fixture; full Cargo acceptance remains a testing-stage result rather than a documentation assumption.
+
 ## Built-In Coverage
 
 The production default importer registry installs real Rust paths for runtime-core formats: plain TOML/JSON data, plain `.txt` text data, `.zui` UI component documents, typed Zircon source assets such as `.zmaterial`, `.zshader`, `.zmesh`, material/font/model/physics material/scene/prefab/authoring navigation assets, animation `.zranim` contracts that have not yet moved fully to the animation plugin, the remaining GLSL/SPIR-V shader paths, common image textures, and glTF/GLB models. Plain `.txt` data keeps source notes and license files importable in example projects without forcing an external data plugin.
@@ -850,6 +867,8 @@ Editor catalog sync mirrors the same contract. `DefaultEditorAssetManager::sync_
 Runtime meta documents are `.zmeta` format version 7. The schema uses `uuid`, `url`, `asset_kind`, `unit`, `included_files`, importer metadata fields, `artifact_locator`, `config_hash`, `source_digest`, root dependencies, and per-entry `uuid/url/asset_kind/artifact_locator/dependencies`. The parser accepts only v7, rejects v6 as `UnsupportedOldFormatVersion`, rejects future input as `UnsupportedFutureFormatVersion`, and reports the retired `source_hash` key as `RetiredSourceHashField`; no serde alias or in-place legacy migration remains.
 
 Meta saves validate and serialize before filesystem mutation, then use a unique same-directory staging file with `write_all`, `flush`, and `sync_all`. Replacement keeps the prior sidecar continuously visible: Windows uses one `ReplaceFileW` call with a backup path, while Unix creates a hard-link/copy backup before same-directory rename-overwrite. Injected or OS commit failure leaves the original target readable and cleans transaction files. Backup cleanup after the successful commit point is best-effort, so a durable new sidecar is never reported as a failed save solely because obsolete-backup removal failed.
+
+Project-wide authoring migration uses durable intent journals under `.zircon/asset-migration`. A journal filename retains the complete reserved sibling identity `.SOURCE.zr-migrate-journal-{transaction_id}` and then appends `.toml`; `.toml` is a serialization suffix, not a replacement extension. Recovery strips only that final suffix and verifies the remaining filename ends with the transaction id stored in the journal before it trusts any staged or backup evidence. This makes filename identity and document identity mutually authenticating while preserving the hard rule that recovery never restores untrusted backup bytes into a live asset. The crash-window regression asserts both the reserved filename shape and successful convergence on the next apply.
 
 Runtime 15 F5 asset meta typed errors (`runtime_15_asset_meta_typed_errors_static_passed_cargo_deferred`) remain typed in `asset/project/meta.rs`: `AssetMetaDocument::from_toml_str(...)` returns `AssetMetaResult`, current-version validation distinguishes old, future, retired-field, and deserialize failures, and `AssetMetaDocument::load(...)` stringifies only at the `std::io::ErrorKind::InvalidData` filesystem boundary. `review_f5_asset_meta_uses_typed_error`, `asset_meta_validation_reports_typed_future_version_error`, and `asset/tests/project/zmeta/schema_v7.rs` lock the current contract.
 

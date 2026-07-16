@@ -11,8 +11,10 @@ from pathlib import Path, PurePosixPath
 CANONICAL_NAME = re.compile(
     r"^(failure|fixed)-(\d{4}-\d{2}-\d{2})-([a-z0-9]+(?:-[a-z0-9]+)*)\.md$"
 )
+# Legacy names remain diagnosable only when they end in the explicit handoff marker.
+# Ordinary dated output records may legitimately contain "failure" in their summary.
 DATE_FIRST_HANDOFF = re.compile(
-    r"^\d{4}-\d{2}-\d{2}-.+(?:failure|fixed).*(?:handoff)?\.md$",
+    r"^\d{4}-\d{2}-\d{2}-(?:[a-z0-9]+-)*(?:failure|fixed)-handoff\.md$",
     re.IGNORECASE,
 )
 PLAN_NAME = re.compile(r"^(\d+)-.+\.md$")
@@ -37,6 +39,7 @@ BASE_KEYS = (
     "origin_child_dir",
     "fixing_child_dir",
 )
+PLAN_LINK_MODES = frozenset({"required", "child_record_only"})
 
 
 @dataclass(frozen=True, slots=True)
@@ -320,6 +323,11 @@ def validate_repository(root: Path) -> list[str]:
             errors.append(f"{artifact_name}: {kind} artifacts require status: {expected_status}")
         if kind == "fixed" and not metadata.get("resolved_at"):
             errors.append(f"{artifact_name}: missing frontmatter key 'resolved_at'")
+        plan_link_mode = metadata.get("plan_link_mode", "required")
+        if plan_link_mode not in PLAN_LINK_MODES:
+            errors.append(
+                f"{artifact_name}: plan_link_mode must be required or child_record_only"
+            )
 
         slug = metadata.get("summary_slug", "")
         if slug and not SLUG.fullmatch(slug):
@@ -423,12 +431,13 @@ def validate_repository(root: Path) -> list[str]:
                         f"{artifact_name}: fixed result field '{label}' requires a non-empty value"
                     )
 
-        _validate_plan_link(
-            origin_plan, artifact, role="origin", kind=kind, root=root, errors=errors
-        )
-        _validate_plan_link(
-            fixing_plan, artifact, role="fixing", kind=kind, root=root, errors=errors
-        )
+        if plan_link_mode == "required":
+            _validate_plan_link(
+                origin_plan, artifact, role="origin", kind=kind, root=root, errors=errors
+            )
+            _validate_plan_link(
+                fixing_plan, artifact, role="fixing", kind=kind, root=root, errors=errors
+            )
 
     lifecycle_keys: dict[str, list[Path]] = {}
     records, _ = parse_handoff_records(root)

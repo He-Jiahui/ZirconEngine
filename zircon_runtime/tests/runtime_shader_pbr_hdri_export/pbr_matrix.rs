@@ -6,9 +6,9 @@ const PBR_MATRIX_HDRI_OUTPUT_NAME: &str =
 const PBR_MATRIX_HDRI_2K_OUTPUT_NAME: &str =
     "runtime_shader_pbr_real_hdri_lakes_2k_8x8_cmft_pmrem_reflection_20260710.png";
 const PBR_MATRIX_QUANTITATIVE_OUTPUT_NAME: &str =
-    "runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260715.png";
+    "runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260716.png";
 const PBR_MATRIX_QUANTITATIVE_REPORT_NAME: &str =
-    "runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260715.txt";
+    "runtime_shader_pbr_ibl_metallic_smoothness_matrix_angular0003_20260716.txt";
 const GRAZING_SYMMETRY_MAX_MEAN_RELATIVE_DELTA: f32 = 0.05;
 const GRAZING_SYMMETRY_MAX_PER_RADIUS_RELATIVE_DELTA: f32 = 0.10;
 const GRAZING_SYMMETRY_RADII: [f32; 5] = [0.65, 0.75, 0.83, 0.89, 0.93];

@@ -2,15 +2,15 @@ use std::collections::BTreeMap;
 
 use crate::core::framework::render::{
     default_viewport_aspect_ratio, render_mesh_stable_instance_key, render_mesh_transform_revision,
-    sort_render_cameras, CameraRenderDescriptor, DebugOverlayExtract, EnvironmentExtract,
-    GeometryExtract, GeometryPhaseInput, LightingExtract, MaterialPropertyOverrideBlock,
-    ParticleExtract, PostProcessExtract, PostProcessVolumeExtract, PreviewEnvironmentExtract,
-    ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport, RenderExposureSettings,
-    RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet, RenderMeshLodSelection,
-    RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract, RenderSceneGeometryExtract,
-    RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract, RenderVirtualGeometryExtract,
-    RenderWorldSnapshotHandle, SceneViewportExtractRequest, SceneViewportRenderPacket,
-    SpriteExtract, ViewportCameraSnapshot,
+    sort_render_cameras, AdvancedLightingExtract, CameraRenderDescriptor, DebugOverlayExtract,
+    EnvironmentExtract, GeometryExtract, GeometryPhaseInput, LightingExtract,
+    MaterialPropertyOverrideBlock, ParticleExtract, PostProcessExtract, PostProcessVolumeExtract,
+    PreviewEnvironmentExtract, ProjectionMode, RenderCameraOrderInput, RenderCameraOrderReport,
+    RenderExposureSettings, RenderFrameExtract, RenderHybridGiExtract, RenderLayerSet,
+    RenderMeshLodSelection, RenderMeshSnapshot, RenderMeshStaticState, RenderOverlayExtract,
+    RenderSceneGeometryExtract, RenderSceneSnapshot, RenderSpriteSnapshot, RenderViewExtract,
+    RenderVirtualGeometryExtract, RenderWorldSnapshotHandle, SceneViewportExtractRequest,
+    SceneViewportRenderPacket, SpriteExtract, ViewportCameraSnapshot,
 };
 use crate::core::framework::scene::Mobility;
 use crate::core::math::{Transform, Vec3, Vec4};
@@ -156,7 +156,13 @@ impl World {
             .cloned()
             .unwrap_or_default();
         let post_process_volumes = self.collect_post_process_volumes_for_view(&view);
+        let volumetric_light_ids = self.collect_volumetric_light_ids(&camera_layers);
         let camera_exposure_ev100 = view.camera.exposure_ev100;
+        let advanced_lighting = AdvancedLightingExtract {
+            fog_volumes: post_process_volumes.fog_volumes,
+            volumetric_light_ids,
+            ..AdvancedLightingExtract::default()
+        };
 
         RenderFrameExtract {
             world,
@@ -183,7 +189,7 @@ impl World {
                 ambient_lights,
                 rect_lights,
                 hybrid_global_illumination: Some(RenderHybridGiExtract::default()),
-                advanced_lighting: Default::default(),
+                advanced_lighting,
             },
             environment: build_environment_extract(request),
             post_process: build_post_process_extract(

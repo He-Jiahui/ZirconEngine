@@ -11,7 +11,7 @@ use crate::graphics::{
     VirtualGeometryRuntimeProviderRegistration,
 };
 
-use super::resolve_project_asset_manager::resolve_project_asset_manager;
+use crate::asset::{project_asset_manager_handle, ProjectAssetManagerAccess};
 
 pub fn create_render_framework_with_render_features(
     core: &CoreHandle,
@@ -26,7 +26,11 @@ pub fn create_render_framework_with_render_features(
         Item = VirtualGeometryRuntimeProviderRegistration,
     >,
 ) -> Result<Arc<dyn RenderFramework>, GraphicsError> {
-    let asset_manager = resolve_project_asset_manager(core)?;
+    let asset_manager = ProjectAssetManagerAccess::new(
+        core.clone(),
+        project_asset_manager_handle(core)
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?,
+    );
     Ok(Arc::new(
         WgpuRenderFramework::new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
             asset_manager,

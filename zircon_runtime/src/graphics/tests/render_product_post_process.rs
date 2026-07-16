@@ -23,7 +23,8 @@ mod motion_blur;
 #[test]
 fn render_product_post_uber_light_effects_change_final_frame() {
     let viewport_size = UVec2::new(128, 96);
-    let server = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let server =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let baseline_viewport = create_post_process_viewport(&server, viewport_size, "post-baseline");
     let effects_viewport = create_post_process_viewport(&server, viewport_size, "post-uber-light");
 
@@ -89,7 +90,8 @@ fn render_product_post_uber_light_effects_change_final_frame() {
 #[test]
 fn render_product_post_non_neutral_tonemap_grading_changes_final_frame() {
     let viewport_size = UVec2::new(128, 96);
-    let server = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let server =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let baseline_viewport = create_post_process_viewport_with_profile(
         &server,
         viewport_size,
@@ -207,7 +209,7 @@ fn render_product_post_user_lut_texture_changes_final_frame_and_matches_readback
         &asset_manager,
         "res://tests/post-process/lut/invert-green-half-32",
     );
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let baseline_viewport =
         create_post_process_viewport(&server, viewport_size, "post-lut-baseline");
     let lut_viewport = create_post_process_viewport(&server, viewport_size, "post-lut-user");

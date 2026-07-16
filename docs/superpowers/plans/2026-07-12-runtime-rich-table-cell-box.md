@@ -16,7 +16,7 @@
 
 **Files:**
 
-- Modify: `zircon_runtime/src/graphics/text/rich/tests/table.rs`
+- Modify: `zircon_runtime/src/text/rich/tests/table.rs`
 - Modify: `zircon_runtime/src/ui/text/layout_engine/tests/rich_table.rs`
 - Modify: `zircon_runtime_interface/src/tests/render_contracts.rs`
 - Create: `zircon_runtime_interface/src/tests/render_contracts/rich_table.rs`
@@ -51,8 +51,8 @@ fn text_rich_bbcode_table_cell_box_options_parse_without_renderer_semantics() {
 **Files:**
 
 - Modify: `zircon_runtime/src/core/framework/render/text/rich.rs`
-- Modify: `zircon_runtime/src/graphics/text/rich/bbcode_table/attributes.rs`
-- Modify: `zircon_runtime/src/graphics/text/rich/bbcode_table.rs`
+- Modify: `zircon_runtime/src/text/rich/bbcode_table/attributes.rs`
+- Modify: `zircon_runtime/src/text/rich/bbcode_table.rs`
 
 - [x] Add explicit serializable box types; keep missing padding distinct from authored zero padding:
 

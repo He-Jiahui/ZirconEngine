@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use super::NavMeshAsset;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(default)]
 pub struct NavMeshBakeRequest {
     pub surface_entity: Option<u64>,
     pub agent_type: Option<String>,

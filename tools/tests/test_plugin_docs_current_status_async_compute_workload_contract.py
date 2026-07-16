@@ -29,7 +29,6 @@ STATUS_DOCS = [
     "docs/plans/engine-code-review-findings-2026-06.md",
     "docs/plans/zircon_editor/editor_ui/11-zui-suffix-convergence-and-ui-toml-retirement.md",
     "docs/assets-and-rendering/render-framework-architecture.md",
-    ".codex/sessions/20260628-0317-zui-migration-validation.md",
 ]
 
 

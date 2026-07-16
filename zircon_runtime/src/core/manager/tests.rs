@@ -7,10 +7,11 @@ use crate::core::manager::PHYSICS_MANAGER_NAME;
 #[cfg(feature = "sound-contracts")]
 use crate::core::manager::SOUND_MANAGER_NAME;
 use crate::core::manager::{
-    ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME, INPUT_ACTION_MANAGER_NAME,
-    INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
-    RESOURCE_MANAGER_NAME,
+    ManagerResolver, ANIMATION_MANAGER_NAME, CONFIG_MANAGER_NAME, EVENT_MANAGER_NAME,
+    INPUT_ACTION_MANAGER_NAME, INPUT_MANAGER_NAME, LEVEL_MANAGER_NAME, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME, RESOURCE_MANAGER_NAME,
 };
+use crate::core::{CoreError, CoreRuntime};
 
 #[test]
 fn manager_service_names_cover_runtime_owned_modules() {
@@ -58,11 +59,25 @@ fn manager_module_uses_core_framework_contracts() {
 
     assert!(mod_source.contains("crate::core::framework"));
     assert!(resolver_source.contains("crate::core::framework"));
-    assert!(
-        resolver_source.contains("let holder = core.resolve_manager::<$holder>($service_name)?;")
-    );
-    assert!(resolver_source.contains("Ok(holder.shared())"));
+    assert!(mod_source.contains("RegisteredManagerService"));
+    assert!(mod_source.contains("ManagerServiceHandle"));
+    assert!(resolver_source.contains("manager_service_handle(core, $service_name)"));
     assert!(!mod_source.contains("zircon_framework"));
     assert!(!resolver_source.contains("zircon_framework"));
-    assert!(!resolver_source.contains(".map(|holder| holder.shared())"));
+    assert!(!resolver_source.contains("Arc<dyn $trait_name>"));
+}
+
+#[test]
+fn manager_resolver_does_not_keep_core_runtime_alive() {
+    let runtime = CoreRuntime::new();
+    let weak = runtime.weak();
+    let resolver = ManagerResolver::new(runtime.handle());
+
+    drop(runtime);
+
+    assert!(weak.upgrade().is_none());
+    assert!(matches!(
+        resolver.config_handle(),
+        Err(CoreError::ServiceUnavailable(name)) if name == "CoreRuntime"
+    ));
 }

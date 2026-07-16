@@ -1,7 +1,7 @@
 use std::ffi::OsString;
 use std::path::PathBuf;
 
-use zircon_runtime::graphics::text::font_sdf_build_tool::{
+use zircon_runtime::text::font_sdf_build_tool::{
     FontSdfBakeMode, FontSdfBakeRequest, FontSdfGlyphSelection,
 };
 

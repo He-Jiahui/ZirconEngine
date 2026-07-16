@@ -39,6 +39,24 @@ plan_sources:
 
 # 计划 18:进阶光照与透明特性扩展
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "render-18-advanced-lighting-features",
+  "goal": "按计划完成进阶材质、灯光数据、体积介质、重型可选渲染特性与 HybridGI 产品接入，并为每个里程碑保留可执行测试和产品证据。",
+  "milestones": [
+    {"id": "M1", "title": "材质特性族", "depends_on": []},
+    {"id": "M2", "title": "灯光数据扩展", "depends_on": []},
+    {"id": "M3", "title": "体积介质", "depends_on": []},
+    {"id": "M4", "title": "OIT、平面反射与次表面散射", "depends_on": []},
+    {"id": "M5", "title": "HybridGI Editor 产品接入与实际回退诊断", "depends_on": []},
+    {"id": "M6", "title": "HybridGI broad/full 验证", "depends_on": ["M5"]}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. -->
+
 ## 目标
 
 在骨架层(01–08)与能力层(09–16)契约之上,以**相互独立、可单独启停的 feature** 形式补齐进阶光照与透明特性:每项经 RenderFeature descriptor 接入 graph,关闭时 compiled graph 不含对应 pass,默认全部关闭,不改变既有计划的任何契约定义。收录七项机制:
@@ -390,3 +408,12 @@ WGSL include 只暴露函数与 struct(index §8.3):`zr_volumetric_apply(color, 
 - fixed 已修复：[hybrid-gi-project-fixture-api-drift](18/fixed-2026-07-13-hybrid-gi-project-fixture-api-drift.md)
 - fixed 已修复：[navigation-runtime-driver-manager-layering](18/fixed-2026-07-13-navigation-runtime-driver-manager-layering.md)
 - fixed 已修复：[derived-reflection-visibility-compilation](18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)
+- fixed 已修复：[standard-pbr-transmission-render-queue-root-export-drift](../../zircon_editor/editor/02/fixed-2026-07-14-standard-pbr-transmission-render-queue-root-export-drift.md)
+- fixed 已修复：[advanced-pbr-transparent-selection-uninitialized](../../zircon_editor/editor/02/fixed-2026-07-14-advanced-pbr-transparent-selection-uninitialized.md)
+- fixed 已修复：[irradiance-volume-shader-ide-validation-dependency](../../zircon_editor/editor/07/fixed-2026-07-15-irradiance-volume-shader-ide-validation-dependency.md)
+- fixed 已修复：[deferred-lighting-nested-include-resolution](../shader/06/fixed-2026-07-15-deferred-lighting-nested-include-resolution.md)
+- fixed 已修复：[volumetric-fog-component-id-export-drift](../../zircon_editor/editor/03/fixed-2026-07-15-volumetric-fog-component-id-export-drift.md)
+- fixed 已修复：[control-prop-ref-validation-runtime-gate](18/fixed-2026-07-15-control-prop-ref-validation-runtime-gate.md)
+  - owner evidence: Plugins05 managed focused 6/6 and Runtime UI upward compile exit 0.
+- fixed 已修复：[mesh-template-pipeline-layout-binding-drift](../runtime/15/fixed-2026-07-15-mesh-template-pipeline-layout-binding-drift.md)
+- fixed 已修复：[rich-text-dto-render18-retest-gate](18/fixed-2026-07-15-rich-text-dto-render18-retest-gate.md)

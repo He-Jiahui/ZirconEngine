@@ -1,15 +1,13 @@
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::render_batch::GlyphAtlasDrawBatchKey;
-use crate::graphics::text::atlas::render_contract::{
-    GlyphAtlasBlendMode, GlyphAtlasRenderContract,
-};
-use crate::graphics::text::atlas::render_gpu_plan::{
+use crate::text::atlas::render_batch::GlyphAtlasDrawBatchKey;
+use crate::text::atlas::render_contract::{GlyphAtlasBlendMode, GlyphAtlasRenderContract};
+use crate::text::atlas::render_gpu_plan::{
     glyph_atlas_gpu_bind_group_layout, glyph_atlas_gpu_draw_command,
     glyph_atlas_gpu_pipeline_contract, glyph_atlas_gpu_vertex_buffer_layout, GlyphAtlasGpuBatch,
     GlyphAtlasGpuDrawPlan, GlyphAtlasGpuPipelineKey, GlyphAtlasGpuPrimitiveTopology,
     GlyphAtlasGpuVertex,
 };
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     glyph_atlas_upload_command, GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
     GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapStagedUpload,
     GlyphAtlasBitmapStagedUploadPlan, GlyphAtlasBitmapUploadStagingPlan, GlyphAtlasFormat,

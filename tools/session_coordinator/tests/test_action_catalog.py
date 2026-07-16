@@ -25,6 +25,8 @@ class ActionCatalogTests(unittest.TestCase):
                 ActionKind.SERVICE_STOP,
                 ActionKind.SERVICE_RESTART,
                 ActionKind.SERVICE_FORCE_STOP,
+                ActionKind.MAINTENANCE_CLEANUP,
+                ActionKind.MILESTONE_RECONCILE,
             },
             enabled_red,
         )
@@ -81,6 +83,49 @@ class ActionCatalogTests(unittest.TestCase):
                 {"sessionId": "session-a", "summary": "incomplete browser payload"}
             )
 
+    def test_commit_lifecycle_accepts_slice_ids_without_widening_reconciliation(self) -> None:
+        validation = action_spec(ActionKind.VALIDATION_START.value).parse_parameters(
+            {
+                "sessionId": "session-a",
+                "runId": "run-a",
+                "milestoneId": "M3.2",
+                "template": "coordinator-actions",
+            }
+        )
+        commit = action_spec(ActionKind.MILESTONE_COMMIT.value).parse_parameters(
+            {
+                "sessionId": "session-a",
+                "runId": "run-a",
+                "milestoneId": "M3.2",
+                "summary": "submit operation factory slice",
+            }
+        )
+        review = action_spec(ActionKind.TOPOLOGY_REFRESH.value).parse_parameters(
+            {
+                "sessionId": "reviewer-b",
+                "executorSessionId": "session-a",
+                "runId": "run-a",
+                "milestoneId": "M3.2",
+                "criticalCount": 0,
+                "importantCount": 0,
+                "summary": "slice accepted",
+            }
+        )
+
+        self.assertEqual("M3.2", validation.milestone_id)
+        self.assertEqual("M3.2", commit.milestone_id)
+        self.assertEqual("M3.2", review.milestone_id)
+        for invalid in ("M0.1", "M3.0", "M3.2.1"):
+            with self.assertRaises(CoordinatorError):
+                action_spec(ActionKind.MILESTONE_COMMIT.value).parse_parameters(
+                    {
+                        "sessionId": "session-a",
+                        "runId": "run-a",
+                        "milestoneId": invalid,
+                        "summary": "invalid slice",
+                    }
+                )
+
     def test_lifecycle_parameters_are_service_scoped_and_bounded(self) -> None:
         for kind in (
             ActionKind.SERVICE_DRAIN,
@@ -112,6 +157,36 @@ class ActionCatalogTests(unittest.TestCase):
             {"path": "C:/Users/private/.codex"},
             {"threadId": "thread-one"},
             {"payload": {"prompt": "secret"}},
+        ):
+            with self.assertRaises(CoordinatorError):
+                spec.parse_parameters(payload)
+
+    def test_milestone_reconcile_is_maintainer_only_and_requires_exact_runs(self) -> None:
+        spec = action_spec(ActionKind.MILESTONE_RECONCILE.value)
+
+        self.assertEqual(WebControlRole.MAINTAINER, spec.required_role)
+        self.assertFalse(spec.session_bound)
+        parsed = spec.parse_parameters(
+            {
+                "sourceRunId": "source-run",
+                "targetRunId": "target-run",
+                "milestoneIds": ["M3", "M4"],
+            }
+        )
+        self.assertEqual(
+            {
+                "sourceRunId": "source-run",
+                "targetRunId": "target-run",
+                "milestoneIds": ["M3", "M4"],
+            },
+            parsed.to_payload(),
+        )
+        for payload in (
+            {"sourceRunId": "same", "targetRunId": "same", "milestoneIds": ["M3"]},
+            {"sourceRunId": "source", "targetRunId": "target", "milestoneIds": ["M3", "M3"]},
+            {"sourceRunId": "source", "targetRunId": "target", "milestoneIds": ["M0"]},
+            {"sourceRunId": "source", "targetRunId": "target", "milestoneIds": ["M3.1"]},
+            {"sourceRunId": "source", "targetRunId": "target", "milestoneIds": ["M3"], "path": "x"},
         ):
             with self.assertRaises(CoordinatorError):
                 spec.parse_parameters(payload)

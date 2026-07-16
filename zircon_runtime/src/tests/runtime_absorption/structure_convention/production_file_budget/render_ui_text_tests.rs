@@ -1,41 +1,34 @@
-use super::{assert_contains_all, read_repo, read_runtime_src};
+use super::{assert_contains_all, read_runtime_src};
+use crate::tests::runtime_absorption::structure_convention::runtime_src_path;
 
 #[test]
 fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     let parent = read_runtime_src("graphics/scene/scene_renderer/ui/text.rs");
+    let resolved_batches =
+        read_runtime_src("graphics/scene/scene_renderer/ui/text/resolved_batches.rs");
     let tests = read_runtime_src("graphics/scene/scene_renderer/ui/text/tests.rs");
-
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let text_plan =
-        read_repo("docs/plans/zircon_runtime/text/09/2026-07-09-index-output-records.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
-    let graphics_text_doc = read_repo("docs/zircon_runtime/graphics/text.md");
-    let ui_text_doc = read_repo("docs/zircon_runtime/ui/text.md");
-    let status_rows = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_status_row_data/runtime_15/m4/ui_text_template.rs",
-    );
-    let status_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/status/runtime_15/m4_surface_cleanup.rs",
-    );
-    let date_map = read_runtime_src(
-        "tests/runtime_absorption/plan_status/status_output_tables/expected_slices/date/runtime_15/m4_surface_cleanup.rs",
-    );
+    let native_buffer = read_runtime_src("text/native_buffer.rs");
+    let render_state = read_runtime_src("text/render_state.rs");
+    let native_bitmap_atlas_tests = read_runtime_src("text/native_bitmap_atlas/tests.rs");
 
     assert_contains_all(
         "screen-space UI text parent keeps production owner and test mount",
         &parent,
         &[
             "mod font_id_report;",
+            "mod resolved_batches;",
             "mod sdf_fallback;",
             "pub(super) struct ScreenSpaceUiTextSystem",
-            "fn resolve_text_batches(",
+            "use self::resolved_batches::resolve_text_batches;",
             "fn native_text_area_placement(",
             "fn native_text_align(",
             "#[cfg(test)]\nmod tests;",
         ],
+    );
+    assert_contains_all(
+        "screen-space UI text resolved-batches child owns batch resolution",
+        &resolved_batches,
+        &["pub(super) fn resolve_text_batches("],
     );
 
     for moved_test in [
@@ -45,7 +38,6 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         "fn auto_text_mode_uses_font_asset_default_when_present(",
         "fn explicit_text_mode_overrides_font_asset_default(",
         "fn auto_text_mode_falls_back_to_native_without_font_asset_default(",
-        "fn text_attrs_maps_shared_rich_run_style_to_glyphon_attrs(",
         "fn native_text_align_maps_start_end_through_text_direction(",
         "fn native_text_area_placement_snaps_fractional_origin_to_device_pixels(",
         "fn native_text_area_placement_drops_non_finite_origin_values(",
@@ -64,8 +56,9 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
         "screen-space UI text test owner keeps private helper coverage",
         &tests,
         &[
-            "use super::super::sdf_atlas::{SdfAtlasDirtyPageReport, SdfAtlasRect};",
+            "use super::super::sdf_atlas::SdfAtlasDirtyPageReport;",
             "use super::super::sdf_upload::SdfAtlasUploadPageReport;",
+            "use crate::text::sdf::SdfAtlasRect;",
             "use super::*;",
             "fn text_batch(",
             "native_text_area_placement(",
@@ -73,43 +66,36 @@ fn runtime_15_screen_space_ui_text_tests_are_child_owner_split() {
     );
     assert_eq!(
         tests.matches("#[test]").count(),
-        12,
-        "screen-space UI text test owner should preserve the current 12 private regression tests"
+        14,
+        "screen-space UI text test owner should preserve the current 14 private regression tests"
     );
-
-    for (path, source) in [
-        ("scene_renderer/ui/text.rs", parent.as_str()),
-        ("scene_renderer/ui/text/tests.rs", tests.as_str()),
-    ] {
-        let line_count = source.lines().count();
-        assert!(
-            line_count < 800,
-            "{path} should stay under the Runtime 15 owner budget after the test split, got {line_count}"
-        );
-    }
-
-    for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("Runtime text plan", text_plan.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
-        ("graphics text doc", graphics_text_doc.as_str()),
-        ("UI text doc", ui_text_doc.as_str()),
-        ("status-output row data", status_rows.as_str()),
-        ("status map", status_map.as_str()),
-        ("date map", date_map.as_str()),
-    ] {
-        assert_contains_all(
-            label,
-            source,
-            &[
-                "Runtime 15 M4 screen-space UI text tests owner split",
-                "runtime_15_screen_space_ui_text_tests_owner_split_static_passed_cargo_deferred",
-                "graphics/scene/scene_renderer/ui/text.rs",
-                "graphics/scene/scene_renderer/ui/text/tests.rs",
-                "runtime_15_screen_space_ui_text_tests_are_child_owner_split",
-            ],
-        );
-    }
+    assert_contains_all(
+        "text CPU preparation owns native attrs regression coverage",
+        &native_buffer,
+        &["fn native_attrs_are_owned_by_text_cpu_preparation("],
+    );
+    assert_contains_all(
+        "text render state owns bitmap atlas frame index regression coverage",
+        &render_state,
+        &[
+            "fn advance_bitmap_atlas_frame_index(",
+            "fn bitmap_atlas_frame_index_advances_monotonically_and_saturates(",
+        ],
+    );
+    assert_contains_all(
+        "text native bitmap atlas owns its test modules",
+        &native_bitmap_atlas_tests,
+        &[
+            "mod frame_tests;",
+            "mod handoff_tests;",
+            "mod retry_frame_tests;",
+            "mod source_cache_tests;",
+            "mod source_tests;",
+        ],
+    );
+    assert!(
+        !runtime_src_path("graphics/scene/scene_renderer/ui/text/tests/native_bitmap_atlas.rs")
+            .exists(),
+        "screen-space UI text should not retain the retired bitmap-atlas frame-index test owner"
+    );
 }

@@ -14,7 +14,8 @@ impl ResourceStreamer {
         self.material(id)
             .map(|material| material.capture_seed())
             .or_else(|| {
-                self.asset_manager
+                self.asset_manager()
+                    .ok()?
                     .load_material_asset(*id)
                     .ok()
                     .map(|material| {
@@ -97,7 +98,8 @@ impl ResourceStreamer {
 
     pub(crate) fn sample_texture_rgba(&self, id: Option<ResourceId>, uv: [f32; 2]) -> Option<Vec4> {
         id.and_then(|texture_id| {
-            self.asset_manager
+            self.asset_manager()
+                .ok()?
                 .load_texture_asset(texture_id)
                 .ok()
                 .and_then(|texture| sample_texture_asset_rgba(&texture, uv))

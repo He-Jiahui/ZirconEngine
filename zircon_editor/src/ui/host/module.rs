@@ -2,8 +2,9 @@
 
 use std::sync::Arc;
 
-use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
-use zircon_runtime::asset::{ASSET_MODULE_NAME, PROJECT_ASSET_MANAGER_NAME};
+use zircon_runtime::asset::{project_asset_manager_handle, ASSET_MODULE_NAME};
+use zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME;
+use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
@@ -11,13 +12,12 @@ use zircon_runtime::core::{
 };
 use zircon_runtime::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
-use zircon_runtime::graphics::GRAPHICS_MODULE_NAME;
 use zircon_runtime::scene::SCENE_MODULE_NAME;
 use zircon_runtime::ui::UI_MODULE_NAME;
 
 use crate::core::commands::{EditorCommandRegistryHandle, EditorKeymap};
 use crate::ui::host::editor_asset_manager::{
-    DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManagerHandle,
+    DefaultEditorAssetManager as EditorAssetManagerService, EditorAssetManager,
 };
 use crate::ui::host::EditorManager;
 
@@ -74,12 +74,16 @@ pub fn module_descriptor() -> ModuleDescriptor {
             "ProjectAssetManager",
         )],
         factory(|core| {
-            let project_assets =
-                core.resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)?;
-            let manager = Arc::new(EditorAssetManagerService::with_project_asset_manager(
+            let project_assets = project_asset_manager_handle(core)?;
+            let manager = Arc::new(EditorAssetManagerService::with_runtime_project_manager(
+                core.clone(),
                 project_assets,
             ));
-            Ok(Arc::new(EditorAssetManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn EditorAssetManager>::new(
+                    manager,
+                )) as ServiceObject,
+            )
         }),
     ))
     .with_manager(ManagerDescriptor::new(

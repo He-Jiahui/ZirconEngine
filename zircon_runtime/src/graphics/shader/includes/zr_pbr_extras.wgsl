@@ -149,15 +149,27 @@ fn zr_pbr_advanced_environment(
         * clamp(surface.occlusion, 0.0, 1.0);
 }
 
+fn zr_pbr_viewport_uv(world_position: vec3<f32>) -> vec2<f32> {
+    let clip_position = scene.view_proj * vec4<f32>(world_position, 1.0);
+    let w_sign = select(-1.0, 1.0, clip_position.w >= 0.0);
+    let safe_w = w_sign * max(abs(clip_position.w), ZR_PBR_EXTRAS_EPSILON);
+    let ndc = clip_position.xy / safe_w;
+    return clamp(
+        vec2<f32>(ndc.x * 0.5 + 0.5, 0.5 - ndc.y * 0.5),
+        vec2<f32>(0.0),
+        vec2<f32>(1.0),
+    );
+}
+
 fn zr_pbr_screen_space_transmission(
     surface: ZrSurfaceOutput,
-    fragment_position: vec2<f32>,
+    world_position: vec3<f32>,
     environment_lighting: vec3<f32>,
 ) -> vec3<f32> {
     if (!ZR_FEATURE_PBR_TRANSMISSION || surface.specular_transmission <= 0.0) {
         return vec3<f32>(0.0);
     }
-    let base_uv = zr_volumetric_uv(fragment_position);
+    let base_uv = zr_pbr_viewport_uv(world_position);
     let refraction_scale = max(surface.ior - 1.0, 0.0)
         * max(surface.thickness, 0.0)
         * 0.02;

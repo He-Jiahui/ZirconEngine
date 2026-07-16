@@ -4,9 +4,14 @@ use crate::core::{sort_module_activation_order, CoreError, LifecycleState};
 
 use super::super::super::descriptors::{ModuleDescriptor, RegistryName};
 use super::super::CoreHandle;
+use super::service_lifecycle::{
+    prepare_reactivation_services, rollback_reactivation_services, validate_reactivation_services,
+};
 
 struct BatchModuleActivation {
     module_name: String,
+    previous_lifecycle: LifecycleState,
+    service_names: Box<[RegistryName]>,
     startup_service_names: Box<[RegistryName]>,
 }
 
@@ -27,7 +32,10 @@ impl CoreHandle {
         }
 
         let mut built_module_count = 0;
+        let mut reactivation_services_prepared = false;
         let result = (|| {
+            reactivation_services_prepared =
+                self.prepare_batch_reactivation_services(&pending_modules)?;
             for pending_module in &pending_modules {
                 self.build_module(&pending_module.module_name)?;
                 built_module_count += 1;
@@ -61,7 +69,7 @@ impl CoreHandle {
         if let Err(activation_error) = result {
             let rollback_errors =
                 self.cleanup_built_batch_modules(&pending_modules[..built_module_count]);
-            self.reset_batch_started_services(&pending_modules);
+            self.reset_batch_services(&pending_modules, reactivation_services_prepared);
             self.reset_batch_initializing_modules(&pending_modules);
             return Err(CoreError::module_batch_activation_failed(
                 activation_error,
@@ -99,28 +107,76 @@ impl CoreHandle {
             if entry.lifecycle == LifecycleState::Running {
                 continue;
             }
+            let previous_lifecycle = entry.lifecycle;
             entry.lifecycle = LifecycleState::Initializing;
             pending_modules.push(BatchModuleActivation {
                 module_name: module_name.clone(),
+                previous_lifecycle,
+                service_names: entry.service_names.as_ref().into(),
                 startup_service_names: entry.startup_service_names.as_ref().into(),
             });
         }
         Ok(pending_modules)
     }
 
-    fn reset_batch_started_services(&self, pending_modules: &[BatchModuleActivation]) {
+    fn prepare_batch_reactivation_services(
+        &self,
+        pending_modules: &[BatchModuleActivation],
+    ) -> Result<bool, CoreError> {
+        let has_reactivation = pending_modules
+            .iter()
+            .any(|pending| pending.previous_lifecycle == LifecycleState::Unloaded);
+        if !has_reactivation {
+            return Ok(false);
+        }
+
         let mut services = self.lock_services();
         for pending_module in pending_modules {
+            if pending_module.previous_lifecycle == LifecycleState::Unloaded {
+                validate_reactivation_services(&services, &pending_module.service_names)?;
+            }
+        }
+        for pending_module in pending_modules {
+            if pending_module.previous_lifecycle == LifecycleState::Unloaded {
+                prepare_reactivation_services(&mut services, &pending_module.service_names);
+            }
+        }
+        drop(services);
+        self.notify_service_resolution_changed();
+        Ok(true)
+    }
+
+    fn reset_batch_services(
+        &self,
+        pending_modules: &[BatchModuleActivation],
+        reactivation_services_prepared: bool,
+    ) {
+        let mut services = self.lock_services();
+        let mut changed = false;
+        for pending_module in pending_modules {
+            if pending_module.previous_lifecycle == LifecycleState::Unloaded {
+                if reactivation_services_prepared {
+                    changed |= rollback_reactivation_services(
+                        &mut services,
+                        &pending_module.service_names,
+                    );
+                }
+                continue;
+            }
             for service_name in &pending_module.startup_service_names {
                 if let Some(entry) = services.get_mut(service_name) {
                     if entry.lifecycle == LifecycleState::Running
                         || entry.lifecycle == LifecycleState::Initializing
                     {
-                        entry.instance = None;
-                        entry.lifecycle = LifecycleState::Registered;
+                        entry.reset_after_failed_activation();
+                        changed = true;
                     }
                 }
             }
+        }
+        drop(services);
+        if changed {
+            self.notify_service_resolution_changed();
         }
     }
 
@@ -144,7 +200,7 @@ impl CoreHandle {
         for pending_module in pending_modules {
             if let Some(entry) = modules.get_mut(&pending_module.module_name) {
                 if entry.lifecycle == LifecycleState::Initializing {
-                    entry.lifecycle = LifecycleState::Registered;
+                    entry.lifecycle = pending_module.previous_lifecycle;
                 }
             }
         }

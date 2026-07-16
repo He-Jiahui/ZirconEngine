@@ -4,6 +4,7 @@ use zircon_runtime_interface::reflect::{ReflectObjectAddress, ReflectReadRequest
 use zircon_runtime_interface::resource::{MaterialMarker, ModelMarker, ResourceHandle};
 
 use crate::core::editing::command::{EditorCommand, NodeEditState};
+use crate::core::editing::history::HistorySelectionSnapshot;
 use crate::core::editing::intent::EditorIntent;
 
 use super::editor_state::EditorState;
@@ -17,7 +18,7 @@ const LOCAL_TRANSFORM_COMPONENT_TYPE_PATH: &str =
 
 impl EditorState {
     pub fn delete_selected(&mut self) -> Result<bool, String> {
-        let selected = self.viewport_controller.selected_node();
+        let selected = self.viewport_controller.selection().active_primary();
         let Some(node_id) = selected else {
             self.status_line = "Nothing selected".to_string();
             return Ok(false);
@@ -28,7 +29,8 @@ impl EditorState {
     pub fn apply_inspector_changes(&mut self) -> Result<bool, String> {
         let selected = self
             .viewport_controller
-            .selected_node()
+            .selection()
+            .active_primary()
             .and_then(|node_id| {
                 self.world
                     .try_with_world(|scene| scene.find_node(node_id).map(|_| node_id))
@@ -50,7 +52,7 @@ impl EditorState {
         let mut reflected_updates =
             self.prepare_reflected_node_updates(parent, Vec3::new(x, y, z))?;
         reflected_updates.extend(self.prepare_reflected_component_updates(node_id)?);
-        let selected = self.viewport_controller.selected_node();
+        let selected = self.viewport_controller.selection().active_primary();
         let mut commands = Vec::new();
 
         for update in reflected_updates {
@@ -166,7 +168,12 @@ impl EditorState {
         material: ResourceHandle<MaterialMarker>,
         display_path: impl Into<String>,
     ) -> Result<bool, String> {
-        let selected = self.viewport_controller.selected_node();
+        let selection = self.viewport_controller.selection();
+        let selected = selection.active_primary();
+        let selection_before = HistorySelectionSnapshot::new(
+            selection.active_items().iter().copied().collect(),
+            selected,
+        );
         let command = self
             .world
             .try_with_world_mut(|scene| {
@@ -176,8 +183,15 @@ impl EditorState {
         let id = command.target_node();
         self.mesh_import_path = display_path.into();
         self.viewport_controller
-            .set_selected_node(command.selection_after());
-        self.history.push(command);
+            .selection_mut()
+            .select_only_active(command.target_node());
+        let selection = self.viewport_controller.selection();
+        let selection_after = HistorySelectionSnapshot::new(
+            selection.active_items().iter().copied().collect(),
+            selection.active_primary(),
+        );
+        self.history
+            .push_with_selection(command, selection_before, selection_after);
         self.sync_selection_state();
         self.status_line = format!("Imported mesh node {id}");
         Ok(true)
@@ -186,7 +200,8 @@ impl EditorState {
     pub(crate) fn sync_selection_state(&mut self) {
         let selected_state = self
             .viewport_controller
-            .selected_node()
+            .selection()
+            .active_primary()
             .and_then(|selected| {
                 self.world
                     .try_with_world(|scene| {

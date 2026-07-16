@@ -13,8 +13,8 @@ use zircon_plugin_navigation_recast::RecastBackend;
 use zircon_runtime::core::framework::navigation::{
     NavAgentTickReport, NavMeshAsset, NavMeshBakeReport, NavMeshBakeRequest, NavMeshHandle,
     NavPathQuery, NavPathResult, NavQueryFilter, NavRaycastQuery, NavRaycastResult, NavSampleHit,
-    NavSampleQuery, NavigationError, NavigationManager, NavigationRuntimeStats,
-    NavigationSettingsAsset, DEFAULT_AGENT_TYPE,
+    NavSampleQuery, NavigationError, NavigationGeneratedBakeSnapshot, NavigationManager,
+    NavigationRuntimeStats, NavigationSettingsAsset, DEFAULT_AGENT_TYPE,
 };
 use zircon_runtime::core::framework::tasks::TaskPoolDescriptor;
 use zircon_runtime::core::math::Real;
@@ -113,22 +113,27 @@ impl DefaultNavigationManager {
             zircon_plugin_navigation_recast::RecastTiledBakePlan,
             NavMeshAsset,
         )>,
+        generated_snapshot: NavigationGeneratedBakeSnapshot,
         diagnostics: Vec<zircon_runtime::core::framework::navigation::NavMeshBakeDiagnostic>,
         counts: (usize, usize, usize),
     ) -> Result<(), NavigationError> {
         let mut state = self.lock_state();
-        let context = state.bake_contexts.entry(surface).or_default();
-        if context.current_generation != generation {
-            return Err(NavigationError::new(
-                zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
-                "navigation bake result was superseded by a newer request",
-            ));
+        {
+            let context = state.bake_contexts.entry(surface).or_default();
+            if context.current_generation != generation {
+                return Err(NavigationError::new(
+                    zircon_runtime::core::framework::navigation::NavigationErrorKind::InvalidConfiguration,
+                    "navigation bake result was superseded by a newer request",
+                ));
+            }
+            context.last_tiled_bake =
+                tiled_bake.map(|(identity, plan, asset)| state::LastTiledBake {
+                    identity,
+                    plan,
+                    asset,
+                });
         }
-        context.last_tiled_bake = tiled_bake.map(|(identity, plan, asset)| state::LastTiledBake {
-            identity,
-            plan,
-            asset,
-        });
+        state.replace_generated_snapshot(generated_snapshot);
         state.bake_diagnostics = diagnostics;
         state.stats.active_obstacles = counts.0;
         state.stats.active_off_mesh_links = counts.1;
@@ -168,6 +173,7 @@ impl DefaultNavigationManager {
         crate::settings_validation::validate_navigation_settings(&settings)?;
         let mut state = self.lock_state();
         state.settings = settings;
+        state.clear_generated_snapshots();
         state.crowds.clear();
         state.obstacle_worlds.clear();
         state.off_mesh_traversal = traversal::OffMeshTraversalRuntime::default();
@@ -259,6 +265,21 @@ impl SceneNavigationRuntime for DefaultNavigationManager {
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
         DefaultNavigationManager::bake_surface(self, world, request)
+    }
+
+    fn generated_bake_snapshot(
+        &self,
+        surface_entity: Option<u64>,
+    ) -> NavigationGeneratedBakeSnapshot {
+        self.lock_state().generated_snapshot(surface_entity)
+    }
+
+    fn replace_generated_bake_snapshot(
+        &self,
+        snapshot: NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), NavigationError> {
+        self.lock_state().replace_generated_snapshot(snapshot);
+        Ok(())
     }
 
     fn tick_world_agents(

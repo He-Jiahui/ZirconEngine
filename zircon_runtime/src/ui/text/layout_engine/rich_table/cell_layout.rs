@@ -1,5 +1,5 @@
-use crate::core::framework::render::RichTableCell;
 use crate::core::math::Vec4;
+use crate::text::RichTableCell;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
     style::UiRgbaColor,

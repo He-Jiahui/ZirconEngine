@@ -26,6 +26,23 @@ fn deferred_lighting_shader_applies_integrated_volumetric_lighting() {
 }
 
 #[test]
+fn deferred_lighting_shader_variant_removes_volumetric_bindings_when_disabled() {
+    let disabled = assemble_deferred_lighting_shader_source(
+        DeferredLightingShaderSourceRequest::new().with_volumetric_enabled(false),
+    )
+    .expect("disabled volumetric deferred source");
+    let enabled = assemble_deferred_lighting_shader_source(
+        DeferredLightingShaderSourceRequest::new().with_volumetric_enabled(true),
+    )
+    .expect("enabled volumetric deferred source");
+
+    for binding in ["@binding(25)", "@binding(26)", "@binding(27)"] {
+        assert!(!disabled.contains(binding));
+        assert!(enabled.contains(binding));
+    }
+}
+
+#[test]
 fn deferred_lighting_shader_accepts_baked_indirect_from_gbuffer_emissive() {
     for expected in [
         "@group(1) @binding(23)",

@@ -6,7 +6,7 @@ use super::ResourceStreamer;
 
 impl ResourceStreamer {
     pub(crate) fn resource_revision(&self, id: ResourceId) -> Result<u64, GraphicsError> {
-        self.asset_manager
+        self.asset_manager()?
             .resource_manager()
             .registry()
             .get(id)

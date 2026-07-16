@@ -1,11 +1,24 @@
 from __future__ import annotations
 
 import os
+import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 
 
-DEFAULT_COORDINATOR_PORT = 65189
+# The shared ZirconEngine coordinator is a single local service. Keep its
+# loopback endpoint stable so the browser, tray and Codex Hook have one URL.
+# Isolated test coordinators explicitly request port 0.
+DEFAULT_COORDINATOR_PORT = 6518
+
+
+def _normalize_windows_extended_path(value: str | Path) -> str | Path:
+    raw = os.fspath(value)
+    if raw.startswith("\\\\?\\UNC\\"):
+        return "\\\\" + raw[8:]
+    if raw.startswith("\\\\?\\"):
+        return raw[4:]
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -23,6 +36,7 @@ class CoordinatorConfig:
     codex_spool_base: Path | None = None
     codex_membership_interval_seconds: float = 30.0
     codex_full_interval_seconds: float = 900.0
+    isolated_state: bool = False
 
     @classmethod
     def for_repo(
@@ -39,7 +53,7 @@ class CoordinatorConfig:
         codex_membership_interval_seconds: float = 30.0,
         codex_full_interval_seconds: float = 900.0,
     ) -> "CoordinatorConfig":
-        resolved_repo = Path(repo_root).resolve()
+        resolved_repo = Path(_normalize_windows_extended_path(repo_root)).resolve()
         resolved_state = (
             Path(state_root).resolve()
             if state_root is not None
@@ -78,6 +92,7 @@ class CoordinatorConfig:
             codex_spool_base=resolved_spool,
             codex_membership_interval_seconds=codex_membership_interval_seconds,
             codex_full_interval_seconds=codex_full_interval_seconds,
+            isolated_state=isolated,
         )
 
     @property
@@ -105,6 +120,21 @@ class CoordinatorConfig:
         return self.state_root / "workflow-artifacts"
 
     @property
+    def cargo_run_log_root(self) -> Path:
+        return self.state_root / "cargo-runs"
+
+    @property
+    def offline_command_queue_root(self) -> Path:
+        """Durable local handoff for safe CLI work while the daemon is unavailable."""
+        return self.state_root / "offline-command-queue"
+
+    @property
+    def repository_key(self) -> str:
+        """Use the same normalized repository identity as the Windows launcher."""
+        identity = str(self.repo_root).replace("/", "\\").rstrip("\\").casefold()
+        return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+    @property
     def control_web_dist_root(self) -> Path:
         return self.repo_root / "tools" / "session_coordinator" / "web" / "dist"
 
@@ -119,3 +149,8 @@ class CoordinatorConfig:
                     for name in ("cargo-targets", "targets", "ZirconBuilds")
                 )
         return tuple(roots)
+
+    @property
+    def unmanaged_artifact_sweep_enabled(self) -> bool:
+        """Avoid touching host D/E/F artifacts from isolated test coordinators."""
+        return not self.isolated_state

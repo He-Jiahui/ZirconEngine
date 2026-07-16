@@ -2,7 +2,9 @@
 
 mod host;
 
-use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
+use crate::core::framework::render::{
+    GeometrySourceDescriptor, ShadingModelDescriptor, GRAPHICS_MODULE_NAME,
+};
 use crate::engine_module::{EngineModule, ModuleDescriptor};
 use crate::graphics::{
     HybridGiRuntimeProviderRegistration, RenderFeatureDescriptor, RenderPassExecutorRegistration,
@@ -11,8 +13,8 @@ use crate::graphics::{
 };
 
 pub use host::{
-    module_descriptor, module_descriptor_with_render_features, GRAPHICS_MODULE_NAME,
-    RENDERING_MANAGER_NAME, RENDER_FRAMEWORK_NAME,
+    module_descriptor, module_descriptor_with_render_features, RENDERING_MANAGER_NAME,
+    RENDER_FRAMEWORK_NAME,
 };
 
 #[derive(Clone, Debug, Default)]

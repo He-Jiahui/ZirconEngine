@@ -1,10 +1,8 @@
 use glyphon::Buffer;
 
-use crate::core::framework::render::{
-    FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight,
-};
 use crate::graphics::scene::scene_renderer::ui::render::ScreenSpaceUiTextBatch;
-use crate::graphics::text::font::FontDatabase;
+use crate::text::font::FontDatabase;
+use crate::text::{FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight};
 use zircon_runtime_interface::ui::surface::{
     resolve_ui_text_render_mode, UiResolvedStyle, UiTextRenderMode,
 };
@@ -15,6 +13,21 @@ pub(crate) struct ScreenSpaceUiTextFontIdReport {
     pub(crate) glyph_count: usize,
     pub(crate) fallback_glyph_count: usize,
     pub(crate) unmapped_glyph_count: usize,
+}
+
+impl ScreenSpaceUiTextFontIdReport {
+    pub(super) fn accumulate(&mut self, report: crate::text::NativeTextFontIdReport) {
+        self.text_batch_count = self
+            .text_batch_count
+            .saturating_add(report.text_batch_count);
+        self.glyph_count = self.glyph_count.saturating_add(report.glyph_count);
+        self.fallback_glyph_count = self
+            .fallback_glyph_count
+            .saturating_add(report.fallback_glyph_count);
+        self.unmapped_glyph_count = self
+            .unmapped_glyph_count
+            .saturating_add(report.unmapped_glyph_count);
+    }
 }
 
 pub(super) fn accumulate_text_font_id_report(
@@ -37,7 +50,7 @@ pub(super) fn accumulate_text_font_id_report(
 fn accumulate_backend_glyphs(
     report: &mut ScreenSpaceUiTextFontIdReport,
     buffer: &Buffer,
-    primary: crate::core::framework::render::FontFaceId,
+    primary: crate::text::FontFaceId,
     font_database: &FontDatabase,
 ) {
     let mut glyph_count = 0;
@@ -102,7 +115,7 @@ mod tests {
     use glyphon::{Attrs, Buffer, FontSystem, Metrics, Shaping};
 
     use super::{accumulate_backend_glyphs, ScreenSpaceUiTextFontIdReport};
-    use crate::graphics::text::font::FontDatabase;
+    use crate::text::font::FontDatabase;
 
     #[test]
     fn native_font_id_report_uses_actual_layout_glyph_face() {

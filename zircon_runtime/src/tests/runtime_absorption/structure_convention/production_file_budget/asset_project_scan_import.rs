@@ -8,7 +8,7 @@ fn runtime_15_asset_project_scan_import_sources_are_child_owner() {
         read_runtime_src("asset/project/manager/scan_and_import/dependency_resolution.rs");
     let metadata = read_runtime_src("asset/project/manager/scan_and_import/metadata.rs");
     let runtime_15_output_records = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
     );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");

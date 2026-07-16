@@ -1,6 +1,4 @@
-use crate::graphics::text::atlas::{
-    GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapTextureUploadRequest,
-};
+use crate::text::atlas::{GlyphAtlasBitmapPageUploadStaging, GlyphAtlasBitmapTextureUploadRequest};
 
 use super::write::{write_glyph_atlas_texture_upload_bytes, GlyphAtlasTextureUploadWrite};
 

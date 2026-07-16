@@ -147,7 +147,7 @@ fn capture_scene(
     let model = register_fixture_plane(&asset_manager);
     let material = register_fixture_material(&asset_manager);
     let environment = register_fixture_environment(&asset_manager, baked_lighting);
-    let framework = WgpuRenderFramework::new(asset_manager)
+    let framework = WgpuRenderFramework::new_for_test(asset_manager)
         .expect("WGPU framework should initialize for baked-lighting product scene");
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(PRODUCT_SIZE))

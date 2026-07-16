@@ -124,6 +124,7 @@ pub(crate) fn build_mesh_draws(
     streamer: &ResourceStreamer,
     frame: &ViewportRenderFrame,
     virtual_geometry_enabled: bool,
+    volumetric_fog_enabled: bool,
     shadow_light_slots: Option<&ShadowLightSlotAssignments>,
     command_cache_extraction: Option<PendingMeshCommandCacheExtractionContext<'_>>,
 ) -> BuiltMeshDraws {
@@ -139,6 +140,9 @@ pub(crate) fn build_mesh_draws(
             mesh_instance.snapshot,
             mesh_instance.command_sort_input,
         );
+    }
+    for pending_draw in &mut pending_draws {
+        pending_draw.pipeline_key.volumetric_fog = volumetric_fog_enabled;
     }
     let indirect_plan = build_virtual_geometry_indirect_draw_plan(
         device,

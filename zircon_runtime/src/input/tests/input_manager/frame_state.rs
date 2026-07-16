@@ -91,7 +91,7 @@ fn input_snapshot_just_pressed_is_true_for_exactly_one_frame() {
 
 #[test]
 fn frame_input_clears_after_level_tick_not_before() {
-    let session_source = include_str!("../../../dynamic_api/session.rs");
+    let session_source = include_str!("../../../dynamic_api/session/state.rs");
     let tick_start = session_source
         .find("fn tick_frame(&mut self)")
         .expect("dynamic session should keep a tick_frame owner");
@@ -104,7 +104,7 @@ fn frame_input_clears_after_level_tick_not_before() {
         .find(".tick(&self.runtime.handle(), advance)")
         .expect("tick_frame should advance the loaded level");
     let clear_input = tick_body
-        .find("self.input_manager.begin_frame()")
+        .find(".begin_frame();")
         .expect("tick_frame should clear frame-local input through begin_frame");
 
     assert!(

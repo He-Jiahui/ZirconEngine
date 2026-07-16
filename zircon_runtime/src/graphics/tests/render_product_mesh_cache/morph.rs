@@ -55,7 +55,7 @@ fn render_product_direct_mesh_active_morph_weights_use_gpu_morphed_source() {
         "product-direct-morph-mesh-v1",
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -208,7 +208,7 @@ fn capture_morph_parity_frame(
         );
     }
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(128, 128)))
         .unwrap();
@@ -267,7 +267,7 @@ fn capture_skinned_morph_parity_frame(
         );
     }
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(128, 128)))
         .unwrap();

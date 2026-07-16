@@ -1,6 +1,6 @@
 # Current Project Skills
 
-Updated: 2026-07-11
+Updated: 2026-07-15
 
 ## Shallow Tree
 
@@ -34,6 +34,9 @@ Updated: 2026-07-11
     workflow/
     reporting.md
     SKILL.md
+  zircon-engineering/
+    scripts/
+    SKILL.md
   zircon-project-skills/
     SKILL.md
     capture-hub-window-screenshot/
@@ -45,7 +48,9 @@ Updated: 2026-07-11
     handle-plan-failure-handoffs/
     layered-milestone-development/
     modularize-large-files/
+    prefer-windows-validation/
     support-first-regression-testing/
+    write-plan-output-records/
     zr-architecture-first-engineering/
     zr-hard-cutover-migrations/
     zr-language-feature-design/
@@ -69,6 +74,10 @@ Updated: 2026-07-11
 - `zircon-dev`
   Summary: Use when building, testing, refactoring, or debugging the `zirconEngine` Rust workspace, especially for Rust code, Cargo manifests, workspace wiring, or cross-crate boundaries that touch the `zircon_app`/`zircon_runtime`/`zircon_editor` root packages or the runtime-internal `core/{runtime,framework,manager,math,resource}` spine.
   Layout: Structured repository skill with a short root `SKILL.md`, focused child folders for `workflow/` and `validation/`, a dedicated `reporting.md`, plus reusable `references/`, `scripts/`, and `agents/` metadata.
+
+- `zircon-engineering`
+  Summary: Use when planning, implementing, or reviewing ZirconEngine work that needs the repository-standard delivery cadence, validation scope, and specialist-skill routing.
+  Layout: Compact default engineering entrypoint with capability tiers, a milestone-batched delivery loop, conditional specialist routing, and a static contract validator.
 
 - `zircon-project-skills`
   Summary: Route repository-local `zirconEngine` skills through a parent category index instead of scanning the whole project-specific skill collection.

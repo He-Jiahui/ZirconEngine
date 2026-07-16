@@ -199,14 +199,64 @@ pub struct ScenePostProcessSettingsAsset {
     pub effect_stack: ScenePostProcessEffectStackAsset,
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+pub struct SceneVolumetricFogSettingsAsset {
+    #[serde(default = "default_volumetric_density")]
+    pub density: Real,
+    #[serde(default = "default_color_white")]
+    pub albedo: [Real; 3],
+    #[serde(default = "default_volumetric_phase_g")]
+    pub phase_g: Real,
+    #[serde(default = "default_volumetric_height_falloff")]
+    pub height_falloff: Real,
+    #[serde(default = "default_one_real")]
+    pub scattering_intensity: Real,
+    #[serde(default = "default_volumetric_depth_distribution_exp")]
+    pub depth_distribution_exp: Real,
+    #[serde(default = "default_true")]
+    pub temporal: bool,
+}
+
+impl Default for SceneVolumetricFogSettingsAsset {
+    fn default() -> Self {
+        Self {
+            density: default_volumetric_density(),
+            albedo: default_color_white(),
+            phase_g: default_volumetric_phase_g(),
+            height_falloff: default_volumetric_height_falloff(),
+            scattering_intensity: default_one_real(),
+            depth_distribution_exp: default_volumetric_depth_distribution_exp(),
+            temporal: true,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct ScenePostProcessVolumeProfileAsset {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub volumetric_fog: Option<SceneVolumetricFogSettingsAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub bloom: Option<SceneBloomSettingsAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub color_grading: Option<SceneColorGradingSettingsAsset>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub effect_stack: Option<ScenePostProcessEffectStackAsset>,
+}
+
+fn default_volumetric_density() -> Real {
+    0.02
+}
+
+fn default_volumetric_phase_g() -> Real {
+    0.2
+}
+
+fn default_volumetric_height_falloff() -> Real {
+    0.1
+}
+
+fn default_volumetric_depth_distribution_exp() -> Real {
+    2.0
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]

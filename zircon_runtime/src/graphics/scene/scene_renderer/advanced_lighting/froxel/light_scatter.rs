@@ -1,7 +1,8 @@
 use bytemuck::{Pod, Zeroable};
 use wgpu::util::DeviceExt;
 
-use crate::core::framework::render::FroxelGridParams;
+use crate::core::framework::render::{FroxelGridParams, RenderAmbientLightSnapshot};
+use crate::core::math::Vec3;
 use crate::graphics::scene::scene_renderer::shadow::atlas::shadow_atlas_bind_group_layout_entries;
 
 use super::{FroxelViewReconstruction, GpuFroxelTemporalReprojection, GpuFroxelViewParams};
@@ -25,6 +26,7 @@ pub(crate) struct FroxelLightScatterRequest<'a> {
     pub grid: FroxelGridParams,
     pub view: FroxelViewReconstruction,
     pub phase_g: f32,
+    pub ambient_radiance: Vec3,
     pub viewport_size: [u32; 2],
     pub media_view: &'a wgpu::TextureView,
     pub history_view: &'a wgpu::TextureView,
@@ -168,7 +170,8 @@ impl FroxelLightScatterPipeline {
 struct GpuLightScatterParams {
     grid_and_light_count: [u32; 4],
     viewport_size: [u32; 4],
-    phase_g: [f32; 4],
+    // Reuse the original phase vector: x stores HG g, yzw store ambient radiance.
+    phase_and_ambient: [f32; 4],
     view: GpuFroxelViewParams,
     temporal: GpuFroxelTemporalReprojection,
 }
@@ -189,11 +192,47 @@ impl GpuLightScatterParams {
                 0,
                 0,
             ],
-            phase_g: [request.phase_g.clamp(-0.9, 0.9), 0.0, 0.0, 0.0],
+            phase_and_ambient: pack_phase_and_ambient(request.phase_g, request.ambient_radiance),
             view: GpuFroxelViewParams::new(request.view, grid)?,
             temporal: request.temporal,
         })
     }
+}
+
+/// Sums authored ambient radiance while rejecting negative and non-finite contributions.
+pub(crate) fn volumetric_ambient_radiance(
+    lights: &[RenderAmbientLightSnapshot],
+    lighting_enabled: bool,
+) -> Vec3 {
+    if !lighting_enabled {
+        return Vec3::ZERO;
+    }
+    lights.iter().fold(Vec3::ZERO, |accumulated, light| {
+        let radiance = light.color * light.intensity.max(0.0);
+        if !radiance.is_finite() {
+            return accumulated;
+        }
+        let candidate = accumulated + radiance.max(Vec3::ZERO);
+        if candidate.is_finite() {
+            candidate
+        } else {
+            accumulated
+        }
+    })
+}
+
+fn pack_phase_and_ambient(phase_g: f32, ambient_radiance: Vec3) -> [f32; 4] {
+    let ambient_radiance = if ambient_radiance.is_finite() {
+        ambient_radiance.max(Vec3::ZERO)
+    } else {
+        Vec3::ZERO
+    };
+    [
+        phase_g.clamp(-0.9, 0.9),
+        ambient_radiance.x,
+        ambient_radiance.y,
+        ambient_radiance.z,
+    ]
 }
 
 fn create_resources_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {

@@ -24,7 +24,7 @@ impl ResourceStreamer {
         }
 
         let texture = self
-            .asset_manager
+            .asset_manager()?
             .load_texture_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let resource = Arc::new(PostProcessLutTextureResource::from_rgba8_asset(

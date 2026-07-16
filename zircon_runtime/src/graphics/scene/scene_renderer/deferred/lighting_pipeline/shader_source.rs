@@ -26,6 +26,17 @@ const DEFERRED_UNLIT_INCLUDE: &str =
 const DEFERRED_SUBSURFACE_INCLUDE: &str =
     include_str!("../../../../shader/wgsl/zr_shade_deferred_subsurface.wgsl");
 const DEFERRED_LIGHTING_TEMPLATE: &str = include_str!("../shaders/deferred_lighting.wgsl");
+const VOLUMETRIC_DISABLED_INCLUDE: &str = r#"
+fn zr_volumetric_transmittance(_fragment_position: vec2<f32>, _device_depth: f32) -> f32 {
+    return 1.0;
+}
+fn zr_volumetric_scattering(_fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
+    return vec3<f32>(0.0);
+}
+fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
+    return color;
+}
+"#;
 
 pub(in crate::graphics::scene::scene_renderer::deferred) const DEFERRED_LIGHTING_SHADER: &str = concat!(
     "// include: zr_gpu_scene.wgsl\n",
@@ -80,6 +91,7 @@ impl DeferredLightingShaderIncludeSource {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(in crate::graphics::scene::scene_renderer::deferred) struct DeferredLightingShaderSourceRequest
 {
+    volumetric_enabled: bool,
     shading_model_descriptors: Vec<ShadingModelDescriptor>,
     shading_model_deferred_include_sources: Vec<DeferredLightingShaderIncludeSource>,
 }
@@ -87,6 +99,14 @@ pub(in crate::graphics::scene::scene_renderer::deferred) struct DeferredLighting
 impl DeferredLightingShaderSourceRequest {
     pub(in crate::graphics::scene::scene_renderer::deferred) fn new() -> Self {
         Self::default()
+    }
+
+    pub(in crate::graphics::scene::scene_renderer::deferred) fn with_volumetric_enabled(
+        mut self,
+        enabled: bool,
+    ) -> Self {
+        self.volumetric_enabled = enabled;
+        self
     }
 
     pub(in crate::graphics::scene::scene_renderer::deferred) fn with_shading_model_descriptor(
@@ -140,6 +160,12 @@ pub(in crate::graphics::scene::scene_renderer::deferred) fn assemble_deferred_li
         DEFERRED_SUBSURFACE_INCLUDE_TOKEN.to_string(),
     ];
     let mut module_registry = ShaderModuleRegistry::with_builtin_modules();
+    if !request.volumetric_enabled {
+        module_registry.register(ShaderTemplateInclude::new(
+            VOLUMETRIC_INCLUDE_TOKEN,
+            VOLUMETRIC_DISABLED_INCLUDE,
+        ));
+    }
     for (token, include) in [
         (
             DEFERRED_STANDARD_PBR_INCLUDE_TOKEN,

@@ -14,7 +14,7 @@ use crate::scene::world::World;
 #[test]
 fn render_framework_stats_report_transient_allocation_bytes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -65,7 +65,7 @@ fn render_framework_stats_report_transient_allocation_bytes() {
 #[test]
 fn render_framework_stats_report_graph_execution_coverage() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -104,7 +104,7 @@ fn render_framework_stats_report_graph_execution_coverage() {
 #[test]
 fn render_framework_stats_report_graph_stage_execution() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -134,7 +134,7 @@ fn render_framework_stats_report_graph_stage_execution() {
 #[test]
 fn render_graph_steady_state_second_frame_skips_recompile() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -168,7 +168,7 @@ fn render_graph_steady_state_second_frame_skips_recompile() {
 #[test]
 fn render_graph_executed_markers_match_dump_pass_rows() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -199,7 +199,7 @@ fn render_graph_executed_markers_match_dump_pass_rows() {
 #[test]
 fn render_framework_stats_report_shadow_atlas_graph_execution() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::asset::ProjectAssetManager;
+use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
 use crate::graphics::scene::gpu_scene::GpuScene;
 use crate::graphics::{
@@ -36,7 +36,7 @@ use super::super::scene_bind_group_bundle::create_scene_bind_group_bundle;
 
 impl SceneRendererCore {
     pub(in crate::graphics::scene::scene_renderer::core) fn new_with_icon_source(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         final_color_format: wgpu::TextureFormat,
@@ -47,6 +47,9 @@ impl SceneRendererCore {
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
     ) -> Result<Self, GraphicsError> {
+        let resolved_asset_manager = asset_manager
+            .resolve()
+            .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let plugin_shading_models = plugin_shading_models.into_iter().collect::<Vec<_>>();
         let scene_bind_group_bundle = create_scene_bind_group_bundle(device, queue);
         let skinned_joint_palette_fallback_buffer =
@@ -58,6 +61,12 @@ impl SceneRendererCore {
             Arc::clone(&skinned_joint_palette_fallback_buffer),
             skinned_joint_palette_storage_min_binding_size(),
         );
+        let advanced_plugin_resources = SceneRendererAdvancedPluginResources::new(
+            device,
+            render_features,
+            runtime_prepare_collectors,
+        );
+        let volumetric_fog_enabled = advanced_plugin_resources.volumetric_fog_enabled();
 
         let scene_color_format = SCENE_COLOR_HDR_FORMAT;
         let mut mesh_pipelines = MeshPipelineCache::new(
@@ -87,7 +96,7 @@ impl SceneRendererCore {
         });
         let deferred = DeferredSceneResources::new(
             device,
-            asset_manager.as_ref(),
+            resolved_asset_manager.as_ref(),
             &scene_bind_group_bundle.layout,
             &material_texture_bind_group_layout,
             gpu_scene.scene_bind_group_layout(),
@@ -95,6 +104,7 @@ impl SceneRendererCore {
             mesh_pipelines.lightmaps.bindings(),
             scene_color_format,
             &plugin_shading_models,
+            volumetric_fog_enabled,
         )?;
         let particle_renderer =
             ParticleRenderer::new(device, &scene_bind_group_bundle.layout, scene_color_format);
@@ -120,15 +130,10 @@ impl SceneRendererCore {
             &scene_bind_group_bundle.layout,
             &texture_bind_group_layout,
             icon_source,
+            volumetric_fog_enabled,
         );
         let screen_space_ui_renderer =
-            ScreenSpaceUiRenderer::new(asset_manager, device, queue, final_color_format);
-        let advanced_plugin_resources = SceneRendererAdvancedPluginResources::new(
-            device,
-            render_features,
-            runtime_prepare_collectors,
-        );
-
+            ScreenSpaceUiRenderer::new(asset_manager, device, queue, final_color_format)?;
         Ok(Self {
             texture_bind_group_layout,
             scene_bind_group_layout: scene_bind_group_bundle.layout,

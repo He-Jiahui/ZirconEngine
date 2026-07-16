@@ -36,7 +36,7 @@ impl RetainedEditorHost {
         };
         let editor_response =
             zircon_runtime::core::diagnostics::profiling::control(request.clone());
-        let runtime_response = self.runtime_client.profile_control(&request);
+        let runtime_response = self.runtime_gateway.profile_control(&request);
 
         self.set_status_line(performance_timeline_action_status(
             &editor_response,

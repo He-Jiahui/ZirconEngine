@@ -10,17 +10,30 @@ use crate::core::jobs::{
     EditorJobSpec, JobCategory, JobContext, JobError, JobTicket,
 };
 use crate::scene::viewport::RenderFramework;
+use zircon_runtime::core::manager::{
+    render_framework_handle, ManagerServiceHandle, RegisteredManagerService,
+};
+use zircon_runtime::core::runtime::ServiceObject;
+use zircon_runtime::core::{
+    CoreHandle, CoreRuntime, ManagerDescriptor, ModuleDescriptor, RegistryName, StartupMode,
+};
+
+const TEST_RENDER_FRAMEWORK_SERVICE_NAME: &str =
+    zircon_runtime::core::manager::RENDER_FRAMEWORK_NAME;
 
 #[test]
 fn viewport_consumes_successful_framework_ticket_once() {
+    let (core, framework_handle) = registered_test_render_framework();
     let jobs = test_job_system();
     let ticket = jobs
         .submit(
             EditorJobSpec::new("viewport success fixture", JobCategory::Misc),
-            SuccessfulFrameworkJob,
+            SuccessfulFrameworkJob {
+                handle: framework_handle,
+            },
         )
         .expect("viewport success fixture should submit");
-    let mut state = ViewportState::new(None, None);
+    let mut state = ViewportState::new(Some(core));
     state.jobs = Some(jobs);
     state.render_framework_task = Some(ticket);
 
@@ -43,7 +56,7 @@ fn viewport_maps_failed_framework_ticket_and_clears_it() {
             FailedFrameworkJob,
         )
         .expect("viewport failure fixture should submit");
-    let mut state = ViewportState::new(None, None);
+    let mut state = ViewportState::new(None);
     state.jobs = Some(jobs);
     state.render_framework_task = Some(ticket);
 
@@ -77,6 +90,7 @@ fn dropping_viewport_cancels_pending_ticket_and_releases_dependents() {
         .expect("blocker should occupy the export category");
 
     let cancel = CancellationToken::default();
+    let (_, framework_handle) = registered_test_render_framework();
     let pending_ran = Arc::new(AtomicBool::new(false));
     let pending = jobs
         .submit(
@@ -84,6 +98,7 @@ fn dropping_viewport_cancels_pending_ticket_and_releases_dependents() {
                 .with_cancel(cancel.clone()),
             PendingFrameworkJob {
                 ran: Arc::clone(&pending_ran),
+                handle: framework_handle,
             },
         )
         .expect("pending viewport resolve should submit");
@@ -95,7 +110,7 @@ fn dropping_viewport_cancels_pending_ticket_and_releases_dependents() {
         )
         .expect("dependent should submit");
 
-    let mut state = ViewportState::new(None, None);
+    let mut state = ViewportState::new(None);
     state.jobs = Some(jobs.clone());
     state.render_framework_cancel = Some(cancel.clone());
     state.render_framework_task = Some(pending);
@@ -134,20 +149,47 @@ fn take_before_deadline<T>(ticket: &JobTicket<T>) -> Result<T, JobError> {
     }
 }
 
-struct SuccessfulFrameworkJob;
+fn registered_test_render_framework() -> (CoreHandle, ManagerServiceHandle<dyn RenderFramework>) {
+    let runtime = CoreRuntime::new();
+    runtime
+        .register_module(
+            ModuleDescriptor::new("GraphicsModule", "test render framework").with_manager(
+                ManagerDescriptor::new(
+                    RegistryName::new(TEST_RENDER_FRAMEWORK_SERVICE_NAME).unwrap(),
+                    StartupMode::Lazy,
+                    Vec::new(),
+                    Arc::new(|_| {
+                        Ok(
+                            Arc::new(RegisteredManagerService::<dyn RenderFramework>::new(
+                                Arc::new(TestRenderFramework),
+                            )) as ServiceObject,
+                        )
+                    }),
+                ),
+            ),
+        )
+        .unwrap();
+    let core = runtime.handle();
+    let handle = render_framework_handle(&core).unwrap();
+    (core, handle)
+}
+
+struct SuccessfulFrameworkJob {
+    handle: ManagerServiceHandle<dyn RenderFramework>,
+}
 
 impl EditorJob for SuccessfulFrameworkJob {
-    type Output = Arc<dyn RenderFramework>;
+    type Output = ManagerServiceHandle<dyn RenderFramework>;
 
     fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
-        Ok(Arc::new(TestRenderFramework))
+        Ok(self.handle)
     }
 }
 
 struct FailedFrameworkJob;
 
 impl EditorJob for FailedFrameworkJob {
-    type Output = Arc<dyn RenderFramework>;
+    type Output = ManagerServiceHandle<dyn RenderFramework>;
 
     fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
         Err(JobError::failed(std::io::Error::other(
@@ -158,14 +200,15 @@ impl EditorJob for FailedFrameworkJob {
 
 struct PendingFrameworkJob {
     ran: Arc<AtomicBool>,
+    handle: ManagerServiceHandle<dyn RenderFramework>,
 }
 
 impl EditorJob for PendingFrameworkJob {
-    type Output = Arc<dyn RenderFramework>;
+    type Output = ManagerServiceHandle<dyn RenderFramework>;
 
     fn run(self, _context: JobContext) -> Result<Self::Output, JobError> {
         self.ran.store(true, Ordering::SeqCst);
-        Ok(Arc::new(TestRenderFramework))
+        Ok(self.handle)
     }
 }
 

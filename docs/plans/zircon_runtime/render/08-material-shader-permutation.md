@@ -495,4 +495,4 @@ MS-M4(变体缓存与预热):
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
-- 迁入记录：[`08/2026-07-09-material-shader-permutation-output-records.md`](08/2026-07-09-material-shader-permutation-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md`](../../_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md)

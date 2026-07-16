@@ -1,12 +1,13 @@
-use crate::graphics::text::layout::{
+use crate::text::layout::{
     ellipsize_text, measure_line_width_with_provider, EllipsisPlacement, EllipsisSegment, ELLIPSIS,
 };
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::SharedTextLayoutSession;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextRun, UiTextDirection, UiTextOverflow, UiTextRange, UiTextRunKind,
 };
 
+use super::super::adapter::text_style;
 use super::candidate_line::{append_segment, CandidateLine};
 use super::direction::resolve_direction;
 use super::range_mapping::source_subrange;
@@ -32,15 +33,13 @@ pub(super) fn merge_clipped_lines_for_tail_preserving_ellipsis(
     }
 }
 
-pub(super) fn ellipsize_line_with_provider<P>(
+pub(super) fn ellipsize_line_with_provider(
     line: &mut CandidateLine,
     max_width: f32,
     style: &UiResolvedStyle,
     overflow: UiTextOverflow,
-    provider: &mut P,
-) where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) {
     let mut text = String::new();
     let mut runs = Vec::new();
     let placement = match overflow {
@@ -50,12 +49,22 @@ pub(super) fn ellipsize_line_with_provider<P>(
         _ => EllipsisPlacement::End,
     };
     let segments = ellipsize_text(&line.text, max_width, placement, |candidate| {
-        measure_line_width_with_provider(candidate, style, provider)
+        measure_line_width_with_provider(candidate, &text_style(style), provider)
     });
 
-    for segment in segments {
+    for (index, segment) in segments.iter().enumerate() {
         match segment {
             EllipsisSegment::Text { start, end } => {
+                let (start, end) = trim_end_ellipsis_trailing_whitespace(
+                    &line.text,
+                    *start,
+                    *end,
+                    matches!(
+                        placement,
+                        EllipsisPlacement::End | EllipsisPlacement::EndWord
+                    ) && index + 1 < segments.len()
+                        && matches!(segments.get(index + 1), Some(EllipsisSegment::Ellipsis)),
+                );
                 push_ellipsis_range(&mut text, &mut runs, line, start, end);
             }
             EllipsisSegment::Ellipsis => {
@@ -120,8 +129,31 @@ fn ellipsize_line_with_advances_inner(
     }
 
     let available = (max_width.max(0.0) - ellipsis_advance.max(0.0)).max(0.0);
-    let (prefix_count, suffix_count) =
+    let (mut prefix_count, suffix_count) =
         retained_grapheme_counts(&line.text, &graphemes, advances, available, overflow);
+    trim_end_ellipsis_trailing_graphemes(
+        &line.text,
+        &graphemes,
+        &mut prefix_count,
+        ellipsis_placement(overflow),
+    );
+    #[cfg(test)]
+    if matches!(
+        overflow,
+        UiTextOverflow::EllipsisStart
+            | UiTextOverflow::EllipsisMiddle
+            | UiTextOverflow::EllipsisWord
+    ) {
+        eprintln!(
+            "ellipsis projection: overflow={overflow:?}, placement={:?}, prefix={prefix_count}, suffix={suffix_count}, text={:?}, runs={:?}, advances={advances:?}",
+            ellipsis_placement(overflow),
+            line.text,
+            line.runs
+                .iter()
+                .map(|run| run.text.as_str())
+                .collect::<Vec<_>>()
+        );
+    }
     let prefix_end = graphemes
         .get(prefix_count.saturating_sub(1))
         .map(|(_, end)| *end)
@@ -232,6 +264,39 @@ fn fitting_suffix_count(advances: &[f32], available: f32) -> usize {
         .count()
 }
 
+fn trim_end_ellipsis_trailing_graphemes(
+    text: &str,
+    graphemes: &[(usize, usize)],
+    prefix_count: &mut usize,
+    placement: EllipsisPlacement,
+) {
+    if !matches!(
+        placement,
+        EllipsisPlacement::End | EllipsisPlacement::EndWord
+    ) {
+        return;
+    }
+    while *prefix_count > 0 {
+        let (start, end) = graphemes[*prefix_count - 1];
+        if !text[start..end].chars().all(char::is_whitespace) {
+            break;
+        }
+        *prefix_count -= 1;
+    }
+}
+
+fn trim_end_ellipsis_trailing_whitespace(
+    text: &str,
+    start: usize,
+    end: usize,
+    trim: bool,
+) -> (usize, usize) {
+    let trimmed_end = trim
+        .then(|| start + text[start..end].trim_end_matches(char::is_whitespace).len())
+        .unwrap_or(end);
+    (start.min(trimmed_end), trimmed_end)
+}
+
 fn ellipsis_placement(overflow: UiTextOverflow) -> EllipsisPlacement {
     match overflow {
         UiTextOverflow::EllipsisWord => EllipsisPlacement::EndWord,
@@ -253,19 +318,22 @@ fn ellipsis_source_offset(line: &CandidateLine, placement: EllipsisPlacement) ->
 fn push_ellipsis_run(text: &mut String, runs: &mut Vec<UiResolvedTextRun>, source_offset: usize) {
     let visual_start = text.len();
     text.push_str(ELLIPSIS);
-    runs.push(UiResolvedTextRun {
-        kind: UiTextRunKind::Plain,
-        text: ELLIPSIS.to_string(),
-        source_range: UiTextRange {
-            start: source_offset,
-            end: source_offset,
+    push_or_merge_ellipsis_run(
+        runs,
+        UiResolvedTextRun {
+            kind: UiTextRunKind::Plain,
+            text: ELLIPSIS.to_string(),
+            source_range: UiTextRange {
+                start: source_offset,
+                end: source_offset,
+            },
+            visual_range: UiTextRange {
+                start: visual_start,
+                end: text.len(),
+            },
+            direction: resolve_direction(ELLIPSIS, UiTextDirection::Auto),
         },
-        visual_range: UiTextRange {
-            start: visual_start,
-            end: text.len(),
-        },
-        direction: resolve_direction(ELLIPSIS, UiTextDirection::Auto),
-    });
+    );
 }
 
 fn push_ellipsis_range(
@@ -308,27 +376,48 @@ fn push_ellipsis_fragment(
     text.push_str(fragment);
     let source_range = source_subrange(run.source_range, run.text.len(), start, end);
     let direction = resolve_direction(fragment, UiTextDirection::Auto);
-    runs.push(UiResolvedTextRun {
-        kind: run.kind,
-        text: fragment.to_string(),
-        source_range,
-        visual_range: UiTextRange {
-            start: visual_start,
-            end: text.len(),
+    push_or_merge_ellipsis_run(
+        runs,
+        UiResolvedTextRun {
+            kind: run.kind,
+            text: fragment.to_string(),
+            source_range,
+            visual_range: UiTextRange {
+                start: visual_start,
+                end: text.len(),
+            },
+            direction,
         },
-        direction,
-    });
+    );
 }
 
-pub(super) fn line_overflows_horizontally_with_provider<P>(
+fn push_or_merge_ellipsis_run(runs: &mut Vec<UiResolvedTextRun>, run: UiResolvedTextRun) {
+    if let Some(previous) = runs.last_mut() {
+        let preserves_semantic_boundary = previous.text.contains(ELLIPSIS)
+            || run.text.contains(ELLIPSIS)
+            || previous.text.contains('\u{fffc}')
+            || run.text.contains('\u{fffc}');
+        if !preserves_semantic_boundary
+            && previous.kind == run.kind
+            && previous.direction == run.direction
+            && previous.source_range.end == run.source_range.start
+            && previous.visual_range.end == run.visual_range.start
+        {
+            previous.text.push_str(&run.text);
+            previous.source_range.end = run.source_range.end;
+            previous.visual_range.end = run.visual_range.end;
+            return;
+        }
+    }
+    runs.push(run);
+}
+
+pub(super) fn line_overflows_horizontally_with_provider(
     line: &CandidateLine,
     max_width: f32,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> bool
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> bool {
     !line.text.is_empty() && !line_text_fits_with_provider(&line.text, max_width, style, provider)
 }
 

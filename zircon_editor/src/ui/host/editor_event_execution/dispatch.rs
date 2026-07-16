@@ -26,6 +26,10 @@ pub(crate) fn execute_event(
         EditorEvent::Viewport(event) => execute_viewport_event(controller, &mut shell, event),
         EditorEvent::Operation(event) => match event {
             EditorOperationEvent::ControlFailure { error, .. } => Err(error.clone()),
+            EditorOperationEvent::CommandExecuted { .. } => Ok(ExecutionOutcome {
+                changed: true,
+                effects: vec![EditorEventEffect::PresentationChanged],
+            }),
         },
         EditorEvent::Transient(update) => {
             shell.transient.apply(update);

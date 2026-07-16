@@ -3,6 +3,14 @@ import unittest
 from pathlib import Path
 
 
+RUNTIME_15_PRIORITY_RECORDS = (
+    "2026-07-09-code-structure-and-module-conventions-output-records.md",
+    "2026-07-09-engine-code-review-findings-output-records.md",
+    "2026-07-09-engine-code-structure-output-records.md",
+    "2026-07-09-runtime-index-output-records.md",
+)
+
+
 class RuntimePlanStatusArchiveOwnershipTests(unittest.TestCase):
     def setUp(self) -> None:
         self.repo_root = Path(__file__).resolve().parents[2]
@@ -37,6 +45,29 @@ class RuntimePlanStatusArchiveOwnershipTests(unittest.TestCase):
         self.assertTrue(audit["runtime_10_behavior_status_guard_present"])
         self.assertTrue(audit["cargo_attempt_status_guard_present"])
         self.assertEqual(audit["risks"], [])
+
+    def test_runtime15_priority_records_have_one_archive_owner(self) -> None:
+        active_root = self.repo_root / "docs/plans/zircon_runtime/runtime/15"
+        archive_root = self.repo_root / "docs/plans/_archive/zircon_runtime/runtime/15"
+        source_root = self.repo_root / "zircon_runtime/src/tests/runtime_absorption"
+        rust_sources = "\n".join(
+            path.read_text(encoding="utf-8")
+            for path in sorted(source_root.rglob("*.rs"))
+        )
+
+        for record in RUNTIME_15_PRIORITY_RECORDS:
+            self.assertFalse(
+                (active_root / record).exists(),
+                f"Runtime15 concrete output must not remain under the active child: {record}",
+            )
+            self.assertTrue(
+                (archive_root / record).is_file(),
+                f"Runtime15 canonical archive record is missing: {record}",
+            )
+            active_anchor = f"docs/plans/zircon_runtime/runtime/15/{record}"
+            archive_anchor = f"docs/plans/_archive/zircon_runtime/runtime/15/{record}"
+            self.assertNotIn(active_anchor, rust_sources)
+            self.assertIn(archive_anchor, rust_sources)
 
 
 if __name__ == "__main__":

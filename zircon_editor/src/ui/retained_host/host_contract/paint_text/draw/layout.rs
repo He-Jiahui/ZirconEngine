@@ -1,7 +1,7 @@
 use fontdue::layout::{CoordinateSystem, GlyphPosition, Layout, LayoutSettings, TextStyle};
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime::{
-    core::framework::render::ShapedGlyph,
+    text::ShapedGlyph,
     ui::surface::{layout_text, shape_text_line},
 };
 use zircon_runtime_interface::ui::surface::{UiTextOverflow, UiTextRunPaintStyle, UiTextWrap};
@@ -534,7 +534,7 @@ struct GraphemeRange {
 
 fn runtime_shaped_glyph_advances_from_run(
     display_text: &str,
-    shaped: &zircon_runtime::core::framework::render::ShapedGlyphRun,
+    shaped: &zircon_runtime::text::ShapedGlyphRun,
     fallback: &[f32],
 ) -> Vec<f32> {
     if display_text.is_empty() {

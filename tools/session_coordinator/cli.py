@@ -14,6 +14,7 @@ from typing import Any
 from .client import CoordinatorClient, CoordinatorClientError
 from .config import CoordinatorConfig
 from .models import CoordinatorError
+from .offline_queue import OfflineCommandSpool
 from .server import run_forever
 
 
@@ -27,6 +28,13 @@ def _parser() -> argparse.ArgumentParser:
     serve.add_argument("--automatic-start", action="store_true")
     commands.add_parser("status")
     commands.add_parser("stop")
+
+    offline_queue = commands.add_parser("offline-queue")
+    offline_queue_commands = offline_queue.add_subparsers(
+        dest="offline_queue_command", required=True
+    )
+    offline_queue_commands.add_parser("status")
+    offline_queue_commands.add_parser("replay")
 
     ui = commands.add_parser("ui")
     ui_commands = ui.add_subparsers(dest="ui_command", required=True)
@@ -135,6 +143,7 @@ def _parser() -> argparse.ArgumentParser:
     failure_open.add_argument("fixing_plan")
     failure_return = failure_commands.add_parser("return")
     failure_return.add_argument("lifecycle_key")
+    failure_return.add_argument("--session-id")
     failure_return.add_argument("--resolved-at", required=True)
     failure_return.add_argument("--root-cause", required=True)
     failure_return.add_argument("--architecture-fix", required=True)
@@ -151,11 +160,56 @@ def _parser() -> argparse.ArgumentParser:
     cargo_acquire.add_argument("--pid", type=int)
     cargo_acquire.add_argument("--ephemeral", action="store_true")
     cargo_acquire.add_argument("--compatibility-json")
+    cargo_reserve_cpu = cargo_commands.add_parser("reserve-cpu")
+    cargo_reserve_cpu.add_argument("--session-id")
+    cargo_reserve_cpu.add_argument("--compatibility-json", required=True)
+    cargo_reserve_cpu.add_argument("--ttl-seconds", type=int, default=900)
+    cargo_reserve_cpu.add_argument("command_args", nargs=argparse.REMAINDER)
+    cargo_reserve_gpu = cargo_commands.add_parser("reserve-gpu")
+    cargo_reserve_gpu.add_argument("--session-id", required=True)
+    cargo_reserve_gpu.add_argument("--compatibility-json", required=True)
+    cargo_reserve_gpu.add_argument("--target-dir", required=True)
+    cargo_reserve_gpu.add_argument("--ttl-seconds", type=int, default=900)
+    cargo_reserve_gpu.add_argument("command_args", nargs=argparse.REMAINDER)
+    cargo_release_cpu_reservation = cargo_commands.add_parser("release-cpu-reservation")
+    cargo_release_cpu_reservation.add_argument("reservation_id")
+    cargo_release_cpu_reservation.add_argument("--session-id")
+    cargo_renew_cpu_reservation = cargo_commands.add_parser("renew-cpu-reservation")
+    cargo_renew_cpu_reservation.add_argument("reservation_id")
+    cargo_renew_cpu_reservation.add_argument("--session-id")
+    cargo_renew_cpu_reservation.add_argument("--ttl-seconds", type=int, default=900)
+    cargo_consume_cpu_reservation = cargo_commands.add_parser("consume-cpu-reservation")
+    cargo_consume_cpu_reservation.add_argument("reservation_id")
+    cargo_consume_cpu_reservation.add_argument("--session-id", required=True)
+    cargo_consume_cpu_reservation.add_argument(
+        "--lane-kind", required=True, choices=("check", "test", "workspace")
+    )
+    cargo_consume_gpu_reservation = cargo_commands.add_parser("consume-gpu-reservation")
+    cargo_consume_gpu_reservation.add_argument("reservation_id")
+    cargo_consume_gpu_reservation.add_argument("--session-id", required=True)
+    cargo_recover_reservation = cargo_commands.add_parser("recover-reservation")
+    cargo_recover_reservation.add_argument("reservation_id")
+    cargo_recover_reservation.add_argument("job_id")
+    cargo_recover_reservation.add_argument("--session-id", required=True)
     cargo_start = cargo_commands.add_parser("start")
     cargo_start.add_argument("job_id")
     cargo_start.add_argument("--pid", type=int, required=True)
+    cargo_start.add_argument("--supervisor", action="store_true")
     cargo_start.add_argument("--session-id")
     cargo_start.add_argument("command_args", nargs="*")
+    cargo_run = cargo_commands.add_parser("run")
+    cargo_run.add_argument("job_id")
+    cargo_run.add_argument("--session-id")
+    cargo_run.add_argument("--env", action="append", default=[])
+    cargo_run.add_argument("command_args", nargs=argparse.REMAINDER)
+    cargo_run_reserved = cargo_commands.add_parser("run-reserved")
+    cargo_run_reserved.add_argument("reservation_id")
+    cargo_run_reserved.add_argument("job_id")
+    cargo_run_reserved.add_argument("--session-id", required=True)
+    cargo_run_reserved.add_argument("command_args", nargs=argparse.REMAINDER)
+    cargo_run_status = cargo_commands.add_parser("run-status")
+    cargo_run_status.add_argument("job_id")
+    cargo_run_status.add_argument("--session-id")
     cargo_heartbeat = cargo_commands.add_parser("heartbeat")
     cargo_heartbeat.add_argument("job_id")
     cargo_heartbeat.add_argument("--session-id")
@@ -192,6 +246,7 @@ def _parser() -> argparse.ArgumentParser:
     milestone_commit.add_argument("--session-id", required=True)
     milestone_commit.add_argument("--run-id", required=True)
     milestone_commit.add_argument("--milestone", required=True)
+    milestone_commit.add_argument("--summary", required=True)
     milestone_goal = milestone_commands.add_parser("close-goal")
     milestone_goal.add_argument("--session-id", required=True)
     milestone_goal.add_argument("--run-id", required=True)
@@ -203,6 +258,11 @@ def _parser() -> argparse.ArgumentParser:
     cleanup_apply = cleanup_commands.add_parser("apply")
     cleanup_apply.add_argument("--older-than-hours", type=int, default=2)
     cleanup_apply.add_argument("--plan-id", required=True)
+
+    artifact = commands.add_parser("artifact")
+    artifact_commands = artifact.add_subparsers(dest="artifact_command", required=True)
+    artifact_commands.add_parser("audit")
+    artifact_commands.add_parser("cleanup")
 
     finalize = commands.add_parser("finalize")
     finalize.add_argument("--commit", dest="finalize_commit", action="store_true")
@@ -232,6 +292,9 @@ def _parser() -> argparse.ArgumentParser:
         copy_parser = validation_copy_commands.add_parser(copy_name)
         copy_parser.add_argument("--session-id")
         copy_parser.add_argument("--path", action="append", required=True)
+    copy_status = validation_copy_commands.add_parser("status")
+    copy_status.add_argument("job_id")
+    copy_status.add_argument("--session-id")
     copy_cleanup = validation_copy_commands.add_parser("cleanup")
     copy_cleanup.add_argument("job_root")
     copy_cleanup.add_argument("--session-id")
@@ -300,6 +363,45 @@ def _config(arguments: argparse.Namespace) -> CoordinatorConfig:
     )
 
 
+def _offline_spool(config: CoordinatorConfig) -> OfflineCommandSpool:
+    return OfflineCommandSpool(
+        config.offline_command_queue_root,
+        repository_key=config.repository_key,
+    )
+
+
+def _offline_queue_intent(arguments: argparse.Namespace) -> tuple[str, dict[str, Any]] | None:
+    """Return only replay-safe CLI work; process and lifecycle work never queues."""
+    if arguments.command == "session":
+        explicit_session_id = getattr(arguments, "session_id", None) or os.environ.get(
+            "CODEX_THREAD_ID"
+        )
+        if arguments.session_command == "register":
+            if explicit_session_id is None:
+                return None
+            return (
+                "session.register",
+                {
+                    "session_id": explicit_session_id,
+                    "display_name": arguments.display_name,
+                    "plan_path": arguments.plan_path,
+                    "write_scope": arguments.write_scope,
+                },
+            )
+        session_id = _session_id(explicit_session_id)
+        if arguments.session_command == "heartbeat":
+            return "session.heartbeat", {"session_id": session_id}
+    if arguments.command == "lease" and arguments.lease_command == "heartbeat":
+        return "lease.heartbeat", {"session_id": _session_id(arguments.session_id)}
+    return None
+
+
+def _replay_offline_queue(
+    config: CoordinatorConfig, client: CoordinatorClient
+) -> dict[str, int]:
+    return _offline_spool(config).replay(client.command).to_dict()
+
+
 def _write_report(path: str | None, payload: dict[str, Any]) -> None:
     if not path:
         return
@@ -318,9 +420,18 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     if arguments.command == "serve":
         run_forever(config, automatic_start=arguments.automatic_start)
         return {"status": "stopped"}
+    if arguments.command == "offline-queue":
+        spool = _offline_spool(config)
+        if arguments.offline_queue_command == "status":
+            return {"offlineQueue": spool.snapshot().to_dict()}
+        client = CoordinatorClient.from_runtime(config)
+        client.health()
+        return {"offlineReplay": spool.replay(client.command).to_dict()}
     client = CoordinatorClient.from_runtime(config)
     if arguments.command == "status":
-        return client.health()
+        result = client.health()
+        result["offlineReplay"] = _replay_offline_queue(config, client)
+        return result
     if arguments.command == "stop":
         result = client.shutdown()
         for _ in range(50):
@@ -469,6 +580,7 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "failure.return",
                 {
                     "lifecycle_key": arguments.lifecycle_key,
+                    "session_id": _session_id(arguments.session_id),
                     "resolved_at": arguments.resolved_at,
                     "root_cause": arguments.root_cause,
                     "architecture_fix": arguments.architecture_fix,
@@ -477,6 +589,76 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 },
             )
     if arguments.command == "cargo":
+        if arguments.cargo_command == "reserve-cpu":
+            command = list(arguments.command_args)
+            if command and command[0] == "--":
+                command = command[1:]
+            return client.command(
+                "cargo.reserve_cpu",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "compatibility": json.loads(arguments.compatibility_json),
+                    "ttl_seconds": arguments.ttl_seconds,
+                    "command": command,
+                },
+            )
+        if arguments.cargo_command == "reserve-gpu":
+            command = list(arguments.command_args)
+            if command and command[0] == "--":
+                command = command[1:]
+            return client.command(
+                "cargo.reserve_gpu",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "compatibility": json.loads(arguments.compatibility_json),
+                    "target_dir": arguments.target_dir,
+                    "ttl_seconds": arguments.ttl_seconds,
+                    "command": command,
+                },
+            )
+        if arguments.cargo_command == "release-cpu-reservation":
+            return client.command(
+                "cargo.release_cpu_reservation",
+                {
+                    "reservation_id": arguments.reservation_id,
+                    "session_id": _session_id(arguments.session_id),
+                },
+            )
+        if arguments.cargo_command == "renew-cpu-reservation":
+            return client.command(
+                "cargo.renew_cpu_reservation",
+                {
+                    "reservation_id": arguments.reservation_id,
+                    "session_id": _session_id(arguments.session_id),
+                    "ttl_seconds": arguments.ttl_seconds,
+                },
+            )
+        if arguments.cargo_command == "consume-cpu-reservation":
+            return client.command(
+                "cargo.consume_cpu_reservation",
+                {
+                    "reservation_id": arguments.reservation_id,
+                    "session_id": _session_id(arguments.session_id),
+                    "lane_kind": arguments.lane_kind,
+                },
+            )
+        if arguments.cargo_command == "consume-gpu-reservation":
+            return client.command(
+                "cargo.consume_gpu_reservation",
+                {
+                    "reservation_id": arguments.reservation_id,
+                    "session_id": _session_id(arguments.session_id),
+                },
+            )
+        if arguments.cargo_command == "recover-reservation":
+            return client.command(
+                "cargo.recover_expired_reservation",
+                {
+                    "reservation_id": arguments.reservation_id,
+                    "job_id": arguments.job_id,
+                    "session_id": _session_id(arguments.session_id),
+                },
+            )
         if arguments.cargo_command == "acquire":
             return client.command(
                 "cargo.acquire",
@@ -502,7 +684,48 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "pid": arguments.pid,
                     "session_id": _session_id(arguments.session_id),
                     "command": arguments.command_args,
+                    "root_is_supervisor": arguments.supervisor,
                 },
+            )
+        if arguments.cargo_command == "run":
+            command = list(arguments.command_args)
+            if command and command[0] == "--":
+                command = command[1:]
+            environment: dict[str, str] = {}
+            for value in arguments.env:
+                key, separator, setting = value.partition("=")
+                if not separator or not key or not setting:
+                    raise CoordinatorError(
+                        "cargo_run_environment_invalid",
+                        "Cargo --env values must use NAME=VALUE",
+                    )
+                environment[key] = setting
+            return client.command(
+                "cargo.run",
+                {
+                    "job_id": arguments.job_id,
+                    "session_id": _session_id(arguments.session_id),
+                    "command": command,
+                    "environment": environment,
+                },
+            )
+        if arguments.cargo_command == "run-reserved":
+            command = list(arguments.command_args)
+            if command and command[0] == "--":
+                command = command[1:]
+            return client.command(
+                "cargo.run_reserved",
+                {
+                    "reservation_id": arguments.reservation_id,
+                    "job_id": arguments.job_id,
+                    "session_id": _session_id(arguments.session_id),
+                    "command": command,
+                },
+            )
+        if arguments.cargo_command == "run-status":
+            return client.command(
+                "cargo.run_status",
+                {"job_id": arguments.job_id, "session_id": _session_id(arguments.session_id)},
             )
         if arguments.cargo_command == "heartbeat":
             return client.command(
@@ -570,8 +793,12 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "sessionId": arguments.session_id,
                     "runId": arguments.run_id,
                     "milestoneId": arguments.milestone.strip().upper(),
+                    "summary": arguments.summary,
                 },
-                reason=f"commit accepted milestone {arguments.milestone.strip().upper()}",
+                reason=(
+                    f"commit {arguments.milestone.strip().upper()} with context: "
+                    f"{arguments.summary}"
+                ),
             )
         else:
             action = client.execute_control_action(
@@ -597,6 +824,8 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 }
             )
         return client.command(f"cleanup.{arguments.cleanup_command}", payload)
+    if arguments.command == "artifact":
+        return client.command(f"artifact.{arguments.artifact_command}")
     if arguments.command == "finalize":
         direct = arguments.finalize_command is None
         if direct and not arguments.finalize_commit:
@@ -673,6 +902,14 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                     "command": command,
                 },
             )
+        if arguments.validation_copy_command == "status":
+            return client.command(
+                "validation_copy.status",
+                {
+                    "session_id": _session_id(arguments.session_id),
+                    "job_id": arguments.job_id,
+                },
+            )
         return client.command(
             f"validation_copy.{arguments.validation_copy_command}",
             {
@@ -741,6 +978,35 @@ def main(argv: list[str] | None = None) -> int:
     try:
         result = _run(arguments)
     except (CoordinatorClientError, CoordinatorError, OSError, ValueError) as error:
+        if (
+            isinstance(error, CoordinatorClientError)
+            and error.code == "offline"
+            and error.details.get("transport") in {"descriptor_absent", "connection_refused"}
+        ):
+            intent = _offline_queue_intent(arguments)
+            if intent is not None:
+                try:
+                    queued = _offline_spool(_config(arguments)).enqueue(*intent)
+                except ValueError as queue_error:
+                    issue = {
+                        "code": "offline_queue_rejected",
+                        "message": str(queue_error),
+                        "details": {},
+                    }
+                    payload = {"status": "error", "error": issue}
+                    print(json.dumps(payload, ensure_ascii=False) if arguments.json_output else issue["message"])
+                    return 2
+                result = {
+                    "status": "queued",
+                    "queueId": queued.queue_id,
+                    "command": queued.command,
+                }
+                print(
+                    json.dumps(result, ensure_ascii=False, sort_keys=True)
+                    if arguments.json_output
+                    else json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
+                )
+                return 0
         if hasattr(error, "to_dict"):
             issue = error.to_dict()
         else:

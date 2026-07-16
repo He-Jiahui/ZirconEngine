@@ -1,4 +1,4 @@
-use crate::graphics::text::atlas::render_gpu_plan::{
+use crate::text::atlas::render_gpu_plan::{
     GlyphAtlasGpuVertexAttributeFormat, GlyphAtlasGpuVertexBufferLayout,
 };
 

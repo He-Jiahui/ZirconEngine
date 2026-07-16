@@ -1,12 +1,12 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use zircon_runtime::asset::ProjectAssetManager;
+use zircon_runtime::asset::project_asset_manager_handle;
 use zircon_runtime::core::framework::animation::AnimationPoseOutput;
 use zircon_runtime::core::framework::physics::{
     SimulatedPoseFeed, SkeletalPoseTarget, SkeletalPoseTargets,
 };
-use zircon_runtime::core::manager::resolve_animation_manager;
+use zircon_runtime::core::manager::{animation_manager_handle, resolve_manager_service};
 use zircon_runtime::core::math::Real;
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::{EntityId, LevelSystem};
@@ -24,7 +24,9 @@ use super::AnimationEvaluationPipeline;
 use crate::ik::apply_ik_commands;
 
 pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta_seconds: Real) {
-    let Ok(animation) = resolve_animation_manager(core) else {
+    let Ok(animation) =
+        animation_manager_handle(core).and_then(|handle| resolve_manager_service(core, handle))
+    else {
         record_empty_animation_state(level);
         return;
     };
@@ -35,8 +37,8 @@ pub(crate) fn tick_animation_world(core: &CoreHandle, level: &LevelSystem, delta
         return;
     }
 
-    let asset_manager = core
-        .resolve_manager::<ProjectAssetManager>(zircon_runtime::asset::PROJECT_ASSET_MANAGER_NAME)
+    let asset_manager = project_asset_manager_handle(core)
+        .and_then(|handle| resolve_manager_service(core, handle))
         .ok();
     let scan = scan_animation_scene(level, &playback_settings, delta_seconds);
 

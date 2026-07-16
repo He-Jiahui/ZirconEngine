@@ -43,6 +43,19 @@ const SHADOW_INCLUDE: &str =
 const SURFACE_TYPES_INCLUDE: &str = include_str!("../wgsl/zr_surface_types.wgsl");
 const ENVIRONMENT_INCLUDE: &str = include_str!("../wgsl/zr_environment.wgsl");
 const VOLUMETRIC_INCLUDE: &str = include_str!("../wgsl/zr_volumetric.wgsl");
+const VOLUMETRIC_DISABLED_INCLUDE: &str = r#"
+fn zr_volumetric_transmittance(_fragment_position: vec2<f32>, _device_depth: f32) -> f32 {
+    return 1.0;
+}
+
+fn zr_volumetric_scattering(_fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
+    return vec3<f32>(0.0);
+}
+
+fn zr_volumetric_apply(color: vec3<f32>, _fragment_position: vec2<f32>, _device_depth: f32) -> vec3<f32> {
+    return color;
+}
+"#;
 const OIT_INCLUDE: &str = include_str!("../includes/zr_oit.wgsl");
 const PBR_EXTRAS_INCLUDE: &str = include_str!("../includes/zr_pbr_extras.wgsl");
 const STANDARD_PBR_SHADING_INCLUDE: &str = include_str!("../wgsl/zr_shading_standard_pbr.wgsl");
@@ -315,13 +328,16 @@ pub(crate) fn volumetric_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(VOLUMETRIC_INCLUDE_TOKEN, VOLUMETRIC_INCLUDE)
 }
 
+pub(crate) fn volumetric_disabled_include() -> ShaderTemplateInclude {
+    ShaderTemplateInclude::new(VOLUMETRIC_INCLUDE_TOKEN, VOLUMETRIC_DISABLED_INCLUDE)
+}
+
 pub(crate) fn oit_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(OIT_INCLUDE_TOKEN, OIT_INCLUDE)
 }
 
 pub(crate) fn pbr_extras_include() -> ShaderTemplateInclude {
     ShaderTemplateInclude::new(PBR_EXTRAS_INCLUDE_TOKEN, PBR_EXTRAS_INCLUDE)
-        .with_dependencies([VOLUMETRIC_INCLUDE_TOKEN])
 }
 
 pub(crate) fn light_grid_include() -> ShaderTemplateInclude {
@@ -459,7 +475,7 @@ mod tests {
     }
 
     #[test]
-    fn builtin_pbr_extras_resolves_volumetric_dependency_first() {
+    fn builtin_pbr_extras_is_independent_from_volumetric_uv_helpers() {
         let registry = ShaderModuleRegistry::with_builtin_modules();
         let resolved = registry
             .resolve_roots([PBR_EXTRAS_INCLUDE_TOKEN.to_string()])
@@ -471,7 +487,7 @@ mod tests {
                 .iter()
                 .map(|module| module.token.as_str())
                 .collect::<Vec<_>>(),
-            vec![VOLUMETRIC_INCLUDE_TOKEN, PBR_EXTRAS_INCLUDE_TOKEN]
+            vec![PBR_EXTRAS_INCLUDE_TOKEN]
         );
     }
 
@@ -489,7 +505,6 @@ mod tests {
                 .map(|module| module.token.as_str())
                 .collect::<Vec<_>>(),
             vec![
-                VOLUMETRIC_INCLUDE_TOKEN,
                 PBR_EXTRAS_INCLUDE_TOKEN,
                 LIGHT_COOKIE_INCLUDE_TOKEN,
                 STANDARD_PBR_SHADING_INCLUDE_TOKEN,

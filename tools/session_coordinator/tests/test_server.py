@@ -9,30 +9,187 @@ import threading
 import unittest
 import urllib.error
 import urllib.request
+from datetime import date
 from pathlib import Path
 from unittest import mock
 
 from tools.session_coordinator.client import CoordinatorClient, CoordinatorClientError
+from tools.session_coordinator.cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
 from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.codex_sync.evidence import CodexEvidenceProjector
+from tools.session_coordinator.codex_sync.models import CodexReconcileResult
 from tools.session_coordinator.database import Database
+from tools.session_coordinator.migrations import migrate
+from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.server import CoordinatorApplication, RunningCoordinator
-from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.models import CoordinatorError, SupervisionState
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
+from tools.session_coordinator.workspace_copy import WorkspaceCopyRecord
 
 
 class ServerTests(unittest.TestCase):
-    def test_default_config_uses_stable_local_control_port(self) -> None:
+    def test_scoped_failure_return_requires_leases_for_generated_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            origin = fixture.add_plan("docs/plans/runtime/04-runtime.md")
+            fixing = fixture.add_plan("docs/plans/tooling/01-tooling.md")
+            failure = fixture.add_handoff(origin, fixing, "child-return")
+            failure.write_text(
+                failure.read_text(encoding="utf-8").replace(
+                    "summary_slug:", "plan_link_mode: child_record_only\nsummary_slug:"
+                ),
+                encoding="utf-8",
+            )
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            node = application.failures.import_repository().nodes[0]
+            application.sessions.register(session_id="owner")
+            generated = [
+                failure.relative_to(repo).as_posix(),
+                (origin.child / "fixed-2026-07-16-child-return.md").relative_to(repo).as_posix(),
+                (fixing.child / "2026-07-16-child-return-return.md").relative_to(repo).as_posix(),
+            ]
+            application.leases.acquire("owner", generated)
+
+            application._require_scoped_failure_return_leases(
+                "owner", node.lifecycle_key, date(2026, 7, 16)
+            )
+            application.leases.release("owner", [generated[-1]])
+            with self.assertRaises(CoordinatorError) as rejected:
+                application._require_scoped_failure_return_leases(
+                    "owner", node.lifecycle_key, date(2026, 7, 16)
+                )
+
+        self.assertEqual("failure_return_lease_missing", rejected.exception.code)
+
+    def test_default_config_uses_the_fixed_local_control_port(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config = CoordinatorConfig.for_repo(Path(directory) / "repo")
 
-        self.assertEqual(65189, config.port)
+        self.assertEqual(6518, config.port)
+        self.assertTrue(config.unmanaged_artifact_sweep_enabled)
 
-    def test_maintenance_requires_separate_local_capability(self) -> None:
+    def test_application_wires_codex_sync_to_sanitized_evidence_projection(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            self.assertIsInstance(application.codex_evidence, CodexEvidenceProjector)
+            application.codex_worker._project(
+                CodexReconcileResult(
+                    run_id="sync-a", scanned_count=0, changed_count=0,
+                    diagnostic_count=0, unavailable_count=0,
+                )
+            )
+            self.assertTrue(
+                any((root / "state" / "codex-source" / "sessions").rglob("*.md"))
+            )
+
+    def test_startup_audits_gpu_lease_that_predates_the_latest_reservation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            target_root = root / "D" / "cargo-targets"
+            target_root.mkdir(parents=True)
+            database = Database(config.database_path)
+            migrate(database)
+            SessionService(database, repo).register(session_id="gpu-owner")
+            job = CargoJobService(
+                database,
+                TargetPathPolicy((target_root,)),
+                repo_root=repo,
+            ).acquire("gpu-owner", CargoLaneKind.GPU)
+            with database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO action_requests(
+                           action_id, action_kind, risk, required_role, actor,
+                           daemon_instance_id, parameters_json, impact_json, warnings_json,
+                           state_fingerprint, confirmation_phrase_hash, status, created_at,
+                           expires_at, completed_at
+                       ) VALUES (
+                           'later-resume', 'service.resume', 'yellow', 'operator', 'operator',
+                           'daemon', ?, '[]', '[]', 'fingerprint', 'phrase', 'succeeded',
+                           '2099-01-01T00:00:00+00:00', '2099-01-01T00:00:00+00:00',
+                           '2099-01-01T00:00:00+00:00'
+                       )""",
+                    (json.dumps({"timeoutSeconds": 30, "gpuReservationSessionId": "other"}),),
+                )
+
+            with (
+                mock.patch.object(
+                    CoordinatorConfig,
+                    "enabled_target_roots",
+                    new_callable=mock.PropertyMock,
+                    return_value=(target_root,),
+                ),
+                mock.patch("tools.session_coordinator.server.WorkspaceCopyService"),
+            ):
+                CoordinatorApplication(config)
+
+            with database.connect() as connection:
+                event = connection.execute(
+                    """SELECT payload_json FROM events
+                       WHERE event_type='cargo.gpu_lane_startup_audit'
+                       ORDER BY event_id DESC LIMIT 1"""
+                ).fetchone()
+            self.assertIsNotNone(event)
+            payload = json.loads(event["payload_json"])
+            self.assertEqual("2099-01-01T00:00:00+00:00", payload["reservationCompletedAt"])
+            self.assertEqual(
+                [{
+                    "jobId": job.job_id,
+                    "sessionId": "gpu-owner",
+                    "status": "leased",
+                    "targetDir": job.target_dir,
+                    "createdAt": job.created_at.isoformat(),
+                    "preReservation": True,
+                }],
+                payload["jobs"],
+            )
+
+    def test_isolated_configs_can_request_ephemeral_listeners(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first_repo = init_repo(root / "first")
+            second_repo = init_repo(root / "second")
+            first = CoordinatorConfig.for_repo(first_repo, port=0)
+            second = CoordinatorConfig.for_repo(second_repo, port=0)
+
+            with RunningCoordinator.start(first) as first_running:
+                with RunningCoordinator.start(second) as second_running:
+                    first_runtime = json.loads(first.runtime_path.read_text(encoding="utf-8"))
+                    second_runtime = json.loads(second.runtime_path.read_text(encoding="utf-8"))
+
+                    self.assertNotEqual(first_runtime["port"], second_runtime["port"])
+                    self.assertEqual(first_running.base_url, f"http://127.0.0.1:{first_runtime['port']}")
+                    self.assertEqual(second_running.base_url, f"http://127.0.0.1:{second_runtime['port']}")
+                    self.assertEqual(
+                        str(first_repo),
+                        CoordinatorClient.from_runtime(first).health()["repo_root"],
+                    )
+                    self.assertEqual(
+                        str(second_repo),
+                        CoordinatorClient.from_runtime(second).health()["repo_root"],
+                    )
+
+    def test_isolated_config_disables_host_artifact_sweeps(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+
+        self.assertFalse(config.unmanaged_artifact_sweep_enabled)
+
+    def test_maintenance_uses_local_runtime_when_no_capability_is_configured(self) -> None:
         with mock.patch.dict("os.environ", {}, clear=True):
-            with self.assertRaises(CoordinatorError) as rejected:
-                CoordinatorApplication._authorize_maintenance({"maintenance": True})
-        self.assertEqual("maintenance_unauthorized", rejected.exception.code)
+            self.assertTrue(CoordinatorApplication._authorize_maintenance({"maintenance": True}))
 
         with mock.patch.dict(
             "os.environ", {"ZIRCON_COORDINATOR_MAINTENANCE_TOKEN": "local-only"}
@@ -53,6 +210,90 @@ class ServerTests(unittest.TestCase):
                 with self.assertRaises(CoordinatorError) as duplicate:
                     RunningCoordinator.start(config)
             self.assertEqual("already_running", duplicate.exception.code)
+
+    def test_startup_keeps_a_durable_maintenance_hold_in_draining_state(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            prepared = CoordinatorApplication(config)
+            prepared.supervision.transition(
+                SupervisionState.HEALTHY,
+                reason_code="test.maintenance_hold",
+                actor="test",
+                updates={"maintenance_hold": 1},
+            )
+
+            with RunningCoordinator.start(config) as running:
+                health = CoordinatorClient.from_runtime(config).health()
+                self.assertEqual("draining", health["supervision"]["state"])
+                self.assertTrue(health["supervision"]["maintenanceHold"])
+
+    def test_successor_rehydrates_scoped_maintenance_hold_from_drain_action(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            prepared = CoordinatorApplication(config)
+            with prepared.database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO action_requests(
+                           action_id, action_kind, risk, required_role, actor,
+                           daemon_instance_id, parameters_json, impact_json, warnings_json,
+                           state_fingerprint, confirmation_phrase_hash, status, created_at,
+                           expires_at, completed_at
+                       ) VALUES (
+                           'scoped-drain', 'service.drain', 'red', 'maintainer', 'operator',
+                           'daemon-a', ?, '[]', '[]', 'fingerprint', 'phrase', 'succeeded',
+                           '2099-01-01T00:00:00+00:00', '2099-01-01T00:00:00+00:00',
+                           '2099-01-01T00:00:00+00:00'
+                       )""",
+                    (
+                        json.dumps(
+                            {
+                                "timeoutSeconds": 30,
+                                "maintenanceSessionIds": [
+                                    "executor-session",
+                                    "reviewer-session",
+                                ],
+                            },
+                            sort_keys=True,
+                        ),
+                    ),
+                )
+            prepared.supervision.transition(
+                SupervisionState.DRAINING,
+                reason_code="lifecycle.drain.accepted",
+                actor="test",
+                action_id="scoped-drain",
+                updates={"maintenance_hold": 1},
+            )
+            prepared.supervision.transition(
+                SupervisionState.DRAINING,
+                reason_code="lifecycle.restart.accepted",
+                actor="test",
+            )
+
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "ZIRCON_COORDINATOR_MAINTENANCE_SESSION": "",
+                    "ZIRCON_COORDINATOR_MAINTENANCE_SESSIONS": "",
+                },
+            ):
+                successor = CoordinatorApplication(config)
+            successor.supervision.transition(
+                SupervisionState.DRAINING,
+                reason_code="test.startup_maintenance_hold",
+                actor="test",
+            )
+
+            successor.supervision.require_mutation_allowed(
+                "lease.claim@executor-session"
+            )
+            with self.assertRaises(CoordinatorError) as rejected:
+                successor.supervision.require_mutation_allowed("lease.claim@other-session")
+            self.assertEqual("maintenance_hold_active", rejected.exception.code)
 
     def test_local_health_and_session_commands_accept_requests_without_token(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -82,6 +323,36 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual(200, response.status)
                 self.assertIn("sessions", json.loads(response.read()))
                 response.close()
+
+    def test_baseline_attribution_requires_the_session_live_lease(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            target = repo / "owned.txt"
+            target.write_text("owned change\n", encoding="utf-8")
+
+            with RunningCoordinator.start(config):
+                client = CoordinatorClient.from_runtime(config)
+                client.command("session.register", {"session_id": "session-a"})
+                client.command(
+                    "session.set_status", {"session_id": "session-a", "status": "active"}
+                )
+                with self.assertRaises(CoordinatorClientError) as rejected:
+                    client.command(
+                        "baseline.attribute",
+                        {"session_id": "session-a", "paths": ["owned.txt"]},
+                    )
+                client.command(
+                    "lease.claim", {"session_id": "session-a", "paths": ["owned.txt"]}
+                )
+                attributed = client.command(
+                    "baseline.attribute",
+                    {"session_id": "session-a", "paths": ["owned.txt"]},
+                )
+
+            self.assertEqual("baseline_lease_missing", rejected.exception.code)
+            self.assertEqual("attributed", attributed["status"])
 
     def test_authenticated_tray_recovery_command_updates_health_projection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -252,7 +523,7 @@ class ServerTests(unittest.TestCase):
             self.assertTrue(note.exists())
             self.assertEqual("active", status)
 
-    def test_destructive_legacy_import_requires_operator_capability(self) -> None:
+    def test_destructive_legacy_import_requires_configured_operator_capability(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -262,11 +533,13 @@ class ServerTests(unittest.TestCase):
                 "---\nsession: legacy\nstatus: stale\n---\n",
                 encoding="utf-8",
             )
-            application = CoordinatorApplication(
-                CoordinatorConfig.for_repo(repo, state_root=root / "state")
-            )
-
-            with mock.patch.dict("os.environ", {}, clear=True):
+            with mock.patch.dict(
+                "os.environ",
+                {"ZIRCON_COORDINATOR_MAINTENANCE_TOKEN": "local-only"},
+            ):
+                application = CoordinatorApplication(
+                    CoordinatorConfig.for_repo(repo, state_root=root / "state")
+                )
                 with self.assertRaises(CoordinatorError) as rejected:
                     application.command("legacy.import", {"apply": True})
 
@@ -346,6 +619,312 @@ class ServerTests(unittest.TestCase):
                 application.command("finalize.milestone", {})
 
         self.assertEqual("legacy_milestone_finalize_forbidden", rejected.exception.code)
+
+    def test_numbered_plan_session_cannot_be_completed_by_generic_status_command(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            plan = repo / "docs/plans/runtime/01-runtime.md"
+            plan.parent.mkdir(parents=True)
+            plan.write_text("# Runtime\n", encoding="utf-8")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+            application.supervision.mark_healthy()
+            application.command(
+                "session.register",
+                {"session_id": "session-a", "plan_path": "docs/plans/runtime/01-runtime.md"},
+            )
+            application.command(
+                "session.set_status", {"session_id": "session-a", "status": "active"}
+            )
+
+            with self.assertRaises(CoordinatorError) as rejected:
+                application.command(
+                    "session.set_status", {"session_id": "session-a", "status": "completed"}
+                )
+
+        self.assertEqual("session_goal_close_requires_milestone", rejected.exception.code)
+
+    def test_foreground_mutation_is_not_blocked_by_long_control_action(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+            application.supervision.mark_healthy()
+            action_lock = application.control_actions._confirmation_lock
+            self.assertIsNot(action_lock, application._mutation_lock)
+            acquired = threading.Event()
+            release = threading.Event()
+
+            def occupy_control_action() -> None:
+                with action_lock:
+                    acquired.set()
+                    release.wait(timeout=2)
+
+            worker = threading.Thread(target=occupy_control_action, daemon=True)
+            worker.start()
+            self.assertTrue(acquired.wait(timeout=1))
+            began = time.monotonic()
+            result = application.command("session.register", {"session_id": "session-a"})
+            elapsed = time.monotonic() - began
+            release.set()
+            worker.join(timeout=1)
+
+        self.assertEqual("registered", result["session"]["status"])
+        self.assertLess(elapsed, 0.75)
+
+    def test_foreground_mutation_is_not_blocked_by_manual_workspace_scan(self) -> None:
+        """An on-demand diagnostic scan must not own the foreground command mutex."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+            application.supervision.mark_healthy()
+            scan_started = threading.Event()
+            release_scan = threading.Event()
+            mutation_finished = threading.Event()
+            result: dict[str, object] = {}
+
+            def slow_scan():
+                scan_started.set()
+                release_scan.wait(timeout=2)
+                return []
+
+            def register_session() -> None:
+                result.update(application.command("session.register", {"session_id": "session-a"}))
+                mutation_finished.set()
+
+            with mock.patch.object(application.watcher, "scan_once", side_effect=slow_scan):
+                scan_worker = threading.Thread(
+                    target=lambda: application.command("watch.scan", {}), daemon=True
+                )
+                scan_worker.start()
+                self.assertTrue(scan_started.wait(timeout=1))
+                foreground_worker = threading.Thread(target=register_session, daemon=True)
+                foreground_worker.start()
+                try:
+                    self.assertTrue(mutation_finished.wait(timeout=0.5))
+                finally:
+                    release_scan.set()
+                    scan_worker.join(timeout=1)
+                    foreground_worker.join(timeout=1)
+
+        self.assertEqual("registered", result["session"]["status"])
+
+    def test_foreground_mutation_is_not_blocked_by_baseline_scan(self) -> None:
+        """A HEAD refresh prepares outside the foreground mutation mutex."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+            application.supervision.mark_healthy()
+            scan_started = threading.Event()
+            release_scan = threading.Event()
+            mutation_finished = threading.Event()
+            result: dict[str, object] = {}
+
+            def slow_scan():
+                scan_started.set()
+                release_scan.wait(timeout=2)
+                return []
+
+            def register_session() -> None:
+                result.update(application.command("session.register", {"session_id": "session-a"}))
+                mutation_finished.set()
+
+            with mock.patch.object(application.baselines, "scan", side_effect=slow_scan):
+                scan_worker = threading.Thread(
+                    target=lambda: application.command("baseline.scan", {}), daemon=True
+                )
+                scan_worker.start()
+                self.assertTrue(scan_started.wait(timeout=1))
+                foreground_worker = threading.Thread(target=register_session, daemon=True)
+                foreground_worker.start()
+                try:
+                    self.assertTrue(mutation_finished.wait(timeout=0.5))
+                finally:
+                    release_scan.set()
+                    scan_worker.join(timeout=1)
+                    foreground_worker.join(timeout=1)
+
+        self.assertEqual("registered", result["session"]["status"])
+
+    def test_disconnected_baseline_scan_does_not_block_finish_or_attribution(self) -> None:
+        """A timed-out HTTP caller must not retain the foreground mutation lane."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(
+                repo, state_root=root / "state", port=0, watch_interval_seconds=60
+            )
+            target = repo / "owned.txt"
+            target.write_text("owned\n", encoding="utf-8")
+
+            with RunningCoordinator.start(config) as running:
+                client = CoordinatorClient.from_runtime(config)
+                application = running.httpd.application
+                client.command("session.register", {"session_id": "cargo-session"})
+                client.command("session.register", {"session_id": "owner-session"})
+                client.command("baseline.init")
+                client.command(
+                    "lease.claim", {"session_id": "owner-session", "paths": ["owned.txt"]}
+                )
+                cargo_jobs = mock.Mock()
+                cargo_jobs.acquire.return_value.to_dict.return_value = {"status": "leased"}
+                cargo_jobs.finish.return_value.to_dict.return_value = {"status": "failed"}
+                application.cargo_jobs = cargo_jobs
+                application.cleanup = mock.Mock()
+                application.cleanup.schedule_pending_cleanup.return_value = 0
+                scan_started = threading.Event()
+                release_scan = threading.Event()
+                action_started = threading.Event()
+                release_action = threading.Event()
+
+                def hold_control_action() -> None:
+                    with application.control_actions._confirmation_lock:
+                        action_started.set()
+                        release_action.wait(timeout=2)
+
+                def slow_scan():
+                    scan_started.set()
+                    release_scan.wait(timeout=2)
+                    return []
+
+                timed_client = CoordinatorClient(
+                    running.base_url, "", command_timeout_seconds=0.05
+                )
+                action_worker = threading.Thread(target=hold_control_action, daemon=True)
+                action_worker.start()
+                self.assertTrue(action_started.wait(timeout=1))
+                try:
+                    with mock.patch.object(application.baselines, "scan", side_effect=slow_scan):
+                        with self.assertRaises(CoordinatorClientError) as timed_out:
+                            timed_client.command("baseline.scan")
+                        self.assertTrue(scan_started.wait(timeout=1))
+                        began = time.monotonic()
+                        acquired = client.command(
+                            "cargo.acquire",
+                            {
+                                "session_id": "cargo-session",
+                                "lane_kind": "test",
+                                "target_dir": None,
+                                "dry_run": False,
+                                "pid": None,
+                                "ephemeral": True,
+                                "compatibility": None,
+                            },
+                        )
+                        finished = client.command(
+                            "cargo.finish",
+                            {
+                                "job_id": "job-a",
+                                "session_id": "cargo-session",
+                                "exit_code": 1,
+                            },
+                        )
+                        attributed = client.command(
+                            "baseline.attribute",
+                            {"session_id": "owner-session", "paths": ["owned.txt"]},
+                        )
+                        heartbeat = client.command(
+                            "session.heartbeat", {"session_id": "cargo-session"}
+                        )
+                        elapsed = time.monotonic() - began
+                finally:
+                    release_scan.set()
+                    release_action.set()
+                    action_worker.join(timeout=1)
+
+            self.assertEqual("command_timeout", timed_out.exception.code)
+            self.assertEqual("baseline.scan", timed_out.exception.details["command"])
+            self.assertEqual(0.05, timed_out.exception.details["timeoutSeconds"])
+            self.assertEqual("leased", acquired["job"]["status"])
+            self.assertEqual("failed", finished["job"]["status"])
+            self.assertEqual("attributed", attributed["status"])
+            self.assertEqual("cargo-session", heartbeat["session"]["session_id"])
+            self.assertLess(elapsed, 0.75)
+            cargo_jobs.finish.assert_called_once_with(
+                "job-a", session_id="cargo-session", exit_code=1
+            )
+            cargo_jobs.acquire.assert_called_once()
+
+    def test_cargo_and_session_lifecycle_commands_do_not_use_global_mutex(self) -> None:
+        commands = {
+            "session.heartbeat",
+            "lease.claim",
+            "lease.release",
+            "cargo.acquire",
+            "cargo.consume_cpu_reservation",
+            "cargo.run_reserved",
+            "cargo.start",
+            "cargo.heartbeat",
+            "cargo.finish",
+            "cargo.release",
+        }
+
+        self.assertTrue(commands <= CoordinatorApplication.NON_BLOCKING_MUTATION_COMMANDS)
+
+    def test_foreground_mutation_is_not_blocked_by_validation_copy_materialize(self) -> None:
+        """Long copy work may not own the global foreground mutation mutex."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state")
+            )
+            application.supervision.mark_healthy()
+            application.command("session.register", {"session_id": "copy-session"})
+            started = threading.Event()
+            release_copy = threading.Event()
+            mutation_finished = threading.Event()
+            result: dict[str, object] = {}
+
+            def slow_materialize(*_args, **_kwargs):
+                started.set()
+                release_copy.wait(timeout=2)
+                return WorkspaceCopyRecord(
+                    "copy-job",
+                    "copy-session",
+                    root / "copy-job",
+                    root / "copy-job/source",
+                    root / "copy-job/target",
+                    ("README.md",),
+                    "materializing",
+                )
+
+            def register_session() -> None:
+                result.update(application.command("session.register", {"session_id": "session-a"}))
+                mutation_finished.set()
+
+            with mock.patch.object(
+                application.workspace_copy, "materialize_async", side_effect=slow_materialize
+            ):
+                copy_worker = threading.Thread(
+                    target=lambda: application.command(
+                        "validation_copy.materialize",
+                        {"session_id": "copy-session", "paths": ["README.md"]},
+                    ),
+                    daemon=True,
+                )
+                copy_worker.start()
+                self.assertTrue(started.wait(timeout=1))
+                foreground_worker = threading.Thread(target=register_session, daemon=True)
+                foreground_worker.start()
+                try:
+                    self.assertTrue(mutation_finished.wait(timeout=0.5))
+                finally:
+                    release_copy.set()
+                    copy_worker.join(timeout=1)
+                    foreground_worker.join(timeout=1)
+
+        self.assertEqual("registered", result["session"]["status"])
 
 
 if __name__ == "__main__":

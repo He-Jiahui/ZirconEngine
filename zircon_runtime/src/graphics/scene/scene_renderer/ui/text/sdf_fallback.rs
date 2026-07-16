@@ -1,8 +1,8 @@
 use super::super::render::ScreenSpaceUiTextBatch;
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
 use super::super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasRun};
-use crate::graphics::text::sdf::SdfGlyphGenerationError;
-use crate::graphics::text::shaping::resolve_bidi_base_direction;
+use crate::text::sdf::SdfGlyphGenerationError;
+use crate::text::shaping::resolve_bidi_base_direction;
 use unicode_segmentation::UnicodeSegmentation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
@@ -251,7 +251,7 @@ fn validate_mixed_native_overlay_layout_support(
     let text_direction = match text.text_direction {
         UiTextDirection::LeftToRight | UiTextDirection::RightToLeft => text.text_direction,
         UiTextDirection::Auto => {
-            resolve_bidi_base_direction(text.text.as_str(), text.text_direction)
+            resolve_bidi_base_direction(text.text.as_str(), text.text_direction.into()).into()
         }
         UiTextDirection::Mixed => {
             return Err(MixedNativeOverlayUnsupportedReason::UnsupportedTextDirection);

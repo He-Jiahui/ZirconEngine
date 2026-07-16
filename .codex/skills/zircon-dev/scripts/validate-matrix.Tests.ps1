@@ -383,6 +383,21 @@ Describe "Coordinator Cargo target hard cutover" {
     }
 }
 
+Describe "Coordinator supervisor role" {
+    It "marks the long-lived validation wrapper as a supervisor when it starts its Cargo job" {
+        $source = Get-Content -Raw -Encoding UTF8 $script:ValidateMatrixScript
+
+        $startMatch = [regex]::Match(
+            $source,
+            '(?s)function Start-CoordinatorCargoTarget.*?\n\}'
+        )
+
+        $startMatch.Success | Should Be $true
+        $startMatch.Value | Should Match '"--supervisor"'
+        $startMatch.Value | Should Match '"cargo", "start"'
+    }
+}
+
 Describe "Get-PrebuildCleanupDecision" {
     It "requires cleanup when free space is at or below the 50 GB threshold" {
         $decision = Get-PrebuildCleanupDecision -FreeBytes 50GB -ThresholdBytes 50GB

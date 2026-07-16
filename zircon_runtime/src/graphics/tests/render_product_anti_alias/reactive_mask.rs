@@ -34,7 +34,7 @@ fn render_product_taa_authored_reactive_mask_records_material_writer_path() {
         "res://materials/taa-reactive-authored.zmaterial",
         1.0,
     );
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -86,7 +86,7 @@ fn render_product_taa_transparent_reactive_mask_records_alpha_writer_path() {
         AlphaMode::Blend,
         0.45,
     );
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

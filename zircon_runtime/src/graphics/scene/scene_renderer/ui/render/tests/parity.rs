@@ -1,6 +1,6 @@
 use super::*;
-use crate::graphics::text::raster::{raster_path_for, GlyphRasterPath};
-use crate::graphics::text::sdf::SdfMode;
+use crate::text::raster::{raster_path_for, GlyphRasterPath};
+use crate::text::sdf::SdfMode;
 
 const BITMAP_SIDE_SIZE: f32 = 23.5;
 const SDF_SIDE_SIZE: f32 = 24.0;

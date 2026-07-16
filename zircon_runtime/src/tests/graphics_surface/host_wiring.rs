@@ -67,7 +67,7 @@ fn graphics_runtime_host_no_longer_owns_legacy_preview_or_render_service_wiring(
 
 #[test]
 fn graphics_module_defers_render_framework_until_resolved() {
-    use crate::core::manager::resolve_rendering_manager;
+    use crate::core::manager::ManagerResolver;
     use crate::core::{CoreRuntime, StartupMode};
     use crate::graphics::{graphics_module_descriptor, RENDER_FRAMEWORK_NAME};
 
@@ -90,8 +90,12 @@ fn graphics_module_defers_render_framework_until_resolved() {
         .activate_module(crate::asset::ASSET_MODULE_NAME)
         .expect("activate asset module");
     runtime
-        .activate_module(crate::graphics::GRAPHICS_MODULE_NAME)
+        .activate_module(crate::core::framework::render::GRAPHICS_MODULE_NAME)
         .expect("activate graphics module without initializing RenderFramework");
 
-    assert!(resolve_rendering_manager(&runtime.handle()).is_ok());
+    let resolver = ManagerResolver::new(runtime.handle());
+    assert!(resolver
+        .rendering_handle()
+        .and_then(|handle| resolver.resolve(handle))
+        .is_ok());
 }

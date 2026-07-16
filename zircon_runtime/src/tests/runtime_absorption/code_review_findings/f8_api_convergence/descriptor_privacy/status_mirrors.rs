@@ -11,7 +11,7 @@ fn review_f8_runtime_plugin_descriptor_status_mirrors_do_not_claim_public_field_
         include_str!("../../../../../../../zircon_plugins/plugin_sdk/src/runtime.rs");
     let review_findings = concat!(
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let convention =
         include_str!("../../../../../../../docs/plans/engine-code-structure-convention.md");

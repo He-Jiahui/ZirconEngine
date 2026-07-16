@@ -170,6 +170,25 @@ class WorkflowTopologyTests(unittest.TestCase):
         self.assertEqual(["M1.1", "M1.2"], [item.node_id for item in topology.slices])
         self.assertEqual(("M1",), topology.milestones[1].depends_on)
 
+    def test_fallback_imports_legacy_numbered_plan_headings_without_rewriting_plan(self) -> None:
+        self._write(
+            "# Shader module imports\n\n"
+            "### SH03-M1 Unified registry\n\n"
+            "Existing implementation record.\n\n"
+            "### SH03-M2 Redirect contract closure\n\n"
+            "Current closeout evidence.\n"
+        )
+
+        topology = TopologyParser(self.repo).parse(
+            "docs/plans/runtime/01-control.md"
+        )
+
+        self.assertEqual("headings", topology.source)
+        self.assertEqual(
+            [("M1", "Unified registry"), ("M2", "Redirect contract closure")],
+            [(node.node_id, node.title) for node in topology.milestones],
+        )
+
     def test_changed_plan_hash_creates_version_without_rewriting_running_graph(self) -> None:
         self._write(
             "```zircon-workflow\n"
@@ -304,6 +323,75 @@ class WorkflowTopologyTests(unittest.TestCase):
             )
         self.assertEqual(
             "workflow_topology_activation_requires_pristine_run", rejected.exception.code
+        )
+
+    def test_append_only_candidate_preserves_accepted_and_pending_milestones(self) -> None:
+        self._write(
+            "```zircon-workflow\n"
+            '{"schema":1,"workflow_id":"runtime-control","goal":"Runtime",'
+            '"milestones":['
+            '{"id":"M1","title":"Foundation","depends_on":[]},'
+            '{"id":"M2","title":"Bindings","depends_on":["M1"]},'
+            '{"id":"M3","title":"Artifacts","depends_on":[]},'
+            '{"id":"M4","title":"Product","depends_on":["M3"]}]}\n'
+            "```\n"
+        )
+        database = Database(Path(self.temporary.name) / "state.sqlite3")
+        migrate(database)
+        SessionService(database, self.repo).register(
+            session_id="session-a", plan_path="docs/plans/runtime/01-control.md"
+        )
+        importer = TopologyImporter(database, self.repo)
+        first = importer.import_plan("session-a", "docs/plans/runtime/01-control.md")
+        store = WorkflowStore(database)
+        nodes = {node.node_key: node for node in store.nodes(first.run_id)}
+        from tools.session_coordinator.models import WorkflowNodeState
+
+        store.append_attempt(nodes["M1"].node_id, WorkflowNodeState.SUCCEEDED, {})
+        store.append_attempt(nodes["M2"].node_id, WorkflowNodeState.SUCCEEDED, {})
+        self._write(
+            "```zircon-workflow\n"
+            '{"schema":1,"workflow_id":"runtime-control","goal":"Runtime",'
+            '"milestones":['
+            '{"id":"M1","title":"Foundation","depends_on":[]},'
+            '{"id":"M2","title":"Bindings","depends_on":["M1"]},'
+            '{"id":"M3","title":"Artifacts","depends_on":[]},'
+            '{"id":"M4","title":"Product","depends_on":["M3"]},'
+            '{"id":"M5","title":"Viewer","depends_on":["M1","M2","M3","M4"]}]}\n'
+            "```\n"
+        )
+
+        second = importer.import_plan(
+            "session-a", "docs/plans/runtime/01-control.md", activate_candidate=True
+        )
+
+        self.assertTrue(second.activated)
+        updated = {node.node_key: node for node in store.nodes(first.run_id)}
+        self.assertEqual(nodes["M1"].node_id, updated["M1"].node_id)
+        self.assertEqual(nodes["M2"].node_id, updated["M2"].node_id)
+        self.assertEqual(WorkflowNodeState.SUCCEEDED, updated["M1"].state)
+        self.assertEqual(WorkflowNodeState.SUCCEEDED, updated["M2"].state)
+        self.assertEqual(WorkflowNodeState.PENDING, updated["M3"].state)
+        self.assertEqual(WorkflowNodeState.PENDING, updated["M4"].state)
+        self.assertEqual(WorkflowNodeState.PENDING, updated["M5"].state)
+        with database.connect() as connection:
+            edges = {
+                (row["from_node_id"], row["to_node_id"])
+                for row in connection.execute(
+                    "SELECT from_node_id, to_node_id FROM workflow_edges WHERE run_id=?",
+                    (first.run_id,),
+                )
+            }
+        self.assertEqual(
+            {
+                (updated["M1"].node_id, updated["M2"].node_id),
+                (updated["M3"].node_id, updated["M4"].node_id),
+                (updated["M1"].node_id, updated["M5"].node_id),
+                (updated["M2"].node_id, updated["M5"].node_id),
+                (updated["M3"].node_id, updated["M5"].node_id),
+                (updated["M4"].node_id, updated["M5"].node_id),
+            },
+            edges,
         )
 
     def test_rejects_oversized_plan_before_parsing(self) -> None:

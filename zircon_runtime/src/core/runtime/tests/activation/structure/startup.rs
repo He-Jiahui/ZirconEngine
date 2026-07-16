@@ -6,7 +6,9 @@ fn startup_resolution_keeps_exact_count_fast_paths() {
     let startup_source = startup_source();
     let activation_tests_source = activation_tests_source();
 
-    assert!(activation_source.contains("let startup_services = {"));
+    assert!(
+        activation_source.contains("let (previous_lifecycle, service_names, startup_services) = {")
+    );
     assert!(
         activation_source.contains("self.resolve_startup_services(startup_services.as_ref())?;")
     );

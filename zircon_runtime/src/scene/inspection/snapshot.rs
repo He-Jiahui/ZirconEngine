@@ -71,30 +71,26 @@ fn build_hierarchy_rows(world: &World) -> Vec<WorldInspectionHierarchyRow> {
             .push(node.id);
     }
 
-    let mut rows = Vec::new();
+    let mut rows: Vec<WorldInspectionHierarchyRow> = Vec::new();
     let mut visited = HashSet::new();
     if let Some(roots) = children_by_parent.get(&None) {
-        for root in roots {
-            push_hierarchy_row(
-                world,
-                &node_by_entity,
-                &children_by_parent,
-                *root,
-                0,
-                &mut visited,
-                &mut rows,
-            );
-        }
+        push_hierarchy_roots(
+            world,
+            &node_by_entity,
+            &children_by_parent,
+            roots.iter().copied(),
+            &mut visited,
+            &mut rows,
+        );
     }
 
     for node in &nodes {
         if !visited.contains(&node.id) {
-            push_hierarchy_row(
+            push_hierarchy_roots(
                 world,
                 &node_by_entity,
                 &children_by_parent,
-                node.id,
-                0,
+                std::iter::once(node.id),
                 &mut visited,
                 &mut rows,
             );
@@ -103,55 +99,102 @@ fn build_hierarchy_rows(world: &World) -> Vec<WorldInspectionHierarchyRow> {
     rows
 }
 
-fn push_hierarchy_row(
+#[derive(Clone, Copy)]
+struct PendingHierarchyRow {
+    entity: EntityId,
+    depth: u32,
+    expanded: bool,
+    edge_parent: Option<EntityId>,
+}
+
+/// Emits pre-order rows and computes their hashes on post-order stack frames,
+/// avoiding recursion for editor-scale deep hierarchy chains.
+fn push_hierarchy_roots(
     world: &World,
     node_by_entity: &HashMap<EntityId, &SceneNode>,
     children_by_parent: &BTreeMap<Option<EntityId>, Vec<EntityId>>,
-    entity: EntityId,
-    depth: u32,
+    roots: impl IntoIterator<Item = EntityId>,
     visited: &mut HashSet<EntityId>,
     rows: &mut Vec<WorldInspectionHierarchyRow>,
-) -> Option<u64> {
-    if !visited.insert(entity) {
-        return None;
+) {
+    let roots = roots.into_iter().collect::<Vec<_>>();
+    let mut stack = Vec::new();
+    for root in roots.into_iter().rev() {
+        stack.push(PendingHierarchyRow {
+            entity: root,
+            depth: 0,
+            expanded: false,
+            edge_parent: None,
+        });
     }
-    let Some(node) = node_by_entity.get(&entity).copied() else {
-        return None;
-    };
-    let children = children_by_parent.get(&Some(entity));
-    let row_index = rows.len();
-    rows.push(WorldInspectionHierarchyRow {
-        entity,
-        parent: node.parent,
-        depth,
-        display_name: node.name.clone(),
-        kind: node_kind_label(&node.kind).to_string(),
-        subtree_hash: 0,
-        focused: false,
-        active_in_hierarchy: world.active_in_hierarchy(entity).unwrap_or(false),
-        has_children: children.is_some_and(|children| !children.is_empty()),
-    });
+    let mut row_indices: HashMap<EntityId, usize> = HashMap::new();
+    let mut subtree_hashes: HashMap<EntityId, u64> = HashMap::new();
+    let mut traversed_edges: HashSet<(EntityId, EntityId)> = HashSet::new();
 
-    let mut subtree_hasher = StableSubtreeHasher::new(&node.name);
-    subtree_hasher.write_u64(children.map_or(0, Vec::len) as u64);
-    if let Some(children) = children {
-        for child in children {
-            let child_hash = push_hierarchy_row(
-                world,
-                node_by_entity,
-                children_by_parent,
-                *child,
-                depth + 1,
-                visited,
-                rows,
-            );
-            subtree_hasher.write_u64(*child);
-            subtree_hasher.write_u64(child_hash.unwrap_or_default());
+    while let Some(pending) = stack.pop() {
+        if pending.expanded {
+            let Some(row_index) = row_indices.get(&pending.entity).copied() else {
+                continue;
+            };
+            let mut subtree_hasher = StableSubtreeHasher::new(&rows[row_index].display_name);
+            let children = children_by_parent.get(&Some(pending.entity));
+            subtree_hasher.write_u64(children.map_or(0, Vec::len) as u64);
+            if let Some(children) = children {
+                for child in children {
+                    subtree_hasher.write_u64(*child);
+                    let child_hash = if traversed_edges.contains(&(pending.entity, *child)) {
+                        subtree_hashes.get(child).copied().unwrap_or_default()
+                    } else {
+                        0
+                    };
+                    subtree_hasher.write_u64(child_hash);
+                }
+            }
+            let subtree_hash = subtree_hasher.finish();
+            rows[row_index].subtree_hash = subtree_hash;
+            subtree_hashes.insert(pending.entity, subtree_hash);
+            continue;
+        }
+
+        if !visited.insert(pending.entity) {
+            continue;
+        }
+        let Some(node) = node_by_entity.get(&pending.entity).copied() else {
+            continue;
+        };
+        if let Some(edge_parent) = pending.edge_parent {
+            traversed_edges.insert((edge_parent, pending.entity));
+        }
+        let children = children_by_parent.get(&Some(pending.entity));
+        let row_index = rows.len();
+        row_indices.insert(pending.entity, row_index);
+        rows.push(WorldInspectionHierarchyRow {
+            entity: pending.entity,
+            parent: node.parent,
+            depth: pending.depth,
+            display_name: node.name.clone(),
+            kind: node_kind_label(&node.kind).to_string(),
+            subtree_hash: 0,
+            focused: false,
+            active_in_hierarchy: world.active_in_hierarchy(pending.entity).unwrap_or(false),
+            has_children: children.is_some_and(|children| !children.is_empty()),
+        });
+
+        stack.push(PendingHierarchyRow {
+            expanded: true,
+            ..pending
+        });
+        if let Some(children) = children {
+            for child in children.iter().rev() {
+                stack.push(PendingHierarchyRow {
+                    entity: *child,
+                    depth: pending.depth.saturating_add(1),
+                    expanded: false,
+                    edge_parent: Some(pending.entity),
+                });
+            }
         }
     }
-    let subtree_hash = subtree_hasher.finish();
-    rows[row_index].subtree_hash = subtree_hash;
-    Some(subtree_hash)
 }
 
 const FNV_OFFSET_BASIS: u64 = 0xcbf2_9ce4_8422_2325;

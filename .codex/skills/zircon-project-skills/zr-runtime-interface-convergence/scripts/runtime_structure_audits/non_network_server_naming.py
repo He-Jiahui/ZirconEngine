@@ -108,6 +108,10 @@ def _is_allowed_server_context(path: Path, line: str, tokens: list[str]) -> bool
         return True
     if normalized.endswith("zircon_runtime/src/plugin/runtime_profile/defaults.rs"):
         return True
+    if normalized.endswith(
+        "zircon_runtime/src/core/framework/project/runtime_profile_id.rs"
+    ) and line.strip() == "Server,":
+        return True
     if normalized.endswith("zircon_runtime/src/plugin/export_build_plan/default_profile.rs"):
         return True
     if normalized.endswith(

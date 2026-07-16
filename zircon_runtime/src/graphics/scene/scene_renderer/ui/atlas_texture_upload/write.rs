@@ -1,4 +1,4 @@
-use crate::graphics::text::atlas::GlyphAtlasUploadCommand;
+use crate::text::atlas::GlyphAtlasUploadCommand;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) struct GlyphAtlasTextureUploadWrite {

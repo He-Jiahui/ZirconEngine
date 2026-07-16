@@ -139,25 +139,22 @@ fn animation_graph_authoring_batch() -> EditorAuthoringContributionBatch {
     let compile = operation("animation_graph.authoring.compile");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(open_graph.clone(), "Open Animation Graph")
+            EditorCommandDescriptor::operation(open_graph.clone(), "Open Animation Graph")
                 .with_menu_path("Plugins/Animation Graph/Open Graph")
                 .with_payload_schema_id("animation_graph.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
+            EditorCommandDescriptor::operation(
                 open_state_machine.clone(),
                 "Open Animation State Machine",
             )
             .with_menu_path("Plugins/Animation Graph/Open State Machine")
             .with_payload_schema_id("animation_graph.open_state_machine.v1")
             .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                validate.clone(),
-                "Validate Animation Graph",
-            )
-            .with_menu_path("Plugins/Animation Graph/Validate")
-            .with_payload_schema_id("animation_graph.validate.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(compile.clone(), "Compile Animation Graph")
+            EditorCommandDescriptor::operation(validate.clone(), "Validate Animation Graph")
+                .with_menu_path("Plugins/Animation Graph/Validate")
+                .with_payload_schema_id("animation_graph.validate.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(compile.clone(), "Compile Animation Graph")
                 .with_menu_path("Plugins/Animation Graph/Compile")
                 .with_payload_schema_id("animation_graph.compile.v1")
                 .with_required_capabilities([CAPABILITY]),

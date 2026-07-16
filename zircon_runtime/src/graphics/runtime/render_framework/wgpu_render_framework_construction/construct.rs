@@ -1,7 +1,11 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
+#[cfg(test)]
+use std::sync::Arc;
+use std::sync::Mutex;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
+#[cfg(test)]
+use crate::asset::ProjectAssetManager;
+use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     AdvancedProviderAvailability, GeometrySourceDescriptor, ShadingModelDescriptor,
 };
@@ -23,12 +27,19 @@ use super::super::wgpu_render_framework::WgpuRenderFramework;
 use super::create_default_pipelines::create_default_pipelines;
 
 impl WgpuRenderFramework {
-    pub fn new(asset_manager: Arc<ProjectAssetManager>) -> Result<Self, GraphicsError> {
+    #[cfg(test)]
+    pub(crate) fn new_for_test(
+        asset_manager: Arc<ProjectAssetManager>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new(ProjectAssetManagerAccess::for_test(asset_manager))
+    }
+
+    pub fn new(asset_manager: ProjectAssetManagerAccess) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_render_features(asset_manager, Vec::new(), Vec::new(), Vec::new())
     }
 
     pub fn new_with_plugin_render_features(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         virtual_geometry_runtime_providers: impl IntoIterator<
@@ -45,8 +56,25 @@ impl WgpuRenderFramework {
         )
     }
 
-    pub fn new_with_plugin_render_extensions(
+    #[cfg(test)]
+    pub(crate) fn new_for_test_with_plugin_render_features(
         asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_features(
+            ProjectAssetManagerAccess::for_test(asset_manager),
+            render_features,
+            render_pass_executors,
+            virtual_geometry_runtime_providers,
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions(
+        asset_manager: ProjectAssetManagerAccess,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
@@ -67,8 +95,29 @@ impl WgpuRenderFramework {
         )
     }
 
-    pub fn new_with_plugin_render_extensions_and_shading_models(
+    #[cfg(test)]
+    pub(crate) fn new_for_test_with_plugin_render_extensions(
         asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions(
+            ProjectAssetManagerAccess::for_test(asset_manager),
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            hybrid_gi_runtime_providers,
+            virtual_geometry_runtime_providers,
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions_and_shading_models(
+        asset_manager: ProjectAssetManagerAccess,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
@@ -92,8 +141,33 @@ impl WgpuRenderFramework {
         )
     }
 
-    pub fn new_with_plugin_render_extensions_and_solari(
+    #[cfg(test)]
+    pub(crate) fn new_for_test_with_plugin_render_extensions_and_shading_models(
         asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions_and_shading_models(
+            ProjectAssetManagerAccess::for_test(asset_manager),
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            plugin_geometry_sources,
+            plugin_shading_models,
+            hybrid_gi_runtime_providers,
+            virtual_geometry_runtime_providers,
+        )
+    }
+
+    pub fn new_with_plugin_render_extensions_and_solari(
+        asset_manager: ProjectAssetManagerAccess,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
@@ -119,7 +193,7 @@ impl WgpuRenderFramework {
     }
 
     pub fn new_with_plugin_render_extensions_and_solari_and_shading_models(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
@@ -146,8 +220,35 @@ impl WgpuRenderFramework {
         )
     }
 
-    pub(crate) fn new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
+    #[cfg(test)]
+    pub(crate) fn new_for_test_with_plugin_render_extensions_and_solari_and_shading_models(
         asset_manager: Arc<ProjectAssetManager>,
+        render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
+        render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
+        runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,
+        hybrid_gi_runtime_providers: impl IntoIterator<Item = HybridGiRuntimeProviderRegistration>,
+        solari_runtime_providers: impl IntoIterator<Item = SolariRuntimeProviderRegistration>,
+        virtual_geometry_runtime_providers: impl IntoIterator<
+            Item = VirtualGeometryRuntimeProviderRegistration,
+        >,
+        plugin_geometry_sources: impl IntoIterator<Item = GeometrySourceDescriptor>,
+        plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
+    ) -> Result<Self, GraphicsError> {
+        Self::new_with_plugin_render_extensions_and_solari_and_shading_models(
+            ProjectAssetManagerAccess::for_test(asset_manager),
+            render_features,
+            render_pass_executors,
+            runtime_prepare_collectors,
+            hybrid_gi_runtime_providers,
+            solari_runtime_providers,
+            virtual_geometry_runtime_providers,
+            plugin_geometry_sources,
+            plugin_shading_models,
+        )
+    }
+
+    pub(crate) fn new_with_plugin_render_extensions_and_solari_and_compute_task_pool(
+        asset_manager: ProjectAssetManagerAccess,
         render_features: impl IntoIterator<Item = RenderFeatureDescriptor>,
         render_pass_executors: impl IntoIterator<Item = RenderPassExecutorRegistration>,
         runtime_prepare_collectors: impl IntoIterator<Item = RuntimePrepareCollectorRegistration>,

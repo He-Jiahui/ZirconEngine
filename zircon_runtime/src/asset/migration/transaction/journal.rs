@@ -26,8 +26,8 @@ pub(super) fn create_intent_journal(
         )
     })?;
     let parent = journal_owner::ensure_journal_directory(project_root)?;
-    let path =
-        transaction_sibling(&parent, &first.path, "journal", transaction_id).with_extension("toml");
+    let mut path = transaction_sibling(&parent, &first.path, "journal", transaction_id);
+    path.as_mut_os_string().push(".toml");
     let documents = pending
         .iter()
         .map(|document| {

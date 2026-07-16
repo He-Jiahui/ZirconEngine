@@ -6,6 +6,7 @@ import threading
 import unittest
 from unittest import mock
 from pathlib import Path
+import subprocess
 
 from tools.session_coordinator.baselines import BaselineService
 from tools.session_coordinator.config import CoordinatorConfig
@@ -57,6 +58,133 @@ class WorkspaceCopyTests(unittest.TestCase):
         self.assertFalse((result.source_root / ".git").exists())
         self.assertFalse((result.source_root / "target").exists())
         self.assertTrue(result.target_root.is_dir())
+
+    def test_materialize_uses_a_single_baseline_archive_for_large_manifests(self) -> None:
+        for index in range(3):
+            source = self.repo / "src" / f"baseline-{index}.txt"
+            source.parent.mkdir(exist_ok=True)
+            source.write_text(f"baseline {index}\n", encoding="utf-8")
+        subprocess.run(["git", "add", "src"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "test: add baseline archive fixture"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        )
+
+        original_popen = subprocess.Popen
+        archives: list[list[str]] = []
+
+        def record_archive(arguments, *args, **kwargs):
+            if len(arguments) > 1 and arguments[1] == "archive":
+                archives.append(list(arguments))
+            return original_popen(arguments, *args, **kwargs)
+
+        with (
+            mock.patch.object(
+                self.service,
+                "_head_content",
+                side_effect=AssertionError("large manifests must not spawn git show per file"),
+            ),
+            mock.patch("tools.session_coordinator.workspace_copy.subprocess.Popen", side_effect=record_archive),
+        ):
+            result = self.service.materialize(
+                "session-a",
+                include_paths=(
+                    "README.md",
+                    "src/baseline-0.txt",
+                    "src/baseline-1.txt",
+                    "src/baseline-2.txt",
+                ),
+            )
+
+        self.assertEqual("baseline 2\n", (result.source_root / "src/baseline-2.txt").read_text())
+        self.assertEqual(1, len(archives))
+        self.assertEqual("--", archives[0][-5])
+        self.assertEqual(
+            {
+                "README.md",
+                "src/baseline-0.txt",
+                "src/baseline-1.txt",
+                "src/baseline-2.txt",
+            },
+            set(archives[0][-4:]),
+        )
+
+    def test_async_materialize_returns_before_copy_finishes_and_exposes_status(self) -> None:
+        started = threading.Event()
+        release = threading.Event()
+        original = self.service._materialize_record
+
+        def slow_materialize(record):
+            started.set()
+            release.wait(timeout=2)
+            return original(record)
+
+        with mock.patch.object(self.service, "_materialize_record", side_effect=slow_materialize):
+            result = self.service.materialize_async(
+                "session-a", include_paths=("README.md",)
+            )
+            self.assertEqual("materializing", result.status)
+            self.assertTrue(started.wait(timeout=1))
+            self.assertEqual(
+                "materializing",
+                self.service.status("session-a", result.job_id).status,
+            )
+            with self.assertRaises(CoordinatorError) as cleanup:
+                self.service.cleanup("session-a", result.job_root)
+            self.assertEqual("validation_copy_cleanup_busy", cleanup.exception.code)
+            release.set()
+
+        for _ in range(100):
+            status = self.service.status("session-a", result.job_id).status
+            if status == "materialized":
+                break
+            threading.Event().wait(0.02)
+        self.assertEqual("materialized", status)
+
+    def test_validation_copy_keeps_baseline_dependencies_outside_milestone_manifest(self) -> None:
+        dependency = self.repo / "tools/session_coordinator/probe.py"
+        dependency.parent.mkdir(parents=True)
+        dependency.write_text("VALUE = 'available'\n", encoding="utf-8")
+        subprocess.run(["git", "add", "tools/session_coordinator/probe.py"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-m", "test: add validation dependency"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+        )
+        milestone = self.repo / "docs/milestone.md"
+        milestone.parent.mkdir(parents=True)
+        milestone.write_text("owned milestone evidence\n", encoding="utf-8")
+        self.baselines.attribute("session-a", ["docs/milestone.md"])
+
+        with mock.patch.object(
+            self.service,
+            "_head_content",
+            side_effect=AssertionError("validation dependencies must use one archive"),
+        ):
+            result = self.service.materialize_validation(
+                "session-a",
+                dependency_roots=("tools/session_coordinator",),
+                overlay_paths=("docs/milestone.md",),
+            )
+        completed = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                "from tools.session_coordinator.probe import VALUE; assert VALUE == 'available'",
+            ],
+            cwd=result.source_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertEqual("", completed.stderr)
+        self.assertEqual("owned milestone evidence\n", (result.source_root / "docs/milestone.md").read_text())
+        self.assertIn("tools/session_coordinator/probe.py", result.manifest)
+        self.assertIn("docs/milestone.md", result.manifest)
 
     def test_copy_pins_head_even_if_repository_head_changes_during_materialize(self) -> None:
         original = self.service._head_content
@@ -302,6 +430,23 @@ class WorkspaceCopyTests(unittest.TestCase):
             status = connection.execute(
                 "SELECT status FROM validation_copies WHERE job_id = ?",
                 (result.job_id,),
+            ).fetchone()["status"]
+        self.assertEqual("removed", status)
+
+    def test_startup_recovery_removes_interrupted_planned_copy(self) -> None:
+        planned = self.service.plan("session-a", include_paths=("README.md",))
+        planned.source_root.mkdir(parents=True)
+        (planned.source_root / "partial.txt").write_text("partial", encoding="utf-8")
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda _pid: False, startup=True
+        )
+
+        self.assertEqual((0, 1), recovered)
+        self.assertFalse(planned.job_root.exists())
+        with self.database.connect() as connection:
+            status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id = ?", (planned.job_id,)
             ).fetchone()["status"]
         self.assertEqual("removed", status)
 

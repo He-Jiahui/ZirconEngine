@@ -1,5 +1,6 @@
-use zircon_runtime::core::framework::render::RichTextFormat;
-use zircon_runtime::graphics::RichTextParser;
+#![cfg(feature = "ui")]
+
+use zircon_runtime::text::{RichTextFormat, RichTextParser, TextAlign};
 use zircon_runtime::ui::surface::layout_text;
 use zircon_runtime_interface::ui::{
     layout::UiFrame,
@@ -29,7 +30,7 @@ fn runtime_text_rich_blocks_parse_paragraph_indent_and_nested_markers() {
 
     assert_eq!(parsed.text, "title\nbody\nA. One\n→ Inner\nB. Two");
     assert!(parsed.paragraphs.iter().any(|(_, paragraph)| {
-        paragraph.align == Some(UiTextAlign::Center) && paragraph.indent == Some(12.0)
+        paragraph.align == Some(TextAlign::Center) && paragraph.indent == Some(12.0)
     }));
     assert_eq!(
         parsed

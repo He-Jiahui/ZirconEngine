@@ -12,15 +12,17 @@ use crate::manager::parameters::{
 use self::abort::{abort_active_root, process_observer_aborts};
 use self::condition::decorator_condition_passes;
 use self::integration::{evaluate_integration_task, evaluate_task};
+use self::selector::evaluate_selector;
 use self::support::*;
 use super::{
     BehaviorIntegrationHost, BehaviorNodeRuntime, BehaviorNodeSemantics, BehaviorNodeTickContext,
-    CompiledBehaviorNode, CompiledBehaviorTree, SelectorRecheckPolicy,
+    CompiledBehaviorNode, CompiledBehaviorTree,
 };
 
 mod abort;
 mod condition;
 mod integration;
+mod selector;
 mod support;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -51,6 +53,16 @@ struct BehaviorNodeRuntimeState {
 }
 
 impl BehaviorTreeInstanceState {
+    fn node_state(
+        &self,
+        tree: &CompiledBehaviorTree,
+        node_index: u32,
+    ) -> Option<&BehaviorNodeRuntimeState> {
+        self.trees
+            .get(tree.id())
+            .and_then(|states| states.get(node_index as usize))
+    }
+
     fn node_mut(
         &mut self,
         tree: &CompiledBehaviorTree,
@@ -296,98 +308,6 @@ fn evaluate_node(
         AiDecisionStatus::Running | AiDecisionStatus::Idle
     );
     result
-}
-
-fn evaluate_selector(
-    node_index: u32,
-    node: &CompiledBehaviorNode,
-    tree: &CompiledBehaviorTree,
-    tree_descriptors: &[CompiledBehaviorTree],
-    context: &mut BehaviorTreeExecutionContext<'_, '_>,
-    tree_stack: &mut Vec<String>,
-) -> BehaviorTreeExecution {
-    let cached = context
-        .instance
-        .node_mut(tree, node_index)
-        .terminal_children
-        .clone();
-    let resume_child = context.instance.node_mut(tree, node_index).active_child;
-    let mut reached_resume = resume_child.is_none();
-    let mut last_failed = None;
-    for child in tree.child_indices(node) {
-        if resume_child == Some(*child) {
-            reached_resume = true;
-        }
-        let result = if !reached_resume && !selector_branch_requires_recheck(*child, tree) {
-            cached.get(child).cloned().unwrap_or_else(|| {
-                evaluate_node(*child, tree, tree_descriptors, context, tree_stack)
-            })
-        } else {
-            evaluate_node(*child, tree, tree_descriptors, context, tree_stack)
-        };
-        match &result.status {
-            AiDecisionStatus::Failed => {
-                context
-                    .instance
-                    .node_mut(tree, node_index)
-                    .terminal_children
-                    .insert(*child, result.clone());
-                last_failed = Some(result);
-            }
-            AiDecisionStatus::Running | AiDecisionStatus::Idle => {
-                context.instance.node_mut(tree, node_index).active_child = Some(*child);
-                return result;
-            }
-            _ => {
-                context.instance.node_mut(tree, node_index).active_child = None;
-                context
-                    .instance
-                    .node_mut(tree, node_index)
-                    .terminal_children
-                    .clear();
-                return result;
-            }
-        }
-    }
-
-    context.instance.node_mut(tree, node_index).active_child = None;
-    context
-        .instance
-        .node_mut(tree, node_index)
-        .terminal_children
-        .clear();
-
-    last_failed.unwrap_or_else(|| BehaviorTreeExecution {
-        status: AiDecisionStatus::Failed,
-        active_node: Some(node.id().to_string()),
-        diagnostic: None,
-    })
-}
-
-fn selector_branch_requires_recheck(node_index: u32, tree: &CompiledBehaviorTree) -> bool {
-    let node = tree.node(node_index as usize);
-    if node.semantics() == BehaviorNodeSemantics::BlackboardCondition
-        && parameter(node, "blackboard_key").is_some()
-    {
-        return matches!(
-            node.abort_policy(),
-            zircon_runtime::core::framework::ai::AiBehaviorAbortPolicy::LowerPriority
-                | zircon_runtime::core::framework::ai::AiBehaviorAbortPolicy::Both
-        );
-    }
-    if node.selector_recheck_policy() == SelectorRecheckPolicy::RecheckWhileLowerPriorityRuns {
-        return true;
-    }
-    match node.semantics() {
-        BehaviorNodeSemantics::Selector
-        | BehaviorNodeSemantics::Sequence
-        | BehaviorNodeSemantics::Parallel
-        | BehaviorNodeSemantics::RandomSelector => tree
-            .child_indices(node)
-            .iter()
-            .any(|child| selector_branch_requires_recheck(*child, tree)),
-        _ => false,
-    }
 }
 
 fn evaluate_sequence(

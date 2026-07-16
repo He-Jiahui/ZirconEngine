@@ -112,6 +112,7 @@ fn scene_asset_toml_roundtrip_preserves_entities_and_bindings() {
                     direction: [-0.4, -1.0, -0.25],
                     color: [1.0, 1.0, 1.0],
                     intensity: 3.0,
+                    volumetric: false,
                 }),
                 point_light: None,
                 rect_light: None,

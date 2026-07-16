@@ -29,7 +29,7 @@ use crate::scene::{
     SceneRuntimeHookRegistration,
 };
 use crate::scene::{SystemStage, World};
-use crate::{asset, core::manager::RenderFrameworkHandle, render_graph::QueueLane};
+use crate::{asset, core::manager::ManagerResolver, render_graph::QueueLane};
 use crate::{builtin::RuntimePluginId, core::framework::platform::RuntimeTargetMode};
 
 #[test]
@@ -343,12 +343,12 @@ fn runtime_modules_propagate_reported_executor_registrations_into_render_framewo
     }
     runtime.activate_module(asset::ASSET_MODULE_NAME).unwrap();
     runtime
-        .activate_module(crate::graphics::GRAPHICS_MODULE_NAME)
+        .activate_module(crate::core::framework::render::GRAPHICS_MODULE_NAME)
         .unwrap();
-    let framework = runtime
-        .resolve_manager::<RenderFrameworkHandle>(crate::core::manager::RENDER_FRAMEWORK_NAME)
-        .unwrap()
-        .shared();
+    let resolver = ManagerResolver::new(runtime.handle());
+    let framework = resolver
+        .resolve(resolver.render_framework_handle().unwrap())
+        .unwrap();
 
     let pipeline = RenderPipelineHandle::new(1);
     let viewport = framework

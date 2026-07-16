@@ -2,6 +2,7 @@ mod build;
 mod camera_history_key;
 mod compile_pipeline;
 mod environment_ibl_compile_options;
+mod material_feature_extract;
 mod resolve_enabled_features;
 mod resolve_viewport_record_state;
 mod subsurface_profile_extract;

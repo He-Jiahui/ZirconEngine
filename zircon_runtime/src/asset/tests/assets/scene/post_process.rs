@@ -52,6 +52,15 @@ fn scene_asset_toml_roundtrip_preserves_post_process_components() {
         weight: 0.75,
         blend_distance: 0.0,
         profile: ScenePostProcessVolumeProfileAsset {
+            volumetric_fog: Some(SceneVolumetricFogSettingsAsset {
+                density: 0.12,
+                albedo: [0.8, 0.9, 1.0],
+                phase_g: 0.65,
+                height_falloff: 0.08,
+                scattering_intensity: 1.5,
+                depth_distribution_exp: 2.5,
+                temporal: true,
+            }),
             bloom: Some(SceneBloomSettingsAsset {
                 threshold: 0.2,
                 intensity: 0.9,
@@ -141,6 +150,7 @@ fn scene_asset_toml_roundtrip_preserves_post_process_components() {
     assert!(document.contains("post_process_settings"));
     assert!(document.contains("post_process_volume"));
     assert!(document.contains("chromatic_aberration"));
+    assert!(document.contains("volumetric_fog"));
     assert!(loaded.overview().entities[0].has_post_process_settings);
     assert!(loaded.overview().entities[1].has_post_process_volume);
 }

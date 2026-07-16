@@ -2,6 +2,7 @@ pub struct PostProcessGraphResourceNames;
 
 impl PostProcessGraphResourceNames {
     pub const SCENE_COLOR: &'static str = "scene-color";
+    pub const TRANSMISSION_SCENE_COLOR: &'static str = "transmission.scene-color";
     pub const SCENE_DEPTH: &'static str = "scene-depth";
     pub const SHADOW_ATLAS: &'static str = "shadow-atlas";
     pub const SCENE_VELOCITY: &'static str = "scene-velocity";

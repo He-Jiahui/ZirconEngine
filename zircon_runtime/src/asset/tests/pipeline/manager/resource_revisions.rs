@@ -54,10 +54,9 @@ fn resource_server_reimport_bumps_revision_and_publishes_updated_event() {
         .resource_revision("res://materials/grid.zmaterial")
         .expect("baseline revision");
 
-    let mut material =
-        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    let mut material = read_project_material(&material_path);
     material.base_color = [0.6, 0.2, 0.9, 1.0];
-    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+    write_project_material(&material_path, &material);
 
     manager
         .import_asset("res://materials/grid.zmaterial")
@@ -149,10 +148,9 @@ fn importing_one_asset_does_not_bump_unrelated_resource_revisions() {
         .resource_revision("res://models/triangle.obj")
         .expect("model revision");
 
-    let mut material =
-        MaterialAsset::from_toml_str(&fs::read_to_string(&material_path).unwrap()).unwrap();
+    let mut material = read_project_material(&material_path);
     material.base_color = [0.1, 0.6, 0.8, 1.0];
-    fs::write(&material_path, material.to_toml_string().unwrap()).unwrap();
+    write_project_material(&material_path, &material);
 
     manager
         .import_asset("res://materials/grid.zmaterial")

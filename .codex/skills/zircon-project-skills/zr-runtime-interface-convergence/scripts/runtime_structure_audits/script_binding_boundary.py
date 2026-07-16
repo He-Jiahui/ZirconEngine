@@ -28,7 +28,6 @@ RUNTIME_13_SOURCE_FILES = (
     "zircon_runtime/src/script/vm/host/bridge_host_module.rs",
     "zircon_runtime/src/script/vm/host/host_export_registry.rs",
     "zircon_runtime/src/script/vm/host/script_call_table.rs",
-    "zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/host_modules.rs",
     "zircon_runtime/src/core/framework/script.rs",
     "zircon_runtime/src/script/vm/capability_set.rs",
     "zircon_runtime/src/script/vm/handles.rs",

@@ -1,11 +1,11 @@
 use wgpu::util::DeviceExt;
 
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::render_gpu_plan::{
+use crate::text::atlas::render_gpu_plan::{
     glyph_atlas_gpu_bind_group_layout, GlyphAtlasGpuDrawCommand, GlyphAtlasGpuDrawPlan,
     GlyphAtlasGpuPipelineContract, GlyphAtlasGpuPipelineKey,
 };
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPreparedUploadPlan,
     GlyphAtlasBitmapRenderSubmissionPlan, GlyphAtlasBitmapUploadSourceBytes, GlyphAtlasSet,
     GlyphAtlasStorageFormat,

@@ -59,6 +59,7 @@ impl PluginModuleBuilder {
                 capabilities: Vec::new(),
                 system_sets: Vec::new(),
                 system_anchors: Vec::new(),
+                event_consumers: Vec::new(),
             },
         }
     }

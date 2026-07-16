@@ -7,7 +7,10 @@ related_code:
   - zircon_runtime/src/scene/inspection/snapshot.rs
   - zircon_runtime/src/scene/inspection/tests.rs
   - zircon_runtime/src/scene/world/generation.rs
+  - zircon_runtime/src/scene/world/records.rs
+  - zircon_runtime/src/scene/world/typed_api.rs
   - zircon_runtime/src/scene/world/world.rs
+  - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/scene/world/project_io/camera.rs
   - zircon_runtime/src/scene/world/project_io/physics.rs
@@ -52,6 +55,9 @@ implementation_files:
   - zircon_runtime/src/scene/inspection/tests.rs
   - zircon_runtime/src/scene/world/generation.rs
   - zircon_runtime/src/scene/world/generation/tests.rs
+  - zircon_runtime/src/scene/world/records.rs
+  - zircon_runtime/src/scene/world/typed_api.rs
+  - zircon_runtime/src/scene/level_system.rs
   - zircon_runtime/src/scene/tests/authoring_boundary.rs
   - zircon_runtime/src/scene/tests/asset_scene.rs
   - zircon_runtime/src/scene/tests/asset_scene/mesh_bindings.rs
@@ -123,7 +129,7 @@ This follows the current reference direction: Fyrox keeps graph selection and wo
 
 `World::inspect_hierarchy()` is the hierarchy-only entry point and carries no editor selection input. `World::inspect_fields(entity)` is the reflected-field-only entry point and returns an empty list for a missing entity. `World::inspect_world(focused)` is the planned composition façade: it captures `World::world_generation()` into the snapshot header, validates the focused entity, composes those two split reads, and applies the composed snapshot's focused row marker without making the hierarchy query depend on editor state.
 
-Current editor consumers use the split reads directly. Viewport selection validity checks call `World::contains_entity`, the edit-mode hierarchy uses `inspect_hierarchy`, and its inspector only calls `inspect_fields` for the editor-owned selected entity. This prevents selection-only or inspector-only work from rebuilding the other projection.
+Current editor consumers use the split reads directly. Viewport selection validity checks call `World::contains_entity`; the edit-mode projection requests hierarchy and inspector fields independently instead of consuming the composed `WorldInspection` façade. M2 owns cache/diff scheduling that will decide which split projection is recomputed after a watch invalidation; M1 establishes the independent read boundaries but does not yet claim inspector-only UI refresh skips the hierarchy call.
 
 ## Reflection Rules
 
@@ -142,11 +148,13 @@ This keeps editor UI code from hard-coding fixed fields such as `Name.value`, `M
 
 Hierarchy rows are built from `World::node_records()` and `World::active_in_hierarchy`. Rows are emitted root-first, depth annotated, and guarded by a visited set so malformed imported parent data cannot create infinite traversal. Orphaned or cyclic leftovers not reached from roots are still emitted as depth-zero rows to preserve inspectability.
 
-Each row's `subtree_hash` is a stable FNV-1a digest of its display-name bytes, ordered direct-child entity ids, and each child's recursively computed subtree hash. A descendant rename therefore changes that descendant and all ancestors, a reparent changes the old and new parent chains while preserving the moved subtree hash, and unrelated roots remain unchanged. The constants are named and local to the inspection implementation; the hash is a projection revision, not a persisted asset id or security primitive.
+Each row's `subtree_hash` is a stable FNV-1a digest of its display-name bytes, ordered direct-child entity ids, and each child's post-order subtree hash. Traversal uses an explicit stack so a valid 5k-deep editor hierarchy does not consume the Rust call stack. Every direct edge remains encoded: a cycle/visited or missing child writes its entity id with a zero child hash, matching the former recursive projection instead of silently dropping malformed-edge identity. A descendant rename therefore changes that descendant and all ancestors, a reparent changes the old and new parent chains while preserving the moved subtree hash, and unrelated roots remain unchanged. The constants are named and local to the inspection implementation; the hash is a projection revision, not a persisted asset id or security primitive.
 
 ## World Generation
 
-`World::world_generation()` exposes a monotonic runtime-only `u64` revision. Successful entity spawn paths, successful despawn, and effective reparent operations advance it exactly once per structural mutation; the typed component mutation throat advances the same revision for insert/replace/remove and mutable access so a renamed or edited row cannot be answered with stale `NotModified`. Rejected and explicit no-op operations do not advance it; mutable access may advance without a write, matching Editor02's accepted false-positive invalidation rule. The field is skipped by serde and excluded from persistent `World` equality through its private revision wrapper, so project/dynamic-scene data never stores session synchronization state.
+`World::world_generation()` exposes a monotonic runtime-only `u64` revision. Successful entity spawn paths, successful despawn, and effective reparent operations advance it exactly once per structural mutation; the typed component mutation throat advances the same revision for insert/replace/remove and successful mutable access so a renamed or edited row cannot be answered with stale `NotModified`. Rejected/no-op component lookup and rejected record import leave both world state and generation unchanged; multi-record restoration validates on a staged world before replacing the authority. Whole-world replacement advances past the larger of the current and incoming runtime revisions, so deserialized/reloaded worlds cannot move a live level's generation backward. At the practically unreachable saturated revision, the query contract disables `NotModified` and returns rows on every request rather than wrapping to an old identity. The field is skipped by serde and excluded from persistent `World` equality through its private revision wrapper, so project/dynamic-scene data never stores session synchronization state.
+
+Fixed-component presence rebuilding is an internal ECS storage projection, not a second world mutation. `insert_rebuilt_fixed_component_presence` writes the already-authoritative fixed value directly into typed storage and preserves the existing archetype, query-cache, and component Add/Replace/Insert lifecycle reporting. Component-specific derived-state dirty marking happens before synchronous lifecycle callbacks, so observers see the same ready-to-recompute projection state as public `World::insert`; generation advancement remains separated and occurs exactly once at the outer structural boundary. The helper deliberately does not re-enter public `World::insert` or advance `WorldGeneration`; therefore a node spawn/import advances generation once, while serde reconstruction remains at generation zero.
 
 The generation owner is `scene/world/generation.rs`; mutation methods only call its private advance operation. Editor02 M2 will pair this revision with subscription flushing and component-watch invalidation. No editor view id, watch token, gateway object, or message transport is stored in `World`.
 
@@ -192,7 +200,7 @@ The 2026-06-24 Runtime 15 M3 scene world basics test folder split keeps world pr
 
 ## Validation
 
-`zircon_runtime/src/scene/inspection/tests.rs` verifies split-entry/composition equivalence and subtree-hash propagation for rename and reparent operations. `zircon_runtime/src/scene/world/generation/tests.rs` verifies monotonic structural generation, typed component replacement and no-op behavior, rejected mutation behavior, explicit-id spawn counting, and the serde boundary. `zircon_runtime/src/scene/tests/inspection.rs` continues to verify hierarchy order, focus filtering, built-in component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
+`zircon_runtime/src/scene/inspection/tests.rs` verifies split-entry/composition equivalence, subtree-hash propagation for rename/reparent, cycle-edge versus broken-edge identity, deterministic repeated hashing, and a 5k-deep iterative hierarchy walk. `zircon_runtime/src/scene/world/generation/tests.rs` verifies monotonic structural generation, typed component replacement and no-op behavior, fixed-presence dirty/query/lifecycle ordering, failed mutable lookup, atomic rejected single/batch record import, explicit-id spawn counting, and the serde boundary. `zircon_runtime/src/scene/level_system.rs` verifies generation continuity across whole-world replacement. `zircon_runtime/src/scene/tests/inspection.rs` continues to verify hierarchy order, focus filtering, built-in component reflection, plugin-owned dynamic component reflection, writable/read-only field flags, non-mutating invalid-focus behavior, and serialized inspection snapshots free of editor authoring tokens.
 
 `zircon_runtime/src/scene/tests/component_structure.rs` rejects reintroducing the old production `scene/editor_projection` module, checks that the runtime scene public inspection files do not expose `SceneEditor*` symbols, and guards scene/project serialization source files against editor authoring-state names.
 

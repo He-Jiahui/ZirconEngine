@@ -12,16 +12,16 @@ fn review_f17_entity_path_option_lookup_uses_get_verb() {
         include_str!("../../../../scene/tests/property_paths/runtime_mutation.rs");
     let property_paths_read = include_str!("../../../../scene/tests/property_paths/read_paths.rs");
     let review_findings = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
     let convention = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let runtime_08 = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/08/2026-07-09-ecs-kernel-data-alignment-output-records.md"
     );
     let runtime_index = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let ecs_doc = include_str!("../../../../../../docs/zircon_runtime/scene/ecs.md");
     let animation_doc = include_str!(

@@ -1,23 +1,24 @@
 #[test]
 fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
     let session_source = include_str!("../../../dynamic_api/session.rs");
+    let ffi_source = include_str!("../../../dynamic_api/session/ffi.rs");
     let events_source = include_str!("../../../dynamic_api/session/events.rs");
     let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
     let runtime_10_output = include_str!(
         "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );
     let runtime_index_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
 
+    assert!(session_source.contains("mod events;"));
     for required_session_anchor in [
-        "mod events;",
-        "pub(super) unsafe fn handle_event(",
+        "pub(in crate::dynamic_api) unsafe fn handle_event(",
         "with_session(handle, |session| session.handle_event(event))",
     ] {
         assert!(
-            session_source.contains(required_session_anchor),
-            "session.rs should keep ABI entry owner anchor `{required_session_anchor}`"
+            ffi_source.contains(required_session_anchor),
+            "session/ffi.rs should keep ABI entry owner anchor `{required_session_anchor}`"
         );
     }
 
@@ -30,8 +31,8 @@ fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
         "fn sync_orbit_target_from_selection",
     ] {
         assert!(
-            !session_source.contains(moved_event_anchor),
-            "session.rs should not reclaim event owner helper `{moved_event_anchor}`"
+            !ffi_source.contains(moved_event_anchor),
+            "session/ffi.rs should not reclaim event owner helper `{moved_event_anchor}`"
         );
         assert!(
             events_source.contains(moved_event_anchor),

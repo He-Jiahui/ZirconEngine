@@ -4,6 +4,8 @@ mod integration;
 mod service;
 mod task;
 
+#[cfg(test)]
+pub(crate) use integration::IntegrationTaskResult;
 pub(crate) use integration::{
     BehaviorIntegrationHost, BehaviorIntegrationTaskContext, RuntimeBehaviorIntegrationHost,
 };

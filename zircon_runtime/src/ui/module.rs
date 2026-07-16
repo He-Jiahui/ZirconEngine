@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::core::framework::render::GRAPHICS_MODULE_NAME;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
@@ -7,7 +8,7 @@ use crate::core::{
 };
 use crate::engine_module::{dependency_on, factory, qualified_name, EngineModule};
 use crate::ui::event_ui::UiEventManager;
-use crate::{graphics::GRAPHICS_MODULE_NAME, input::INPUT_MODULE_NAME, scene::SCENE_MODULE_NAME};
+use crate::{input::INPUT_MODULE_NAME, scene::SCENE_MODULE_NAME};
 
 pub const UI_MODULE_NAME: &str = "UiModule";
 pub const UI_RUNTIME_DRIVER_NAME: &str = "UiModule.Driver.UiRuntimeDriver";

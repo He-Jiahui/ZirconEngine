@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import os
 import sys
+import threading
 import uuid
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from ...models import CoordinatorError, SessionStatus
 from .models import (
@@ -12,11 +13,13 @@ from .models import (
     ActionSpec,
     SessionParameters,
     GoalCloseoutParameters,
+    MilestoneCommitParameters,
     MilestoneParameters,
     LifecycleParameters,
     ValidationCancelParameters,
     ValidationStartParameters,
     ValidationTemplate,
+    MilestoneReconciliationParameters,
     TopologyRefreshParameters,
 )
 from ...supervision.models import LifecycleKind
@@ -37,6 +40,7 @@ class ActionExecutor:
         topology_importer=None,
         milestones=None,
         lifecycle=None,
+        git_finalize=None,
         codex_wake=None,
     ):
         self.sessions = sessions
@@ -48,7 +52,12 @@ class ActionExecutor:
         self.topology_importer = topology_importer
         self.milestones = milestones
         self.lifecycle = lifecycle
+        self.git_finalize = git_finalize
         self.codex_wake = codex_wake
+        self._deferred_completion: Callable[..., None] | None = None
+
+    def set_deferred_completion(self, callback: Callable[..., None]) -> None:
+        self._deferred_completion = callback
 
     def execute(
         self,
@@ -65,7 +74,29 @@ class ActionExecutor:
             return {"session": self.sessions.heartbeat(value.session_id).to_dict()}
         if kind is ActionKind.SESSION_ACTIVATE:
             value = self._session(parameters)
-            session = self.sessions.get(value.session_id)
+            try:
+                session = self.sessions.get(value.session_id)
+            except CoordinatorError as error:
+                if error.code != "session_not_found" or value.maintenance_session_id is None:
+                    raise
+                self._require_writable_maintenance_sessions((value.maintenance_session_id,))
+                session = self.sessions.register(
+                    session_id=value.session_id,
+                    display_name=value.display_name,
+                    plan_path=value.plan_path,
+                    write_scope=value.write_scope,
+                )
+            else:
+                if (
+                    value.display_name is not None
+                    or value.plan_path is not None
+                    or value.write_scope
+                    or value.maintenance_session_id is not None
+                ):
+                    raise CoordinatorError(
+                        "session_bootstrap_target_exists",
+                        "Scoped bootstrap may only create a previously unknown Session",
+                    )
             if session.status is not SessionStatus.ACTIVE:
                 session = self.sessions.set_status(
                     value.session_id,
@@ -132,31 +163,25 @@ class ActionExecutor:
                     actor=actor or "controlled-action",
                     action_id=action_id,
                 )
-            record = self.workspace_copy.materialize(
-                value.session_id, include_paths=paths
+            unattributed = sorted(
+                set(paths) - set(self.milestones.attributed_changes(value.session_id)),
+                key=str.casefold,
             )
-            validation_run_id = uuid.uuid4().hex
-            source_manifest_hash = self.workspace_copy.scoped_manifest_hash(
-                record.job_id, paths
-            )
-            self.milestones.bind_validation(
-                session_id=value.session_id,
-                run_id=value.run_id,
-                milestone_key=value.milestone_id,
-                validation_run_id=validation_run_id,
-                job_id=record.job_id,
-                template=value.template.value,
-                source_manifest_hash=source_manifest_hash,
-                actor=actor or "controlled-action",
-                action_id=action_id,
-            )
-            started = self.workspace_copy.start(
-                value.session_id,
-                record.job_id,
-                command=self._validation_command(value.template),
-                run_id=validation_run_id,
-            )
-            return {"copy": record.to_dict(), "validation": started}
+            if unattributed:
+                raise CoordinatorError(
+                    "milestone_manifest_not_attributed",
+                    "The immutable milestone manifest no longer belongs to this Session",
+                    details={"paths": unattributed},
+                )
+            if action_id is None or self._deferred_completion is None:
+                return self._start_validation(value, paths, actor=actor, action_id=action_id)
+            return {
+                "deferred": True,
+                "validation": {"status": "materializing"},
+                "_start": lambda: self._start_validation_thread(
+                    action_id, value, paths, actor=actor
+                ),
+            }
         if kind is ActionKind.VALIDATION_CANCEL:
             if self.workspace_copy is None:
                 raise CoordinatorError("action_unavailable", "Validation-copy service is unavailable")
@@ -230,16 +255,58 @@ class ActionExecutor:
             if self.lifecycle is None or action_id is None:
                 raise CoordinatorError("action_unavailable", "Lifecycle service is unavailable")
             value = self._typed(parameters, LifecycleParameters)
-            return self.lifecycle.request(
+            if value.maintenance_session_ids:
+                if kind is not ActionKind.SERVICE_DRAIN:
+                    raise CoordinatorError(
+                        "action_parameters_invalid",
+                        "maintenanceSessionIds are valid only for a controlled drain",
+                    )
+                self._require_writable_maintenance_sessions(value.maintenance_session_ids)
+            if value.maintenance_session_id is not None:
+                if kind is not ActionKind.SERVICE_RESUME or not value.release_maintenance_hold:
+                    raise CoordinatorError(
+                        "action_parameters_invalid",
+                        "maintenanceSessionId is valid only for an explicit maintenance release",
+                    )
+                self._require_writable_maintenance_sessions((value.maintenance_session_id,))
+            if (
+                value.gpu_reservation_session_id is not None
+                or value.release_maintenance_hold
+                or value.maintenance_hold_action_id is not None
+            ):
+                if kind is not ActionKind.SERVICE_RESUME:
+                    raise CoordinatorError(
+                        "action_parameters_invalid",
+                        "GPU reservation and maintenance-release proof are only valid when resuming service mutations",
+                    )
+                if value.gpu_reservation_session_id is not None and self.sessions is None:
+                    raise CoordinatorError("action_unavailable", "Session service is unavailable")
+                if value.gpu_reservation_session_id is not None:
+                    self.sessions.get(value.gpu_reservation_session_id)
+            result = self.lifecycle.request(
                 LifecycleKind(kind.value),
                 action_id=action_id,
                 actor=actor or "controlled-action",
                 timeout_seconds=value.timeout_seconds,
+                release_maintenance_hold=value.release_maintenance_hold,
+                maintenance_hold_action_id=value.maintenance_hold_action_id,
             )
+            if value.gpu_reservation_session_id is not None:
+                result["gpuReservationSessionId"] = value.gpu_reservation_session_id
+            return result
+        if kind is ActionKind.MAINTENANCE_CLEANUP:
+            if self.git_finalize is None or action_id is None:
+                raise CoordinatorError("action_unavailable", "Git index cleanup is unavailable")
+            return {
+                "indexCleanup": self.git_finalize.cleanup_shared_index(
+                    f"action:{action_id}"
+                )
+            }
+
         if kind is ActionKind.MILESTONE_COMMIT:
             if self.milestones is None:
                 raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
-            value = self._typed(parameters, MilestoneParameters)
+            value = self._typed(parameters, MilestoneCommitParameters)
             paths = self.milestones.milestone_paths(value.run_id, value.milestone_id)
             if not paths:
                 paths = self.milestones.attributed_changes(value.session_id)
@@ -248,7 +315,7 @@ class ActionExecutor:
                 run_id=value.run_id,
                 milestone_key=value.milestone_id,
                 paths=paths,
-                message=f"feat(workflow): complete {value.milestone_id} milestone",
+                summary=value.summary,
                 actor=actor or "controlled-action",
                 action_id=action_id,
             )
@@ -266,6 +333,19 @@ class ActionExecutor:
                     else None
                 ),
             }
+        if kind is ActionKind.MILESTONE_RECONCILE:
+            if self.milestones is None:
+                raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
+            value = self._typed(parameters, MilestoneReconciliationParameters)
+            return {
+                "reconciliation": self.milestones.reconcile_accepted_milestones(
+                    source_run_id=value.source_run_id,
+                    target_run_id=value.target_run_id,
+                    milestone_keys=value.milestone_ids,
+                    actor=actor or "controlled-action",
+                    action_id=action_id,
+                )
+            }
         if kind is ActionKind.SESSION_COMPLETE:
             if self.milestones is None:
                 raise CoordinatorError("action_unavailable", "Milestone service is unavailable")
@@ -278,13 +358,24 @@ class ActionExecutor:
             return {"queued": True, "trigger": "controlled"}
         raise CoordinatorError("action_executor_missing", "Action has no M3 executor")
 
+    def _require_writable_maintenance_sessions(self, session_ids: tuple[str, ...]) -> None:
+        if self.sessions is None:
+            raise CoordinatorError("action_unavailable", "Session service is unavailable")
+        for session_id in session_ids:
+            session = self.sessions.get(session_id)
+            if session.status not in {SessionStatus.ACTIVE, SessionStatus.RESOLVING_FAILURE}:
+                raise CoordinatorError(
+                    "maintenance_session_not_writable",
+                    "Maintenance scope requires active or failure-resolving Sessions",
+                    details={"sessionId": session_id, "status": session.status.value},
+                )
+
     def cancel(
         self, kind: ActionKind, action_id: str, *, actor: str, reason: str
     ) -> dict[str, object]:
         if kind in {
             ActionKind.SERVICE_STOP,
             ActionKind.SERVICE_RESTART,
-            ActionKind.SERVICE_FORCE_STOP,
         }:
             if self.lifecycle is None:
                 raise CoordinatorError(
@@ -292,6 +383,70 @@ class ActionExecutor:
                 )
             return self.lifecycle.cancel(action_id, actor=actor, reason=reason)
         raise CoordinatorError("action_not_cancellable", f"Action {kind.value} is executing")
+
+    def _start_validation(
+        self,
+        value: ValidationStartParameters,
+        paths: tuple[str, ...],
+        *,
+        actor: str | None,
+        action_id: str | None,
+    ) -> dict[str, object]:
+        if self.workspace_copy is None or self.milestones is None:
+            raise CoordinatorError("action_unavailable", "Validation services are unavailable")
+        record = self.workspace_copy.materialize_validation(
+            value.session_id,
+            dependency_roots=self._validation_dependency_roots(value.template),
+            overlay_paths=paths,
+        )
+        validation_run_id = uuid.uuid4().hex
+        source_manifest_hash = self.workspace_copy.scoped_manifest_hash(record.job_id, paths)
+        self.milestones.bind_validation(
+            session_id=value.session_id,
+            run_id=value.run_id,
+            milestone_key=value.milestone_id,
+            validation_run_id=validation_run_id,
+            job_id=record.job_id,
+            template=value.template.value,
+            source_manifest_hash=source_manifest_hash,
+            actor=actor or "controlled-action",
+            action_id=action_id,
+        )
+        started = self.workspace_copy.start(
+            value.session_id,
+            record.job_id,
+            command=self._validation_command(value.template),
+            run_id=validation_run_id,
+        )
+        return {"copy": record.to_dict(), "validation": started}
+
+    def _start_validation_thread(
+        self,
+        action_id: str,
+        value: ValidationStartParameters,
+        paths: tuple[str, ...],
+        *,
+        actor: str | None,
+    ) -> None:
+        callback = self._deferred_completion
+        if callback is None:
+            return
+
+        def worker() -> None:
+            try:
+                result = self._start_validation(value, paths, actor=actor, action_id=action_id)
+            except CoordinatorError as error:
+                callback(action_id, value, error_code=error.code)
+            except Exception:
+                callback(action_id, value, error_code="action_execution_failed")
+            else:
+                callback(action_id, value, result=result)
+
+        threading.Thread(
+            target=worker,
+            name=f"zircon-validation-materialize-{action_id[:8]}",
+            daemon=True,
+        ).start()
 
     @staticmethod
     def _session(parameters: ActionParameters) -> SessionParameters:
@@ -320,4 +475,12 @@ class ActionExecutor:
         if template is ValidationTemplate.WEB_CHECK:
             npm = "npm.cmd" if os.name == "nt" else "npm"
             return (npm, "--prefix", "tools/session_coordinator/web", "run", "check")
+        raise CoordinatorError("action_validation_template_unknown", "Unknown validation template")
+
+    @staticmethod
+    def _validation_dependency_roots(template: ValidationTemplate) -> tuple[str, ...]:
+        if template is ValidationTemplate.COORDINATOR_ACTIONS:
+            return ("tools/session_coordinator",)
+        if template is ValidationTemplate.WEB_CHECK:
+            return ("tools/session_coordinator/web",)
         raise CoordinatorError("action_validation_template_unknown", "Unknown validation template")

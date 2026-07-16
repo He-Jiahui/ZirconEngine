@@ -7,16 +7,16 @@ fn review_f5_asset_authoring_uses_typed_error() {
         include_str!("../../../../../asset/importer/ingest/import_authoring_asset.rs");
     let asset_authoring_tests = include_str!("../../../../../asset/tests/assets/authoring.rs");
     let review_findings = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
     let runtime_15_output = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
+        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
     );
     let runtime_index_output = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let convention = include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+        "../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let authoring_doc =
         include_str!("../../../../../../../docs/zircon_runtime/asset/assets/authoring.md");

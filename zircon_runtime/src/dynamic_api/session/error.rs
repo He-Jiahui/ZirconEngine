@@ -5,6 +5,7 @@ use crate::asset::AssetImportError;
 use crate::core::framework::navigation::NavigationError;
 use crate::core::framework::render::RenderFrameworkError;
 use crate::core::CoreError;
+use crate::operation::RuntimeOperationServiceError;
 use crate::plugin::RuntimeExtensionRegistryError;
 use crate::script::VmError;
 use thiserror::Error;
@@ -13,7 +14,9 @@ pub(super) type RuntimeDynamicSessionResult<T> = Result<T, RuntimeDynamicSession
 pub(super) type RuntimeProjectResult<T> = Result<T, RuntimeProjectError>;
 
 #[derive(Debug, Error)]
-pub(super) enum RuntimeDynamicSessionError {
+pub enum RuntimeDynamicSessionError {
+    #[error("unknown runtime session profile `{profile}`")]
+    UnknownProfile { profile: String },
     #[error("runtime module discovery failed: {message}")]
     ModuleDiscovery { message: String },
     #[error("{step}: {source}")]
@@ -51,10 +54,15 @@ pub(super) enum RuntimeDynamicSessionError {
         #[source]
         source: serde_json::Error,
     },
+    #[error("register runtime operation handlers: {source}")]
+    RuntimeOperationRegistry {
+        #[source]
+        source: RuntimeOperationServiceError,
+    },
 }
 
 #[derive(Debug, Error)]
-pub(super) enum RuntimeProjectError {
+pub enum RuntimeProjectError {
     #[error("runtime project root must be UTF-8: {source}")]
     ProjectRootUtf8 {
         #[source]

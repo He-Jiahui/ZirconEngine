@@ -13,7 +13,12 @@ except ModuleNotFoundError:  # pragma: no cover - Python < 3.11 fallback.
 GENERATED_MANIFEST_HEADER = (
     "# @generated from Rust descriptor package_manifest(); do not edit by hand."
 )
-SKIPPED_WORKSPACE_ROOTS = {"editor_support", "first_party_runtime_catalog", "plugin_sdk"}
+SKIPPED_WORKSPACE_ROOTS = {
+    "editor_support",
+    "first_party_editor_catalog",
+    "first_party_runtime_catalog",
+    "plugin_sdk",
+}
 REQUIRED_ROOT_FIELDS = (
     "id",
     "version",

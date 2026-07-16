@@ -1,4 +1,4 @@
-use crate::core::framework::render::{RichTable, RichTableCell, MAX_RICH_TABLE_ROW_SPAN};
+use crate::text::{RichTable, RichTableCell, MAX_RICH_TABLE_ROW_SPAN};
 
 #[derive(Clone, Copy, Debug)]
 pub(super) struct PlacedTableCell<'a> {

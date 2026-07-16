@@ -198,7 +198,7 @@ impl RenderFixture {
     }
 
     fn server(&self) -> WgpuRenderFramework {
-        WgpuRenderFramework::new_with_plugin_render_features(
+        WgpuRenderFramework::new_for_test_with_plugin_render_features(
             self.asset_manager.clone(),
             default_rendering_feature_descriptors(),
             Vec::new(),
@@ -208,7 +208,7 @@ impl RenderFixture {
     }
 
     fn builtin_server(&self) -> WgpuRenderFramework {
-        WgpuRenderFramework::new(self.asset_manager.clone()).unwrap()
+        WgpuRenderFramework::new_for_test(self.asset_manager.clone()).unwrap()
     }
 
     fn server_with_render_features(
@@ -218,7 +218,7 @@ impl RenderFixture {
     ) -> WgpuRenderFramework {
         let mut features = default_rendering_feature_descriptors();
         features.extend(render_features);
-        WgpuRenderFramework::new_with_plugin_render_features(
+        WgpuRenderFramework::new_for_test_with_plugin_render_features(
             self.asset_manager.clone(),
             features,
             render_pass_executors,

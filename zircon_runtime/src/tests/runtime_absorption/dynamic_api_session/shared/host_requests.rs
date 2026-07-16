@@ -56,27 +56,27 @@ pub(in super::super) const EXPECTED_RUNTIME_10_HOST_REQUEST_PAYLOAD_ANCHORS: &[(
         "pub(in crate::dynamic_api) fn runtime_cursor_host_request",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".drain_ime_host_requests()",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".drain_gamepad_rumble_requests()",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".drain_cursor_host_requests()",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".map(ZrRuntimeHostRequestV1::ime)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".map(ZrRuntimeHostRequestV1::gamepad_rumble)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         ".map(ZrRuntimeHostRequestV1::cursor)",
     ),
     (

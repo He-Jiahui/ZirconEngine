@@ -16,6 +16,8 @@ pub struct AdvancedLightingExtract {
     pub volumetric: Option<VolumetricFogSettings>,
     pub oit: Option<OitSettings>,
     pub fog_volumes: Vec<FogVolumeData>,
+    /// Stable ids of authored lights that participate in froxel scattering.
+    pub volumetric_light_ids: Vec<u64>,
     pub cookies: Vec<LightCookieData>,
     pub irradiance_volumes: Vec<IrradianceVolumeData>,
     pub planar_probes: Vec<PlanarReflectionProbeData>,
@@ -31,6 +33,7 @@ impl AdvancedLightingExtract {
             && self.volumetric.is_none()
             && self.oit.is_none()
             && self.fog_volumes.is_empty()
+            && self.volumetric_light_ids.is_empty()
             && self.cookies.is_empty()
             && self.irradiance_volumes.is_empty()
             && self.planar_probes.is_empty()
@@ -45,6 +48,21 @@ impl AdvancedLightingExtract {
 
     pub const fn froxel_dimensions(&self, quality: FroxelGridQuality) -> [u32; 3] {
         quality.dimensions()
+    }
+
+    pub fn fog_volumes_for_layers(
+        &self,
+        render_layers: &crate::core::framework::render::RenderLayerSet,
+    ) -> Vec<FogVolumeData> {
+        self.fog_volumes
+            .iter()
+            .filter(|volume| volume.layer_mask.intersects(render_layers))
+            .cloned()
+            .collect()
+    }
+
+    pub fn light_participates_in_volumetrics(&self, light_id: u64) -> bool {
+        self.volumetric_light_ids.contains(&light_id)
     }
 
     pub const fn transmission_scene_copy_step_count(&self) -> usize {

@@ -34,7 +34,7 @@ Add a `zircon-session milestone` command family backed by the coordinator:
 - `commit`: call `MilestoneWorkflowService.commit` with the exact `run_id` and `M<n>`. The service owns the plain Conventional Commit subject (`feat(workflow): complete M<n> milestone`), re-evaluates gates under the Git mutex, makes the scoped commit, reconciles the workflow attempt, and sends WeCom exactly once only after a real commit SHA exists.
 - `close-goal`: call `MilestoneWorkflowService.close_goal` after all milestone nodes have accepted attempts and the Session is clean.
 
-The CLI never adds a module prefix to Git; `MilestoneWorkflowService` derives the plan-folder module only for the WeCom first line.
+The CLI never adds a module prefix to Git; `MilestoneWorkflowService` derives the plan-folder module only for the WeCom first line. Legacy `finalize --milestone` is rejected, and a numbered-plan Session may become complete only through `close-goal`; neither route may create a commit record without a matching workflow attempt. A writable daemon also installs a local pre-commit gate so ordinary Git shell commits are rejected before they enter shared history.
 
 ### Codex and Session identity
 
@@ -44,7 +44,7 @@ Codex Hook events remain observational. The closeout skill uses the registered b
 
 Add a repo-local `PreToolUse` Bash guard for Cargo artifact-producing subcommands (`build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean`). It rejects direct shell invocations and explains that the worker must use the coordinator-aware validator or validation action. Read-only Cargo commands such as `metadata`, `tree`, and `fmt` remain allowed.
 
-The guard is a practical Codex-shell boundary, not a security boundary: it logs each denial under coordinator state for later debugging, while the skills and validator remain the authoritative workflow. The approved validator already acquires a job, starts it, finishes it, and releases it in `finally`; release schedules cleanup. The daemon keeps the thirty-second retry cadence for targets whose deletion initially fails. Managed validation copies import bounded result evidence first, then delete their terminal job tree; a failed deletion remains durable `cleanup_pending` until a retry succeeds.
+The guard is a practical Codex-shell boundary, not a security boundary: it rejects raw artifact Cargo commands and direct `git commit`, logs each denial under coordinator state for later debugging, while the skills and validator remain the authoritative workflow. The approved validator already acquires a job, starts it, finishes it, and releases it in `finally`; release schedules cleanup. The daemon keeps the thirty-second retry cadence for targets whose deletion initially fails. Managed validation copies import bounded result evidence first, then delete their terminal job tree; a failed deletion remains durable `cleanup_pending` until a retry succeeds.
 
 ## Failure Handling
 

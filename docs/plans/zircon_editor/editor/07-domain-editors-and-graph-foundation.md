@@ -19,12 +19,15 @@ plan_sources:
   - docs/plans/zircon_editor/editor/04-pie-and-simulation.md
   - docs/plans/zircon_editor/editor/06-ui-extension-framework.md
   - docs/plans/zircon_editor/editor_ui/07-ui-animation-theatre.md
-status: planned
+status: in_progress
 ---
 
 # 07 图编辑基座与领域编辑器（动画 / Montage / 状态机 / 行为树 / 预览）
 
-- 来自 Editor08 的失败交接（`open / focused document kind 权威投影`）：[`07/failure-2026-07-12-command-eval-focused-document-projection.md`](07/failure-2026-07-12-command-eval-focused-document-projection.md)
+| 2026-07-12 | Editor08 M1.2 失败移交：focused document kind 权威投影 | 已修复（fixed，2026-07-15） | Editor08 已落地 `FocusedDocumentKind(DocumentKind)` when 谓词并禁止由 project-open 猜测 scene focus；Editor07 完成 typed `ViewDescriptor.document_kind`、唯一 `focused_view` 和浮动窗口焦点生命周期，最终 current-source 16/16 通过，详见 [fixed 回传](08/fixed-2026-07-15-command-eval-focused-document-projection.md)。 |
+- fixed 已修复：[irradiance-volume-shader-ide-validation-dependency](07/fixed-2026-07-15-irradiance-volume-shader-ide-validation-dependency.md)
+- fixed 已修复：[failure-return-plan-table-row-corruption](07/fixed-2026-07-15-failure-return-plan-table-row-corruption.md)
+- Editor05 移交（`open / viewport SelectionModel consumer hard cut`）：[`07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md`](07/failure-2026-07-16-viewport-selection-model-consumer-hard-cut.md)
 - Editor07 结构复验发现的跨计划失败（`open / UI root owner 边界债务`）：[`../editor_ui/10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md`](../editor_ui/10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md)
 - Editor07 current-source 上行门发现的文本 fixture 失败（并入既有 `open / retained text`）：[`../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md`](../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md)
 
@@ -192,11 +195,15 @@ impl PreviewScene {
 
 ## 产出记录与时间
 
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
-| 2026-07-12 | Editor08 M1.2 失败移交：focused document kind 权威投影 | 待修复（open） | Editor08 已落地 `FocusedDocumentKind(DocumentKind)` when 谓词并禁止由 project-open 猜测 scene focus；当前宿主尚无本计划领域 toolkit/document owner 向共享 `CommandEvalCtx` 投影真实焦点文档类型。修复要求与静态复现证据见 [failure 交接](07/failure-2026-07-12-command-eval-focused-document-projection.md)。本行仅登记待修复，不声明本计划完成。 |
+| 2026-07-16 | Editor05 失败修复：viewport `SelectionModel` consumer hard cut | 代码完成 / review 0/0/0 / Coordinator 阻塞已修复，受管验证待执行 | 28 处 Workbench/binding 生产调用与 16 处 controller/test 调用已整体迁移到 `SelectionModel` active-domain API，controller 旧 getter/setter 已删除；非选择命令保持多选，删除保留存活集合，PIE 往返完整双域模型，history 为选择型命令保存有序 before/after snapshot。源码扫描除不同类型的 widget reflector 外为 0，`git diff --check` 与最终独立复审 `P0/P1/P2=0/0/0`；Coordinator01 已以 schema 41 完成 stale owner、绝对 expiry、orphan handoff 与 FIFO 生产回放，并回传 [fixed 已修复：stale-session-pending-cpu-reservation-starvation](07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)。当前仅保留 Editor07 current-source managed Cargo 验证门，未将尚未执行的 Rust 测试写成通过。详见 [子计划记录](07/2026-07-16-selection-model-consumer-hard-cut-output-records.md)。 |
+| 2026-07-14 | Editor08 M1.2 回传修复：focused document kind 权威投影 | 已修复（fixed，2026-07-15） | `ViewDescriptor.document_kind` 成为 typed 领域 owner；session/workspace 无兼容字段地硬切到跨主页面和浮动窗口统一的 `focused_view`。补充修复 `None` 被默认 Scene 回退的问题后，runtime when 6/6、command/descriptor when 8/8、focused-owner hard-cut 1/1、Chrome typed projection 1/1 通过，详见 [fixed 回传](08/fixed-2026-07-15-command-eval-focused-document-projection.md)。 |
 | 2026-07-13 | Editor09 M1 失败移交：动画资产打开测试夹具索引权威硬切 | 待修复（open） | animation/runtime/reflection 共 18 项失败已收敛到测试仍以未索引临时绝对路径派发 `OpenAsset`；当前入口正确要求 indexed `AssetTypeId`。修复要求见 [failure 交接](07/failure-2026-07-13-animation-asset-open-index-fixture-cutover.md)，禁止恢复 suffix toolkit 分派。 |
-| 2026-07-14 | Text02 variable shaping 可见性编译失败移交 | 待修复（open） | current-source Editor07 exact 在进入 Editor 前被 Runtime Text02 的 E0364/E0603 挡住；已写入 [Text02 failure 交接](../../zircon_runtime/text/02/failure-2026-07-14-variable-shaping-visibility-compilation.md)。本计划不扩大 helper 可见性或绕过变量字体整形。 |
-| 2026-07-14 | Editor08 M1.2 回传修复：focused document kind 权威投影 | 实现完成 / current Cargo 复验排队 | `ViewDescriptor.document_kind` 成为 typed 领域 owner；session/workspace 无兼容字段地从 `active_center_tab` 硬切为跨主页面与浮动窗口统一的 `focused_view`，Chrome 只按 `focused_view -> instance -> descriptor` 投影 `CommandEvalCtx`。新增浮动动画激活、焦点关闭回退及静态 hard-cut guard；为遵守结构门，新责任从 907 行 `core/editor_extension.rs` 提取为 folder-backed `core/editor_extension/view_descriptor.rs`，root 收敛到 860 行，模块边界 RED→GREEN 1/1。首次 current-source exact 在进入 Editor 前被 31 项下层错误截断，已分别归属 [Plugins08 reflection（已回传 fixed）](../../zircon_runtime/render/18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)、[Text02 shaping](../../zircon_runtime/text/02/failure-2026-07-14-variable-shaping-visibility-compilation.md) 与 [Runtime04 reference resolver](../../zircon_runtime/runtime/04/failure-2026-07-13-stale-subasset-reference-repair.md)；对应代码随后已有 owner 修正，第二轮 exact 正等待同一受管 Cargo pool，详见 [Editor07 focused-document 交接](07/failure-2026-07-12-command-eval-focused-document-projection.md)，暂不回传 fixed。 |
+| 2026-07-14 | Text02 variable shaping 可见性编译失败回传 | 已修复（fixed） | Text02 已把旧 private flat helper 硬切到 folder-backed `shaping/horizontal/{backend,projection}`，并把 helper 可见性限制在 shaping 子系统；Editor paint fixture 同步采用含 `font_instance_id` 的规范 `ShapedGlyph`。Windows managed `text_horizontal_` 5/5 与本计划来源 exact 1/1（3172 filtered out）均通过，详见 [fixed 回传](07/fixed-2026-07-14-variable-shaping-visibility-compilation.md)。 |
+| 2026-07-12 | Editor08 M1.2 失败移交：focused document kind 权威投影 | 已修复（fixed，2026-07-15） | Editor08 已落地 `FocusedDocumentKind(DocumentKind)` when 谓词并禁止由 project-open 猜测 scene focus；Editor07 完成 typed descriptor、唯一 `focused_view` 与浮动窗口焦点生命周期，最终 current-source 16/16 通过，详见 [fixed 回传](08/fixed-2026-07-15-command-eval-focused-document-projection.md)。 |
 | 2026-07-14 | `engine-code-structure-convention` current structure audit | 失败已归属 EditorUI10 | 当前审计为 `migration-debt-present`：超大生产文件与 production `dead_code` 均为 0，但 `ui/component_registry.rs`、`ui/preferences.rs` 仍是 2 项 root owner 边界债务。已写入 [EditorUI10 failure 交接](../editor_ui/10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md)，由结构 owner 联合组件/设置功能 owner 后续硬切；本计划不以移动跨功能文件绕过自身回归。 |
 | 2026-07-14 | Editor07 两项失败 current-source 第二轮上行门 | 未进入测试体 / 文本 owner 阻断 | 受管 Windows job `9cc782db74224c43887dfe73b46a4680` 在 focused-document exact 编译期产生 E0432 + E0063；本计划自有的 `EDITOR_MANAGER_NAME` 测试 import 已按唯一 `ui::host::module` owner 修正，不恢复 host-root re-export。剩余 E0063 是 retained paint-text fixture 构造 `ShapedGlyph` 时缺少已定稿 `font_instance_id`，已追加到 [EditorUI03 retained-text failure](../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md)，日志 `.codex/tmp/editor07-focused-document-current-exact-r2-20260714.log`。Editor07 两个既有 failure 继续保持 open，禁止用未执行测试冒充通过。 |
+- fixed 已修复：[irradiance-volume-shader-ide-validation-dependency](07/fixed-2026-07-15-irradiance-volume-shader-ide-validation-dependency.md)

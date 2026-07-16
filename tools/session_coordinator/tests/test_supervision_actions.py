@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import tempfile
 import threading
 import time
@@ -14,9 +15,15 @@ from tools.session_coordinator.control_plane.actions.models import ActionContext
 from tools.session_coordinator.control_plane.actions.service import ActionService
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
-from tools.session_coordinator.models import CoordinatorError, SupervisionState, WebControlRole
+from tools.session_coordinator.models import (
+    CoordinatorError,
+    SessionStatus,
+    SupervisionState,
+    WebControlRole,
+)
+from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.supervision.lifecycle import LifecycleService
-from tools.session_coordinator.supervision.models import LifecycleKind
+from tools.session_coordinator.supervision.models import LifecycleKind, LifecycleStatus
 from tools.session_coordinator.supervision.service import SupervisionService
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -30,6 +37,10 @@ class SupervisionActionTests(unittest.TestCase):
         self.database = Database(root / "coordinator.sqlite3")
         migrate(self.database)
         BaselineService(self.database, self.repo).initialize()
+        self.sessions = SessionService(self.database, self.repo)
+        for session_id in ("executor-session", "reviewer-session"):
+            self.sessions.register(session_id=session_id)
+            self.sessions.set_status(session_id, SessionStatus.ACTIVE, reason="test setup")
         self.maintenance_active = threading.Event()
         self.supervision = SupervisionService(
             self.database,
@@ -45,9 +56,11 @@ class SupervisionActionTests(unittest.TestCase):
             self.supervision,
             shutdown=lambda _kind: self.shutdown.set(),
             poll_seconds=0.01,
+            allow_global_shutdown=True,
         )
+        self.addCleanup(self.lifecycle.close)
         executor = ActionExecutor(
-            sessions=None,
+            sessions=self.sessions,
             leases=None,
             patches=None,
             failures=None,
@@ -75,9 +88,10 @@ class SupervisionActionTests(unittest.TestCase):
             daemon_instance_id="daemon-a",
         )
 
-    def _confirm(self, kind: ActionKind, timeout: int = 5):
+    def _confirm(self, kind: ActionKind, timeout: int = 5, **parameters):
+        payload = {"timeoutSeconds": timeout, **parameters}
         preview = self.actions.preview(
-            self.context, kind.value, {"timeoutSeconds": timeout}
+            self.context, kind.value, payload
         )
         return self.actions.confirm(
             self.context,
@@ -86,18 +100,235 @@ class SupervisionActionTests(unittest.TestCase):
             reason=f"test {kind.value}",
         )
 
-    def test_drain_and_resume_share_the_controlled_action_protocol(self) -> None:
+    def test_drain_records_blockers_without_closing_admission(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN)
 
         self.assertEqual("succeeded", drained.status.value)
-        self.assertEqual("draining", self.supervision.snapshot().state.value)
-        with self.assertRaises(CoordinatorError):
-            self.supervision.require_mutation_allowed("lease.claim")
+        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+        self.supervision.require_mutation_allowed("lease.claim")
 
         resumed = self._confirm(ActionKind.SERVICE_RESUME)
 
         self.assertEqual("succeeded", resumed.status.value)
         self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+
+    def test_drain_persists_its_maintenance_session_scope(self) -> None:
+        drained = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session", "reviewer-session"],
+        )
+
+        self.assertEqual(
+            ["executor-session", "reviewer-session"],
+            drained.parameters["maintenanceSessionIds"],
+        )
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT parameters_json FROM action_requests WHERE action_id=?",
+                (drained.action_id,),
+            ).fetchone()
+        self.assertEqual(
+            ["executor-session", "reviewer-session"],
+            json.loads(row["parameters_json"])["maintenanceSessionIds"],
+        )
+
+    def test_explicit_release_preview_is_not_bound_to_a_maintenance_session(self) -> None:
+        operations: list[str] = []
+        actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-a",
+                supervision=self.supervision,
+            ),
+            self.actions.executor,
+            daemon_instance_id="daemon-a",
+            mutation_gate=operations.append,
+        )
+
+        actions.preview(
+            self.context,
+            ActionKind.SERVICE_RESUME.value,
+            {
+                "timeoutSeconds": 5,
+                "releaseMaintenanceHold": True,
+                "maintenanceHoldActionId": "drain-action",
+                "maintenanceSessionId": "executor-session",
+            },
+        )
+
+        self.assertEqual(["service.resume.release"], operations)
+
+    def test_explicit_release_preview_without_session_uses_drain_proof_gate(self) -> None:
+        operations: list[str] = []
+        actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-a",
+                supervision=self.supervision,
+            ),
+            self.actions.executor,
+            daemon_instance_id="daemon-a",
+            mutation_gate=operations.append,
+        )
+
+        actions.preview(
+            self.context,
+            ActionKind.SERVICE_RESUME.value,
+            {
+                "timeoutSeconds": 5,
+                "releaseMaintenanceHold": True,
+                "maintenanceHoldActionId": "drain-action",
+            },
+        )
+
+        self.assertEqual(["service.resume.release"], operations)
+
+    def test_scoped_activation_bootstraps_a_new_session_with_exact_scope(self) -> None:
+        scoped_supervision = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-scoped",
+            process_creation_time="created-scoped",
+            maintenance_session_ids=("executor-session",),
+        )
+        scoped_supervision.initialize()
+        scoped_supervision.mark_healthy()
+        scoped_supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.scoped_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+        actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-scoped",
+                supervision=scoped_supervision,
+            ),
+            self.actions.executor,
+            daemon_instance_id="daemon-scoped",
+            mutation_gate=scoped_supervision.require_mutation_allowed,
+        )
+        context = ActionContext(
+            actor="tray",
+            role=WebControlRole.MAINTAINER,
+            web_session_id=None,
+            bound_session_id=None,
+            daemon_instance_id="daemon-scoped",
+        )
+        preview = actions.preview(
+            context,
+            ActionKind.SESSION_ACTIVATE.value,
+            {
+                "sessionId": "render18-bootstrap",
+                "displayName": "Render18 AF-M3 bootstrap",
+                "planPath": "docs/plans/zircon_runtime/render/18-advanced-lighting-features.md",
+                "writeScope": ["zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel"],
+                "maintenanceSessionId": "executor-session",
+            },
+        )
+        actions.confirm(
+            context,
+            preview.action_id,
+            phrase=preview.confirmation_phrase or "",
+            reason="test scoped session bootstrap",
+        )
+
+        created = self.sessions.get("render18-bootstrap")
+        self.assertEqual(SessionStatus.ACTIVE, created.status)
+        self.assertEqual(
+            "docs/plans/zircon_runtime/render/18-advanced-lighting-features.md",
+            created.plan_path,
+        )
+        self.assertEqual(
+            ("zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel",),
+            created.write_scope,
+        )
+
+    def test_scoped_activation_bootstrap_requires_maintainer_permission(self) -> None:
+        scoped_supervision = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-scoped",
+            process_creation_time="created-scoped",
+            maintenance_session_ids=("executor-session",),
+        )
+        scoped_supervision.initialize()
+        scoped_supervision.mark_healthy()
+        scoped_supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.scoped_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+        actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-scoped",
+                supervision=scoped_supervision,
+            ),
+            self.actions.executor,
+            daemon_instance_id="daemon-scoped",
+            mutation_gate=scoped_supervision.require_mutation_allowed,
+        )
+        context = ActionContext(
+            actor="operator",
+            role=WebControlRole.OPERATOR,
+            web_session_id=None,
+            bound_session_id=None,
+            daemon_instance_id="daemon-scoped",
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            actions.preview(
+                context,
+                ActionKind.SESSION_ACTIVATE.value,
+                {
+                    "sessionId": "render18-bootstrap",
+                    "displayName": "Render18 AF-M3 bootstrap",
+                    "planPath": "docs/plans/zircon_runtime/render/18-advanced-lighting-features.md",
+                    "writeScope": [
+                        "zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/froxel"
+                    ],
+                    "maintenanceSessionId": "executor-session",
+                },
+            )
+
+        self.assertEqual("action_permission_denied", rejected.exception.code)
+
+    def test_production_lifecycle_rejects_global_shutdown_without_draining(self) -> None:
+        lifecycle = LifecycleService(self.supervision, poll_seconds=0.01)
+        self.addCleanup(lifecycle.close)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            lifecycle.request(
+                LifecycleKind.STOP,
+                action_id="production-stop",
+                actor="test",
+                timeout_seconds=5,
+            )
+
+        self.assertEqual("lifecycle_global_shutdown_disabled", rejected.exception.code)
+        snapshot = self.supervision.snapshot()
+        self.assertEqual("healthy", snapshot.state.value)
+        self.assertFalse(snapshot.maintenance_hold)
+        self.assertFalse(snapshot.explicit_stop)
+        with self.database.connect() as connection:
+            intent_count = connection.execute(
+                "SELECT COUNT(*) FROM service_lifecycle_intents WHERE action_id=?",
+                ("production-stop",),
+            ).fetchone()[0]
+        self.assertEqual(0, intent_count)
 
     def test_stop_remains_executing_until_critical_sections_drain(self) -> None:
         self.maintenance_active.set()
@@ -142,19 +373,208 @@ class SupervisionActionTests(unittest.TestCase):
         self.assertEqual("cancelled", intent["status"])
         self.assertEqual("lifecycle_cancelled", intent["error_code"])
 
-    def test_resume_atomically_cancels_an_active_stop_drain(self) -> None:
+    def test_confirmed_force_stop_cannot_be_cancelled_while_draining(self) -> None:
+        """The durable maintenance barrier must survive unrelated operator actions."""
+        self.maintenance_active.set()
+        forcing = self._confirm(ActionKind.SERVICE_FORCE_STOP)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.actions.cancel(
+                self.context,
+                forcing.action_id,
+                reason="unrelated session wants to reopen mutations",
+            )
+        self.assertEqual("action_not_cancellable", rejected.exception.code)
+        self.assertEqual("executing", self.actions.get(self.context, forcing.action_id).status.value)
+        self.assertEqual("draining", self.supervision.snapshot().state.value)
+        self.assertTrue(self.supervision.snapshot().maintenance_hold)
+        with self.assertRaises(CoordinatorError) as resumed:
+            self._confirm(ActionKind.SERVICE_RESUME)
+        self.assertEqual("lifecycle_restart_draining", resumed.exception.code)
+
+        self.maintenance_active.clear()
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            if self.supervision.snapshot().state.value == "offline":
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("force-stop action did not reach terminal offline proof")
+        self.lifecycle.acknowledge_force_stop(forcing.action_id)
+        self.assertTrue(self.shutdown.wait(2))
+
+    def test_failed_force_stop_preserves_maintenance_hold(self) -> None:
+        preview = self.actions.preview(
+            self.context, ActionKind.SERVICE_FORCE_STOP.value, {"timeoutSeconds": 5}
+        )
+        self.supervision.create_intent(
+            LifecycleKind.FORCE_STOP,
+            action_id=preview.action_id,
+            actor="tray",
+            deadline_at="later",
+        )
+        self.supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.maintenance_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+
+        result = self.supervision.fail_lifecycle(
+            preview.action_id,
+            actor="daemon",
+            error_code="lifecycle_orphan_recovered",
+        )
+
+        self.assertEqual("draining", result["state"])
+        snapshot = self.supervision.snapshot()
+        self.assertEqual(SupervisionState.DRAINING, snapshot.state)
+        self.assertTrue(snapshot.maintenance_hold)
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.supervision.require_mutation_allowed("cargo.acquire")
+        self.assertEqual("maintenance_hold_active", rejected.exception.code)
+
+    def test_resume_cannot_cancel_an_active_stop_drain(self) -> None:
         self.maintenance_active.set()
         stopping = self._confirm(ActionKind.SERVICE_STOP)
 
-        resumed = self._confirm(ActionKind.SERVICE_RESUME)
+        with self.assertRaises(CoordinatorError) as rejected:
+            self._confirm(ActionKind.SERVICE_RESUME)
+        self.assertEqual("lifecycle_restart_draining", rejected.exception.code)
+        self.assertEqual(
+            "executing", self.actions.get(self.context, stopping.action_id).status.value
+        )
+        self.assertEqual("draining", self.supervision.snapshot().state.value)
+
+        self.actions.cancel(
+            self.context,
+            stopping.action_id,
+            reason="test cleanup of reversible stop",
+        )
         self.maintenance_active.clear()
 
-        self.assertEqual("succeeded", resumed.status.value)
-        self.assertEqual(
-            "cancelled", self.actions.get(self.context, stopping.action_id).status.value
+    def test_resume_cannot_cancel_an_active_restart_drain(self) -> None:
+        restarting = self.actions.preview(
+            self.context, ActionKind.SERVICE_RESTART.value, {"timeoutSeconds": 5}
         )
+        self.supervision.create_intent(
+            LifecycleKind.RESTART,
+            action_id=restarting.action_id,
+            actor="test",
+            deadline_at="later",
+        )
+        self.supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.restart_drain",
+            actor="test",
+            action_id=restarting.action_id,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self._confirm(ActionKind.SERVICE_RESUME)
+
+        self.assertEqual("lifecycle_restart_draining", rejected.exception.code)
+        self.assertEqual(
+            "previewed", self.actions.get(self.context, restarting.action_id).status.value
+        )
+        self.assertEqual("draining", self.supervision.snapshot().state.value)
+        self.supervision.fail_lifecycle(
+            restarting.action_id,
+            actor="test",
+            error_code="test_cleanup",
+        )
+
+    def test_restart_establishes_a_persistent_maintenance_hold_while_draining(self) -> None:
+        self.maintenance_active.set()
+        restarting = self._confirm(ActionKind.SERVICE_RESTART)
+
+        snapshot = self.supervision.snapshot()
+        self.assertEqual("draining", snapshot.state.value)
+        self.assertTrue(snapshot.maintenance_hold)
+        self.assertEqual("executing", restarting.status.value)
+
+        self.maintenance_active.clear()
+        self.assertTrue(self.shutdown.wait(2))
+
+    def test_maintenance_hold_requires_explicit_resume_release(self) -> None:
+        drained = self._confirm(ActionKind.SERVICE_DRAIN)
+
+        self.supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.legacy_maintenance_hold",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+
+        with self.assertRaises(CoordinatorError) as blocked:
+            self._confirm(ActionKind.SERVICE_RESUME)
+        self.assertEqual("maintenance_hold_active", blocked.exception.code)
+
+        with self.assertRaises(CoordinatorError) as stale_release:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId="not-the-current-drain",
+            )
+        self.assertEqual("maintenance_hold_release_mismatch", stale_release.exception.code)
+
+        resumed = self._confirm(
+            ActionKind.SERVICE_RESUME,
+            releaseMaintenanceHold=True,
+            maintenanceHoldActionId=drained.action_id,
+        )
+        self.assertEqual("succeeded", resumed.status.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+
+    def test_drain_is_immediately_terminal_without_stopping_cargo(self) -> None:
+        drained = self._confirm(ActionKind.SERVICE_DRAIN, timeout=1)
+
         self.assertEqual("healthy", self.supervision.snapshot().state.value)
-        self.assertFalse(self.shutdown.wait(0.1))
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+
+        with self.database.connect() as connection:
+            intent = connection.execute(
+                "SELECT status, completed_at FROM service_lifecycle_intents WHERE action_id=?",
+                (drained.action_id,),
+            ).fetchone()
+        self.assertEqual("succeeded", intent["status"])
+        self.assertIsNotNone(intent["completed_at"])
+
+    def test_recovered_legacy_drain_reopens_admission_at_its_deadline(self) -> None:
+        drained = self._confirm(ActionKind.SERVICE_DRAIN, timeout=30)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT intent_id FROM service_lifecycle_intents WHERE action_id=?",
+                (drained.action_id,),
+            ).fetchone()
+        self.assertIsNotNone(row)
+        intent_id = row["intent_id"]
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE service_lifecycle_intents
+                SET deadline_at='2000-01-01T00:00:00+00:00'
+                WHERE intent_id=?
+                """,
+                (intent_id,),
+            )
+        self.supervision.transition(
+            SupervisionState.DRAINING,
+            reason_code="test.legacy_drain",
+            actor="test",
+            updates={"maintenance_hold": 1},
+        )
+        self.supervision.update_intent(intent_id, LifecycleStatus.DRAINING)
+        self.lifecycle.close()
+        successor = LifecycleService(
+            self.supervision,
+            shutdown=lambda _kind: self.shutdown.set(),
+            poll_seconds=0.01,
+        )
+        self.addCleanup(successor.close)
+
+        self.assertEqual(1, successor.recover_restart_intents())
+        self.assertEqual("healthy", self.supervision.snapshot().state.value)
 
     def test_second_reversible_lifecycle_is_rejected_before_resume(self) -> None:
         self.maintenance_active.set()

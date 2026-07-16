@@ -60,7 +60,7 @@ fn app_prelude_exports_entry_and_plugin_group_types() {
     assert!(provider_runner_diagnostics.contains("platform.gamepad_rumble="));
     assert!(selection_report
         .module_keys()
-        .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert_eq!(
         runtime_profile_config.runtime_profile(),
         Some(RuntimeProfileId::Client3d)
@@ -74,7 +74,7 @@ fn app_prelude_exports_entry_and_plugin_group_types() {
         .contains(&zircon_runtime::foundation::FOUNDATION_MODULE_NAME));
     assert!(!headless_group
         .module_keys()
-        .contains(&zircon_runtime::graphics::GRAPHICS_MODULE_NAME));
+        .contains(&zircon_runtime::core::framework::render::GRAPHICS_MODULE_NAME));
     assert_eq!(custom_group.name(), "CustomPlugins");
 }
 

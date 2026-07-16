@@ -3,7 +3,12 @@
 pub use zircon_editor;
 pub use zircon_runtime;
 
-use zircon_editor::{EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport};
+use zircon_editor::{
+    core::runtime_event_consumer::{
+        EditorRuntimeEventConsumerRegistration, EditorRuntimeEventConsumerRegistry,
+    },
+    EditorPlugin, EditorPluginDescriptor, EditorPluginRegistrationReport,
+};
 use zircon_runtime::core::framework::platform::RuntimeTargetMode;
 use zircon_runtime::plugin::{PluginMaturity, PluginPackageManifest};
 
@@ -14,6 +19,8 @@ pub struct EditorPluginDeclaration {
     descriptor: EditorPluginDescriptor,
     base_manifest: PluginPackageManifest,
     mirrored_runtime_package_id: Option<String>,
+    runtime_event_consumers: EditorRuntimeEventConsumerRegistry,
+    diagnostics: Vec<String>,
 }
 
 impl EditorPluginDeclaration {
@@ -35,6 +42,8 @@ impl EditorPluginDeclaration {
                 .with_supported_targets([RuntimeTargetMode::EditorHost])
                 .build(),
             mirrored_runtime_package_id: None,
+            runtime_event_consumers: EditorRuntimeEventConsumerRegistry::default(),
+            diagnostics: Vec::new(),
         }
     }
 
@@ -69,6 +78,20 @@ impl EditorPluginDeclaration {
     {
         for capability in capabilities {
             self = self.with_capability(capability);
+        }
+        self
+    }
+
+    pub fn with_runtime_event_consumer_registration(
+        mut self,
+        registration: EditorRuntimeEventConsumerRegistration,
+    ) -> Self {
+        let manifest = registration.manifest().clone();
+        match self.runtime_event_consumers.register(registration) {
+            Ok(()) => {
+                self.descriptor = self.descriptor.with_event_consumer(manifest);
+            }
+            Err(error) => self.diagnostics.push(error.to_string()),
         }
         self
     }
@@ -128,8 +151,14 @@ impl EditorPluginDeclaration {
         self.mirrored_runtime_package_id.as_deref()
     }
 
+    pub fn runtime_event_consumers(&self) -> EditorRuntimeEventConsumerRegistry {
+        self.runtime_event_consumers.clone()
+    }
+
     pub fn registration_report(&self, plugin: &dyn EditorPlugin) -> EditorPluginRegistrationReport {
-        EditorPluginRegistrationReport::from_plugin(plugin, self.base_manifest())
+        let mut report = EditorPluginRegistrationReport::from_plugin(plugin, self.base_manifest());
+        report.diagnostics.extend(self.diagnostics.iter().cloned());
+        report
     }
 }
 
@@ -153,6 +182,7 @@ macro_rules! authoring_plugin {
             $(mirrors_runtime: $runtime_declaration:expr,)?
             $(mirrors_runtime_manifest: $runtime_manifest:expr,)?
             capabilities: $capabilities:expr,
+            $(runtime_event_consumers: $runtime_event_consumers:expr,)?
             $(asset_root: $asset_root:expr,)?
             $(content_root: $content_root:expr,)?
             register_extensions: $register_extensions:path $(,)?
@@ -208,6 +238,14 @@ macro_rules! authoring_plugin {
                 )?
                 let declaration = declaration.with_capabilities(($capabilities).iter().copied());
                 $(
+                    let declaration = ($runtime_event_consumers).into_iter().fold(
+                        declaration,
+                        |declaration, registration| {
+                            declaration.with_runtime_event_consumer_registration(registration)
+                        },
+                    );
+                )?
+                $(
                     let declaration = declaration.with_asset_root($asset_root);
                 )?
                 $(
@@ -230,6 +268,12 @@ macro_rules! authoring_plugin {
                 $crate::editor::zircon_editor::core::editor_extension::EditorExtensionRegistryError,
             > {
                 $register_extensions(registry)
+            }
+
+            fn runtime_event_consumers(
+                &self,
+            ) -> $crate::editor::zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerRegistry {
+                self.declaration.runtime_event_consumers()
             }
         }
     };

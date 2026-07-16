@@ -118,7 +118,8 @@ fn render_product_anti_alias_compiles_fxaa_pass_for_default_3d() {
 
 #[test]
 fn render_product_anti_alias_submit_records_fxaa_stats_and_graph_node() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -163,7 +164,8 @@ fn render_product_anti_alias_submit_records_fxaa_stats_and_graph_node() {
 
 #[test]
 fn render_product_temporal_off_matches_anti_alias_feature_disabled_product() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let explicit_off_viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -243,7 +245,8 @@ fn render_product_temporal_off_matches_anti_alias_feature_disabled_product() {
 
 #[test]
 fn render_product_taa_uses_temporal_resolve_seed_frame_when_requested() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -266,7 +269,8 @@ fn render_product_taa_uses_temporal_resolve_seed_frame_when_requested() {
 
 #[test]
 fn render_product_taa_static_empty_scene_history_stays_stable_after_seed_frame() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -310,7 +314,8 @@ fn render_product_taa_static_empty_scene_history_stays_stable_after_seed_frame()
 
 #[test]
 fn render_product_taa_dynamic_occlusion_change_converges_after_history_seed() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

@@ -72,7 +72,7 @@ fn shader_ide_dependency_test_stub(import_path: &str, dependency: &str) -> Shade
 }
 
 #[test]
-fn shader_ide_standard_pbr_stub_resolves_transitive_advanced_lighting_dependencies() {
+fn shader_ide_standard_pbr_stub_resolves_registered_advanced_lighting_dependencies() {
     let stubs = builtin_stubs();
     let standard_pbr = stubs
         .iter()
@@ -81,11 +81,7 @@ fn shader_ide_standard_pbr_stub_resolves_transitive_advanced_lighting_dependenci
     let source = shader_ide_stub_validation_source(standard_pbr, &stubs)
         .expect("Standard PBR Shader IDE dependencies should resolve");
 
-    for dependency in [
-        "zr_volumetric.wgsl",
-        "zr_pbr_extras.wgsl",
-        "zr_light_cookie.wgsl",
-    ] {
+    for dependency in ["zr_pbr_extras.wgsl", "zr_light_cookie.wgsl"] {
         assert!(source.contains(&format!(
             "// Zircon shader IDE validation dependency: {dependency}"
         )));

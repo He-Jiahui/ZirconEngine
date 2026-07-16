@@ -13,7 +13,7 @@ impl EditorState {
         self.project_open = true;
         self.welcome = WelcomePaneSnapshot::default();
         self.history.clear();
-        self.clear_selected_node();
+        *self.viewport_controller.selection_mut() = Default::default();
         let _ = self
             .world
             .try_with_world(|scene| self.viewport_controller.reset_from_scene(Some(scene)));
@@ -27,7 +27,7 @@ impl EditorState {
         self.project_open = false;
         self.welcome = welcome;
         self.history.clear();
-        self.clear_selected_node();
+        *self.viewport_controller.selection_mut() = Default::default();
         self.viewport_controller.reset_from_scene(None);
         self.sync_selection_state();
     }

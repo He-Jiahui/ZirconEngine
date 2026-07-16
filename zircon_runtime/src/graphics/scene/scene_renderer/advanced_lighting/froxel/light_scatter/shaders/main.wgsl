@@ -24,6 +24,9 @@ fn scatter_light(light_index: u32, world_position: vec3<f32>, view_direction: ve
         return vec3<f32>(0.0);
     }
     let light = zr_light_data[light_index];
+    if (light.cookie_misc.z == 0u) {
+        return vec3<f32>(0.0);
+    }
     let light_type = zr_gpu_light_type(light);
     let radiance = max(light.color_intensity.rgb, vec3<f32>(0.0)) * max(light.color_intensity.w, 0.0);
     var incoming = vec3<f32>(0.0);
@@ -40,7 +43,7 @@ fn scatter_light(light_index: u32, world_position: vec3<f32>, view_direction: ve
         return vec3<f32>(0.0);
     }
     visibility *= zr_gpu_light_shadow_visibility(light, light_type, world_position, view_z);
-    let phase = henyey_greenstein(params.phase_g.x, dot(incoming, -view_direction));
+    let phase = henyey_greenstein(params.phase_and_ambient.x, dot(incoming, -view_direction));
     return radiance * visibility * phase;
 }
 
@@ -106,7 +109,7 @@ fn cs_main(@builtin(global_invocation_id) invocation: vec3<u32>) {
     let bin = zr_light_zbin_index(view_z, zr_light_grid_params);
     let header = zr_light_zbin_header(bin, zr_light_grid_params);
     let tile_base = zr_light_tile_base(frag_coord, zr_light_grid_params);
-    var lighting = vec3<f32>(0.0);
+    var lighting = max(params.phase_and_ambient.yzw, vec3<f32>(0.0));
     if (header.x != 0xFFFFu && header.x <= header.y) {
         for (var word = header.x / 32u; word <= header.y / 32u; word += 1u) {
             var mask = zr_light_mask_word(tile_base, bin, word, zr_light_grid_params);

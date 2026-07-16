@@ -3,6 +3,7 @@ related_code:
   - zircon_runtime/src/core/framework/navigation/mod.rs
   - zircon_runtime/src/core/framework/navigation/agent.rs
   - zircon_runtime/src/core/framework/navigation/bake.rs
+  - zircon_runtime/src/core/framework/navigation/operation.rs
   - zircon_runtime/src/core/framework/navigation/constants.rs
   - zircon_runtime/src/core/framework/navigation/error.rs
   - zircon_runtime/src/core/framework/navigation/gizmo.rs
@@ -29,11 +30,14 @@ related_code:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/navigation.rs
   - zircon_runtime/src/navigation/module.rs
+  - zircon_runtime/src/navigation/operation/
+  - zircon_plugins/navigation/editor/src/operation_command/
   - zircon_plugins/navigation/runtime/src/lib.rs
 implementation_files:
   - zircon_runtime/src/core/framework/navigation/mod.rs
   - zircon_runtime/src/core/framework/navigation/agent.rs
   - zircon_runtime/src/core/framework/navigation/bake.rs
+  - zircon_runtime/src/core/framework/navigation/operation.rs
   - zircon_runtime/src/core/framework/navigation/constants.rs
   - zircon_runtime/src/core/framework/navigation/error.rs
   - zircon_runtime/src/core/framework/navigation/gizmo.rs
@@ -55,12 +59,18 @@ implementation_files:
   - zircon_runtime/src/scene/world/dynamic_components.rs
   - zircon_runtime/src/scene/navigation.rs
   - zircon_runtime/src/navigation/module.rs
+  - zircon_runtime/src/navigation/operation/handler.rs
+  - zircon_runtime/src/navigation/operation/registration.rs
+  - zircon_plugins/navigation/editor/src/operation_command/command.rs
+  - zircon_plugins/navigation/editor/src/operation_command/factory.rs
   - zircon_plugins/navigation/runtime/src/lib.rs
 plan_sources:
   - user: 2026-05-02 ZirconEngine navigation/pathfinding plugin completion plan
   - user: 2026-06-04 plugin ecosystem infrastructure expansion
 tests:
   - zircon_runtime/src/core/framework/navigation/tests.rs
+  - zircon_plugins/navigation/runtime/src/tests/operation.rs
+  - zircon_plugins/navigation/editor/src/tests/operation_command.rs
   - tools/tests/test_frameworks_05_layer_direction.py::Frameworks05LayerDirectionTests::test_navigation_gizmo_contract_does_not_project_nav_mesh_assets
   - off_mesh_bridge_descriptor_is_a_first_class_navigation_contract
   - automatic_agent_tick_does_not_cross_manual_off_mesh_links
@@ -93,6 +103,7 @@ The navigation framework now lives in a folder-backed subtree. `mod.rs` is only 
 - `constants.rs` and `handle.rs` define stable ids, area masks, and navmesh handles.
 - `settings.rs`, `surface.rs`, `modifier.rs`, `agent.rs`, `obstacle.rs`, and `off_mesh_link.rs` define the authoring and runtime component DTO families.
 - `bake.rs`, `query.rs`, `stats.rs`, `error.rs`, and `manager.rs` define runtime operations and their neutral result/error records.
+- `operation.rs` defines stable operation ids plus clear/restore payloads and generated-bake before/after snapshots. Runtime handlers live under `zircon_runtime::navigation::operation`; editor factories live in the Navigation editor plugin.
 - `gizmo.rs` owns neutral debug triangles/links and converts that snapshot into the shared scene gizmo overlay contract; it does not import or project concrete navmesh assets.
 - `tests.rs` keeps the framework-level contract checks out of the root wiring file.
 
@@ -138,6 +149,8 @@ Dynamic components remain JSON-backed. Vector, entity, and resource values now r
 ## Control Flow
 
 Editor or importer code produces `NavMeshAsset` and `NavigationSettingsAsset` records. The artifact store routes navmeshes into `navigation/navmeshes/*.znavmesh` using `NavMeshAsset` binary serialization and settings into `navigation/settings/*.toml`. Runtime plugins load those assets through the resource system and pass them to an implementation of `NavigationManager`.
+
+Editor bake and clear commands cross the runtime boundary through the generic V2 operation lifecycle. Runtime captures `NavigationGeneratedBakeSnapshot` before and after the mutation and returns a `NavigationGeneratedBakeChange`. The editor command stores those snapshots in transaction history; undo and redo call the restore-snapshot operation and do not rebake. Runtime operation failures after submit are treated as potentially applied external effects.
 
 Scene-facing tools write the six navigation component ids as dynamic components. Property editing uses the component descriptors registered by the navigation runtime plugin and the JSON conversion helpers in the world layer.
 

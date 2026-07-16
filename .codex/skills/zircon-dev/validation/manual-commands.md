@@ -10,7 +10,7 @@ Do not run bare `cargo` commands from the repository. Use the validator so acqui
 
 The validator derives the compatibility key, acquires the single compatible primary pool, starts, finishes and releases the Cargo job automatically. If `CARGO_TARGET_DIR` is inherited, it must resolve below one of the approved `cargo-targets`, `targets`, or `ZirconBuilds` roots on `D:`, `E:`, or `F:` and agree with that pool.
 
-The repository `PreToolUse` Hook also rejects direct artifact-producing Cargo commands (`build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean`). Do not bypass it with `cargo.exe`, nested PowerShell, aliases, or a manually selected target directory. The guard records only a sanitized local diagnostic for later debugging; it never stores command text or credentials.
+The repository `PreToolUse` Hook also rejects direct artifact-producing Cargo commands (`build`, `check`, `test`, `run`, `bench`, `clippy`, `doc`, and `clean`) and direct `git commit`. Do not bypass it with `cargo.exe`, nested PowerShell, aliases, a manually selected target directory, or a direct commit. The guard records only a sanitized local diagnostic for later debugging; it never stores command text, commit messages, or credentials.
 
 For a numbered-plan milestone, use the coordinator action rather than a raw validator invocation:
 
@@ -33,13 +33,15 @@ The validator checks the granted target drive and runs a scoped clean when free 
 .\tools\cleanup-stale-targets.ps1
 ```
 
-## Workspace Build
+## Workspace Build (wave closeout only)
+
+Reserve for execution-wave closeout, release candidates, or root manifest/lockfile/toolchain changes per `docs/plans/milestone-validation-policy.md` §4:
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipTest -VerboseOutput
 ```
 
-## Workspace Tests
+## Workspace Tests (wave closeout only)
 
 ```powershell
 .\.codex\skills\zircon-dev\scripts\validate-matrix.ps1 -SkipBuild -VerboseOutput
@@ -105,5 +107,5 @@ To inspect the selected command without requiring Cargo discovery or target-dire
 
 ## CI Parity Notes
 
-- The Linux CI job installs system dependencies for `winit`, `wgpu`, and `iced` before running workspace build and test.
+- The Linux CI job installs system dependencies for `winit` and `wgpu` before running workspace build and test.
 - If a Linux-only failure appears locally or in CI, compare it against `.github/workflows/ci.yml` before changing the commands or acceptance criteria in this skill.

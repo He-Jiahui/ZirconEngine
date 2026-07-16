@@ -14,7 +14,6 @@ Use this skill only after WSL has a documented Linux-specific purpose. Keep Wind
 - Start with `../milestone-first-workflow-policy.md` to decide whether the current work is still in an implementation slice or has entered a milestone testing stage.
 - Start with `../prefer-windows-validation/SKILL.md`. Stop and return to Windows validation when no explicit WSL reason exists.
 - Start with `prefer-tools-over-guessing.md`.
-- If you need to place or expand tests under `tests/`, read `plan-tests-under-tests-directory.md`.
 - If you need to choose, install, or run WSL debugging and validation tools, read `wsl-tool-selection/SKILL.md`.
 - If you need the full acceptance workflow and required documentation format, read `acceptance-and-evidence/SKILL.md`.
 - Also apply `../support-first-regression-testing/SKILL.md` when an upper-layer failure may come from a lower shared layer.
@@ -29,6 +28,6 @@ Use this skill only after WSL has a documented Linux-specific purpose. Keep Wind
 - Include `platform=wsl` in the complete compatibility document and hold the coordinator lease through a live Windows host wrapper for the full WSL child-process lifetime. Never share one leaf across operating systems.
 - Use the strongest appropriate tool for the failure mode before proposing a speculative fix.
 - If a required mainstream tool is missing in an already-justified WSL run, install it with `apt` when permissions allow, then record the installed version in the evidence trail.
-- Add or update tests under `tests/` for all in-scope behaviors, including edge cases and failure cases. Test code may be written during implementation, but compile/test execution belongs to the milestone testing stage unless earlier evidence is required.
+- Cover the milestone's changed behaviors with focused tests scoped per `docs/plans/milestone-validation-policy.md`: representative coverage plus targeted boundary/failure variants for the risks the milestone actually touches. Test code may be written during implementation, but compile/test execution belongs to the milestone testing stage unless earlier evidence is required.
 - Do not skip, silence, or hand-wave test failures. Either fix them, prove they are pre-existing baseline failures, or leave the work unaccepted.
-- Do not call the work accepted until the acceptance document says exactly what was tested, how it was tested, what failed, what was fixed, and why the remaining state is acceptable.
+- Record milestone evidence in the plan's `## 状态与产出记录` table per `write-plan-output-records`: what was tested, what failed, what was fixed, and why the remaining state is acceptable.

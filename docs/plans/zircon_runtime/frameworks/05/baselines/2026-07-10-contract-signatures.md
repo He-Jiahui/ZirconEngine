@@ -2,7 +2,7 @@
 
 ## 1. 扫描口径
 
-- 机器基线：[`2026-07-10-runtime-domain-dependencies.json`](2026-07-10-runtime-domain-dependencies.json)。
+- 机器基线：[`../../../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json`](../../../../_archive/zircon_runtime/frameworks/05/baselines/2026-07-10-runtime-domain-dependencies.json)。
 - 扫描 owner：`tools/runtime_domain_dependency_audit.py`。
 - 仅扫描 `zircon_runtime/src/<domain>/**/*.rs` 生产 owner；排除 `tests/`、`tests.rs`、`*_tests.rs`、`test_*.rs` 和 crate-root facade。
 - 2026-07-14 独立复审发现旧扫描器漏掉 bare/grouped root imports，并把注释与字符串计为引用；原 2399/80 与 2401/79 总数均已作废，不再作为验收证据。

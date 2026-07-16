@@ -48,7 +48,7 @@ fn render_product_spot_shadow_pcf_quality_changes_receiver_edge_capture() {
         false,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let low_settings =
         shadow_capture_settings_with_quality(ShadowPcfQuality::Low, ShadowResolutionTier::T128);
     let high_settings =
@@ -128,7 +128,7 @@ fn render_product_multi_spot_shadow_atlas_darkens_receivers_capture() {
         false,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let (shadowed_frame, shadowed_stats) = render_multi_spot_shadow_capture_frame(
         &server,
         viewport_size,
@@ -374,7 +374,7 @@ fn spot_shadow_pcf_capture_extract(
                         52_101,
                         Transform {
                             translation: Vec3::new(-1.05, 0.0, 0.42),
-                            scale: Vec3::new(0.10, 0.14, 0.42),
+                            scale: Vec3::new(0.24, 0.28, 0.58),
                             ..Transform::default()
                         },
                         caster_material,

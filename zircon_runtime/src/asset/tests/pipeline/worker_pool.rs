@@ -13,6 +13,7 @@ use crate::asset::pipeline::worker_pool::{
 };
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::runtime::tasks::{TaskPool, TaskPoolDescriptor, TaskPoolKind};
+use crate::core::CoreError;
 
 #[test]
 fn worker_pool_completes_builtin_texture_requests_on_the_runtime_io_pool() {
@@ -105,10 +106,13 @@ fn worker_pool_bounded_queue_rejects_overflow_with_explicit_error() {
         .request(AssetRequest::Texture(TextureSource::BuiltinGrid))
         .expect_err("a second unique request must exceed one IO worker with zero queue depth");
 
-    assert!(
-        error.to_string().contains("asset request queue full"),
-        "unexpected error: {error}"
-    );
+    match error {
+        CoreError::ChannelSend(message) => assert!(
+            message.contains("asset request queue full"),
+            "unexpected channel error: {message}"
+        ),
+        other => panic!("unexpected error variant: {other}"),
+    }
     assert_eq!(pool.diagnostics().in_flight, 1);
     assert_eq!(pool.diagnostics().queue_peak, 1);
 

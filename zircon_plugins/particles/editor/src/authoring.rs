@@ -84,7 +84,7 @@ fn particles_authoring_batch(asset_type: AssetTypeId) -> EditorAuthoringContribu
 
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(
+            EditorCommandDescriptor::operation(
                 create_asset.clone(),
                 "Create CPU Sprite Particle Asset",
             )
@@ -92,7 +92,7 @@ fn particles_authoring_batch(asset_type: AssetTypeId) -> EditorAuthoringContribu
             .with_payload_schema_id("particles.create_cpu_sprite_asset.v1")
             .with_callable_from_remote(false)
             .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
+            EditorCommandDescriptor::operation(
                 add_component.clone(),
                 "Add Particle System Component",
             )
@@ -100,71 +100,56 @@ fn particles_authoring_batch(asset_type: AssetTypeId) -> EditorAuthoringContribu
             .with_payload_schema_id("particles.add_component.v1")
             .with_callable_from_remote(false)
             .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(open_asset.clone(), "Open Particle Asset")
+            EditorCommandDescriptor::operation(open_asset.clone(), "Open Particle Asset")
                 .with_menu_path("Plugins/Particles/Open Particle Asset")
                 .with_payload_schema_id("particles.open_asset.v1")
                 .with_callable_from_remote(false)
                 .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(add_emitter.clone(), "Add Particle Emitter")
+            EditorCommandDescriptor::operation(add_emitter.clone(), "Add Particle Emitter")
                 .with_menu_path("Plugins/Particles/Add Emitter")
                 .with_payload_schema_id("particles.add_emitter.v1")
                 .with_callable_from_remote(false)
                 .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(add_module.clone(), "Add Particle Module")
+            EditorCommandDescriptor::operation(add_module.clone(), "Add Particle Module")
                 .with_menu_path("Plugins/Particles/Add Module")
                 .with_payload_schema_id("particles.add_module.v1")
                 .with_callable_from_remote(false)
                 .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(edit_curve.clone(), "Edit Particle Curve")
+            EditorCommandDescriptor::operation(edit_curve.clone(), "Edit Particle Curve")
                 .with_menu_path("Plugins/Particles/Edit Curve")
                 .with_payload_schema_id("particles.edit_curve.v1")
                 .with_callable_from_remote(false)
                 .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(validate.clone(), "Validate Particle Asset")
+            EditorCommandDescriptor::operation(validate.clone(), "Validate Particle Asset")
                 .with_menu_path("Plugins/Particles/Validate Asset")
                 .with_payload_schema_id("particles.validate_asset.v1")
                 .with_callable_from_remote(false)
                 .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                preview_play.clone(),
-                "Play Particle Preview",
-            )
-            .with_menu_path("Plugins/Particles/Preview/Play")
-            .with_payload_schema_id("particles.preview_play.v1")
-            .with_callable_from_remote(false)
-            .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                preview_pause.clone(),
-                "Pause Particle Preview",
-            )
-            .with_menu_path("Plugins/Particles/Preview/Pause")
-            .with_payload_schema_id("particles.preview_pause.v1")
-            .with_callable_from_remote(false)
-            .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                preview_stop.clone(),
-                "Stop Particle Preview",
-            )
-            .with_menu_path("Plugins/Particles/Preview/Stop")
-            .with_payload_schema_id("particles.preview_stop.v1")
-            .with_callable_from_remote(false)
-            .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                preview_rewind.clone(),
-                "Rewind Particle Preview",
-            )
-            .with_menu_path("Plugins/Particles/Preview/Rewind")
-            .with_payload_schema_id("particles.preview_rewind.v1")
-            .with_callable_from_remote(false)
-            .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                preview_warmup.clone(),
-                "Warm Up Particle Preview",
-            )
-            .with_menu_path("Plugins/Particles/Preview/Warmup")
-            .with_payload_schema_id("particles.preview_warmup.v1")
-            .with_callable_from_remote(false)
-            .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
+            EditorCommandDescriptor::operation(preview_play.clone(), "Play Particle Preview")
+                .with_menu_path("Plugins/Particles/Preview/Play")
+                .with_payload_schema_id("particles.preview_play.v1")
+                .with_callable_from_remote(false)
+                .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
+            EditorCommandDescriptor::operation(preview_pause.clone(), "Pause Particle Preview")
+                .with_menu_path("Plugins/Particles/Preview/Pause")
+                .with_payload_schema_id("particles.preview_pause.v1")
+                .with_callable_from_remote(false)
+                .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
+            EditorCommandDescriptor::operation(preview_stop.clone(), "Stop Particle Preview")
+                .with_menu_path("Plugins/Particles/Preview/Stop")
+                .with_payload_schema_id("particles.preview_stop.v1")
+                .with_callable_from_remote(false)
+                .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
+            EditorCommandDescriptor::operation(preview_rewind.clone(), "Rewind Particle Preview")
+                .with_menu_path("Plugins/Particles/Preview/Rewind")
+                .with_payload_schema_id("particles.preview_rewind.v1")
+                .with_callable_from_remote(false)
+                .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
+            EditorCommandDescriptor::operation(preview_warmup.clone(), "Warm Up Particle Preview")
+                .with_menu_path("Plugins/Particles/Preview/Warmup")
+                .with_payload_schema_id("particles.preview_warmup.v1")
+                .with_callable_from_remote(false)
+                .with_required_capabilities([PARTICLES_AUTHORING_CAPABILITY]),
         ],
         menu_items: vec![
             menu_item("Plugins/Particles/Create CPU Sprite Asset", &create_asset),

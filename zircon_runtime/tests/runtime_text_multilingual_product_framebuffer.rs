@@ -1,3 +1,5 @@
+#![cfg(feature = "ui")]
+
 use glyphon::{Attrs, Buffer, Family, FontSystem, Metrics, Shaping, SwashCache, SwashContent};
 use std::{path::PathBuf, sync::Arc};
 use unicode_segmentation::UnicodeSegmentation;

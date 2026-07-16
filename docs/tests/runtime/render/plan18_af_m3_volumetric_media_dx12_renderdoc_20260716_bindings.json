@@ -1,0 +1,6152 @@
+{
+  "events": {
+    "4977": {
+      "compute": {
+        "shader": "ResourceId::938",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 160,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "fog_volumes",
+            "type": "DescriptorType.Buffer",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "media_texture",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": []
+      },
+      "vertex": null,
+      "pixel": null,
+      "used": [
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 279,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1266",
+          "resource_name": "zircon-forward-volumetric-disabled-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 280,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::941",
+          "resource_name": "zircon-volumetric-media-inject-volumes",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 48
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ReadWriteImage",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 281,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 96,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [],
+      "depth": {
+        "resource": "ResourceId::0",
+        "resource_name": "",
+        "type": "DescriptorType.Unknown",
+        "texture_type": "TextureType.Unknown",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "4999": {
+      "compute": {
+        "shader": "ResourceId::950",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 288,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "froxel_media",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "previous_froxel_scattering",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "froxel_scattering",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": [
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "vertex": null,
+      "pixel": null,
+      "used": [
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 282,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1272",
+          "resource_name": "zircon-shadow-map-slot-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 512
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 290,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::899",
+          "resource_name": "rg-transient-buffer-bucket-ec520418774f07c1-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 289,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::461",
+          "resource_name": "zircon-shadow-atlas-globals",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 283,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 284,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::348",
+          "resource_name": "zircon-gpu-scene-light-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 128
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 286,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 3,
+          "array_element": 0,
+          "byte_offset": 287,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::458",
+          "resource_name": "zircon-shadow-atlas",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 4,
+          "array_element": 0,
+          "byte_offset": 288,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::459",
+          "resource_name": "zircon-shadow-atlas-slots",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24576
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 5,
+          "array_element": 0,
+          "byte_offset": 291,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::897",
+          "resource_name": "rg-transient-buffer-bucket-c42180192eabebf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 16384
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 6,
+          "array_element": 0,
+          "byte_offset": 292,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::896",
+          "resource_name": "rg-transient-buffer-bucket-37a18017044d2bf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 32768
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 7,
+          "array_element": 0,
+          "byte_offset": 293,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::953",
+          "resource_name": "zircon-volumetric-light-scatter-lighting (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 4
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ReadWriteImage",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 285,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::894",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-1",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 96,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Sampler",
+          "index": 0,
+          "array_element": 3,
+          "byte_offset": 3,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [],
+      "depth": {
+        "resource": "ResourceId::0",
+        "resource_name": "",
+        "type": "DescriptorType.Unknown",
+        "texture_type": "TextureType.Unknown",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "5019": {
+      "compute": {
+        "shader": "ResourceId::959",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "froxel_scattering",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "integrated_output",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": []
+      },
+      "vertex": null,
+      "pixel": null,
+      "used": [
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 294,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1275",
+          "resource_name": "zircon-shadow-map-slot-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 295,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::894",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-1",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ReadWriteImage",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 296,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 96,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [],
+      "depth": {
+        "resource": "ResourceId::0",
+        "resource_name": "",
+        "type": "DescriptorType.Unknown",
+        "texture_type": "TextureType.Unknown",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "5053": {
+      "compute": {
+        "shader": "ResourceId::959",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "froxel_scattering",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "integrated_output",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": []
+      },
+      "vertex": {
+        "shader": "ResourceId::966",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "_NagaConstants",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_primitive_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 26,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": []
+      },
+      "pixel": {
+        "shader": "ResourceId::967",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_environment_sh9_",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_probe_header",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_planar",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 176,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_irradiance_volume_params",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_volumetric_apply_params",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 32,
+            "buffer_backed": true
+          },
+          {
+            "name": "standard_material_properties",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 192,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_environment_source_cube",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_brdf_lut",
+            "type": "DescriptorType.Image",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_specular_pmrem_cube",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup0SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probes",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probe_cubemaps",
+            "type": "DescriptorType.Image",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCubeArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_probe_grid",
+            "type": "DescriptorType.Buffer",
+            "bind": 11,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_lightmap_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 12,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2DArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_volumetric_integrated",
+            "type": "DescriptorType.Image",
+            "bind": 13,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_planar_reflection",
+            "type": "DescriptorType.Image",
+            "bind": 14,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_cookie_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 16,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_irradiance_volume_texture",
+            "type": "DescriptorType.Image",
+            "bind": 17,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 18,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_base_color_tex",
+            "type": "DescriptorType.Image",
+            "bind": 19,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_metallic_roughness_tex",
+            "type": "DescriptorType.Image",
+            "bind": 21,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_occlusion_tex",
+            "type": "DescriptorType.Image",
+            "bind": 22,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_emissive_tex",
+            "type": "DescriptorType.Image",
+            "bind": 23,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup2SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 25,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 28,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": [
+          {
+            "name": "nagaSamplerHeap",
+            "bind": 0,
+            "set": 0,
+            "array_size": 2048
+          },
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "used": [
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 5,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::965",
+          "resource_name": "zircon-mesh-pipeline",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 8
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 1,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::314",
+          "resource_name": "zircon-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 512
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 162,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::352",
+          "resource_name": "zircon-gpu-scene-visible-instance-remap-enabled-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.Buffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 156,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::346",
+          "resource_name": "zircon-gpu-scene-primitive-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 5120
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.Buffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 157,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::347",
+          "resource_name": "zircon-gpu-scene-instance-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 11264
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.Buffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 161,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::882",
+          "resource_name": "zircon-opaque-indirect-args-visible-instance-index",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 20
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 1,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::314",
+          "resource_name": "zircon-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 512
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 162,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::352",
+          "resource_name": "zircon-gpu-scene-visible-instance-remap-enabled-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 6,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::339",
+          "resource_name": "zircon-scene-environment-sh9",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 3,
+          "array_element": 0,
+          "byte_offset": 301,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::399",
+          "resource_name": "zircon-reflection-probe-header",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 4,
+          "array_element": 0,
+          "byte_offset": 311,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::403",
+          "resource_name": "zircon-planar-reflection-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 5,
+          "array_element": 0,
+          "byte_offset": 315,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::396",
+          "resource_name": "zircon-irradiance-volume-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 6,
+          "array_element": 0,
+          "byte_offset": 303,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::899",
+          "resource_name": "rg-transient-buffer-bucket-ec520418774f07c1-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 7,
+          "array_element": 0,
+          "byte_offset": 299,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::461",
+          "resource_name": "zircon-shadow-atlas-globals",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 8,
+          "array_element": 0,
+          "byte_offset": 308,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1278",
+          "resource_name": "zircon-shadow-map-slot-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 9,
+          "array_element": 0,
+          "byte_offset": 90,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::810",
+          "resource_name": "zircon-standard-material-uniform-buffer",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 2,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::315",
+          "resource_name": "zircon-scene-environment-source-cube",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.TextureCube",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 6,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 3,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::337",
+          "resource_name": "zircon-scene-environment-brdf-lut",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 4,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::317",
+          "resource_name": "zircon-scene-environment-specular-pmrem-cube",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.TextureCube",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 6,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 3,
+          "array_element": 0,
+          "byte_offset": 7,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::341",
+          "resource_name": "zircon-scene-bind-group (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 4
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 4,
+          "array_element": 0,
+          "byte_offset": 297,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::458",
+          "resource_name": "zircon-shadow-atlas",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 5,
+          "array_element": 0,
+          "byte_offset": 298,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::459",
+          "resource_name": "zircon-shadow-atlas-slots",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24576
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 6,
+          "array_element": 0,
+          "byte_offset": 300,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::398",
+          "resource_name": "zircon-reflection-probe-storage",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 6144
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 7,
+          "array_element": 0,
+          "byte_offset": 302,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::401",
+          "resource_name": "zircon-reflection-probe-pmrem-cube-array",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.TextureCubeArray",
+          "first_mip": 0,
+          "num_mips": 8,
+          "first_slice": 0,
+          "num_slices": 384,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 8,
+          "array_element": 0,
+          "byte_offset": 304,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::897",
+          "resource_name": "rg-transient-buffer-bucket-c42180192eabebf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 16384
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 9,
+          "array_element": 0,
+          "byte_offset": 305,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::896",
+          "resource_name": "rg-transient-buffer-bucket-37a18017044d2bf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 32768
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 10,
+          "array_element": 0,
+          "byte_offset": 306,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::405",
+          "resource_name": "zircon-light-probe-grid-storage",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 48
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 11,
+          "array_element": 0,
+          "byte_offset": 307,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::407",
+          "resource_name": "zircon-lightmap-atlas-fallback",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2DArray",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 12,
+          "array_element": 0,
+          "byte_offset": 309,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 13,
+          "array_element": 0,
+          "byte_offset": 310,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::402",
+          "resource_name": "zircon-planar-reflection-mip-chain",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 11,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 14,
+          "array_element": 0,
+          "byte_offset": 313,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::385",
+          "resource_name": "zircon-light-cookie-atlas",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 15,
+          "array_element": 0,
+          "byte_offset": 314,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::394",
+          "resource_name": "zircon-irradiance-volume-fallback",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 16,
+          "array_element": 0,
+          "byte_offset": 316,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::964",
+          "resource_name": "zircon-forward-shadow-receiver-bind-group (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 17,
+          "array_element": 0,
+          "byte_offset": 91,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 18,
+          "array_element": 0,
+          "byte_offset": 93,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 19,
+          "array_element": 0,
+          "byte_offset": 94,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 20,
+          "array_element": 0,
+          "byte_offset": 95,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 21,
+          "array_element": 0,
+          "byte_offset": 97,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::863",
+          "resource_name": "zircon-standard-material-set-bind-group (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 22,
+          "array_element": 0,
+          "byte_offset": 157,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::347",
+          "resource_name": "zircon-gpu-scene-instance-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 11264
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 23,
+          "array_element": 0,
+          "byte_offset": 158,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::348",
+          "resource_name": "zircon-gpu-scene-light-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 128
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 24,
+          "array_element": 0,
+          "byte_offset": 161,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::882",
+          "resource_name": "zircon-opaque-indirect-args-visible-instance-index",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 20
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Sampler",
+          "index": 0,
+          "array_element": 2,
+          "byte_offset": 2,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Sampler",
+          "index": 0,
+          "array_element": 4,
+          "byte_offset": 4,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Sampler",
+          "index": 1,
+          "array_element": 3,
+          "byte_offset": 3,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [
+        {
+          "resource": "ResourceId::813",
+          "resource_name": "zircon-offscreen-scene-color",
+          "type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1
+        }
+      ],
+      "depth": {
+        "resource": "ResourceId::821",
+        "resource_name": "zircon-depth",
+        "type": "DescriptorType.ReadWriteImage",
+        "texture_type": "TextureType.Texture2D",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "6331": {
+      "compute": {
+        "shader": "ResourceId::938",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 160,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "fog_volumes",
+            "type": "DescriptorType.Buffer",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "media_texture",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": []
+      },
+      "vertex": {
+        "shader": "ResourceId::966",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "_NagaConstants",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_primitive_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 26,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": []
+      },
+      "pixel": {
+        "shader": "ResourceId::967",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_environment_sh9_",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_probe_header",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_planar",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 176,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_irradiance_volume_params",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_volumetric_apply_params",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 32,
+            "buffer_backed": true
+          },
+          {
+            "name": "standard_material_properties",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 192,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_environment_source_cube",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_brdf_lut",
+            "type": "DescriptorType.Image",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_specular_pmrem_cube",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup0SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probes",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probe_cubemaps",
+            "type": "DescriptorType.Image",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCubeArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_probe_grid",
+            "type": "DescriptorType.Buffer",
+            "bind": 11,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_lightmap_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 12,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2DArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_volumetric_integrated",
+            "type": "DescriptorType.Image",
+            "bind": 13,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_planar_reflection",
+            "type": "DescriptorType.Image",
+            "bind": 14,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_cookie_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 16,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_irradiance_volume_texture",
+            "type": "DescriptorType.Image",
+            "bind": 17,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 18,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_base_color_tex",
+            "type": "DescriptorType.Image",
+            "bind": 19,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_metallic_roughness_tex",
+            "type": "DescriptorType.Image",
+            "bind": 21,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_occlusion_tex",
+            "type": "DescriptorType.Image",
+            "bind": 22,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_emissive_tex",
+            "type": "DescriptorType.Image",
+            "bind": 23,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup2SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 25,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 28,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": [
+          {
+            "name": "nagaSamplerHeap",
+            "bind": 0,
+            "set": 0,
+            "array_size": 2048
+          },
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "used": [
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 305,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::975",
+          "resource_name": "zircon-post-process-pass-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 306,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1290",
+          "resource_name": "zircon-volumetric-media-inject-volumes",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 48
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ReadWriteImage",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 307,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::894",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-1",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 96,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [
+        {
+          "resource": "ResourceId::813",
+          "resource_name": "zircon-offscreen-scene-color",
+          "type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1
+        }
+      ],
+      "depth": {
+        "resource": "ResourceId::821",
+        "resource_name": "zircon-depth",
+        "type": "DescriptorType.ReadWriteImage",
+        "texture_type": "TextureType.Texture2D",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "6353": {
+      "compute": {
+        "shader": "ResourceId::950",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 288,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "froxel_media",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "previous_froxel_scattering",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "froxel_scattering",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": [
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "vertex": {
+        "shader": "ResourceId::966",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "_NagaConstants",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_primitive_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 26,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": []
+      },
+      "pixel": {
+        "shader": "ResourceId::967",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_environment_sh9_",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_probe_header",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_planar",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 176,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_irradiance_volume_params",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_volumetric_apply_params",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 32,
+            "buffer_backed": true
+          },
+          {
+            "name": "standard_material_properties",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 192,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_environment_source_cube",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_brdf_lut",
+            "type": "DescriptorType.Image",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_specular_pmrem_cube",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup0SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probes",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probe_cubemaps",
+            "type": "DescriptorType.Image",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCubeArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_probe_grid",
+            "type": "DescriptorType.Buffer",
+            "bind": 11,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_lightmap_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 12,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2DArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_volumetric_integrated",
+            "type": "DescriptorType.Image",
+            "bind": 13,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_planar_reflection",
+            "type": "DescriptorType.Image",
+            "bind": 14,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_cookie_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 16,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_irradiance_volume_texture",
+            "type": "DescriptorType.Image",
+            "bind": 17,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 18,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_base_color_tex",
+            "type": "DescriptorType.Image",
+            "bind": 19,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_metallic_roughness_tex",
+            "type": "DescriptorType.Image",
+            "bind": 21,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_occlusion_tex",
+            "type": "DescriptorType.Image",
+            "bind": 22,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_emissive_tex",
+            "type": "DescriptorType.Image",
+            "bind": 23,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup2SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 25,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 28,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": [
+          {
+            "name": "nagaSamplerHeap",
+            "bind": 0,
+            "set": 0,
+            "array_size": 2048
+          },
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "used": [
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 308,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1292",
+          "resource_name": "zircon-volumetric-light-scatter-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 512
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 316,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::899",
+          "resource_name": "rg-transient-buffer-bucket-ec520418774f07c1-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 315,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::461",
+          "resource_name": "zircon-shadow-atlas-globals",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 309,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::894",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-1",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 310,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::348",
+          "resource_name": "zircon-gpu-scene-light-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 128
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 312,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::840",
+          "resource_name": "history.previous.volumetric.scattering",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 3,
+          "array_element": 0,
+          "byte_offset": 313,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::458",
+          "resource_name": "zircon-shadow-atlas",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 4,
+          "array_element": 0,
+          "byte_offset": 314,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::459",
+          "resource_name": "zircon-shadow-atlas-slots",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24576
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 5,
+          "array_element": 0,
+          "byte_offset": 317,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::897",
+          "resource_name": "rg-transient-buffer-bucket-c42180192eabebf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 16384
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 6,
+          "array_element": 0,
+          "byte_offset": 318,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::896",
+          "resource_name": "rg-transient-buffer-bucket-37a18017044d2bf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 32768
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Buffer",
+          "index": 7,
+          "array_element": 0,
+          "byte_offset": 319,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1294",
+          "resource_name": "zircon-volumetric-light-scatter-lighting (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 4
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ReadWriteImage",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 311,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 96,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Sampler",
+          "index": 0,
+          "array_element": 3,
+          "byte_offset": 3,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [
+        {
+          "resource": "ResourceId::813",
+          "resource_name": "zircon-offscreen-scene-color",
+          "type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1
+        }
+      ],
+      "depth": {
+        "resource": "ResourceId::821",
+        "resource_name": "zircon-depth",
+        "type": "DescriptorType.ReadWriteImage",
+        "texture_type": "TextureType.Texture2D",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "6373": {
+      "compute": {
+        "shader": "ResourceId::959",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "froxel_scattering",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "integrated_output",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": []
+      },
+      "vertex": {
+        "shader": "ResourceId::966",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "_NagaConstants",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_primitive_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 26,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": []
+      },
+      "pixel": {
+        "shader": "ResourceId::967",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_environment_sh9_",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_probe_header",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_planar",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 176,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_irradiance_volume_params",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_volumetric_apply_params",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 32,
+            "buffer_backed": true
+          },
+          {
+            "name": "standard_material_properties",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 192,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_environment_source_cube",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_brdf_lut",
+            "type": "DescriptorType.Image",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_specular_pmrem_cube",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup0SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probes",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probe_cubemaps",
+            "type": "DescriptorType.Image",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCubeArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_probe_grid",
+            "type": "DescriptorType.Buffer",
+            "bind": 11,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_lightmap_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 12,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2DArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_volumetric_integrated",
+            "type": "DescriptorType.Image",
+            "bind": 13,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_planar_reflection",
+            "type": "DescriptorType.Image",
+            "bind": 14,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_cookie_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 16,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_irradiance_volume_texture",
+            "type": "DescriptorType.Image",
+            "bind": 17,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 18,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_base_color_tex",
+            "type": "DescriptorType.Image",
+            "bind": 19,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_metallic_roughness_tex",
+            "type": "DescriptorType.Image",
+            "bind": 21,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_occlusion_tex",
+            "type": "DescriptorType.Image",
+            "bind": 22,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_emissive_tex",
+            "type": "DescriptorType.Image",
+            "bind": 23,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup2SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 25,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 28,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": [
+          {
+            "name": "nagaSamplerHeap",
+            "bind": 0,
+            "set": 0,
+            "array_size": 2048
+          },
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "used": [
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 320,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1295",
+          "resource_name": "zircon-volumetric-integrate-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.Image",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 321,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::892",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Compute",
+          "type": "DescriptorType.ReadWriteImage",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 322,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::894",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-1",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 96,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [
+        {
+          "resource": "ResourceId::813",
+          "resource_name": "zircon-offscreen-scene-color",
+          "type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1
+        }
+      ],
+      "depth": {
+        "resource": "ResourceId::821",
+        "resource_name": "zircon-depth",
+        "type": "DescriptorType.ReadWriteImage",
+        "texture_type": "TextureType.Texture2D",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    },
+    "6407": {
+      "compute": {
+        "shader": "ResourceId::959",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "params",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "froxel_scattering",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          }
+        ],
+        "read_write": [
+          {
+            "name": "integrated_output",
+            "type": "DescriptorType.ReadWriteImage",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": false
+          }
+        ],
+        "samplers": []
+      },
+      "vertex": {
+        "shader": "ResourceId::966",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "_NagaConstants",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_primitive_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 26,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": []
+      },
+      "pixel": {
+        "shader": "ResourceId::967",
+        "entry": "main",
+        "constant_blocks": [
+          {
+            "name": "scene",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 464,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_visible_instance_remap_params",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_environment_sh9_",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_probe_header",
+            "bind": 3,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 16,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_env_planar",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 176,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_irradiance_volume_params",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 144,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_light_grid_params",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 128,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_shadow_globals",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 48,
+            "buffer_backed": true
+          },
+          {
+            "name": "zr_volumetric_apply_params",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 32,
+            "buffer_backed": true
+          },
+          {
+            "name": "standard_material_properties",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "byte_size": 192,
+            "buffer_backed": true
+          }
+        ],
+        "read_only": [
+          {
+            "name": "zr_environment_source_cube",
+            "type": "DescriptorType.Image",
+            "bind": 0,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_brdf_lut",
+            "type": "DescriptorType.Image",
+            "bind": 1,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_environment_specular_pmrem_cube",
+            "type": "DescriptorType.Image",
+            "bind": 2,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCube",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup0SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 4,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 5,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_shadow_slots",
+            "type": "DescriptorType.Buffer",
+            "bind": 6,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probes",
+            "type": "DescriptorType.Buffer",
+            "bind": 7,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_probe_cubemaps",
+            "type": "DescriptorType.Image",
+            "bind": 8,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.TextureCubeArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_zbins",
+            "type": "DescriptorType.Buffer",
+            "bind": 9,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_tile_masks",
+            "type": "DescriptorType.Buffer",
+            "bind": 10,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_probe_grid",
+            "type": "DescriptorType.Buffer",
+            "bind": 11,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_lightmap_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 12,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2DArray",
+            "read_only": true
+          },
+          {
+            "name": "zr_volumetric_integrated",
+            "type": "DescriptorType.Image",
+            "bind": 13,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "zr_env_planar_reflection",
+            "type": "DescriptorType.Image",
+            "bind": 14,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_cookie_atlas",
+            "type": "DescriptorType.Image",
+            "bind": 16,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "zr_irradiance_volume_texture",
+            "type": "DescriptorType.Image",
+            "bind": 17,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture3D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup1SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 18,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_base_color_tex",
+            "type": "DescriptorType.Image",
+            "bind": 19,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_metallic_roughness_tex",
+            "type": "DescriptorType.Image",
+            "bind": 21,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_occlusion_tex",
+            "type": "DescriptorType.Image",
+            "bind": 22,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "standard_material_emissive_tex",
+            "type": "DescriptorType.Image",
+            "bind": 23,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Texture2D",
+            "read_only": true
+          },
+          {
+            "name": "nagaGroup2SamplerIndexArray",
+            "type": "DescriptorType.Buffer",
+            "bind": 25,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_instance_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 27,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_light_data",
+            "type": "DescriptorType.Buffer",
+            "bind": 28,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          },
+          {
+            "name": "zr_visible_instance_remap",
+            "type": "DescriptorType.Buffer",
+            "bind": 31,
+            "set": 0,
+            "array_size": 1,
+            "texture_type": "TextureType.Buffer",
+            "read_only": true
+          }
+        ],
+        "read_write": [],
+        "samplers": [
+          {
+            "name": "nagaSamplerHeap",
+            "bind": 0,
+            "set": 0,
+            "array_size": 2048
+          },
+          {
+            "name": "nagaComparisonSamplerHeap",
+            "bind": 2048,
+            "set": 0,
+            "array_size": 2048
+          }
+        ]
+      },
+      "used": [
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 5,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::965",
+          "resource_name": "zircon-mesh-pipeline",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 8
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 1,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::314",
+          "resource_name": "zircon-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 512
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 168,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::352",
+          "resource_name": "zircon-gpu-scene-visible-instance-remap-enabled-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.Buffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 162,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::346",
+          "resource_name": "zircon-gpu-scene-primitive-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 5120
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.Buffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 163,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::347",
+          "resource_name": "zircon-gpu-scene-instance-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 11264
+        },
+        {
+          "stage": "ShaderStage.Vertex",
+          "type": "DescriptorType.Buffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 167,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1243",
+          "resource_name": "zircon-opaque-indirect-args-visible-instance-index",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 20
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 1,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::314",
+          "resource_name": "zircon-scene-uniform",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 512
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 168,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::352",
+          "resource_name": "zircon-gpu-scene-visible-instance-remap-enabled-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 6,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::339",
+          "resource_name": "zircon-scene-environment-sh9",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 3,
+          "array_element": 0,
+          "byte_offset": 327,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::399",
+          "resource_name": "zircon-reflection-probe-header",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 4,
+          "array_element": 0,
+          "byte_offset": 337,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::403",
+          "resource_name": "zircon-planar-reflection-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 5,
+          "array_element": 0,
+          "byte_offset": 341,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::396",
+          "resource_name": "zircon-irradiance-volume-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 6,
+          "array_element": 0,
+          "byte_offset": 329,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::899",
+          "resource_name": "rg-transient-buffer-bucket-ec520418774f07c1-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 7,
+          "array_element": 0,
+          "byte_offset": 325,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::461",
+          "resource_name": "zircon-shadow-atlas-globals",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 8,
+          "array_element": 0,
+          "byte_offset": 334,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1297",
+          "resource_name": "zircon-forward-volumetric-params",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.ConstantBuffer",
+          "index": 9,
+          "array_element": 0,
+          "byte_offset": 90,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::810",
+          "resource_name": "zircon-standard-material-uniform-buffer",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.ConstantBuffer",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 256
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 0,
+          "array_element": 0,
+          "byte_offset": 2,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::315",
+          "resource_name": "zircon-scene-environment-source-cube",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.TextureCube",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 6,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 1,
+          "array_element": 0,
+          "byte_offset": 3,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::337",
+          "resource_name": "zircon-scene-environment-brdf-lut",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 2,
+          "array_element": 0,
+          "byte_offset": 4,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::317",
+          "resource_name": "zircon-scene-environment-specular-pmrem-cube",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.TextureCube",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 6,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 3,
+          "array_element": 0,
+          "byte_offset": 7,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::341",
+          "resource_name": "zircon-scene-bind-group (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 4
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 4,
+          "array_element": 0,
+          "byte_offset": 323,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::458",
+          "resource_name": "zircon-shadow-atlas",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 5,
+          "array_element": 0,
+          "byte_offset": 324,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::459",
+          "resource_name": "zircon-shadow-atlas-slots",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24576
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 6,
+          "array_element": 0,
+          "byte_offset": 326,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::398",
+          "resource_name": "zircon-reflection-probe-storage",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 6144
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 7,
+          "array_element": 0,
+          "byte_offset": 328,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::401",
+          "resource_name": "zircon-reflection-probe-pmrem-cube-array",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.TextureCubeArray",
+          "first_mip": 0,
+          "num_mips": 8,
+          "first_slice": 0,
+          "num_slices": 384,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 8,
+          "array_element": 0,
+          "byte_offset": 330,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::897",
+          "resource_name": "rg-transient-buffer-bucket-c42180192eabebf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 16384
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 9,
+          "array_element": 0,
+          "byte_offset": 331,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::896",
+          "resource_name": "rg-transient-buffer-bucket-37a18017044d2bf5-slot-0",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 32768
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 10,
+          "array_element": 0,
+          "byte_offset": 332,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::405",
+          "resource_name": "zircon-light-probe-grid-storage",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 48
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 11,
+          "array_element": 0,
+          "byte_offset": 333,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::407",
+          "resource_name": "zircon-lightmap-atlas-fallback",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2DArray",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 12,
+          "array_element": 0,
+          "byte_offset": 335,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::894",
+          "resource_name": "rg-transient-texture-bucket-87e0969a6022826d-slot-1",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 13,
+          "array_element": 0,
+          "byte_offset": 336,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::402",
+          "resource_name": "zircon-planar-reflection-mip-chain",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 11,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 14,
+          "array_element": 0,
+          "byte_offset": 339,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::385",
+          "resource_name": "zircon-light-cookie-atlas",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 15,
+          "array_element": 0,
+          "byte_offset": 340,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::394",
+          "resource_name": "zircon-irradiance-volume-fallback",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture3D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 16,
+          "array_element": 0,
+          "byte_offset": 342,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1299",
+          "resource_name": "zircon-forward-shadow-receiver-bind-group (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 17,
+          "array_element": 0,
+          "byte_offset": 91,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 18,
+          "array_element": 0,
+          "byte_offset": 93,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 19,
+          "array_element": 0,
+          "byte_offset": 94,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Image",
+          "index": 20,
+          "array_element": 0,
+          "byte_offset": 95,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::782",
+          "resource_name": "zircon-fallback-texture",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Image",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 21,
+          "array_element": 0,
+          "byte_offset": 97,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1224",
+          "resource_name": "zircon-standard-material-set-bind-group (Internal Sampler Index Buffer)",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Buffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 24
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 22,
+          "array_element": 0,
+          "byte_offset": 163,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::347",
+          "resource_name": "zircon-gpu-scene-instance-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 11264
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 23,
+          "array_element": 0,
+          "byte_offset": 164,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::348",
+          "resource_name": "zircon-gpu-scene-light-data",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 128
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Buffer",
+          "index": 24,
+          "array_element": 0,
+          "byte_offset": 167,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::1243",
+          "resource_name": "zircon-opaque-indirect-args-visible-instance-index",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.TypedBuffer",
+          "texture_type": "TextureType.Buffer",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 20
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Sampler",
+          "index": 0,
+          "array_element": 2,
+          "byte_offset": 2,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Sampler",
+          "index": 0,
+          "array_element": 4,
+          "byte_offset": 4,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        },
+        {
+          "stage": "ShaderStage.Pixel",
+          "type": "DescriptorType.Sampler",
+          "index": 1,
+          "array_element": 3,
+          "byte_offset": 3,
+          "byte_size": 1,
+          "statically_unused": false,
+          "resource": "ResourceId::0",
+          "resource_name": "",
+          "view": "ResourceId::0",
+          "descriptor_type": "DescriptorType.Sampler",
+          "texture_type": "TextureType.Unknown",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1,
+          "descriptor_byte_offset": 0,
+          "descriptor_byte_size": 0
+        }
+      ],
+      "outputs": [
+        {
+          "resource": "ResourceId::813",
+          "resource_name": "zircon-offscreen-scene-color",
+          "type": "DescriptorType.ReadWriteImage",
+          "texture_type": "TextureType.Texture2D",
+          "first_mip": 0,
+          "num_mips": 1,
+          "first_slice": 0,
+          "num_slices": 1
+        }
+      ],
+      "depth": {
+        "resource": "ResourceId::821",
+        "resource_name": "zircon-depth",
+        "type": "DescriptorType.ReadWriteImage",
+        "texture_type": "TextureType.Texture2D",
+        "first_mip": 0,
+        "num_mips": 1,
+        "first_slice": 0,
+        "num_slices": 1
+      }
+    }
+  },
+  "usage": {
+    "ResourceId::840": [
+      {
+        "event": 4382,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5196,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 5710,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6353,
+        "usage": "ResourceUsage.CS_Resource"
+      },
+      {
+        "event": 6549,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6550,
+        "usage": "ResourceUsage.CopyDst"
+      }
+    ],
+    "ResourceId::892": [
+      {
+        "event": 4178,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 4179,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4180,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4181,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4182,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4183,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4184,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4185,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4186,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4187,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4188,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4189,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4190,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4191,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4192,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4193,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4194,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4195,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4196,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4197,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4198,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4199,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4200,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4201,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4202,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4203,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4204,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4205,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4206,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4207,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4208,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4209,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4210,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4211,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4212,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4213,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4214,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4215,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4216,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4217,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4218,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4219,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4220,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4221,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4222,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4223,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4224,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4225,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4226,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4227,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4228,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4229,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4230,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4231,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4232,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4233,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4234,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4235,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4236,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4237,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4238,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4239,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4240,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4241,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4242,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4243,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4244,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4245,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4246,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4247,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4248,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4249,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4250,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4251,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4252,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4253,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4254,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4255,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4256,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4257,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4258,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4259,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4260,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4261,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4262,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4263,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4264,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4265,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4266,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4267,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4268,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4269,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4270,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4271,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4272,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4273,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4274,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4382,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 4977,
+        "usage": "ResourceUsage.CS_RWResource"
+      },
+      {
+        "event": 4986,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 4999,
+        "usage": "ResourceUsage.CS_Resource"
+      },
+      {
+        "event": 4999,
+        "usage": "ResourceUsage.CS_Resource"
+      },
+      {
+        "event": 5008,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5019,
+        "usage": "ResourceUsage.CS_RWResource"
+      },
+      {
+        "event": 5030,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5053,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 5058,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 5063,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 5068,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 5073,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 5710,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6353,
+        "usage": "ResourceUsage.CS_RWResource"
+      },
+      {
+        "event": 6362,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6373,
+        "usage": "ResourceUsage.CS_Resource"
+      },
+      {
+        "event": 6549,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6550,
+        "usage": "ResourceUsage.CopySrc"
+      }
+    ],
+    "ResourceId::894": [
+      {
+        "event": 4275,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 4276,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4277,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4278,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4279,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4280,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4281,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4282,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4283,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4284,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4285,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4286,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4287,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4288,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4289,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4290,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4291,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4292,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4293,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4294,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4295,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4296,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4297,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4298,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4299,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4300,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4301,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4302,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4303,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4304,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4305,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4306,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4307,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4308,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4309,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4310,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4311,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4312,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4313,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4314,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4315,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4316,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4317,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4318,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4319,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4320,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4321,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4322,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4323,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4324,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4325,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4326,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4327,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4328,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4329,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4330,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4331,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4332,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4333,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4334,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4335,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4336,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4337,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4338,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4339,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4340,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4341,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4342,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4343,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4344,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4345,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4346,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4347,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4348,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4349,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4350,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4351,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4352,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4353,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4354,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4355,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4356,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4357,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4358,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4359,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4360,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4361,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4362,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4363,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4364,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4365,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4366,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4367,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4368,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4369,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4370,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4371,
+        "usage": "ResourceUsage.CopyDst"
+      },
+      {
+        "event": 4382,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 4999,
+        "usage": "ResourceUsage.CS_RWResource"
+      },
+      {
+        "event": 5008,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5019,
+        "usage": "ResourceUsage.CS_Resource"
+      },
+      {
+        "event": 5195,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5196,
+        "usage": "ResourceUsage.CopySrc"
+      },
+      {
+        "event": 5710,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6331,
+        "usage": "ResourceUsage.CS_RWResource"
+      },
+      {
+        "event": 6340,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6353,
+        "usage": "ResourceUsage.CS_Resource"
+      },
+      {
+        "event": 6362,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6373,
+        "usage": "ResourceUsage.CS_RWResource"
+      },
+      {
+        "event": 6384,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6407,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 6412,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 6417,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 6422,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 6427,
+        "usage": "ResourceUsage.All_Resource"
+      }
+    ],
+    "ResourceId::813": [
+      {
+        "event": 742,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 746,
+        "usage": "ResourceUsage.Clear"
+      },
+      {
+        "event": 4403,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 5053,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 5058,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 5063,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 5068,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 5073,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 5130,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5147,
+        "usage": "ResourceUsage.All_Resource"
+      },
+      {
+        "event": 5710,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 5731,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 6407,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 6412,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 6417,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 6422,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 6427,
+        "usage": "ResourceUsage.ColorTarget"
+      },
+      {
+        "event": 6484,
+        "usage": "ResourceUsage.Barrier"
+      },
+      {
+        "event": 6501,
+        "usage": "ResourceUsage.All_Resource"
+      }
+    ]
+  }
+}

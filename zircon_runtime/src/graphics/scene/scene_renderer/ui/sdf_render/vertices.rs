@@ -1,24 +1,23 @@
 use bytemuck::{Pod, Zeroable};
 
-use crate::asset::ProjectAssetManager;
-use crate::core::framework::render::{ShapedGlyphRotation, VerticalMode};
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
-use crate::graphics::text::font::FontDatabase;
-use crate::graphics::text::layout::justify_line_advances;
-use crate::graphics::text::shaping::{vertical_glyph_advance, vertical_glyph_rotation};
+use crate::text::atlas::{GlyphAtlasFormat, GlyphRasterPlacement, GlyphSmoothingMode};
+use crate::text::layout::justify_line_advances;
+use crate::text::sdf::{
+    scale_sdf_metrics_for_display, SdfAtlasBake, SdfAtlasRect, SdfBakeParams, SdfBakedGlyph,
+    SdfGlyphMetrics, SdfMode, SdfRunCpuPreparation,
+};
+use crate::text::shaping::{vertical_glyph_advance, vertical_glyph_rotation};
+#[cfg(test)]
+use crate::text::TextRenderState;
+use crate::text::{ShapedGlyphRotation, VerticalMode};
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiTextAlign, UiTextDirection, UiTextWritingMode};
 
 use super::super::render::{ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch};
 use super::super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
-use super::super::sdf_atlas::{SdfAtlasPlan, SdfAtlasRect, SdfAtlasRun};
-use super::super::sdf_char_run::sdf_scalar_is_invisible_format;
-use super::super::sdf_font_bake::{
-    scale_sdf_metrics_for_display, SdfAtlasBake, SdfBakedGlyph, SdfFontBakeCache, SdfGlyphMetrics,
-};
+use super::super::sdf_atlas::{SdfAtlasPlan, SdfAtlasRun};
 use super::super::text_pixel_snap::{text_frame_device_origin, text_glyph_device_frame};
-use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
 
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Pod, Zeroable, PartialEq)]
@@ -70,34 +69,24 @@ impl ScreenSpaceUiSdfVertex {
     }
 }
 
+#[cfg(test)]
 pub(super) fn build_sdf_vertices(
     texts: &[ScreenSpaceUiTextBatch],
     plan: &SdfAtlasPlan,
     atlas_bake: &SdfAtlasBake,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
+    asset_manager: &crate::asset::ProjectAssetManager,
     viewport_size: UVec2,
 ) -> Vec<ScreenSpaceUiSdfVertex> {
-    build_sdf_vertex_plan(
-        texts,
-        plan,
-        atlas_bake,
-        font_bake,
-        font_database,
-        asset_manager,
-        viewport_size,
-    )
-    .vertices
+    let mut text_state = TextRenderState::new(0);
+    let cpu_runs = text_state.prepare_sdf_runs_cpu(texts, asset_manager);
+    build_sdf_vertex_plan(texts, plan, atlas_bake, &cpu_runs, viewport_size).vertices
 }
 
 pub(super) fn build_sdf_vertex_plan(
     texts: &[ScreenSpaceUiTextBatch],
     plan: &SdfAtlasPlan,
     atlas_bake: &SdfAtlasBake,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
+    cpu_runs: &[SdfRunCpuPreparation],
     viewport_size: UVec2,
 ) -> SdfVertexPlan {
     let viewport = UiFrame::new(
@@ -110,9 +99,11 @@ pub(super) fn build_sdf_vertex_plan(
     let mut text_ranges = Vec::with_capacity(texts.len());
     for (index, text) in texts.iter().enumerate() {
         let start = vertices.len() as u32;
-        if let (Some(run), Some(text_frame_clip)) =
-            (plan.runs.get(index), text.frame.intersection(viewport))
-        {
+        if let (Some(run), Some(cpu_run), Some(text_frame_clip)) = (
+            plan.runs.get(index),
+            cpu_runs.get(index),
+            text.frame.intersection(viewport),
+        ) {
             let has_effect_extent = text.text_effects.outline.is_some()
                 || text.text_effects.shadow.is_some()
                 || text.text_effects.glow.is_some();
@@ -125,15 +116,7 @@ pub(super) fn build_sdf_vertex_plan(
                 .clip_frame
                 .map_or(Some(clip), |clip_frame| clip.intersection(clip_frame));
             if let Some(clipped) = clip_visible {
-                let glyphs = resolve_run_glyphs(
-                    text,
-                    run,
-                    plan,
-                    atlas_bake,
-                    font_bake,
-                    font_database,
-                    asset_manager,
-                );
+                let glyphs = resolve_run_glyphs(text, run, plan, atlas_bake, cpu_run);
                 if matches!(text.writing_mode, UiTextWritingMode::VerticalRl) {
                     push_vertical_sdf_text_vertices(
                         &mut vertices,
@@ -411,22 +394,13 @@ fn resolve_run_glyphs(
     run: &SdfAtlasRun,
     plan: &SdfAtlasPlan,
     atlas_bake: &SdfAtlasBake,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
+    cpu_run: &SdfRunCpuPreparation,
 ) -> Vec<RunGlyph> {
-    let source_scalars = if text.shaped_glyphs.is_empty() {
-        text.text.chars().collect::<Vec<_>>()
-    } else {
-        text.shaped_glyphs
-            .iter()
-            .map(|glyph| glyph.source_scalar)
-            .collect::<Vec<_>>()
-    };
-    source_scalars
-        .into_iter()
-        .zip(run.glyph_slot_indices.iter().copied())
-        .map(|(glyph, slot_index)| match slot_index {
+    run.glyph_slot_indices
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(glyph_index, slot_index)| match slot_index {
             Some(slot_index) => match (
                 atlas_bake.glyphs.get(slot_index),
                 plan.slots.get(slot_index),
@@ -434,9 +408,23 @@ fn resolve_run_glyphs(
                 (Some(baked), Some(slot)) => {
                     run_glyph_from_bake(slot_index, baked, slot.key.bake_params, text.font_size)
                 }
-                _ => measured_run_glyph(glyph, text, font_bake, font_database, asset_manager),
+                _ => measured_run_glyph(
+                    cpu_run
+                        .glyph_metrics
+                        .get(glyph_index)
+                        .copied()
+                        .unwrap_or_default(),
+                    text.font_size,
+                ),
             },
-            None => measured_run_glyph(glyph, text, font_bake, font_database, asset_manager),
+            None => measured_run_glyph(
+                cpu_run
+                    .glyph_metrics
+                    .get(glyph_index)
+                    .copied()
+                    .unwrap_or_default(),
+                text.font_size,
+            ),
         })
         .collect()
 }
@@ -458,41 +446,14 @@ fn run_glyph_from_bake(
     }
 }
 
-fn measured_run_glyph(
-    glyph: char,
-    text: &ScreenSpaceUiTextBatch,
-    font_bake: &mut SdfFontBakeCache,
-    font_database: &mut FontDatabase,
-    asset_manager: &ProjectAssetManager,
-) -> RunGlyph {
-    if sdf_scalar_is_invisible_format(glyph) {
-        return RunGlyph {
-            slot_index: None,
-            metrics: SdfGlyphMetrics::default(),
-            atlas_bitmap_width: 0,
-            atlas_bitmap_height: 0,
-            visible: false,
-            screen_px_range: sdf_screen_px_range(text.font_size, SdfBakeParams::default()),
-            atlas_px_range: SdfBakeParams::default().spread_px_f32(),
-        };
-    }
-
+fn measured_run_glyph(metrics: SdfGlyphMetrics, font_size: f32) -> RunGlyph {
     RunGlyph {
         slot_index: None,
-        metrics: font_bake.measure_glyph(
-            glyph,
-            text.font.as_deref(),
-            text.font_family.as_deref(),
-            text.language.as_deref(),
-            text.font_weight,
-            text.font_size,
-            font_database,
-            asset_manager,
-        ),
+        metrics,
         atlas_bitmap_width: 0,
         atlas_bitmap_height: 0,
         visible: false,
-        screen_px_range: sdf_screen_px_range(text.font_size, SdfBakeParams::default()),
+        screen_px_range: sdf_screen_px_range(font_size, SdfBakeParams::default()),
         atlas_px_range: SdfBakeParams::default().spread_px_f32(),
     }
 }

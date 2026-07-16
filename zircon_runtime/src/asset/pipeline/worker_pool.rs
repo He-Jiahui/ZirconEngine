@@ -9,7 +9,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
 use crate::core::runtime::tasks::{TaskPool, TaskPoolKind};
-use crate::core::ZirconError;
+use crate::core::{CoreError, CoreResult};
 
 use crate::asset::load::{mesh, texture};
 use crate::asset::types::{AssetRequest, CpuAssetPayload};
@@ -214,7 +214,7 @@ impl AssetWorkerPool {
         &self.task_pool
     }
 
-    pub fn request(&self, request: AssetRequest) -> Result<(), ZirconError> {
+    pub fn request(&self, request: AssetRequest) -> CoreResult<()> {
         let mut in_flight = self.lock_in_flight();
         if let Some(waiter_count) = in_flight.get_mut(&request) {
             *waiter_count += 1;
@@ -223,7 +223,7 @@ impl AssetWorkerPool {
         }
 
         if self.unique_request_capacity_reached(in_flight.len()) {
-            return Err(ZirconError::ChannelSend(format!(
+            return Err(CoreError::ChannelSend(format!(
                 "asset request queue full: {request:?}"
             )));
         }

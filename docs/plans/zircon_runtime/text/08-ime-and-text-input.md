@@ -115,7 +115,7 @@ runtime: ime_context(组合状态)→ edit_state(文本变更)→
 
 ### 模块与文件落点
 
-- runtime:`ui/surface/input/editable_text/ime_context.rs` 光标/rect 改调 `graphics/text/layout::measured_width` + 行度量(经 service);`edit_state.rs`/`mutation.rs` 组合状态机不变,只改度量来源。
+- runtime:`ui/surface/input/editable_text/ime_context.rs` 光标/rect 改调 `text/layout::measured_width` + 行度量(经 service);`edit_state.rs`/`mutation.rs` 组合状态机不变,只改度量来源。
 - iface:`ui/dispatch/input/effect.rs` 的 `UiInputMethodRequest` 补 `SetCursorArea { rect: UiRect }`(若缺);`UiInputMethodSurroundingText` 补组合范围。
 - `zircon_app`:`entry/runtime_entry_app/host_requests/` 增 IME 路由 owner 叶子 `ime/{cursor_area,allowed,surrounding}.rs`——winit ↔ 中立契约翻译;平台特化在 `zircon_app` 平台子模块(不入 runtime)。
 

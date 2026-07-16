@@ -16,10 +16,15 @@ use zircon_editor::{
     EditorGuiStartupRequest, EditorHostRunConfig, EDITOR_MANAGER_NAME,
 };
 #[cfg(feature = "target-editor-host")]
-use zircon_runtime::{core::math::UVec2, scene::DefaultLevelManager};
+use zircon_runtime::asset::project::ProjectManager;
+#[cfg(feature = "target-editor-host")]
+use zircon_runtime::core::math::UVec2;
 
 #[cfg(feature = "target-editor-host")]
-use crate::entry::{EntryConfig, EntryProfile};
+use crate::entry::{
+    first_party_editor_plugin_registrations_for_config,
+    first_party_runtime_plugin_registrations_for_config, EntryConfig, EntryProfile,
+};
 
 #[cfg(feature = "target-editor-host")]
 use super::super::runtime_library::{LoadedRuntime, RuntimeSession};
@@ -70,17 +75,27 @@ impl EntryRunner {
             #[cfg(feature = "profiling")]
             let profile_capture =
                 zircon_runtime::core::diagnostics::profiling::start_capture_from_env("editor");
-            let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(
-                EntryConfig::new(EntryProfile::Editor),
-            )?;
-            let runtime = LoadedRuntime::load_default()?;
-            let runtime_client =
-                std::sync::Arc::new(RuntimeSession::create_with_profile(runtime, b"editor")?);
+            let entry_config = editor_entry_config(gui_startup_request.as_ref())?;
+            let editor_plugin_registrations =
+                first_party_editor_plugin_registrations_for_config(&entry_config);
+            let runtime_plugin_registrations =
+                first_party_runtime_plugin_registrations_for_config(&entry_config);
+            let project_root = editor_startup_project_root(gui_startup_request.as_ref());
+            let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(entry_config)?;
+            let runtime = LoadedRuntime::linked()?;
+            let runtime_gateway =
+                std::sync::Arc::new(RuntimeSession::create_linked_with_profile_and_project(
+                    runtime,
+                    b"editor",
+                    project_root,
+                    runtime_plugin_registrations,
+                )?);
             let host_config = editor_host_run_config_with_first_frame_exit(
                 gui_startup_request,
                 editor_exit_after_first_frame_enabled(),
-            );
-            let result = run_editor_with_config(core, runtime_client, host_config);
+            )
+            .with_editor_plugin_registrations(editor_plugin_registrations);
+            let result = run_editor_with_config(core, runtime_gateway, host_config);
             #[cfg(feature = "profiling")]
             if profile_capture.is_some() {
                 match zircon_runtime::core::diagnostics::profiling::stop_and_export_capture_from_env(
@@ -100,15 +115,25 @@ impl EntryRunner {
         request: EditorCliOperationRequest,
     ) -> Result<zircon_editor::core::editor_operation::EditorOperationControlResponse, Box<dyn Error>>
     {
-        let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(
-            EntryConfig::new(EntryProfile::Editor),
-        )?;
+        let entry_config = EntryConfig::new(EntryProfile::Editor);
+        let runtime_plugin_registrations =
+            first_party_runtime_plugin_registrations_for_config(&entry_config);
+        let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(entry_config)?;
         let state = EditorState::with_default_selection(
-            DefaultLevelManager::default().create_default_level(),
+            zircon_runtime::scene::create_default_level(&core)?,
             UVec2::new(1280, 720),
         );
         let manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
         let runtime = EditorHostEventController::new(state, manager);
+        let runtime_library = LoadedRuntime::linked()?;
+        let runtime_gateway =
+            std::sync::Arc::new(RuntimeSession::create_linked_with_profile_and_project(
+                runtime_library,
+                b"editor",
+                None,
+                runtime_plugin_registrations,
+            )?);
+        runtime.set_runtime_gateway(runtime_gateway);
         Ok(runtime.handle_operation_control_request_from_source(
             EditorOperationSource::Cli,
             request.into_control_request()?,
@@ -126,6 +151,30 @@ fn editor_host_run_config_with_first_frame_exit(
         config.with_exit_after_first_presented_frame(true)
     } else {
         config
+    }
+}
+
+#[cfg(feature = "target-editor-host")]
+fn editor_entry_config(
+    startup_request: Option<&EditorGuiStartupRequest>,
+) -> Result<EntryConfig, Box<dyn Error>> {
+    let config = EntryConfig::new(EntryProfile::Editor);
+    let Some(project_root) = editor_startup_project_root(startup_request) else {
+        return Ok(config);
+    };
+    let project = ProjectManager::open(project_root)?;
+    Ok(config.with_project_plugins(project.manifest().plugins.clone()))
+}
+
+#[cfg(feature = "target-editor-host")]
+fn editor_startup_project_root(
+    startup_request: Option<&EditorGuiStartupRequest>,
+) -> Option<&std::path::Path> {
+    match startup_request {
+        Some(EditorGuiStartupRequest::OpenProject { project_path }) => Some(project_path.as_path()),
+        Some(EditorGuiStartupRequest::OpenBuiltinView { .. })
+        | Some(EditorGuiStartupRequest::CreateProject(_))
+        | None => None,
     }
 }
 

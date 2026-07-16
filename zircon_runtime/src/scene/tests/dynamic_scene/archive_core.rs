@@ -70,49 +70,58 @@ fn runtime_session_archive_rejects_duplicate_slots() {
 }
 
 #[test]
-fn runtime_session_archive_normalizes_noncanonical_inner_scene_versions() {
+fn runtime_session_archive_embeds_schema_header_without_inner_scene_version() {
     let source = World::empty();
-    let mut slot = RuntimeSessionSlot::from_world("slot", &source)
+    let slot = RuntimeSessionSlot::from_world("slot", &source)
         .expect("runtime session slot should capture");
-    slot.scene.format_version = 999;
 
     let archive = RuntimeSessionArchive::from_slots(vec![slot])
         .expect("the typed scene envelope should remain the version authority");
     let json = archive
         .to_versioned_json_pretty()
-        .expect("archive write should canonicalize the temporary inner version");
+        .expect("archive write should embed the typed scene envelope");
 
-    assert!(json.contains("\"format_version\": 1"));
-    assert!(!json.contains("\"format_version\": 999"));
-    let decoded = RuntimeSessionArchive::from_versioned_json(&json)
-        .expect("canonicalized archive should reload");
-    assert_eq!(decoded.slot("slot").unwrap().scene.format_version, 1);
+    let document: serde_json::Value = serde_json::from_str(&json).unwrap();
+    let scene_document = &document["slots"][0]["scene"]["$zircon"];
+    assert_eq!(scene_document["header"]["schema_version"], 2);
+    assert!(scene_document["payload"].get("format_version").is_none());
+    let decoded =
+        RuntimeSessionArchive::from_versioned_json(&json).expect("versioned archive should reload");
+    assert!(decoded.contains_slot("slot"));
 }
 
 #[test]
-fn runtime_session_archive_normalizes_noncanonical_inner_versions_on_push_and_upsert() {
+fn runtime_session_archive_push_and_upsert_keep_scene_payload_versionless() {
     let source = World::empty();
     let mut push_archive = RuntimeSessionArchive::empty();
-    let mut push_slot =
+    let push_slot =
         RuntimeSessionSlot::from_world("slot", &source).expect("push slot should capture");
-    push_slot.scene.format_version = 999;
 
     push_archive
         .push_slot(push_slot)
         .expect("push_slot should accept a current typed scene envelope");
     let push_json = push_archive.to_versioned_json_pretty().unwrap();
-    assert!(!push_json.contains("\"format_version\": 999"));
+    let push_document: serde_json::Value = serde_json::from_str(&push_json).unwrap();
+    assert!(
+        push_document["slots"][0]["scene"]["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 
     let mut upsert_archive = RuntimeSessionArchive::empty();
-    let mut upsert_slot =
+    let upsert_slot =
         RuntimeSessionSlot::from_world("slot", &source).expect("upsert slot should capture");
-    upsert_slot.scene.format_version = 999;
 
     upsert_archive
         .upsert_slot(upsert_slot)
         .expect("upsert_slot should accept a current typed scene envelope");
     let upsert_json = upsert_archive.to_versioned_json_pretty().unwrap();
-    assert!(!upsert_json.contains("\"format_version\": 999"));
+    let upsert_document: serde_json::Value = serde_json::from_str(&upsert_json).unwrap();
+    assert!(
+        upsert_document["slots"][0]["scene"]["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 }
 
 #[test]

@@ -54,6 +54,7 @@ struct ActiveAction {
 struct Observation {
     visual: TrayVisualState,
     identity_verified: bool,
+    instance_id: String,
     supervision_state: SupervisionState,
     explicit_stop: bool,
     maintenance_hold: bool,
@@ -171,6 +172,7 @@ fn observe(context: &TrayContext) -> Result<Observation, TrayError> {
     Ok(Observation {
         visual: TrayVisualState::from_health(&health),
         identity_verified: true,
+        instance_id: health.instance_id,
         supervision_state: health.supervision.state,
         explicit_stop: health.supervision.explicit_stop,
         maintenance_hold: health.supervision.maintenance_hold,
@@ -185,7 +187,7 @@ fn supervise_loop<R: Runtime>(app: AppHandle<R>) {
         match observe(&context) {
             Ok(observation) => {
                 let recovery_update = context.recovery.lock().ok().map(|mut recovery| {
-                    let changed = recovery.observe_online(
+                    let changed = recovery.observe_verified_online(
                         unix_seconds(),
                         RecoveryGuard {
                             state: observation.supervision_state,
@@ -193,6 +195,7 @@ fn supervise_loop<R: Runtime>(app: AppHandle<R>) {
                             maintenance_hold: observation.maintenance_hold,
                             valid_competing_instance: false,
                         },
+                        &observation.instance_id,
                     );
                     (changed, recovery.status())
                 });
@@ -433,6 +436,7 @@ fn handle_menu<R: Runtime>(app: &AppHandle<R>, id: &str) -> Result<(), TrayError
     let context = app.state::<TrayContext>();
     match id {
         "start" => lifecycle::start_hidden(&context.repo_root),
+        "refresh" => refresh_tray(app),
         "open-console" => with_verified_descriptor(&context, |_descriptor, client| {
             let ticket = client.issue_observer_ticket()?;
             open_url(&client.console_url(&ticket))

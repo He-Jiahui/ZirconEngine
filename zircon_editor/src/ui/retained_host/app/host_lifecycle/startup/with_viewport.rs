@@ -17,14 +17,14 @@ use shell_bootstrap::{resolve_startup_shell_scale_factor, resolve_startup_shell_
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn new_with_viewport(
         core: CoreHandle,
-        runtime_client: SharedEditorRuntimeClient,
+        runtime_gateway: SharedEditorRuntimeGateway,
         ui: UiHostWindow,
         viewport: RetainedViewportController,
         startup_request: Option<EditorGuiStartupRequest>,
     ) -> Result<Self, Box<dyn Error>> {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_with_viewport");
         #[cfg(not(feature = "profiling"))]
-        let _ = &runtime_client;
+        let _ = &runtime_gateway;
 
         let startup_managers = resolve_startup_managers(&core)?;
         let viewport_size = UVec2::new(1280, 720);
@@ -41,13 +41,16 @@ impl RetainedEditorHost {
             startup_session_state.state,
             startup_managers.editor_manager.clone(),
         );
+        runtime_backend
+            .runtime
+            .set_runtime_gateway(runtime_gateway.clone());
 
         let mut host = construct_startup_host(StartupHostConstruction {
             ui,
             runtime: runtime_backend.runtime,
             startup_managers,
             #[cfg(feature = "profiling")]
-            runtime_client,
+            runtime_gateway,
             native_plugin_live_host: runtime_backend.native_plugin_live_host,
             viewport,
             startup_session: startup_session_state.startup_session,

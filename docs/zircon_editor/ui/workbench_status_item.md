@@ -63,7 +63,7 @@ Status labels remain normal Runtime Text commands. Primitive regressions measure
 
 The old native geometry produced `signal_icon_left=24`; the new shared metric resolves to `8` with the production dense theme. The focused Runtime Text contract passes `1/1`, the full retained status-control group passes `29/29`, and the component screenshot shows complete signal labels.
 
-The three primitive-slice Blend Space screenshots show complete `No Errors`, `2 Warnings`, and `1 Message` labels. The status-bar composite has now hard-cut the fixed primary slot plus dummy spacer into one semantic Stretch slot. Static ZUI parsing, topology inspection, and four-tier capacity checks are green; fresh current-source Cargo and screenshot evidence remain pending while the independently owned Editor UI 03 `ShapedGlyph.font_instance_id` fixture handoff blocks all Editor lib-test binaries before this test body can run.
+The three primitive-slice Blend Space screenshots show complete `No Errors`, `2 Warnings`, and `1 Message` labels. The status-bar composite has now hard-cut the fixed primary slot plus dummy spacer into one semantic Stretch slot. Static ZUI parsing, topology inspection, and four-tier capacity checks are green. The former Runtime Text fixture blocker is resolved and a managed Windows build produced the current Editor test binary, but the full run timed out and exact execution exposed a test-only frame-owner mismatch; assertions now use the authored outer status region instead of the clipped internal root. Fresh current-source exact and screenshot evidence remain pending while unrelated Editor owner changes fail compilation before this test body.
 
 ## Constraints
 

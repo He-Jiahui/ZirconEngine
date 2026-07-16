@@ -14,4 +14,6 @@ pub use history::{
     TransactionRecordSnapshot,
 };
 pub use routing::resolve_history_context;
-pub use transaction::{EditorTransactionEngine, MergeMode, TransactionScope};
+pub use transaction::{
+    EditorTransactionEngine, MergeMode, OperationTransactionResult, TransactionScope,
+};

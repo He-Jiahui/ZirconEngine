@@ -2,7 +2,7 @@
 
 ## Scope
 
-- Shared system-font face byte materialization in `graphics/text/font/database.rs`.
+- Shared system-font face byte materialization in `zircon_runtime/src/text/font/database.rs`.
 - Direct system CJK face consumption by the production SDF atlas/render path.
 - Runtime UI text layout, native/color/SDF batching, WGPU submission and framebuffer readback.
 - CJK VerticalRl TTB/BTT shaping, vertical-origin placement, punctuation and real multi-column layout plus Latin, Arabic, Hebrew, Emoji, mixed BiDi and locale-sensitive Han rows.

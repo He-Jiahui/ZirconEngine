@@ -27,6 +27,7 @@ pub(crate) struct PipelineKey {
     pub(crate) pbr_clearcoat: bool,
     pub(crate) pbr_anisotropy: bool,
     pub(crate) pbr_transmission: bool,
+    pub(crate) volumetric_fog: bool,
 }
 
 impl PipelineKey {
@@ -100,6 +101,9 @@ impl PipelineKey {
         }
         if self.pbr_transmission {
             bits |= ShaderFeatureBits::PBR_TRANSMISSION;
+        }
+        if self.volumetric_fog {
+            bits |= ShaderFeatureBits::VOLUMETRIC_FOG;
         }
         ShaderFeatureBits::new(bits)
     }

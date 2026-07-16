@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 
 use super::super::{
-    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
-    VersionedSchema,
+    Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
+    load_versioned,
 };
 use super::FixtureDocument;
 
@@ -133,18 +133,5 @@ fn envelope_for_a_different_schema_is_rejected() {
         LoadError::SchemaMismatch { expected, found }
             if expected == "zircon.tests.fixture-document"
                 && found == "zircon.tests.some-other-document"
-    ));
-}
-
-#[test]
-fn binary_entry_is_explicitly_unavailable_until_the_m3_encoding_decision() {
-    let error = load_versioned::<FixtureDocument>(&[], Format::Binary)
-        .expect_err("M1 must not invent a temporary binary wire format");
-
-    assert!(matches!(
-        error,
-        LoadError::UnsupportedFormat {
-            format: Format::Binary
-        }
     ));
 }

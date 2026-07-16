@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use zircon_runtime::core::manager::PhysicsManagerHandle;
+use zircon_runtime::core::framework::physics::PhysicsManager;
+use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
@@ -65,7 +66,10 @@ pub(crate) fn module_descriptor_with_manager(
         factory(|core| {
             let manager =
                 core.resolve_manager::<DefaultPhysicsManager>(DEFAULT_PHYSICS_MANAGER_NAME)?;
-            Ok(Arc::new(PhysicsManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn PhysicsManager>::new(manager))
+                    as ServiceObject,
+            )
         }),
     ))
 }

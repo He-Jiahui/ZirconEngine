@@ -1,15 +1,16 @@
-use crate::core::framework::render::VerticalMode;
-use crate::graphics::text::layout::{
+use crate::text::layout::{
     layout_vertical_rl_columns, measured_grapheme_widths_with_provider,
     rich_vertical_columns_with_provider, ELLIPSIS,
 };
-use crate::graphics::text::shaping::{TextShapeRunProvider, VerticalTextShapeRunProvider};
+use crate::text::SharedTextLayoutSession;
+use crate::text::VerticalMode;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiResolvedTextLayout, UiResolvedTextLine, UiTextDirection, UiTextRange,
     UiTextWritingMode,
 };
 
+use super::super::adapter::text_style;
 use super::super::rich_text::UiParsedText;
 use super::candidate_line::CandidateLine;
 use super::ellipsis::{
@@ -20,35 +21,33 @@ use super::paragraph_layout;
 use super::rich_inline::resolved_runs_for_line;
 use super::visual_order::apply_visual_order_with_advances;
 
-pub(super) fn layout_inline_vertical_text_with_provider<P>(
+pub(super) fn layout_inline_vertical_text_with_provider(
     parsed: &UiParsedText,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
     font_size: f32,
     direction: UiTextDirection,
-    provider: &mut P,
-) -> Option<UiResolvedTextLayout>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Option<UiResolvedTextLayout> {
     if !parsed.runs.iter().any(|run| run.inline.is_some())
         || !matches!(style.text_writing_mode, UiTextWritingMode::VerticalRl)
     {
         return None;
     }
 
-    let mut vertical_provider = VerticalTextShapeRunProvider::new(provider, VerticalMode::Mixed);
+    let mut vertical_provider = provider.vertical_scope(VerticalMode::Mixed);
+    let neutral_style = text_style(style);
     let paragraph_constraints =
         paragraph_layout::resolve_paragraph_column_constraints_with_provider(
             parsed,
             style,
             frame.height,
-            &mut vertical_provider,
+            &mut *vertical_provider,
         );
     let column_metrics = rich_vertical_columns_with_provider(
         &parsed.rich,
-        style,
+        &neutral_style,
         |forced_range, column_index| {
             paragraph_constraints
                 .for_source_offset(
@@ -57,7 +56,7 @@ where
                 )
                 .max_height
         },
-        &mut vertical_provider,
+        &mut *vertical_provider,
     );
     let mut columns = Vec::with_capacity(column_metrics.len());
     let mut column_advances = Vec::with_capacity(column_metrics.len());
@@ -143,7 +142,7 @@ where
         .collect::<Vec<_>>();
 
     let ellipsis_advance =
-        measured_grapheme_widths_with_provider(ELLIPSIS, style, &mut vertical_provider)
+        measured_grapheme_widths_with_provider(ELLIPSIS, &neutral_style, &mut *vertical_provider)
             .into_iter()
             .next()
             .unwrap_or_default();

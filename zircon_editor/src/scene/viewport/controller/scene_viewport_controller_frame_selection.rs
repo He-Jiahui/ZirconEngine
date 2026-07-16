@@ -12,7 +12,9 @@ impl SceneViewportController {
         &mut self,
         scene: &Scene,
     ) -> bool {
-        let Some(target) = Self::selected_world_position(scene, self.selected_node()) else {
+        let Some(target) =
+            Self::selected_world_position(scene, self.state.selection.active_primary())
+        else {
             return false;
         };
 

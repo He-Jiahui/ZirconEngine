@@ -1,10 +1,10 @@
 use zircon_runtime_interface::ui::surface::{UiTextDistanceFieldEffects, UiTextRenderMode};
 
-use crate::graphics::text::atlas::GlyphAtlasFormat;
-use crate::graphics::text::raster::{
+use crate::text::atlas::GlyphAtlasFormat;
+use crate::text::raster::{
     distance_field_mode_for_request, GlyphRasterEffects, GlyphRasterPolicyRequest,
 };
-use crate::graphics::text::sdf::SdfMode;
+use crate::text::sdf::SdfMode;
 
 pub(super) fn resolved_text_distance_field_mode(
     render_mode: UiTextRenderMode,

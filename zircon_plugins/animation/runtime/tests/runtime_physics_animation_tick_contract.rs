@@ -42,7 +42,9 @@ use zircon_runtime::core::framework::physics::{
     PhysicsColliderShape, PhysicsQueryFilter, PhysicsRayCastQuery, PhysicsSettings,
     PhysicsShapeCastQuery, PhysicsShapeOverlapQuery, PhysicsSimulationMode,
 };
-use zircon_runtime::core::manager::{resolve_animation_manager, resolve_physics_manager};
+use zircon_runtime::core::manager::{
+    animation_manager_handle, physics_manager_handle, resolve_manager_service,
+};
 use zircon_runtime::core::math::{Transform, Vec3};
 use zircon_runtime::core::resource::{
     AnimationClipMarker, AnimationGraphMarker, AnimationSequenceMarker, AnimationSkeletonMarker,
@@ -59,8 +61,16 @@ fn plugin_runtime_resolves_physics_and_animation_managers() {
     let runtime = runtime_with_physics_animation_scene_asset();
     let core = runtime.handle();
 
-    let physics = resolve_physics_manager(&core).expect("physics manager should resolve");
-    let animation = resolve_animation_manager(&core).expect("animation manager should resolve");
+    let physics = resolve_manager_service(
+        &core,
+        physics_manager_handle(&core).expect("physics manager handle"),
+    )
+    .expect("physics manager should resolve");
+    let animation = resolve_manager_service(
+        &core,
+        animation_manager_handle(&core).expect("animation manager handle"),
+    )
+    .expect("animation manager should resolve");
 
     assert_eq!(physics.backend_status().requested_backend, "unconfigured");
     assert!(animation.playback_settings().enabled);
@@ -70,7 +80,11 @@ fn plugin_runtime_resolves_physics_and_animation_managers() {
 fn level_tick_advances_physics_and_records_contacts() {
     let runtime = runtime_with_physics_animation_scene_asset();
     let core = runtime.handle();
-    let physics = resolve_physics_manager(&core).expect("physics manager should resolve");
+    let physics = resolve_manager_service(
+        &core,
+        physics_manager_handle(&core).expect("physics manager handle"),
+    )
+    .expect("physics manager should resolve");
     physics
         .store_settings(PhysicsSettings {
             backend: "builtin".to_string(),
@@ -763,7 +777,12 @@ fn level_tick_blends_animation_graph_clip_pose_weights() {
 #[test]
 fn animation_graph_evaluation_reports_additive_mask_and_clip_targets() {
     let runtime = runtime_with_physics_animation_scene_asset();
-    let animation = resolve_animation_manager(&runtime.handle()).unwrap();
+    let core = runtime.handle();
+    let animation = resolve_manager_service(
+        &core,
+        animation_manager_handle(&core).expect("animation manager handle"),
+    )
+    .unwrap();
     let base_uri = AssetUri::parse("res://animation/additive-base.clip.zranim").unwrap();
     let add_uri = AssetUri::parse("res://animation/additive-layer.clip.zranim").unwrap();
     let graph = AnimationGraphAsset {

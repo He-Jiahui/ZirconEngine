@@ -1,6 +1,6 @@
 #![cfg(feature = "font-sdf-build-tool")]
 
-use zircon_runtime::graphics::text::font_sdf_build_tool::{
+use zircon_runtime::text::font_sdf_build_tool::{
     bake_font_sdf_artifact, inspect_font_sdf_artifact, FontSdfBakeMode, FontSdfBakeRequest,
     FontSdfGlyphSelection,
 };

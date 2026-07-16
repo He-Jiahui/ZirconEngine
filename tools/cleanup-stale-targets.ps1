@@ -175,6 +175,20 @@ function Invoke-CoordinatorCleanupCommand {
     return (($raw -join [Environment]::NewLine) | ConvertFrom-Json)
 }
 
+function Invoke-CoordinatorArtifactCommand {
+    param(
+        [Parameter(Mandatory)][string]$Client,
+        [Parameter(Mandatory)][string]$ResolvedRepoRoot,
+        [Parameter(Mandatory)][ValidateSet("audit", "cleanup")][string]$Action
+    )
+
+    $raw = & $Client -Command artifact -RepoRoot $ResolvedRepoRoot -Json $Action
+    if ($LASTEXITCODE -ne 0) {
+        throw "Coordinator artifact $Action failed: $($raw -join [Environment]::NewLine)"
+    }
+    return (($raw -join [Environment]::NewLine) | ConvertFrom-Json)
+}
+
 function Get-CoordinatorManagedPathKeys {
     param(
         [Parameter(Mandatory)][string]$Client,
@@ -233,15 +247,10 @@ function Invoke-StaleTargetCleanup {
         -Action "plan" `
         -RetentionHours $RetentionHours
     $plan = $response.plan
-    $managedPathKeys = Get-CoordinatorManagedPathKeys `
+    $unmanaged = @((Invoke-CoordinatorArtifactCommand `
         -Client $client `
         -ResolvedRepoRoot $resolvedRepoRoot `
-        -Plan $plan
-    $cutoffUtc = [datetime]::UtcNow.AddHours(-$RetentionHours)
-    $unmanaged = @(Get-UnmanagedCleanupCandidates `
-        -Roots $Roots `
-        -ManagedPathKeys $managedPathKeys `
-        -CutoffUtc $cutoffUtc)
+        -Action "audit").unmanaged)
 
     Write-Host "Managed Cargo cleanup plan"
     foreach ($root in @($plan.free_bytes_by_root.PSObject.Properties)) {
@@ -258,11 +267,11 @@ function Invoke-StaleTargetCleanup {
     }
     Write-Host "Unmanaged stale targets: $($unmanaged.Count)"
     foreach ($candidate in $unmanaged) {
-        Write-Host "  - $($candidate.Path)"
+        Write-Host "  - $candidate"
     }
 
-    if (-not $ApplyChanges) {
-        Write-Host "Plan only. Pass -Apply to request managed cleanup and direct unmanaged deletion."
+    if (-not $ApplyChanges -or $WhatIfPreference) {
+        Write-Host "Plan only. Pass -Apply to request coordinator-managed cleanup."
         return
     }
 
@@ -285,30 +294,16 @@ function Invoke-StaleTargetCleanup {
         }
     }
 
-    # Refresh managed state immediately before local deletion so a newly acquired
-    # nested pool cannot have its ancestor removed from underneath it.
-    $freshResponse = Invoke-CoordinatorCleanupCommand `
+    $artifactResult = Invoke-CoordinatorArtifactCommand `
         -Client $client `
         -ResolvedRepoRoot $resolvedRepoRoot `
-        -Action "plan" `
-        -RetentionHours $RetentionHours
-    $freshManagedPathKeys = Get-CoordinatorManagedPathKeys `
-        -Client $client `
-        -ResolvedRepoRoot $resolvedRepoRoot `
-        -Plan $freshResponse.plan
-
-    $localResults = foreach ($candidate in $unmanaged) {
-        Remove-UnmanagedCleanupCandidate `
-            -Root $candidate.Root `
-            -Path $candidate.Path `
-            -CutoffUtc $cutoffUtc `
-            -ManagedPathKeys $freshManagedPathKeys `
-            -WhatIf:$WhatIfPreference `
-            -Confirm:$false
+        -Action "cleanup"
+    Write-Host "Unmanaged deleted: $(@($artifactResult.deleted).Count)"
+    foreach ($path in @($artifactResult.failed)) {
+        Write-Host "  - failed $path"
     }
-    Write-Host "Unmanaged deleted: $(@($localResults | Where-Object Status -eq 'deleted').Count)"
-    foreach ($result in @($localResults | Where-Object Status -ne "deleted")) {
-        Write-Host "  - $($result.Status) [$($result.Reason)] $($result.Path)"
+    foreach ($path in @($artifactResult.remaining)) {
+        Write-Host "  - retained $path"
     }
 }
 

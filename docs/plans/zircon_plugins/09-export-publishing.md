@@ -96,7 +96,7 @@ tools/zircon_export/export-templates/                         [新增 CI 产物�
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
-- 迁入记录：[`09/2026-07-09-export-publishing-output-records.md`](09/2026-07-09-export-publishing-output-records.md)
+- 迁入记录：[`../_archive/zircon_plugins/09/2026-07-09-export-publishing-output-records.md`](../_archive/zircon_plugins/09/2026-07-09-export-publishing-output-records.md)
 
 ## 5. 里程碑与任务分解
 

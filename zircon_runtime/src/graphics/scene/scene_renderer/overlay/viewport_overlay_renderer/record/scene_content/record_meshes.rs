@@ -48,6 +48,7 @@ impl ViewportOverlayRenderer {
             None,
             None,
             None,
+            None,
             crate::render_graph::RenderGraphAttachmentOps::load_store(),
             crate::render_graph::RenderGraphAttachmentOps::load_store(),
         );

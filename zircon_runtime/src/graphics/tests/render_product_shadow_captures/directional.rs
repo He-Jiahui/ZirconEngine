@@ -40,7 +40,7 @@ fn render_product_directional_shadow_atlas_capture_records_receiver_path() {
         false,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let (frame, stats) = render_directional_shadow_capture_frame(
         &server,
         viewport_size,
@@ -89,7 +89,7 @@ fn render_product_directional_shadow_atlas_darkens_receiver_capture() {
         false,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let (shadowed_frame, shadowed_stats) = render_directional_shadow_capture_frame(
         &server,
         viewport_size,
@@ -148,7 +148,7 @@ fn render_product_csm_directional_remains_stable_under_subtexel_camera_shift() {
         false,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let baseline_offset = Vec3::ZERO;
     let shifted_offset = Vec3::new(0.006, 0.0, 0.0);
     let (baseline_shadowed, baseline_shadowed_stats) =
@@ -239,7 +239,7 @@ fn render_product_directional_shadow_atlas_forward_deferred_darkening_parity() {
         false,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let (forward_shadowed, forward_shadowed_stats) =
         render_directional_shadow_capture_frame_with_pipeline(
             &server,

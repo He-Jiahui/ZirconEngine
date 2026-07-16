@@ -1,14 +1,15 @@
-use crate::graphics::text::layout::{
+use crate::text::layout::{
     line_break_chunks_with_provider,
     line_text_fits_with_provider as shared_line_text_fits_with_provider,
     should_wrap_before_chunk_with_provider, trim_leading_wrap_spaces,
     word_smart_line_break_chunks_with_provider,
 };
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::surface::{
     UiResolvedStyle, UiTextRange, UiTextRunKind, UiTextWrap,
 };
 
+use super::super::adapter::text_style;
 use super::super::grapheme::{grapheme_indices, leading_grapheme_continuation_len};
 use super::super::rich_text::UiTextSourceRun;
 use super::candidate_line::{
@@ -16,30 +17,24 @@ use super::candidate_line::{
     CandidateLine, PendingBreakSuffix,
 };
 
-pub(super) fn wrap_source_runs_with_provider<P>(
+pub(super) fn wrap_source_runs_with_provider(
     runs: &[UiTextSourceRun],
     wrap: UiTextWrap,
     max_width: f32,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> Vec<CandidateLine>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<CandidateLine> {
     wrap_source_runs_with_line_widths_provider(runs, wrap, max_width, max_width, style, provider)
 }
 
-pub(super) fn wrap_source_runs_with_line_widths_provider<P>(
+pub(super) fn wrap_source_runs_with_line_widths_provider(
     runs: &[UiTextSourceRun],
     wrap: UiTextWrap,
     first_line_width: f32,
     continuation_width: f32,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> Vec<CandidateLine>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<CandidateLine> {
     let mut lines = Vec::new();
     let mut current = CandidateLine::empty();
 
@@ -141,7 +136,7 @@ fn split_preserving_newline(text: &str, source_start: usize) -> Vec<TextSegment>
     segments
 }
 
-fn append_word_wrapped_segment<P>(
+fn append_word_wrapped_segment(
     lines: &mut Vec<CandidateLine>,
     current: &mut CandidateLine,
     kind: UiTextRunKind,
@@ -150,15 +145,14 @@ fn append_word_wrapped_segment<P>(
     first_line_width: f32,
     continuation_width: f32,
     style: &UiResolvedStyle,
-    provider: &mut P,
+    provider: &mut SharedTextLayoutSession,
     word_smart: bool,
-) where
-    P: TextShapeRunProvider + ?Sized,
-{
+) {
+    let neutral_style = text_style(style);
     let chunks = if word_smart {
-        word_smart_line_break_chunks_with_provider(text, style, provider)
+        word_smart_line_break_chunks_with_provider(text, &neutral_style, provider)
     } else {
-        line_break_chunks_with_provider(text, style, provider)
+        line_break_chunks_with_provider(text, &neutral_style, provider)
     };
     for chunk in chunks {
         let max_width = current_line_width(lines, first_line_width, continuation_width);
@@ -184,7 +178,7 @@ fn append_word_wrapped_segment<P>(
             &current.text,
             word_text,
             max_width,
-            style,
+            &neutral_style,
             provider,
         ) {
             trim_word_break_trailing_spaces(current);
@@ -196,8 +190,12 @@ fn append_word_wrapped_segment<P>(
             }
         }
         let max_width = current_line_width(lines, first_line_width, continuation_width);
-        if chunk.should_fallback_to_glyph_wrap_with_provider(word_text, max_width, style, provider)
-        {
+        if chunk.should_fallback_to_glyph_wrap_with_provider(
+            word_text,
+            max_width,
+            &neutral_style,
+            provider,
+        ) {
             append_glyph_wrapped_segment(
                 lines,
                 current,
@@ -223,7 +221,7 @@ fn append_word_wrapped_segment<P>(
     }
 }
 
-fn append_glyph_wrapped_segment<P>(
+fn append_glyph_wrapped_segment(
     lines: &mut Vec<CandidateLine>,
     current: &mut CandidateLine,
     kind: UiTextRunKind,
@@ -232,10 +230,8 @@ fn append_glyph_wrapped_segment<P>(
     first_line_width: f32,
     continuation_width: f32,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) {
     let continuation_len = append_leading_grapheme_continuation(current, kind, text, range);
     for (offset, grapheme) in grapheme_indices(&text[continuation_len..]) {
         let offset = continuation_len + offset;
@@ -244,7 +240,7 @@ fn append_glyph_wrapped_segment<P>(
             &current.text,
             grapheme,
             max_width,
-            style,
+            &text_style(style),
             provider,
         ) {
             push_wrapped_line(lines, current);
@@ -296,14 +292,11 @@ fn append_leading_grapheme_continuation(
     continuation_len
 }
 
-pub(super) fn line_text_fits_with_provider<P>(
+pub(super) fn line_text_fits_with_provider(
     text: &str,
     max_width: f32,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> bool
-where
-    P: TextShapeRunProvider + ?Sized,
-{
-    shared_line_text_fits_with_provider(text, max_width, style, provider)
+    provider: &mut SharedTextLayoutSession,
+) -> bool {
+    shared_line_text_fits_with_provider(text, max_width, &text_style(style), provider)
 }

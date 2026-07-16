@@ -1,5 +1,5 @@
 pub(super) const EXPECTED_RUNTIME_03_SOURCE_FILES: &[&str] = &[
-    "src/dynamic_api/session.rs",
+    "src/dynamic_api/session/state.rs",
     "src/dynamic_api/session/profile.rs",
     "src/dynamic_api/session/extract.rs",
     "src/dynamic_api/runtime_loop.rs",

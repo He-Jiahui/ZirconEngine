@@ -24,7 +24,7 @@ fn assert_runtime_09_v2_verdict_is_documented(repo_root: &Path) {
     for relative_doc in [
         "docs/plans/zircon_runtime/runtime/09/2026-07-09-ui-subsystem-architecture-output-records.md",
         "docs/zircon_runtime/ui/architecture.md",
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
     ] {
         let doc = read_repo_file(repo_root, relative_doc);
         for required_anchor in [
@@ -145,7 +145,7 @@ fn assert_named_api_version_mismatch_guard_exists(repo_root: &Path) {
 fn assert_runtime_10_docs_record_ui_v2_contract_sync(repo_root: &Path) {
     for relative_doc in [
         "docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md",
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
         "docs/engine-architecture/runtime-interface-convergence.md",
         "docs/engine-architecture/runtime-architecture-review-m0.md",
         "docs/zircon_runtime/dynamic_api/session.md",

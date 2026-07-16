@@ -1,22 +1,24 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/text/sdf/mod.rs
-  - zircon_runtime/src/graphics/text/sdf/mode.rs
-  - zircon_runtime/src/graphics/text/sdf/params.rs
-  - zircon_runtime/src/graphics/text/sdf/glyph_data.rs
-  - zircon_runtime/src/graphics/text/sdf/generation_error.rs
-  - zircon_runtime/src/graphics/text/sdf/decode.rs
-  - zircon_runtime/src/graphics/text/sdf/geometry_preprocess.rs
-  - zircon_runtime/src/graphics/text/sdf/fdsm_gen.rs
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
-  - zircon_runtime/src/graphics/text/sdf/offline
-  - zircon_runtime/src/graphics/text/font_sdf_build_tool
+  - zircon_runtime/src/text/sdf/mod.rs
+  - zircon_runtime/src/text/sdf/mode.rs
+  - zircon_runtime/src/text/sdf/params.rs
+  - zircon_runtime/src/text/sdf/glyph_data.rs
+  - zircon_runtime/src/text/sdf/generation_error.rs
+  - zircon_runtime/src/text/sdf/decode.rs
+  - zircon_runtime/src/text/sdf/geometry_preprocess.rs
+  - zircon_runtime/src/text/sdf/fdsm_gen.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/sdf/offline
+  - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
-  - zircon_runtime/src/graphics/text/atlas/page.rs
+  - zircon_runtime/src/text/atlas/page.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/distance_field.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
+  - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/atlas_resources.rs
@@ -26,17 +28,17 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
 implementation_files:
-  - zircon_runtime/src/graphics/text/sdf/mod.rs
-  - zircon_runtime/src/graphics/text/sdf/mode.rs
-  - zircon_runtime/src/graphics/text/sdf/params.rs
-  - zircon_runtime/src/graphics/text/sdf/glyph_data.rs
-  - zircon_runtime/src/graphics/text/sdf/generation_error.rs
-  - zircon_runtime/src/graphics/text/sdf/decode.rs
-  - zircon_runtime/src/graphics/text/sdf/geometry_preprocess.rs
-  - zircon_runtime/src/graphics/text/sdf/fdsm_gen.rs
-  - zircon_runtime/src/graphics/text/sdf/offline/artifact.rs
-  - zircon_runtime/src/graphics/text/sdf/offline/codec.rs
-  - zircon_runtime/src/graphics/text/font/decoration_metrics.rs
+  - zircon_runtime/src/text/sdf/mod.rs
+  - zircon_runtime/src/text/sdf/mode.rs
+  - zircon_runtime/src/text/sdf/params.rs
+  - zircon_runtime/src/text/sdf/glyph_data.rs
+  - zircon_runtime/src/text/sdf/generation_error.rs
+  - zircon_runtime/src/text/sdf/decode.rs
+  - zircon_runtime/src/text/sdf/geometry_preprocess.rs
+  - zircon_runtime/src/text/sdf/fdsm_gen.rs
+  - zircon_runtime/src/text/sdf/offline/artifact.rs
+  - zircon_runtime/src/text/sdf/offline/codec.rs
+  - zircon_runtime/src/text/font/decoration_metrics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/material.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_projection.rs
 plan_sources:
@@ -46,15 +48,17 @@ plan_sources:
   - docs/superpowers/plans/2026-07-13-runtime-msdf-mtsdf-dynamic-pipeline.md
   - docs/superpowers/specs/2026-07-13-runtime-text-sdf-effects-decoration-design.md
   - docs/superpowers/plans/2026-07-13-runtime-text-sdf-effects-decoration.md
+  - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
 tests:
-  - zircon_runtime/src/graphics/text/sdf/tests.rs
-  - zircon_runtime/src/graphics/text/sdf/tests/decode.rs
-  - zircon_runtime/src/graphics/text/sdf/tests/fdsm_gen.rs
-  - zircon_runtime/src/graphics/text/sdf/tests/offline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests/offline.rs
+  - zircon_runtime/src/text/sdf/tests.rs
+  - zircon_runtime/src/text/sdf/tests/decode.rs
+  - zircon_runtime/src/text/sdf/tests/fdsm_gen.rs
+  - zircon_runtime/src/text/sdf/tests/offline.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/offline.rs
   - zircon_runtime/tests/runtime_text_sdf_offline_artifact.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/cache_report.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/shader_contract.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/material.rs
@@ -67,9 +71,9 @@ doc_type: module-detail
 
 ## Ownership
 
-`graphics/text/sdf/` is the renderer-neutral owner of signed-distance-field mode identity, bake parameters, generated glyph data, typed failures, reference decode math, outline preprocessing, and pure-Rust fdsm generation. It runs after shaping and layout. Consequently, selecting SDF, MSDF, or MTSDF may change pixels and atlas storage, but it must never change glyph identity, advances, source ranges, line breaks, or resolved frames.
+`text/sdf/` is the renderer-neutral owner of signed-distance-field mode identity, bake parameters, generated glyph data, typed failures, reference decode math, outline preprocessing, pure-Rust fdsm generation, CPU font/glyph caches, and batched glyph/decorations metrics. It runs after shaping and layout. Consequently, selecting SDF, MSDF, or MTSDF may change pixels and atlas storage, but it must never change glyph identity, advances, source ranges, line breaks, or resolved frames.
 
-The existing `graphics/text/atlas/` subtree remains the only owner of page identity, residency, shelf allocation, dirty regions, upload planning, retry state, and placeholder behavior. This module maps `Sdf` to an R8 SDF page and maps both `Msdf` and `Mtsdf` to RGBA8 MSDF pages. MTSDF is a decode mode, not a second storage format: its RGB channels contain the multi-channel distance and alpha contains true signed distance.
+The existing `text/atlas/` subtree remains the only owner of page identity, residency, shelf allocation, dirty regions, upload planning, retry state, and placeholder behavior. This module maps `Sdf` to an R8 SDF page and maps both `Msdf` and `Mtsdf` to RGBA8 MSDF pages. MTSDF is a decode mode, not a second storage format: its RGB channels contain the multi-channel distance and alpha contains true signed distance.
 
 ## Contracts
 
@@ -106,7 +110,11 @@ Generation returns `SdfGlyphGenerationError` for invalid face indices, missing o
 
 ## Runtime atlas and GPU integration
 
-`scene_renderer/ui/sdf_font_bake/distance_field.rs` is a narrow adapter: it resolves authoritative standalone face bytes and the shaped glyph id, then delegates all pixel generation to this shared module. The surrounding font-bake owner retains face fallback, metrics scaling, cache lifetime, atlas-page assembly, and typed reporting. Its cache key includes normalized `SdfBakeParams`, so SDF, MSDF, and MTSDF outputs never alias.
+`text/sdf/font_bake/distance_field.rs` is a narrow adapter: it resolves authoritative standalone face bytes and the shaped glyph id, then delegates all pixel generation to this shared module. The surrounding Text-owned font-bake state retains face fallback, metrics scaling, cache lifetime, atlas-page assembly, typed reporting, and batched CPU preparation. Shaped face and variation identities remain versioned `TextFontFaceHandle` values until Text resolves them through the generation-checked registry; no raw numeric roundtrip survives. Its cache key includes normalized `SdfBakeParams`, so SDF, MSDF, and MTSDF outputs never alias.
+
+All face-derived CPU state follows the shared font-database generation. Before a public bake, measure, decoration, atlas, or failure-query entry point uses cached data, `SdfFontBakeCache` compares the observed generation and clears resident fonts, generated glyphs, measured metrics, face-resolution results, project-font resolution, decoration metrics, and offline-source state together when it changes. A shaped glyph id is reused only when its current generation-checked face or instance handle resolves to the same face selected for the bake; a stale or mismatched handle falls back to scalar lookup on the selected face instead of carrying a glyph id across faces.
+
+The screen-space text system applies face invalidation before the first SDF plan or bake of the frame. It clears the Text CPU state, bitmap source cache, SDF slot plan, and cached slots as one operation. The SDF atlas then forces every page in each non-empty intermediate plan to be fully dirty until the final renderer preparation has consumed the plan. This state deliberately survives an empty frame and the second plan produced by whole-batch native fallback, so an intermediate `prepare` cannot erase the upload needed for new face pixels. Only a completed non-empty renderer preparation acknowledges the upload; a face discovered later by the native backend schedules the same invalidation contract for the next frame.
 
 Atlas bake output is one sorted byte stream with explicit per-page source spans. `GlyphAtlasFormat::Sdf` pages use R8 and `GlyphAtlasFormat::Msdf` pages use RGBA8. Full and dirty upload commands calculate row stride, rect offset, and cumulative page source offset from each page's storage format; there is no one-byte assumption in the multi-channel path.
 
@@ -116,7 +124,7 @@ Atlas bake output is one sorted byte stream with explicit per-page source spans.
 
 ## Face-derived decorations
 
-Underline and strikeout do not enter glyph or atlas identity. `graphics/text/font/decoration_metrics.rs` reads post/OS/2 face metrics, scales them from font units to display pixels, caches by face and size, and applies the documented em fallback only when a table is absent. Resolved line baselines are carried into the text batch; raw text falls back to the same face ascender rather than `run.bottom()`.
+Underline and strikeout do not enter glyph or atlas identity. `text/font/decoration_metrics.rs` reads post/OS/2 face metrics, scales them from font units to display pixels, caches by face and size, and applies the documented em fallback only when a table is absent. Resolved line baselines are carried into the text batch; raw text falls back to the same face ascender rather than `run.bottom()`.
 
 `sdf_render/decorations.rs` emits clipped solid quads before distance-field glyph vertices. The vertex ABI has an explicit solid primitive discriminant, and `zr_text_sdf.wgsl` returns its color without sampling the atlas. This lets Native and SDF text share one face-derived decoration geometry path while keeping editing decorations and selection/caret composition semantics independent. Detailed ownership and formulas are recorded in `docs/zircon_runtime/graphics/text/font-decoration-metrics.md`.
 
@@ -128,7 +136,7 @@ The vertex ABI now carries homogeneous clip coordinates plus both CPU screen ran
 
 ## Offline artifact integration
 
-`graphics/text/sdf/offline/` is the shared versioned `.zsdf` codec and identity owner. The feature-gated build tool calls this module after using the same `generate_distance_field_glyph(...)` function and the same shelf allocator as the dynamic path. Runtime font bake resolves the project font manifest's authoritative `.zmeta` UUID plus the exact standalone face-source hash and accepts an artifact only when UUID, face index, variation hash, source hash, mode, bake em, and spread all match.
+`text/sdf/offline/` is the shared versioned `.zsdf` codec and identity owner. The feature-gated build tool calls this module after using the same `generate_distance_field_glyph(...)` function and the same shelf allocator as the dynamic path. Runtime font bake resolves the project font manifest's authoritative `.zmeta` UUID plus the exact standalone face-source hash and accepts an artifact only when UUID, face index, variation hash, source hash, mode, bake em, and spread all match.
 
 The renderer lookup order is in-memory glyph cache, accepted offline artifact, dynamic generator, then existing typed per-glyph failure handling. Accepted offline pixels flow through the same R8/RGBA page stream, upload planner, WGPU textures, and shader decode modes. Missing, corrupt, stale, or uncovered artifacts therefore affect generation cost only; they cannot introduce another layout path or another GPU atlas. The full binary/build/runtime contract is documented in `docs/zircon_runtime/graphics/text/offline-sdf.md`.
 
@@ -138,7 +146,7 @@ The 2026-07-13 broad Runtime scene gate exposed a metric-authority regression af
 
 SM2-M1 passed current-source Windows acceptance on 2026-07-13. The managed locked graphics-enabled check completed in 12m23s; the matching library test binary built in 34m05s. Shared parameter/mode/data contracts passed 4/4, decode reference tests passed 3/3, and Fira Sans fdsm generation tests passed 4/4, including deterministic output, typed missing outline/face errors, MTSDF alpha edge behavior, and sharp-corner fidelity relative to single-channel SDF.
 
-The acceptance gate intentionally uses `--no-default-features --features graphics`, because `graphics/text/sdf` is reached through the crate's `#[cfg(feature = "graphics")] pub mod graphics`; a `features=text` build alone validates dependencies but does not compile this owner.
+The acceptance gate intentionally uses `--no-default-features --features graphics`, because `text/sdf` is reached through the crate's `#[cfg(feature = "graphics")] pub mod graphics`; a `features=text` build alone validates dependencies but does not compile this owner.
 
 SM2-M2/M3 production checks now pass with `graphics` and `target-client`. A real WGPU product export also passed and wrote `docs/tests/runtime/text/runtime_text_multilingual_sdf_msdf_product_framebuffer_20260713.png`: 1080×1690, 315799 bytes, 2444 colors, SHA256 `05BED61944F35380A0967A9A3D04DFC0B1F5413D240A2C5627A4E3D4294FB448`, with zero same-name copies under repository/approved Cargo target roots. The accepted frame contains side-by-side real SDF and MSDF `A/M/W`/CJK pixels plus the existing multilingual, RTL, VerticalRl, table, and inline-texture proof.
 

@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use zircon_runtime::asset::ASSET_MODULE_NAME;
-use zircon_runtime::core::manager::SoundManagerHandle;
+use zircon_runtime::core::framework::sound::SoundManager;
+use zircon_runtime::core::manager::RegisteredManagerService;
 use zircon_runtime::core::runtime::ServiceObject;
 use zircon_runtime::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, ServiceKind, StartupMode,
@@ -54,7 +55,10 @@ pub fn module_descriptor() -> ModuleDescriptor {
             factory(|core| {
                 let manager =
                     core.resolve_manager::<DefaultSoundManager>(DEFAULT_SOUND_MANAGER_NAME)?;
-                Ok(Arc::new(SoundManagerHandle::new(manager)) as ServiceObject)
+                Ok(
+                    Arc::new(RegisteredManagerService::<dyn SoundManager>::new(manager))
+                        as ServiceObject,
+                )
             }),
         ))
 }

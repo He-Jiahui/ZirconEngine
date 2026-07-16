@@ -56,7 +56,7 @@ fn capture_skinned_morph_velocity_product() -> SkinnedMorphVelocityCapture {
         "product-skinned-morph-velocity-skeleton-v1",
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(128, 128);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

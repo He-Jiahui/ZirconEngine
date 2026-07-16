@@ -82,6 +82,7 @@ fn custom_shading_model_deferred_lighting_pipeline_creates_with_project_include_
         wgpu::TextureFormat::Rgba8Unorm,
         &[descriptor],
         false,
+        true,
     )
     .expect("custom deferred lighting pipeline should be created from project WGSL include source");
     let error = pollster::block_on(error_scope.pop());

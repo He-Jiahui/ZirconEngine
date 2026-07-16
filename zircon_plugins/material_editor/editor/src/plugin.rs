@@ -139,27 +139,27 @@ fn material_authoring_batch() -> EditorAuthoringContributionBatch {
     let create = operation("material_editor.graph.create");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(open_graph.clone(), "Open Material Graph")
+            EditorCommandDescriptor::operation(open_graph.clone(), "Open Material Graph")
                 .with_menu_path("Plugins/Material Editor/Open Graph")
                 .with_payload_schema_id("material_editor.open_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(open_material.clone(), "Open Material")
+            EditorCommandDescriptor::operation(open_material.clone(), "Open Material")
                 .with_menu_path("Plugins/Material Editor/Open Material")
                 .with_payload_schema_id("material_editor.open_material.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(validate.clone(), "Validate Material Graph")
+            EditorCommandDescriptor::operation(validate.clone(), "Validate Material Graph")
                 .with_menu_path("Plugins/Material Editor/Validate Graph")
                 .with_payload_schema_id("material_editor.validate_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(compile.clone(), "Compile Material Graph")
+            EditorCommandDescriptor::operation(compile.clone(), "Compile Material Graph")
                 .with_menu_path("Plugins/Material Editor/Compile Graph")
                 .with_payload_schema_id("material_editor.compile_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(preview.clone(), "Preview Material Graph")
+            EditorCommandDescriptor::operation(preview.clone(), "Preview Material Graph")
                 .with_menu_path("Plugins/Material Editor/Preview Graph")
                 .with_payload_schema_id("material_editor.preview_graph.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(create.clone(), "Create Material Graph")
+            EditorCommandDescriptor::operation(create.clone(), "Create Material Graph")
                 .with_menu_path("Plugins/Material Editor/Create Graph")
                 .with_payload_schema_id("material_editor.create_graph.v1")
                 .with_required_capabilities([CAPABILITY]),

@@ -4,6 +4,7 @@ use crate::core::commands::{CommandEvalSnapshotHandle, EditorCommandRegistryHand
 use crate::core::editing::engine::EditorTransactionEngine;
 use crate::core::editor_event::EditorEventService;
 use crate::core::editor_message::SharedEditorMessageBus;
+use crate::core::gateway::EditorRuntimeGatewayHandle;
 use crate::core::jobs::EditorJobSystem;
 
 /// Explicit L1 editor service aggregate. Each service owns its own synchronization.
@@ -14,6 +15,7 @@ pub struct EditorContext {
     transactions: EditorTransactionEngine,
     commands: EditorCommandRegistryHandle,
     command_eval: CommandEvalSnapshotHandle,
+    gateway: EditorRuntimeGatewayHandle,
 }
 
 impl EditorContext {
@@ -24,6 +26,7 @@ impl EditorContext {
         transactions: EditorTransactionEngine,
         commands: EditorCommandRegistryHandle,
         command_eval: CommandEvalSnapshotHandle,
+        gateway: EditorRuntimeGatewayHandle,
     ) -> Self {
         Self {
             bus,
@@ -32,6 +35,7 @@ impl EditorContext {
             transactions,
             commands,
             command_eval,
+            gateway,
         }
     }
 
@@ -57,5 +61,9 @@ impl EditorContext {
 
     pub fn command_eval(&self) -> &CommandEvalSnapshotHandle {
         &self.command_eval
+    }
+
+    pub fn gateway(&self) -> &EditorRuntimeGatewayHandle {
+        &self.gateway
     }
 }

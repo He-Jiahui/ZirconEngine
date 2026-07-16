@@ -29,6 +29,11 @@ impl MeshPassProcessor for OpaqueBasePassProcessor {
         if !batch.relevant_to_main_phase(phase) {
             return;
         }
+        let phase = if batch.pipeline_key.requires_forward_path() {
+            RenderPhase::Transparent3d
+        } else {
+            phase
+        };
         let pipeline_kind = MeshPassPipelineKind::Base;
         let pipeline_variant_id = context.pipeline_variant_id(pipeline_kind, batch);
         out.push(batch.command(phase, pipeline_kind, pipeline_variant_id));

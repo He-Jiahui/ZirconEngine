@@ -16,21 +16,32 @@ use zircon_runtime::graphics::{
     VirtualGeometryRuntimeState, VirtualGeometryRuntimeStats, VirtualGeometryRuntimeUpdate,
     WgpuRenderFramework,
 };
-use zircon_runtime::render_graph::QueueLane;
+use zircon_runtime::render_graph::{QueueLane, RenderGraphComputeWorkload};
+
+mod project_asset_runtime;
+
+pub use project_asset_runtime::{ProjectAssetTestRuntime, TestWgpuRenderFramework};
+
+const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_PIPELINE_LABEL: &str =
+    "zircon-virtual-geometry-node-cluster-cull";
+const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_WORKGROUP_SIZE: [u32; 3] = [64, 1, 1];
+const VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS: [u32; 3] = [1, 1, 1];
 
 pub fn virtual_geometry_wgpu_render_framework(
     asset_manager: Arc<ProjectAssetManager>,
-) -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_features(
-        asset_manager,
+) -> TestWgpuRenderFramework {
+    let asset_runtime = ProjectAssetTestRuntime::new(asset_manager);
+    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+        asset_runtime.access(),
         [virtual_geometry_render_feature_descriptor()],
         virtual_geometry_render_pass_executor_registrations(),
         [virtual_geometry_runtime_provider_registration()],
     )
-    .expect("pluginized virtual geometry framework should initialize")
+    .expect("pluginized virtual geometry framework should initialize");
+    TestWgpuRenderFramework::new(asset_runtime, framework)
 }
 
-fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescriptor {
+pub(crate) fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescriptor {
     RenderFeatureDescriptor::new(
         "virtual_geometry",
         vec![
@@ -53,6 +64,11 @@ fn virtual_geometry_render_feature_descriptor() -> RenderFeatureDescriptor {
                 QueueLane::AsyncCompute,
             )
             .with_executor_id("virtual-geometry.node-cluster-cull")
+            .with_compute_workload(RenderGraphComputeWorkload::fixed(
+                VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_PIPELINE_LABEL,
+                VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_WORKGROUP_SIZE,
+                VIRTUAL_GEOMETRY_NODE_CLUSTER_CULL_DISPATCH_GROUPS,
+            ))
             .read_buffer("virtual-geometry-page-requests")
             .write_buffer("virtual-geometry-visible-clusters"),
             RenderFeaturePassDescriptor::new(

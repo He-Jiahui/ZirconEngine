@@ -8,7 +8,7 @@ mod support;
 use zircon_runtime::asset::pipeline::manager::AssetManager;
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
 use zircon_runtime::asset::pipeline::types::MeshVertex;
-use zircon_runtime::asset::project::{ProjectManifest, ProjectPaths};
+use zircon_runtime::asset::project::{ProjectManager, ProjectManifest, ProjectPaths};
 use zircon_runtime::asset::{
     AssetUri, ModelAsset, ModelPrimitiveAsset, SceneAsset, VirtualGeometryAsset,
     VirtualGeometryClusterHeaderAsset, VirtualGeometryClusterPageHeaderAsset,
@@ -517,13 +517,14 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
             .join("scenes"),
     )
     .expect("scene directory should be created");
+    let project = ProjectManager::open(&root).expect("project resolver should open");
     fs::write(
         paths
             .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("provider_vg.model.toml"),
         sample_virtual_geometry_model_asset()
-            .to_toml_string()
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
             .expect("model asset should serialize"),
     )
     .expect("model asset should write");
@@ -535,7 +536,7 @@ fn render_framework_uses_virtual_geometry_provider_for_missing_authored_extract(
         SceneAsset {
             entities: Vec::new(),
         }
-        .to_toml_string()
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
         .expect("scene asset should serialize"),
     )
     .expect("scene asset should write");
@@ -908,13 +909,14 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
             .join("scenes"),
     )
     .expect("scene directory should be created");
+    let project = ProjectManager::open(&root).expect("project resolver should open");
     fs::write(
         paths
             .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset()
-            .to_toml_string()
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
             .expect("model asset should serialize"),
     )
     .expect("model asset should write");
@@ -926,7 +928,7 @@ fn render_framework_exposes_virtual_geometry_cpu_reference_bvh_inspection_for_au
         SceneAsset {
             entities: Vec::new(),
         }
-        .to_toml_string()
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
         .expect("scene asset should serialize"),
     )
     .expect("scene asset should write");
@@ -1338,13 +1340,14 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
             .join("scenes"),
     )
     .expect("scene directory should be created");
+    let project = ProjectManager::open(&root).expect("project resolver should open");
     fs::write(
         paths
             .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset_with_root_page_table(vec![10, 20, 30])
-            .to_toml_string()
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
             .expect("model asset should serialize"),
     )
     .expect("model asset should write");
@@ -1356,7 +1359,7 @@ fn render_framework_automatic_virtual_geometry_bvh_selected_clusters_follow_forc
         SceneAsset {
             entities: Vec::new(),
         }
-        .to_toml_string()
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
         .expect("scene asset should serialize"),
     )
     .expect("scene asset should write");
@@ -1498,13 +1501,14 @@ fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_g
             .join("scenes"),
     )
     .expect("scene directory should be created");
+    let project = ProjectManager::open(&root).expect("project resolver should open");
     fs::write(
         paths
             .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset()
-            .to_toml_string()
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
             .expect("model asset should serialize"),
     )
     .expect("model asset should write");
@@ -1516,7 +1520,7 @@ fn render_framework_visualize_bvh_changes_captured_frame_for_automatic_virtual_g
         SceneAsset {
             entities: Vec::new(),
         }
-        .to_toml_string()
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
         .expect("scene asset should serialize"),
     )
     .expect("scene asset should write");
@@ -1612,13 +1616,14 @@ fn render_framework_visualize_visbuffer_changes_captured_frame_for_automatic_vir
             .join("scenes"),
     )
     .expect("scene directory should be created");
+    let project = ProjectManager::open(&root).expect("project resolver should open");
     fs::write(
         paths
             .asset_root(&zircon_runtime_interface::project::RelPath::project_assets())
             .join("models")
             .join("nanite_teapot.model.toml"),
         sample_virtual_geometry_model_asset()
-            .to_toml_string()
+            .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
             .expect("model asset should serialize"),
     )
     .expect("model asset should write");
@@ -1630,7 +1635,7 @@ fn render_framework_visualize_visbuffer_changes_captured_frame_for_automatic_vir
         SceneAsset {
             entities: Vec::new(),
         }
-        .to_toml_string()
+        .to_project_toml_string(|reference| project.persist_runtime_reference(reference))
         .expect("scene asset should serialize"),
     )
     .expect("scene asset should write");

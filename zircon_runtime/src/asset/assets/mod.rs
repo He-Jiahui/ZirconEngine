@@ -80,7 +80,8 @@ pub use scene::{
     ScenePostProcessVolumeAsset, ScenePostProcessVolumeProfileAsset, SceneRectLightAsset,
     SceneRigidBodyAsset, SceneRigidBodyTypeAsset, SceneScriptBindingAsset, SceneSpotLightAsset,
     SceneTerrainAsset, SceneTileMapAsset, SceneTonemapOperatorAsset, SceneTonemapSettingsAsset,
-    SceneViewportRectAsset, SceneVignetteSettingsAsset, TransformAsset,
+    SceneViewportRectAsset, SceneVignetteSettingsAsset, SceneVolumetricFogSettingsAsset,
+    TransformAsset,
 };
 pub use shader::{
     generate_material_artifact, ShaderAsset, ShaderAssetManagementRecord,

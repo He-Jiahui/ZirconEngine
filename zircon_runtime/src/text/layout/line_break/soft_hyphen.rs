@@ -1,0 +1,151 @@
+use super::LineBreakChunk;
+use crate::text::TextRange;
+
+const SOFT_HYPHEN: char = '\u{00ad}';
+const SOFT_HYPHEN_BREAK_SUFFIX: &str = "-";
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct LineBreakSuffix {
+    pub text: &'static str,
+    pub source_range: TextRange,
+}
+
+pub(super) fn push_chunks<'a>(
+    text: &'a str,
+    chunk_start: usize,
+    chunk_end: usize,
+    chunks: &mut Vec<LineBreakChunk<'a>>,
+) {
+    if chunk_end <= chunk_start
+        || !text.is_char_boundary(chunk_start)
+        || !text.is_char_boundary(chunk_end)
+    {
+        return;
+    }
+
+    let chunk_text = &text[chunk_start..chunk_end];
+    if !chunk_text.contains(SOFT_HYPHEN) {
+        chunks.push(LineBreakChunk::new(
+            &text[chunk_start..chunk_end],
+            TextRange {
+                start: chunk_start,
+                end: chunk_end,
+            },
+            TextRange {
+                start: chunk_start,
+                end: chunk_end,
+            },
+            None,
+        ));
+        return;
+    }
+
+    let mut visible_start = chunk_start;
+    for (relative_index, ch) in chunk_text.char_indices() {
+        if ch != SOFT_HYPHEN {
+            continue;
+        }
+
+        let soft_hyphen_start = chunk_start + relative_index;
+        let soft_hyphen_end = soft_hyphen_start + SOFT_HYPHEN.len_utf8();
+        if visible_start < soft_hyphen_start {
+            chunks.push(LineBreakChunk::new(
+                &text[visible_start..soft_hyphen_start],
+                TextRange {
+                    start: visible_start,
+                    end: soft_hyphen_start,
+                },
+                TextRange {
+                    start: visible_start,
+                    end: soft_hyphen_start,
+                },
+                Some(LineBreakSuffix {
+                    text: SOFT_HYPHEN_BREAK_SUFFIX,
+                    source_range: TextRange {
+                        start: soft_hyphen_start,
+                        end: soft_hyphen_end,
+                    },
+                }),
+            ));
+        }
+        visible_start = soft_hyphen_end;
+    }
+
+    if visible_start < chunk_end {
+        chunks.push(LineBreakChunk::new(
+            &text[visible_start..chunk_end],
+            TextRange {
+                start: visible_start,
+                end: chunk_end,
+            },
+            TextRange {
+                start: visible_start,
+                end: chunk_end,
+            },
+            None,
+        ));
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{push_chunks, SOFT_HYPHEN};
+    use crate::text::layout::line_break::LineBreakChunk;
+    use crate::text::TextRange;
+
+    #[test]
+    fn plain_chunk_stays_single_chunk_without_break_suffix() {
+        let text = "prefix";
+        let mut chunks = Vec::new();
+
+        push_chunks(text, 0, text.len(), &mut chunks);
+
+        assert_eq!(chunks.len(), 1);
+        assert_eq!(chunks[0].text, text);
+        assert!(chunks[0].break_suffix.is_none());
+    }
+
+    #[test]
+    fn soft_hyphen_is_removed_from_visual_text_and_exposed_as_break_suffix() {
+        let text = "pre\u{00ad}fix";
+        let mut chunks = Vec::<LineBreakChunk<'_>>::new();
+
+        push_chunks(text, 0, text.len(), &mut chunks);
+
+        assert_eq!(chunks.len(), 2);
+        assert_eq!(chunks[0].text, "pre");
+        assert_eq!(chunks[0].source_range, TextRange { start: 0, end: 3 });
+        let suffix = chunks[0].break_suffix.expect("soft-hyphen suffix");
+        assert_eq!(suffix.text, "-");
+        assert_eq!(
+            suffix.source_range,
+            TextRange {
+                start: 3,
+                end: 3 + SOFT_HYPHEN.len_utf8()
+            }
+        );
+        assert_eq!(chunks[1].text, "fix");
+        assert_eq!(
+            chunks[1].source_range,
+            TextRange {
+                start: 3 + SOFT_HYPHEN.len_utf8(),
+                end: text.len()
+            }
+        );
+        assert!(chunks[1].break_suffix.is_none());
+    }
+
+    #[test]
+    fn each_visible_soft_hyphen_prefix_receives_its_own_break_suffix() {
+        let text = "a\u{00ad}b\u{00ad}c";
+        let mut chunks = Vec::<LineBreakChunk<'_>>::new();
+
+        push_chunks(text, 0, text.len(), &mut chunks);
+
+        let texts: Vec<_> = chunks.iter().map(|chunk| chunk.text).collect();
+        assert_eq!(texts, vec!["a", "b", "c"]);
+        assert_eq!(chunks[0].break_suffix.expect("first suffix").text, "-");
+        assert_eq!(chunks[1].break_suffix.expect("second suffix").text, "-");
+        assert!(chunks[2].break_suffix.is_none());
+    }
+}

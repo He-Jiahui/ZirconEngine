@@ -92,7 +92,7 @@ fn temporal_history_rotates_history_when_scene_material_changes() {
         resource_handle::<MaterialMarker>(&asset_manager, "res://materials/flat_black.zmaterial");
     let viewport_size = UVec2::new(160, 120);
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let history_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -303,7 +303,7 @@ fn ssao_quality_profile_darkens_scene_when_enabled() {
         viewport_size,
     );
 
-    let server = WgpuRenderFramework::new_with_plugin_render_features(
+    let server = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         asset_manager,
         default_rendering_feature_descriptors(),
         Vec::new(),
@@ -492,7 +492,7 @@ fn clustered_lighting_quality_profile_schedules_cluster_pass_without_tile_tint()
         viewport_size,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let clustered_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();
@@ -648,7 +648,7 @@ fn deferred_pipeline_uses_gbuffer_material_path_instead_of_forward_shader_path()
         viewport_size,
     );
 
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let forward_viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();

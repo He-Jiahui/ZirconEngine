@@ -23,9 +23,9 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         "Runtime 15 M4 font database descriptor helper owner split",
         &[
             "runtime_15_font_database_descriptor_helper_owner_split_static_passed_cargo_deferred",
-            "graphics/text/font/database.rs",
-            "graphics/text/font/descriptors.rs",
-            "graphics/text/font/matching.rs",
+            "text/font/database.rs",
+            "text/font/descriptors.rs",
+            "text/font/matching.rs",
             "runtime_15_font_database_descriptor_helpers_are_child_owner",
         ],
     ),

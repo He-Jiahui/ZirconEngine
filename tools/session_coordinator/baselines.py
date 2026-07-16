@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import subprocess
+import tarfile
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -452,14 +453,57 @@ class BaselineService:
 
     def _commit_manifest(self, commit: str) -> dict[str, str]:
         manifest: dict[str, str] = {}
-        for path in sorted(self._tracked_paths(commit), key=str.casefold):
-            result = subprocess.run(
-                ["git", "cat-file", "--filters", f"--path={path}", f"{commit}:{path}"],
-                cwd=self.repo_root,
-                check=True,
-                capture_output=True,
+        process = subprocess.Popen(
+            ["git", "archive", "--format=tar", commit],
+            cwd=self.repo_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        stderr = b""
+        try:
+            if process.stdout is None:
+                raise CoordinatorError(
+                    "baseline_commit_archive_failed",
+                    "Pinned baseline archive did not provide a readable stream",
+                )
+            with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
+                for member in archive:
+                    if member.isdir():
+                        continue
+                    path = member.name.replace("\\", "/")
+                    if member.issym():
+                        manifest[path] = hash_bytes(member.linkname.encode("utf-8"))
+                        continue
+                    if not member.isfile():
+                        continue
+                    source = archive.extractfile(member)
+                    if source is None:
+                        raise CoordinatorError(
+                            "baseline_commit_archive_invalid",
+                            f"Pinned baseline archive contains unreadable path: {path}",
+                        )
+                    with source:
+                        digest = hashlib.sha256()
+                        for chunk in iter(lambda: source.read(1024 * 1024), b""):
+                            digest.update(chunk)
+                    manifest[path] = digest.hexdigest()
+        except BaseException:
+            if process.poll() is None:
+                process.kill()
+            raise
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+            if process.stderr is not None:
+                stderr = process.stderr.read()
+                process.stderr.close()
+            process.wait()
+        if process.returncode != 0:
+            raise CoordinatorError(
+                "baseline_commit_archive_failed",
+                "Could not build a baseline manifest from the pinned Git commit",
+                details={"stderr": stderr.decode("utf-8", errors="replace")[-4096:]},
             )
-            manifest[path] = hash_bytes(result.stdout)
         return manifest
 
     def _normalize_repo_path(self, value: str) -> str:

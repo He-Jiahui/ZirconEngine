@@ -8,6 +8,40 @@ use crate::scene::components::default_render_layer_mask;
 use super::super::World;
 
 impl World {
+    pub(super) fn collect_volumetric_light_ids(&self, camera_layers: &RenderLayerSet) -> Vec<u64> {
+        let mut light_ids = self
+            .directional_lights
+            .iter()
+            .filter(|(_, light)| light.volumetric)
+            .map(|(entity, _)| *entity)
+            .chain(
+                self.point_lights
+                    .iter()
+                    .filter(|(_, light)| light.volumetric)
+                    .map(|(entity, _)| *entity),
+            )
+            .chain(
+                self.spot_lights
+                    .iter()
+                    .filter(|(_, light)| light.volumetric)
+                    .map(|(entity, _)| *entity),
+            )
+            .chain(
+                self.rect_lights
+                    .iter()
+                    .filter(|(_, light)| light.volumetric)
+                    .map(|(entity, _)| *entity),
+            )
+            .filter(|entity| {
+                self.active_in_hierarchy(*entity) == Some(true)
+                    && self.entity_intersects_camera_layers(*entity, camera_layers)
+            })
+            .collect::<Vec<_>>();
+        light_ids.sort_unstable();
+        light_ids.dedup();
+        light_ids
+    }
+
     pub(super) fn collect_ambient_lights(
         &self,
         camera_layers: &RenderLayerSet,

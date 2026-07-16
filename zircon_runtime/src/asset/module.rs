@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::{AssetIoDriver, AssetManagerHandle, ProjectAssetManager};
+use crate::asset::pipeline::manager::{
+    project_asset_manager_handle, AssetIoDriver, AssetManager, ProjectAssetManager,
+};
 use crate::asset::AssetImporterRegistry;
-use crate::core::manager::ResourceManagerHandle;
+use crate::core::framework::asset::ResourceManager;
+use crate::core::manager::{resolve_manager_service, RegisteredManagerService};
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
@@ -64,7 +67,7 @@ fn module_descriptor_with_asset_importers(
             for importer in manager_asset_importers.importers() {
                 manager.register_asset_importer_arc(importer)?;
             }
-            Ok(Arc::new(manager) as ServiceObject)
+            Ok(Arc::new(RegisteredManagerService::new(Arc::new(manager))) as ServiceObject)
         }),
     ))
     .with_manager(ManagerDescriptor::new(
@@ -76,9 +79,11 @@ fn module_descriptor_with_asset_importers(
             "ProjectAssetManager",
         )],
         factory(|core| {
-            let manager =
-                core.resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)?;
-            Ok(Arc::new(AssetManagerHandle::new(manager)) as ServiceObject)
+            let manager = resolve_manager_service(core, project_asset_manager_handle(core)?)?;
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn AssetManager>::new(manager))
+                    as ServiceObject,
+            )
         }),
     ))
     .with_manager(ManagerDescriptor::new(
@@ -90,9 +95,12 @@ fn module_descriptor_with_asset_importers(
             "ProjectAssetManager",
         )],
         factory(|core| {
-            let manager =
-                core.resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)?;
-            Ok(Arc::new(ResourceManagerHandle::new(manager)) as ServiceObject)
+            let manager = resolve_manager_service(core, project_asset_manager_handle(core)?)?;
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn ResourceManager>::new(
+                    manager,
+                )) as ServiceObject,
+            )
         }),
     ))
 }

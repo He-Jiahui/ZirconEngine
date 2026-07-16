@@ -12,7 +12,7 @@ mod tiled;
 
 use zircon_runtime::core::framework::navigation::{
     NavMeshBakeReport, NavMeshBakeRequest, NavMeshSurfaceDescriptor, NavigationError,
-    NavigationErrorKind,
+    NavigationErrorKind, NavigationGeneratedBakeSnapshot,
 };
 use zircon_runtime::scene::World;
 
@@ -70,11 +70,17 @@ pub(super) fn bake_surface(
     let tiled_plan = tiled::plan_for_preparation(manager, &preparation)?;
     let tiled_identity = preparation.tiled_identity();
     let report = finish_bake(world, preparation, &mut asset);
+    let generated_snapshot = NavigationGeneratedBakeSnapshot {
+        surface_entity: context_surface,
+        asset: report.asset.clone(),
+        output_asset: report.output_asset.clone(),
+    };
     let tiled_bake = tiled_plan.map(|plan| (tiled_identity, plan, asset));
     manager.publish_bake(
         context_surface,
         generation,
         tiled_bake,
+        generated_snapshot,
         report.diagnostics.clone(),
         bake_runtime_counts(world),
     )?;

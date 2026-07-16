@@ -4,7 +4,7 @@ use zircon_runtime::core::framework::navigation::{
     NAV_MESH_OFF_MESH_BRIDGE_COMPONENT_TYPE, NAV_MESH_OFF_MESH_LINK_COMPONENT_TYPE,
     NAV_MESH_SURFACE_COMPONENT_TYPE,
 };
-use zircon_runtime::core::manager::{NavigationManagerHandle, NAVIGATION_MANAGER_NAME};
+use zircon_runtime::core::manager::{ManagerResolver, NAVIGATION_MANAGER_NAME};
 use zircon_runtime::core::runtime::CoreRuntime;
 use zircon_runtime::core::ServiceKind;
 use zircon_runtime::scene::ecs::{SystemOrderingConstraint, SystemRef};
@@ -67,8 +67,13 @@ fn navigation_module_obeys_driver_manager_dependency_layers() {
     runtime
         .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
         .expect("scene navigation runtime driver must resolve");
-    runtime
-        .resolve_manager::<NavigationManagerHandle>(NAVIGATION_MANAGER_NAME)
+    let resolver = ManagerResolver::new(runtime.handle());
+    resolver
+        .resolve(
+            resolver
+                .navigation_handle()
+                .expect("public navigation manager handle"),
+        )
         .expect("public navigation manager facade must resolve");
 }
 

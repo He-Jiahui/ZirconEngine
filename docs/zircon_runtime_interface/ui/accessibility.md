@@ -75,7 +75,7 @@ These codes are serialized with snake_case names. They are data-only in this cra
 
 The runtime ABI adds `ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1` and `ZrRuntimeEventV1::accessibility_action(...)`. The constructor stores serialized `UiAccessibilityActionRequest` bytes in `payload`; ownership and lifetime remain the caller's responsibility, matching the existing `ZrByteSlice` ABI contract.
 
-`ZrRuntimeAccessibilityTreeRequestV1` captures the ABI version, viewport handle, requested viewport size, and a `generation_hint` for later app-host snapshot caching. `ZrRuntimeCaptureAccessibilityTreeFnV1` returns a serialized neutral `UiAccessibilityTreeSnapshot` through `ZrOwnedByteBuffer`, and `ZrRuntimeApiV1::empty(...)` leaves the appended `capture_accessibility_tree` function pointer as `None` by default.
+`ZrRuntimeAccessibilityTreeRequestV1` captures the DTO ABI version, viewport handle, requested viewport size, and a `generation_hint` for later app-host snapshot caching. `ZrRuntimeCaptureAccessibilityTreeFnV1` returns a serialized neutral `UiAccessibilityTreeSnapshot` through `ZrOwnedByteBuffer`, and `ZrRuntimeApiV2::empty()` leaves `capture_accessibility_tree` as `None` by default.
 
 ## Tests
 

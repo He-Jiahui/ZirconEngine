@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::core::manager::{InputActionManagerHandle, InputManagerHandle};
+use crate::core::framework::input::{InputActionManager, InputManager};
+use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
@@ -41,7 +42,10 @@ pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
         Vec::new(),
         factory(|_| {
             let manager = Arc::new(DefaultInputManager::default());
-            Ok(Arc::new(InputManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn InputManager>::new(manager))
+                    as ServiceObject,
+            )
         }),
     ))
     .with_manager(ManagerDescriptor::new(
@@ -54,7 +58,11 @@ pub fn module_descriptor_with_config(config: InputConfig) -> ModuleDescriptor {
         Vec::new(),
         factory(move |_| {
             let manager = Arc::new(action_config.action_manager());
-            Ok(Arc::new(InputActionManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn InputActionManager>::new(
+                    manager,
+                )) as ServiceObject,
+            )
         }),
     ))
 }

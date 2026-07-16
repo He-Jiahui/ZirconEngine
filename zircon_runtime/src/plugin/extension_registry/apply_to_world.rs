@@ -42,9 +42,11 @@ impl RuntimeExtensionRegistry {
         for (_, event) in self.plugin_events() {
             let event = event.clone();
             let key = format!("event:{}", event.type_name());
+            let apply_key = key.clone();
             registrations.push(WorldRuntimeExtensionRegistration::new(key, move |world| {
-                event.apply(world);
-                Ok(())
+                event.apply(world).map_err(|error| {
+                    WorldRuntimeExtensionError::registration_failed(&apply_key, error)
+                })
             }));
         }
         for (_, system) in self.plugin_systems() {

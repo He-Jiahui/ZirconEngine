@@ -11,7 +11,7 @@ const CHIP_ATLAS_HEIGHT: u32 = 360;
 const CHIP_ATLAS_BACKGROUND: [u8; 4] = [17, 20, 22, 255];
 
 #[test]
-fn chip_component_visual_paints_pill_chevron_focus_pressed_and_disabled() {
+fn chip_component_visual_paints_pill_chevron_selected_focus_pressed_and_disabled() {
     let bytes = chip_component_bytes();
 
     let filter_surface = pixel_at(&bytes, 52, 146);
@@ -53,10 +53,10 @@ fn chip_component_visual_paints_pill_chevron_focus_pressed_and_disabled() {
         "viewport chip should paint trailing chevron segments"
     );
 
-    let open_border = pixel_at(&bytes, 462, 184);
+    let selected_border = pixel_at(&bytes, 462, 184);
     assert_ne!(
-        open_border, CHIP_ATLAS_BACKGROUND,
-        "open chip should paint an active focus-style border"
+        selected_border, CHIP_ATLAS_BACKGROUND,
+        "selected chip should paint its low-emphasis selection border"
     );
     assert!(
         distinct_pixel_count(
@@ -67,7 +67,7 @@ fn chip_component_visual_paints_pill_chevron_focus_pressed_and_disabled() {
             20,
             &[CHIP_ATLAS_BACKGROUND, pixel_at(&bytes, 474, 202)],
         ) > 0,
-        "open chip should paint active chevron glyph pixels"
+        "selected chip should retain its viewport chevron glyph"
     );
 
     let focused_border = pixel_at(&bytes, 678, 128);
@@ -253,7 +253,7 @@ fn chip_component_nodes() -> Vec<TemplatePaneNodeData> {
             186.0,
             148.0,
             30.0,
-            ChipState::Open,
+            ChipState::Selected,
             true,
         ),
         chip(
@@ -302,6 +302,7 @@ enum ChipState {
     Focused,
     Pressed,
     Open,
+    Selected,
     Disabled,
 }
 
@@ -328,6 +329,8 @@ fn chip(
         pressed: matches!(state, ChipState::Pressed),
         popup_open: matches!(state, ChipState::Open),
         disabled: matches!(state, ChipState::Disabled),
+        selected: matches!(state, ChipState::Selected),
+        checked: matches!(state, ChipState::Selected),
         options: if has_options {
             model_rc(vec!["menu".into()])
         } else {

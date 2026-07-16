@@ -1,6 +1,7 @@
 #[test]
 fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
-    let session_root = include_str!("../../../../dynamic_api/session.rs");
+    let session_facade = include_str!("../../../../dynamic_api/session.rs");
+    let session_ffi = include_str!("../../../../dynamic_api/session/ffi.rs");
     let session_events = include_str!("../../../../dynamic_api/session/events.rs");
     let runtime_07_output = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
@@ -13,14 +14,17 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let dynamic_session_doc =
         include_str!("../../../../../../docs/zircon_runtime/dynamic_api/session.md");
 
-    for root_anchor in [
-        "mod events;",
-        "pub(super) unsafe fn handle_event(",
+    assert!(
+        session_facade.contains("mod events;"),
+        "session.rs should keep the event owner module declaration"
+    );
+    for ffi_anchor in [
+        "pub(in crate::dynamic_api) unsafe fn handle_event(",
         "with_session(handle, |session| session.handle_event(event))",
     ] {
         assert!(
-            session_root.contains(root_anchor),
-            "session.rs should keep dynamic ABI event entry anchor `{root_anchor}`"
+            session_ffi.contains(ffi_anchor),
+            "session/ffi.rs should keep dynamic ABI event entry anchor `{ffi_anchor}`"
         );
     }
 
@@ -33,8 +37,9 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
         "fn sync_orbit_target_from_selection",
     ] {
         assert!(
-            !session_root.contains(moved_event_anchor),
-            "session.rs should not reclaim dynamic event helper `{moved_event_anchor}`"
+            !session_facade.contains(moved_event_anchor)
+                && !session_ffi.contains(moved_event_anchor),
+            "session facade and FFI owner should not reclaim dynamic event helper `{moved_event_anchor}`"
         );
         assert!(
             session_events.contains(moved_event_anchor),

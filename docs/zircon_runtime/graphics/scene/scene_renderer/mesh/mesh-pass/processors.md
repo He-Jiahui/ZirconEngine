@@ -2,6 +2,7 @@
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pipeline_cache/mesh_pipeline_variant_registry.rs
   - zircon_runtime/src/graphics/scene/resources/runtime/material_runtime.rs
 implementation_files:
@@ -17,6 +18,7 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/mesh/mesh_pass/processors/tests/material_options.rs
 doc_type: module-detail
 ---
 
@@ -53,6 +55,10 @@ exercises the three contracts in one command list. It creates default and option
 opaque materials, disables shadow only on the option material, and adds a transparent
 material. The test verifies phase ordering, option-bit preservation, one shadow
 command, three unique variants, one memory reuse hit, and zero compile misses.
+
+The combined acceptance test lives in the folder-backed
+`processors/tests/material_options.rs` owner. The parent `tests.rs` remains the route
+and shared-fixture owner for the other processor behaviors.
 
 Keeping these assertions together prevents individually correct option packing,
 disabled-pass filtering, and queue routing from drifting at their integration point.

@@ -63,7 +63,8 @@ fn render_product_submit_direct_extract_frame_does_not_use_legacy_scene_snapshot
 
 #[test]
 fn render_product_submit_unknown_viewport_returns_error_without_panic() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -87,7 +88,8 @@ fn render_product_submit_unknown_viewport_returns_error_without_panic() {
 
 #[test]
 fn render_product_submit_selects_default_pipeline_from_extract_core_pipeline() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -123,7 +125,8 @@ fn render_product_submit_selects_default_pipeline_from_extract_core_pipeline() {
 
 #[test]
 fn render_product_submit_preserves_quality_profile_pipeline_override() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -153,7 +156,8 @@ fn render_product_submit_preserves_quality_profile_pipeline_override() {
 
 #[test]
 fn render_product_pbr_submit_reports_material_fallback_and_light_stats() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -285,7 +289,7 @@ fn render_product_submit_material_stats_count_non_blocking_diagnostics() {
         )
         .expect("material insert");
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -347,7 +351,7 @@ fn render_product_submit_material_stats_count_material_uniform_diagnostics() {
         )
         .expect("material insert");
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

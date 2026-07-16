@@ -110,7 +110,7 @@ fn editor_plugin_sdk_reports_lifecycle_failures_without_discarding_extensions() 
             let operation_path = EditorOperationPath::parse("sdk.failure.open").map_err(
                 crate::core::editor_extension::EditorExtensionRegistryError::OperationPath,
             )?;
-            registry.register_command(EditorCommandDescriptor::pending_operation(
+            registry.register_command(EditorCommandDescriptor::operation(
                 operation_path,
                 "Open Failure Panel",
             ))
@@ -287,13 +287,13 @@ fn asset_contribution_descriptors_normalize_extensions_and_capability_gates() {
 
     let mut registry = EditorExtensionRegistry::default();
     registry
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             import_operation.clone(),
             "Import Model",
         ))
         .unwrap();
     registry
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             open_operation.clone(),
             "Open Model Inspector",
         ))
@@ -402,13 +402,13 @@ fn editor_runtime_gates_asset_authoring_contributions_by_plugin_capability() {
     let open_operation = EditorOperationPath::parse("sdk.asset.open_model_inspector").unwrap();
     let mut extension = EditorExtensionRegistry::default();
     extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             import_operation.clone(),
             "Import Model",
         ))
         .unwrap();
     extension
-        .register_command(EditorCommandDescriptor::pending_operation(
+        .register_command(EditorCommandDescriptor::operation(
             open_operation.clone(),
             "Open Model Inspector",
         ))

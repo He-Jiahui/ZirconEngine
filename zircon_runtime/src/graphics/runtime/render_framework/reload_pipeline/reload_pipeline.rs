@@ -59,7 +59,8 @@ mod tests {
 
     #[test]
     fn reload_pipeline_rejects_plugin_executor_without_linked_descriptor() {
-        let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+        let framework =
+            WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
         let pipeline = plugin_virtual_geometry_pipeline();
         let handle = pipeline.handle;
         framework
@@ -85,7 +86,7 @@ mod tests {
     #[test]
     fn reload_pipeline_rejects_plugin_executor_from_descriptor_only() {
         let descriptor = plugin_virtual_geometry_descriptor();
-        let framework = WgpuRenderFramework::new_with_plugin_render_features(
+        let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
             Arc::new(ProjectAssetManager::default()),
             [descriptor],
             Vec::new(),
@@ -117,7 +118,7 @@ mod tests {
     #[test]
     fn reload_pipeline_accepts_plugin_executor_from_explicit_registration() {
         let descriptor = plugin_virtual_geometry_descriptor();
-        let framework = WgpuRenderFramework::new_with_plugin_render_features(
+        let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
             Arc::new(ProjectAssetManager::default()),
             [descriptor],
             [RenderPassExecutorRegistration::new(

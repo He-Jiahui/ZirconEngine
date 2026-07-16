@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import os
 import shutil
 import subprocess
+import tarfile
 import threading
 import uuid
 from contextlib import nullcontext
@@ -16,6 +18,8 @@ from .baselines import hash_file
 from .database import Database
 from .models import CoordinatorError, utc_text
 from .processes import process_is_alive
+
+_ARCHIVE_PATH_ARGUMENT_LIMIT = 512
 
 
 def _is_managed_validation_root(root: Path) -> bool:
@@ -198,49 +202,147 @@ class WorkspaceCopyService:
         self, session_id: str, *, include_paths: tuple[str, ...] | list[str]
     ) -> WorkspaceCopyRecord:
         record = self.plan(session_id, include_paths=include_paths)
+        self._begin_materialization(record.job_id)
+        return self._materialize_record(record)
+
+    def materialize_async(
+        self, session_id: str, *, include_paths: tuple[str, ...] | list[str]
+    ) -> WorkspaceCopyRecord:
+        """Reserve a copy job immediately and materialize it off the request thread.
+
+        A full workspace manifest can contain tens of thousands of tracked files.
+        The coordinator must acknowledge that durable job before doing file I/O so
+        Session heartbeats and Cargo lifecycle transitions keep progressing.
+        """
+        record = self.plan(session_id, include_paths=include_paths)
+        self._begin_materialization(record.job_id)
+        worker = threading.Thread(
+            target=self._materialize_async_worker,
+            args=(record,),
+            name=f"zircon-materialize-{record.job_id[:12]}",
+            daemon=True,
+        )
+        worker.start()
+        return WorkspaceCopyRecord(
+            record.job_id,
+            record.session_id,
+            record.job_root,
+            record.source_root,
+            record.target_root,
+            record.manifest,
+            "materializing",
+        )
+
+    def status(self, session_id: str, job_id: str) -> WorkspaceCopyRecord:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        if row is None:
+            raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
+        if row["session_id"] != session_id:
+            raise CoordinatorError(
+                "validation_copy_foreign_session", "Validation copy belongs to another Session"
+            )
+        return self._record_from_row(row)
+
+    def _materialize_async_worker(self, record: WorkspaceCopyRecord) -> None:
+        try:
+            self._materialize_record(record)
+        except BaseException:
+            # The durable status records the failure.  Detached HTTP callers must
+            # not turn a filesystem failure into an unhandled worker exception.
+            return
+
+    def _materialize_record(self, record: WorkspaceCopyRecord) -> WorkspaceCopyRecord:
         try:
             self._validate_job_root(record.job_root)
             record.source_root.mkdir(parents=True, exist_ok=False)
             record.target_root.mkdir(parents=True, exist_ok=False)
-            attribution = self._session_attributions(session_id)
-            for path in record.manifest:
-                destination = record.source_root / path
-                destination.parent.mkdir(parents=True, exist_ok=True)
-                source = self.repo_root / path
-                attributed_hash = attribution.get(path.casefold())
-                if attributed_hash is not None:
-                    if not source.is_file():
-                        raise CoordinatorError(
-                            "validation_copy_owned_source_missing",
-                            f"Owned validation source is missing: {path}",
-                        )
-                    if hash_file(source) != attributed_hash:
-                        raise CoordinatorError(
-                            "validation_copy_attribution_stale",
-                            f"Owned source changed after attribution: {path}",
-                        )
-                    destination.write_bytes(source.read_bytes())
-                    continue
-                head_content = self._head_content(record.job_id, path)
-                if head_content is None:
-                    raise CoordinatorError(
-                        "validation_copy_unowned_path",
-                        f"Untracked validation path is not owned by Session {session_id}: {path}",
-                    )
-                destination.write_bytes(head_content)
-            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
-            with gate, self.database.transaction() as connection:
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'materialized' WHERE job_id = ?",
-                    (record.job_id,),
-                )
+            attribution = self._session_attributions(record.session_id)
+            self._extract_baseline_manifest(record, attribution)
+            overlays = tuple(
+                path for path in record.manifest if path.casefold() in attribution
+            )
+            self._overlay_attributed_sources(record.source_root, overlays, attribution)
+            self._complete_materialization(record.job_id)
         except BaseException:
-            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
-            with gate, self.database.transaction() as connection:
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'failed' WHERE job_id = ?",
-                    (record.job_id,),
-                )
+            self._fail_materialization(record.job_id)
+            if record.job_root.exists():
+                shutil.rmtree(record.job_root)
+            raise
+        return WorkspaceCopyRecord(
+            record.job_id,
+            record.session_id,
+            record.job_root,
+            record.source_root,
+            record.target_root,
+            record.manifest,
+            "materialized",
+        )
+
+    def materialize_validation(
+        self,
+        session_id: str,
+        *,
+        dependency_roots: tuple[str, ...] | list[str],
+        overlay_paths: tuple[str, ...] | list[str],
+    ) -> WorkspaceCopyRecord:
+        """Materialize declared template dependencies and Session-owned overlays.
+
+        A milestone manifest names only files eligible for the eventual commit.  A
+        validation template needs its own small, read-only baseline dependency
+        closure.  Keeping those collections separate preserves exact commit
+        attribution without copying the whole repository.
+        """
+        normalized_roots = tuple(
+            sorted({self._normalize(path) for path in dependency_roots}, key=str.casefold)
+        )
+        if not normalized_roots:
+            raise CoordinatorError(
+                "validation_copy_dependency_roots_empty",
+                "Validation template must declare source dependencies",
+            )
+        dependency_paths = tuple(
+            path
+            for path in self._git_text("ls-files", "--", *normalized_roots).splitlines()
+            if path
+        )
+        if not dependency_paths:
+            raise CoordinatorError(
+                "validation_copy_dependencies_missing",
+                "Validation template dependencies are absent from the pinned baseline",
+            )
+        normalized_overlays = tuple(
+            sorted({self._normalize(path) for path in overlay_paths}, key=str.casefold)
+        )
+        attribution = self._session_attributions(session_id)
+        unowned = sorted(
+            (path for path in normalized_overlays if path.casefold() not in attribution),
+            key=str.casefold,
+        )
+        if unowned:
+            raise CoordinatorError(
+                "validation_copy_overlay_not_owned",
+                "Validation overlay paths must be current Session-owned sources",
+                details={"paths": unowned},
+            )
+        record = self.plan(
+            session_id,
+            include_paths=tuple(sorted(set(dependency_paths) | set(normalized_overlays))),
+        )
+        self._begin_materialization(record.job_id)
+        try:
+            self._validate_job_root(record.job_root)
+            record.source_root.mkdir(parents=True, exist_ok=False)
+            record.target_root.mkdir(parents=True, exist_ok=False)
+            self._extract_baseline_dependencies(record, normalized_roots)
+            self._overlay_attributed_sources(
+                record.source_root, normalized_overlays, attribution
+            )
+            self._complete_materialization(record.job_id)
+        except BaseException:
+            self._fail_materialization(record.job_id)
             if record.job_root.exists():
                 shutil.rmtree(record.job_root)
             raise
@@ -531,6 +633,11 @@ class WorkspaceCopyService:
                 )
             process.terminate()
             return {"jobId": job_id, "status": "cancelling"}
+        if row["status"] == "planned" and row["materialization_started_at"] is not None:
+            raise CoordinatorError(
+                "validation_copy_materialization_busy",
+                "Validation copy is still materializing",
+            )
         if row["status"] in {"planned", "materialized", "failed"}:
             removed = self.cleanup(session_id, row["job_root"])
             return {"jobId": job_id, "status": "removed", "jobRoot": str(removed)}
@@ -560,6 +667,7 @@ class WorkspaceCopyService:
                     """
                     UPDATE validation_copies SET status = 'cleanup_pending'
                     WHERE job_root = ? AND status IN ('planned', 'materialized', 'failed')
+                      AND (status <> 'planned' OR materialization_started_at IS NULL)
                     """,
                     (str(candidate),),
                 )
@@ -607,6 +715,28 @@ class WorkspaceCopyService:
             except Exception:
                 continue
             recovered_cleanup += 1
+        if startup:
+            with self.database.connect() as connection:
+                planned_rows = connection.execute(
+                    "SELECT job_root FROM validation_copies WHERE status = 'planned'"
+                ).fetchall()
+            for row in planned_rows:
+                try:
+                    candidate = Path(row["job_root"]).resolve()
+                    self._validate_cleanup_root(candidate)
+                    with self._cleanup_lock:
+                        if candidate.exists():
+                            shutil.rmtree(candidate)
+                        with self.database.transaction() as connection:
+                            connection.execute(
+                                """UPDATE validation_copies
+                                   SET status = 'removed', removed_at = ?
+                                   WHERE job_root = ? AND status = 'planned'""",
+                                (utc_text(), str(candidate)),
+                            )
+                except Exception:
+                    continue
+                recovered_cleanup += 1
         return recovered_running, recovered_cleanup
 
     def _cleanup_terminal_copy(self, session_id: str, job_root: Path) -> None:
@@ -657,6 +787,235 @@ class WorkspaceCopyService:
                 "SELECT path_key, content_hash FROM attributions WHERE session_id = ?", (session_id,)
             ).fetchall()
         return {row["path_key"]: row["content_hash"] for row in rows}
+
+    def _record_from_row(self, row) -> WorkspaceCopyRecord:
+        status = str(row["status"])
+        if status == "planned" and row["materialization_started_at"] is not None:
+            status = "materializing"
+        return WorkspaceCopyRecord(
+            str(row["job_id"]),
+            str(row["session_id"]),
+            Path(str(row["job_root"])),
+            Path(str(row["source_root"])),
+            Path(str(row["target_root"])),
+            tuple(json.loads(str(row["manifest_json"]))),
+            status,
+        )
+
+    def _begin_materialization(self, job_id: str) -> None:
+        gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+        with gate, self.database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE validation_copies
+                SET materialization_started_at = ?
+                WHERE job_id = ? AND status = 'planned'
+                  AND materialization_started_at IS NULL
+                """,
+                (utc_text(), job_id),
+            )
+            if cursor.rowcount != 1:
+                raise CoordinatorError(
+                    "validation_copy_materialization_busy",
+                    "Validation copy is already materializing or unavailable",
+                )
+
+    def _complete_materialization(self, job_id: str) -> None:
+        gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+        with gate, self.database.transaction() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE validation_copies
+                SET status = 'materialized', materialization_started_at = NULL
+                WHERE job_id = ? AND status = 'planned'
+                """,
+                (job_id,),
+            )
+            if cursor.rowcount != 1:
+                raise CoordinatorError(
+                    "validation_copy_materialization_state_lost",
+                    "Validation copy changed state while materializing",
+                )
+
+    def _fail_materialization(self, job_id: str) -> None:
+        gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
+        with gate, self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE validation_copies
+                SET status = 'failed', materialization_started_at = NULL
+                WHERE job_id = ? AND status = 'planned'
+                """,
+                (job_id,),
+            )
+
+    def _extract_baseline_manifest(
+        self, record: WorkspaceCopyRecord, attribution: dict[str, str | None]
+    ) -> None:
+        """Extract the pinned baseline in one archive stream, not one Git process per file."""
+        baseline_paths = {
+            path for path in record.manifest if path.casefold() not in attribution
+        }
+        if not baseline_paths:
+            return
+        # Keep small targeted copies cheap without crossing Windows command-line
+        # limits for the all-tracked-file manifest.
+        archive_paths = (
+            ("--", *sorted(baseline_paths, key=str.casefold))
+            if len(baseline_paths) <= _ARCHIVE_PATH_ARGUMENT_LIMIT
+            else ()
+        )
+        process = subprocess.Popen(
+            [
+                "git",
+                "archive",
+                "--format=tar",
+                self._head_commit(record.job_id),
+                *archive_paths,
+            ],
+            cwd=self.repo_root,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        extracted: set[str] = set()
+        stderr = b""
+        try:
+            if process.stdout is None:
+                raise CoordinatorError(
+                    "validation_copy_dependency_archive_failed",
+                    "Pinned baseline archive did not provide a readable stream",
+                )
+            with tarfile.open(fileobj=process.stdout, mode="r|") as archive:
+                for member in archive:
+                    path = member.name.replace("\\", "/")
+                    if path not in baseline_paths or not (member.isfile() or member.issym()):
+                        continue
+                    destination = (record.source_root / path).resolve()
+                    if not destination.is_relative_to(record.source_root):
+                        raise CoordinatorError(
+                            "validation_copy_dependency_archive_escape",
+                            "Pinned baseline archive escaped the validation source root",
+                        )
+                    destination.parent.mkdir(parents=True, exist_ok=True)
+                    if member.issym():
+                        # Match `git show <tree>:<path>` without materializing a
+                        # filesystem link that could escape the validation root.
+                        destination.write_text(member.linkname, encoding="utf-8")
+                    else:
+                        source = archive.extractfile(member)
+                        if source is None:
+                            raise CoordinatorError(
+                                "validation_copy_dependency_archive_invalid",
+                                "Pinned baseline archive contains an unreadable file",
+                            )
+                        with source:
+                            destination.write_bytes(source.read())
+                    extracted.add(path)
+        except BaseException:
+            if process.poll() is None:
+                process.kill()
+            raise
+        finally:
+            if process.stdout is not None:
+                process.stdout.close()
+            if process.stderr is not None:
+                stderr = process.stderr.read()
+                process.stderr.close()
+            process.wait()
+        if process.returncode != 0:
+            raise CoordinatorError(
+                "validation_copy_dependency_archive_failed",
+                "Could not materialize the pinned validation baseline",
+                details={"stderr": stderr.decode("utf-8", errors="replace")[-4096:]},
+            )
+        missing = sorted(baseline_paths - extracted, key=str.casefold)
+        if missing:
+            raise CoordinatorError(
+                "validation_copy_unowned_path",
+                f"Untracked validation path is not owned by Session {record.session_id}: {missing[0]}",
+                details={"paths": missing},
+            )
+
+    def _extract_baseline_dependencies(
+        self, record: WorkspaceCopyRecord, dependency_roots: tuple[str, ...]
+    ) -> None:
+        result = subprocess.run(
+            [
+                "git",
+                "archive",
+                "--format=tar",
+                self._head_commit(record.job_id),
+                "--",
+                *dependency_roots,
+            ],
+            cwd=self.repo_root,
+            check=False,
+            capture_output=True,
+        )
+        if result.returncode != 0:
+            raise CoordinatorError(
+                "validation_copy_dependency_archive_failed",
+                "Could not materialize validation template dependencies from the pinned baseline",
+            )
+        with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as archive:
+            for member in archive.getmembers():
+                destination = (record.source_root / member.name).resolve()
+                if not destination.is_relative_to(record.source_root):
+                    raise CoordinatorError(
+                        "validation_copy_dependency_archive_escape",
+                        "Validation template dependency archive escaped its source root",
+                    )
+                if not member.isfile():
+                    continue
+                source = archive.extractfile(member)
+                if source is None:
+                    raise CoordinatorError(
+                        "validation_copy_dependency_archive_invalid",
+                        "Validation template dependency archive contains an unreadable file",
+                    )
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                destination.write_bytes(source.read())
+
+    def _overlay_attributed_sources(
+        self,
+        source_root: Path,
+        overlay_paths: tuple[str, ...],
+        attribution: dict[str, str | None],
+    ) -> None:
+        for path in overlay_paths:
+            source = self.repo_root / path
+            destination = source_root / path
+            expected_hash = attribution[path.casefold()]
+            if expected_hash is None:
+                if source.exists():
+                    raise CoordinatorError(
+                        "validation_copy_owned_source_reappeared",
+                        f"Owned deletion changed after attribution: {path}",
+                    )
+                if destination.exists():
+                    destination.unlink()
+                continue
+            if not source.is_file():
+                raise CoordinatorError(
+                    "validation_copy_owned_source_missing",
+                    f"Owned validation source is missing: {path}",
+                )
+            if hash_file(source) != expected_hash:
+                raise CoordinatorError(
+                    "validation_copy_attribution_stale",
+                    f"Owned source changed after attribution: {path}",
+                )
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            destination.write_bytes(source.read_bytes())
+
+    def _head_commit(self, job_id: str) -> str:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT head_commit FROM validation_copies WHERE job_id = ?", (job_id,)
+            ).fetchone()
+        if row is None:
+            raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
+        return str(row["head_commit"])
 
     def _head_content(self, job_id: str, path: str) -> bytes | None:
         with self.database.connect() as connection:

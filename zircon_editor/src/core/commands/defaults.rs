@@ -5,7 +5,7 @@ use zircon_runtime::scene::components::NodeKind;
 use crate::core::editor_event::{
     EditorEvent, EditorEventTransient, LayoutCommand, MenuAction, ViewDescriptorId,
 };
-use crate::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+use crate::core::editor_operation::EditorOperationPath;
 
 use super::{
     EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor, EditorKeyChord,
@@ -21,14 +21,13 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.extend(view_commands());
     commands.extend(window_commands());
     commands.push(
-        EditorCommandDescriptor::pending_operation(
+        EditorCommandDescriptor::operation(
             path("inspector.field.apply_batch"),
             "Apply Inspector Changes",
         )
         .with_category(EditorCommandCategory::Edit)
         .with_menu_path("Inspector/Apply Changes")
-        .with_callable_from_remote(false)
-        .with_undoable(UndoableEditorOperation::new("Apply Inspector Changes")),
+        .with_callable_from_remote(false),
     );
     commands.push(command(
         "help.workbench.guide",
@@ -156,22 +155,18 @@ fn selection_commands() -> Vec<EditorCommandDescriptor> {
             WhenClause::Always,
             ["scene", "node", "create"],
         )
-        .with_undoable(UndoableEditorOperation::new(display_name))
     })
     .collect::<Vec<_>>();
-    commands.push(
-        command(
-            "scene.node.delete_selected",
-            "Delete Selection",
-            EditorCommandCategory::Selection,
-            "Selection/Delete Selection",
-            EditorEvent::WorkbenchMenu(MenuAction::DeleteSelected),
-            Some("Delete"),
-            WhenClause::SelectionNonEmpty,
-            ["scene", "node", "delete"],
-        )
-        .with_undoable(UndoableEditorOperation::new("Delete Selected")),
-    );
+    commands.push(command(
+        "scene.node.delete_selected",
+        "Delete Selection",
+        EditorCommandCategory::Selection,
+        "Selection/Delete Selection",
+        EditorEvent::WorkbenchMenu(MenuAction::DeleteSelected),
+        Some("Delete"),
+        WhenClause::SelectionNonEmpty,
+        ["scene", "node", "delete"],
+    ));
     commands
 }
 
@@ -342,8 +337,7 @@ fn window_commands() -> Vec<EditorCommandDescriptor> {
             Some("Ctrl+Alt+0"),
             WhenClause::Always,
             ["layout", "workspace", "reset"],
-        )
-        .with_undoable(UndoableEditorOperation::new("Reset Layout")),
+        ),
         command(
             "window.layout.default",
             "Load Default Layout",

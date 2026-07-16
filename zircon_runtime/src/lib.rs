@@ -14,6 +14,8 @@ pub mod prelude;
 pub mod animation;
 pub mod asset;
 pub mod scene;
+#[cfg(feature = "text")]
+pub mod text;
 #[cfg(feature = "ui")]
 pub mod ui;
 
@@ -33,6 +35,7 @@ pub mod foundation;
 pub mod input;
 #[cfg(feature = "navigation")]
 pub mod navigation;
+pub mod operation;
 pub mod platform;
 pub mod plugin;
 #[cfg(feature = "script")]

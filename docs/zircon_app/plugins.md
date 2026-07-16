@@ -4,6 +4,7 @@ related_code:
   - zircon_app/src/plugins/mod.rs
   - zircon_app/src/plugins/builder.rs
   - zircon_app/src/plugins/groups.rs
+  - zircon_app/tests/plugin_group_error_contract.rs
   - zircon_app/src/entry/engine_entry.rs
   - zircon_app/src/entry/entry_runner/bootstrap.rs
   - zircon_app/src/entry/entry_runner/runtime.rs
@@ -74,6 +75,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/modules/mod.rs
   - zircon_runtime/src/core/runtime/modules/log.rs
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - docs/plans/zircon_runtime/frameworks/03-optional-features-and-profile-matrix.md
   - user: 2026-05-08 implement ZirconEngine Bevy completion roadmap M1 app composition layer
   - user: 2026-05-16 continue Bevy-style default log diagnostics and dev profile completion
@@ -87,6 +89,7 @@ plan_sources:
 tests:
   - tools/tests/test_frameworks_03_server_feature_boundary.py
   - zircon_app/src/plugins/tests.rs
+  - zircon_app/tests/plugin_group_error_contract.rs
   - zircon_app/src/entry/entry_runner/runtime_session_args.rs
   - zircon_app/src/entry/tests/mod.rs
   - zircon_app/src/entry/tests/builtin_engine_entry.rs
@@ -101,6 +104,7 @@ tests:
   - zircon_runtime::builtin::runtime_modules::tests::registration::behavior::target_runtime_modules_follow_descriptor_activation_order
   - zircon_app::plugins::tests::builtin_plugin_groups_finish_in_descriptor_activation_order
   - cargo check -p zircon_app --lib --locked --no-default-features --features target-server --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-frameworks-m2-0703 --message-format short --color never
+  - cargo test -p zircon_app --test plugin_group_error_contract --locked
   - .github/workflows/ci.yml
 doc_type: module-detail
 ---
@@ -121,13 +125,14 @@ This keeps the roadmap boundary intact: app hosts and composes, runtime schedule
 
 `PluginGroupBuilder` stores modules by their `EngineModule::module_name()` key and preserves a separate explicit order list. Its direct insertion API is `add_module(...)`; the ambiguous legacy-style `add(...)` name is removed rather than retained as a forwarding shim. The builder supports:
 
-- `add` for inserting a new module at the end of the group.
+- `add_module` for inserting a new module at the end of the group.
 - `set` for replacing an existing module without changing its order.
 - `disable` and `enable` for toggling an existing module.
 - `add_before` and `add_after` for anchor-based insertion.
-- `finish` for producing a `ResolvedPluginGroup` that contains only enabled modules.
+- `try_finish` for producing a `ResolvedPluginGroup` that contains only enabled modules while preserving typed ordering errors.
+- `finish` as a convenience boundary only when the caller has already established that a static group is valid.
 
-Errors are explicit instead of panic-driven. Duplicate module keys, missing keys, missing ordering anchors, and ordering relative to disabled anchors produce `PluginGroupError` values. Disabled anchors are rejected so a final group cannot hide ordering dependencies behind modules that will not be registered.
+Fallible composition paths are explicit instead of panic-driven. Duplicate module keys, missing keys, missing ordering anchors, ordering relative to disabled anchors, and descriptor-order failures produce `PluginGroupError` values. `add_group(...)` resolves the nested builder with `try_finish()?`, so a missing dependency or dependency cycle remains `PluginGroupError::ModuleOrder` instead of panicking inside the outer group. Disabled anchors are rejected so a final group cannot hide ordering dependencies behind modules that will not be registered.
 
 ## Built-In Groups
 

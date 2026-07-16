@@ -1,5 +1,5 @@
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::core::framework::animation::AnimationParameterValue;
 use crate::core::framework::audio::AudioChannelLayout;
@@ -10,9 +10,10 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use crate::asset::{
     AlphaMode, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporter,
     AssetImporterDescriptor, AssetKind, AssetReference, AssetUri, FunctionAssetImporter,
-    ImportedAsset, MaterialAsset, PhysicsMaterialAsset, SceneAsset, SceneCameraAsset,
-    SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset,
-    UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    ImportedAsset, MaterialAsset, PhysicsMaterialAsset, ProjectManifest, ReferenceResolutionError,
+    SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
+    SoundAsset, TransformAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
+    ZMaterialDocument,
 };
 use crate::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
@@ -22,6 +23,8 @@ use crate::core::framework::animation::{
     AnimationSkeletonBoneAsset, AnimationStateAsset, AnimationStateKindAsset,
     AnimationStateMachineAsset, AnimationStateTransitionAsset, AnimationTransitionConditionAsset,
 };
+use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPath};
+use zircon_runtime_interface::resource::ResourceScheme;
 use zircon_runtime_interface::ui::v2::UiV2AssetKind;
 
 pub(crate) fn write_valid_wgsl(path: PathBuf) {
@@ -199,7 +202,30 @@ pub(crate) fn write_default_material(path: PathBuf) {
         texture_slots: Default::default(),
         validation_diagnostics: Vec::new(),
     };
-    fs::write(path, material.to_toml_string().unwrap()).unwrap();
+    write_project_material(&path, &material);
+}
+
+pub(crate) fn read_project_material(path: &Path) -> MaterialAsset {
+    let document = fs::read_to_string(path).unwrap();
+    let material = ZMaterialDocument::from_project_toml_str(&document, |reference| {
+        Ok::<_, ReferenceResolutionError>(runtime_reference_for_fixture(reference))
+    })
+    .unwrap();
+    MaterialAsset::from_zmaterial_document(material)
+}
+
+pub(crate) fn write_project_material(path: &Path, material: &MaterialAsset) {
+    let project_root = fixture_project_root(path);
+    let document = material
+        .to_project_toml_string(|reference| {
+            Ok::<_, ReferenceResolutionError>(persisted_reference_for_fixture(
+                &project_root,
+                path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 pub(crate) fn write_default_scene(path: PathBuf) {
@@ -293,7 +319,17 @@ pub(crate) fn write_default_scene(path: PathBuf) {
             },
         ],
     };
-    fs::write(path, scene.to_toml_string().unwrap()).unwrap();
+    let project_root = fixture_project_root(&path);
+    let document = scene
+        .to_project_toml_string(|reference| {
+            Ok::<_, ReferenceResolutionError>(persisted_reference_for_fixture(
+                &project_root,
+                &path,
+                reference,
+            ))
+        })
+        .unwrap();
+    fs::write(path, document).unwrap();
 }
 
 pub(crate) fn sample_physics_material_asset() -> PhysicsMaterialAsset {
@@ -467,6 +503,77 @@ pub(crate) fn write_default_animation_state_machine(path: PathBuf) {
 
 fn asset_reference(uri: &str) -> AssetReference {
     AssetReference::from_locator(AssetUri::parse(uri).unwrap())
+}
+
+fn fixture_project_root(source_path: &Path) -> PathBuf {
+    source_path
+        .ancestors()
+        .find(|candidate| candidate.join("zircon-project.toml").is_file())
+        .expect("asset fixture must live below a project manifest")
+        .to_path_buf()
+}
+
+fn persisted_reference_for_fixture(
+    project_root: &Path,
+    source_path: &Path,
+    reference: &AssetReference,
+) -> PersistedAssetReference {
+    if reference.locator.scheme() == ResourceScheme::Builtin {
+        return PersistedAssetReference::builtin(reference.locator.clone());
+    }
+    assert_eq!(reference.locator.scheme(), ResourceScheme::Res);
+
+    let manifest = ProjectManifest::load(project_root.join("zircon-project.toml")).unwrap();
+    let roots = manifest
+        .asset_roots
+        .iter()
+        .filter(|root| {
+            root.join_to(project_root)
+                .join(reference.locator.path())
+                .is_file()
+        })
+        .collect::<Vec<_>>();
+    let root = match roots.as_slice() {
+        [root] => *root,
+        [] => manifest
+            .asset_roots
+            .iter()
+            .find(|root| source_path.starts_with(root.join_to(project_root)))
+            .expect("asset fixture source must live below a manifest asset root"),
+        _ => panic!(
+            "asset fixture reference {} resolves through multiple project asset roots",
+            reference.locator
+        ),
+    };
+    let path_hint =
+        RelPath::parse(format!("{}/{}", root.as_str(), reference.locator.path())).unwrap();
+    PersistedAssetReference::project(
+        AssetRef::try_new(
+            reference.uuid,
+            path_hint,
+            reference.locator.label().map(str::to_owned),
+        )
+        .unwrap(),
+    )
+}
+
+fn runtime_reference_for_fixture(reference: &PersistedAssetReference) -> AssetReference {
+    if let Some(locator) = reference.builtin_locator() {
+        return AssetReference::from_locator(locator.clone());
+    }
+    let reference = reference.project_ref().expect("project fixture reference");
+    let (_, relative) = reference
+        .path_hint()
+        .as_str()
+        .split_once('/')
+        .expect("project fixture reference must include its asset-root prefix");
+    let locator = AssetUri::new(
+        ResourceScheme::Res,
+        relative.to_owned(),
+        reference.sub().map(str::to_owned),
+    )
+    .unwrap();
+    AssetReference::new(reference.guid(), locator)
 }
 
 fn write_animation_bytes(path: PathBuf, bytes: Vec<u8>) {

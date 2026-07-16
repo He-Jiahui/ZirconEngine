@@ -23,11 +23,11 @@ RUNTIME_DIAGNOSTICS_ANCHORS = (
         "RuntimeSceneAssetReloadDiagnostics",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/ffi.rs",
         "ProfileControlCommand::RuntimeDiagnosticsSnapshot",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/ffi.rs",
         "runtime_diagnostics_response(session)",
     ),
     (
@@ -67,15 +67,15 @@ RUNTIME_DIAGNOSTICS_ANCHORS = (
 
 SCENE_ASSET_RELOAD_DIAGNOSTIC_PATH_ANCHORS = (
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "queue.tick_into_level(self.runtime.handle().scheduler(), &self.level)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "record_scene_asset_reload_frame_report(&self.runtime, &report)",
     ),
     (
-        "zircon_runtime/src/dynamic_api/session.rs",
+        "zircon_runtime/src/dynamic_api/session/state.rs",
         "self.last_scene_asset_reload_report = Some(report)",
     ),
     (

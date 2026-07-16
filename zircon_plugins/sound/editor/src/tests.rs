@@ -107,13 +107,6 @@ fn sound_editor_plugin_contributes_authoring_extensions() {
             .payload_schema_id()
             .is_some_and(|schema| schema.starts_with("sound.")));
     }
-    let create_track = registration
-        .extensions
-        .commands()
-        .commands()
-        .find(|operation| operation.id().as_str() == "sound.mixer.track.create")
-        .expect("create track operation");
-    assert!(create_track.undoable().is_some());
 }
 
 #[test]

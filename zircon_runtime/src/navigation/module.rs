@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
-use crate::core::manager::{NavigationManagerHandle, NAVIGATION_MANAGER_NAME};
+use crate::core::framework::navigation::NavigationManager;
+use crate::core::manager::{RegisteredManagerService, NAVIGATION_MANAGER_NAME};
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     DriverDescriptor, ManagerDescriptor, ModuleDescriptor, RegistryName, ServiceKind, StartupMode,
@@ -72,14 +73,18 @@ pub fn module_descriptor() -> ModuleDescriptor {
             let runtime = core.resolve_driver::<BuiltinNavigationManager>(
                 BUILTIN_NAVIGATION_RUNTIME_DRIVER_NAME,
             )?;
-            Ok(Arc::new(NavigationManagerHandle::new(runtime)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn NavigationManager>::new(
+                    runtime,
+                )) as ServiceObject,
+            )
         }),
     ))
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::core::manager::{NavigationManagerHandle, NAVIGATION_MANAGER_NAME};
+    use crate::core::manager::{ManagerResolver, NAVIGATION_MANAGER_NAME};
     use crate::core::runtime::CoreRuntime;
     use crate::core::ServiceKind;
     use crate::scene::{SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME};
@@ -135,8 +140,13 @@ mod tests {
         runtime
             .resolve_driver::<SceneNavigationRuntimeHandle>(SCENE_NAVIGATION_RUNTIME_DRIVER_NAME)
             .expect("scene navigation runtime driver must resolve");
-        runtime
-            .resolve_manager::<NavigationManagerHandle>(NAVIGATION_MANAGER_NAME)
+        let resolver = ManagerResolver::new(runtime.handle());
+        resolver
+            .resolve(
+                resolver
+                    .navigation_handle()
+                    .expect("public navigation manager handle"),
+            )
             .expect("public navigation manager facade must resolve");
     }
 }

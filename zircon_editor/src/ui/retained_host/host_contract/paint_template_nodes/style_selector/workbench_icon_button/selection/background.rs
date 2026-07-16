@@ -4,7 +4,6 @@ use super::super::state::{
     icon_button_node_is_hot, icon_button_node_is_selected, is_unavailable_icon_button_state,
 };
 use super::declared::declared_icon_button_background;
-use super::toolbar_chrome::icon_toolbar_normal_chrome_enabled;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use zircon_runtime_interface::ui::style::UiPainterResolvedState;
 
@@ -53,11 +52,9 @@ fn normal_icon_background(
 ) -> Option<[u8; 4]> {
     if context == WorkbenchIconButtonContext::Panel {
         declared_icon_button_background(node).or(Some(palette.panel_surface))
-    } else if context == WorkbenchIconButtonContext::Toolbar
-        && icon_toolbar_normal_chrome_enabled(node)
-    {
-        Some(palette.surface)
     } else {
+        // FStarshipCoreStyle::ToolbarButton has no normal brush: toolbar glyphs
+        // stay quiet until hover/pressed supplies a rounded selection surface.
         None
     }
 }

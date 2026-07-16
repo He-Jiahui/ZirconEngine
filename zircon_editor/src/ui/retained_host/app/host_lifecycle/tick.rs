@@ -11,6 +11,9 @@ impl RetainedEditorHost {
         self.poll_desktop_export_jobs();
         self.poll_desktop_export_wizard_sessions();
         self.sync_editor_job_progress();
+        if let Err(error) = self.runtime.pump_runtime_event_consumers() {
+            self.set_status_line(error.to_string());
+        }
 
         {
             let _ui_perf_scenario = enter_ui_perf_scenario(UiPerfScenario::AssetRefresh);

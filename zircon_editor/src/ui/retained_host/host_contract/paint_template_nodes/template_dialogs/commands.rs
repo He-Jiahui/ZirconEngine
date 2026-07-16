@@ -1,4 +1,5 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::super::paint_geometry::intersect;
 use super::super::render_commands::HostPaintCommand;
 use super::{actions, content, identity, layout, style, surface};
 
@@ -20,38 +21,61 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_di
     if !layout::dialog_has_visible_area(&rect) {
         return true;
     }
+    let confirm_clip = matches!(kind, identity::DialogKind::ConfirmDialog)
+        .then(|| intersect(&rect, clip))
+        .flatten();
+    if matches!(kind, identity::DialogKind::ConfirmDialog) && confirm_clip.is_none() {
+        return true;
+    }
+    let effective_clip = confirm_clip.as_ref().unwrap_or(clip);
 
     let unavailable = style::dialog_unavailable(node);
     surface::push_dialog_chrome(
         commands,
         node,
         &rect,
-        clip,
+        effective_clip,
         order,
         kind,
         unavailable,
         opacity,
     );
+    let action_top = if matches!(kind, identity::DialogKind::AlertDialog) {
+        None
+    } else {
+        actions::push_dialog_actions(
+            commands,
+            node,
+            &rect,
+            effective_clip,
+            order,
+            kind,
+            unavailable,
+            opacity,
+        )
+    };
     content::push_dialog_content(
         commands,
         node,
         &rect,
-        clip,
+        effective_clip,
         order,
         kind,
         unavailable,
+        action_top,
         opacity,
     );
-
-    actions::push_dialog_actions(
-        commands,
-        node,
-        &rect,
-        clip,
-        order,
-        kind,
-        unavailable,
-        opacity,
-    );
+    if matches!(kind, identity::DialogKind::AlertDialog) {
+        let _ = actions::push_dialog_actions(
+            commands,
+            node,
+            &rect,
+            effective_clip,
+            order,
+            kind,
+            unavailable,
+            opacity,
+        );
+    }
     true
 }

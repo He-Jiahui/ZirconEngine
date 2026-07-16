@@ -1,3 +1,4 @@
+use crate::scene::selection::SelectionModel;
 use crate::scene::viewport::ViewportState;
 use crate::scene::viewport::{SceneViewportSettings, ViewportCameraSnapshot};
 use zircon_runtime::core::framework::camera_controller::OrbitCameraController;
@@ -8,7 +9,7 @@ use super::{viewport_drag_session::ViewportDragSession, viewport_hover_state::Vi
 #[derive(Clone, Debug)]
 pub(crate) struct SceneViewportState {
     pub(crate) settings: SceneViewportSettings,
-    pub(crate) selected: Option<u64>,
+    pub(crate) selection: SelectionModel,
     pub(crate) viewport: ViewportState,
     pub(crate) camera: Option<ViewportCameraSnapshot>,
     pub(crate) orbit_target: Vec3,

@@ -1,4 +1,8 @@
-use crate::scene::{NodeKind, World};
+use std::sync::{Arc, Mutex};
+
+use crate::scene::components::{Mobility, Name};
+use crate::scene::ecs::LifecycleEventKind;
+use crate::scene::{NodeKind, SceneError, World};
 
 #[test]
 fn world_generation_advances_only_for_successful_structural_mutations() {
@@ -48,6 +52,111 @@ fn imported_node_record_spawn_advances_generation_exactly_once() {
 }
 
 #[test]
+fn fixed_presence_rebuild_marks_derived_state_before_lifecycle_callbacks() {
+    let mut world = World::empty();
+    world.flush_pending_scene_systems();
+    assert!(!world.has_pending_scene_systems());
+
+    let query_revision = world.query_cache_revision();
+    let observations = Arc::new(Mutex::new(Vec::new()));
+    for kind in [LifecycleEventKind::Add, LifecycleEventKind::Insert] {
+        let observations = observations.clone();
+        world.observe_component_lifecycle::<Name>(kind, move |world, event| {
+            observations.lock().unwrap().push((
+                event.kind(),
+                world.has_pending_scene_systems(),
+                world.world_generation(),
+                world.query_cache_revision(),
+                world.get::<Name>(event.entity()).is_some(),
+            ));
+        });
+    }
+
+    let entity = world.spawn_node(NodeKind::Empty);
+
+    assert_eq!(world.world_generation(), 1);
+    assert_eq!(
+        *observations.lock().unwrap(),
+        vec![
+            (LifecycleEventKind::Add, true, 0, query_revision + 1, true),
+            (
+                LifecycleEventKind::Insert,
+                true,
+                0,
+                query_revision + 1,
+                true,
+            ),
+        ]
+    );
+    assert!(world.get::<Name>(entity).is_some());
+}
+
+#[test]
+fn rejected_imported_node_record_does_not_mutate_or_advance_generation() {
+    let mut world = World::empty();
+    let parent = world.spawn_node(NodeKind::Empty);
+    world.set_mobility(parent, Mobility::Dynamic).unwrap();
+    let before = world.clone();
+    let generation = world.world_generation();
+
+    let mut source = World::empty();
+    let entity = source.spawn_node(NodeKind::Empty);
+    let mut record = source.node_record(entity).unwrap();
+    record.id = parent + 1;
+    record.parent = Some(parent);
+    record.mobility = Mobility::Static;
+
+    assert!(world.insert_node_record(record.clone()).is_err());
+    assert_eq!(world, before);
+    assert!(!world.contains_entity(record.id));
+    assert_eq!(world.world_generation(), generation);
+}
+
+#[test]
+fn exhausted_imported_entity_id_is_rejected_before_world_mutation() {
+    let mut source = World::empty();
+    let source_entity = source.spawn_node(NodeKind::Empty);
+    let mut record = source.node_record(source_entity).unwrap();
+    record.id = u64::MAX;
+
+    let mut target = World::empty();
+    let before = target.clone();
+    let generation = target.world_generation();
+
+    assert_eq!(
+        target.insert_node_record(record),
+        Err(SceneError::EntityIdExhausted { entity: u64::MAX })
+    );
+    assert_eq!(target, before);
+    assert_eq!(target.world_generation(), generation);
+}
+
+#[test]
+fn rejected_imported_node_record_batch_is_atomic() {
+    let mut world = World::empty();
+    let parent = world.spawn_node(NodeKind::Empty);
+    world.set_mobility(parent, Mobility::Dynamic).unwrap();
+    let before = world.clone();
+    let generation = world.world_generation();
+
+    let mut source = World::empty();
+    let first = source.spawn_node(NodeKind::Empty);
+    let second = source.spawn_node(NodeKind::Empty);
+    let mut first_record = source.node_record(first).unwrap();
+    first_record.id = parent + 1;
+    let mut invalid_record = source.node_record(second).unwrap();
+    invalid_record.id = parent + 2;
+    invalid_record.parent = Some(parent);
+    invalid_record.mobility = Mobility::Static;
+
+    assert!(world
+        .insert_node_records(&[first_record, invalid_record])
+        .is_err());
+    assert_eq!(world, before);
+    assert_eq!(world.world_generation(), generation);
+}
+
+#[test]
 fn component_replacement_advances_the_query_generation_revision() {
     let mut world = World::empty();
     let entity = world.spawn_node(NodeKind::Empty);
@@ -59,6 +168,16 @@ fn component_replacement_advances_the_query_generation_revision() {
     let after_rename = world.world_generation();
     assert!(!world.rename_node(entity, "Renamed").unwrap());
     assert_eq!(world.world_generation(), after_rename);
+}
+
+#[test]
+fn failed_mutable_component_lookup_does_not_advance_generation() {
+    let mut world = World::empty();
+    let entity = world.spawn_node(NodeKind::Empty);
+    let generation = world.world_generation();
+
+    assert!(world.get_mut::<Name>(entity + 1).is_none());
+    assert_eq!(world.world_generation(), generation);
 }
 
 #[test]

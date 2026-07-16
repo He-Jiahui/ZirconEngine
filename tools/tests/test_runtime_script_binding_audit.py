@@ -21,7 +21,7 @@ class RuntimeScriptBindingAuditTests(unittest.TestCase):
 
         audit = script_binding_boundary_audit(self.repo_root)
 
-        self.assertEqual(audit["expected_source_file_count"], 19)
+        self.assertEqual(audit["expected_source_file_count"], 18)
         self.assertEqual(audit["expected_test_file_count"], 3)
         self.assertEqual(audit["expected_guard_file_count"], 9)
         self.assertEqual(audit["missing_guard_files"], [])

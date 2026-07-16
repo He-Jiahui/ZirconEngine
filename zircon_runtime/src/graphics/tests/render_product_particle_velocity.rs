@@ -368,7 +368,7 @@ fn render_product_particle_velocity_rejects_anonymous_key_multi_sprite_previous_
 }
 
 fn particle_velocity_framework() -> WgpuRenderFramework {
-    WgpuRenderFramework::new_with_plugin_render_features(
+    WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::new(ProjectAssetManager::default()),
         [particle_render_feature_descriptor_with_velocity()],
         [RenderPassExecutorRegistration::new(

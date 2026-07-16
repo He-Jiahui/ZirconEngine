@@ -156,6 +156,7 @@ where
     if !batch.static_state.has_authoritative_revisions()
         || !batch.queue_profile.static_batch_eligible()
         || batch.cache_identity.is_none()
+        || batch.pipeline_key.requires_forward_path()
     {
         return false;
     }

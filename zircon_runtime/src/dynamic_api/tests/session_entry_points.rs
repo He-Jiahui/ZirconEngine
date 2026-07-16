@@ -47,7 +47,7 @@ fn missing_session_entry_points_reject_nonzero_handle() {
 }
 
 fn assert_handle_entry_points_reject_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV1,
+    api: &zircon_runtime_interface::ZrRuntimeApiV2,
     session: ZrRuntimeSessionHandle,
     expected_code: ZrStatusCode,
     expected_message: &str,

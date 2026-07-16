@@ -30,7 +30,12 @@ fn dynamic_scene_roundtrips_reflected_components_with_entity_remap() {
         .expect("source world should export")
         .to_versioned_json_pretty()
         .expect("dynamic scene should serialize");
-    assert!(encoded.contains("\"format_version\": 1"));
+    let document: serde_json::Value = serde_json::from_str(&encoded).unwrap();
+    assert!(
+        document["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
     assert!(encoded.contains("\"schema_id\": \"zircon.scene.dynamic-scene\""));
     assert!(encoded.contains(CLOUD_LAYER_TYPE_PATH));
     assert_text_excludes_authoring_tokens(
@@ -282,7 +287,7 @@ fn dynamic_scene_rejects_future_envelope_header_before_payload_decode() {
         .to_versioned_json_pretty()
         .expect("current dynamic scene should serialize");
     let mut future: serde_json::Value = serde_json::from_str(&current).unwrap();
-    future["$zircon"]["header"]["schema_version"] = serde_json::Value::from(2);
+    future["$zircon"]["header"]["schema_version"] = serde_json::Value::from(3);
     future["$zircon"]["payload"] = json!({ "not": "a dynamic scene" });
 
     let error = DynamicScene::from_versioned_json(&future.to_string())
@@ -293,12 +298,54 @@ fn dynamic_scene_rejects_future_envelope_header_before_payload_decode() {
             if matches!(
                 source.as_ref(),
                 LoadError::FutureVersion {
-                    found: 2,
-                    supported: 1,
+                    found: 3,
+                    supported: 2,
                     ..
                 }
             )
     ));
+}
+
+#[test]
+fn dynamic_scene_rejects_retired_inner_version_in_current_envelope() {
+    let mut current: serde_json::Value = serde_json::from_str(
+        &DynamicScene::empty()
+            .to_versioned_json_pretty()
+            .expect("current dynamic scene should serialize"),
+    )
+    .unwrap();
+    current["$zircon"]["payload"]["format_version"] = json!(1);
+
+    let error = DynamicScene::from_versioned_json(&current.to_string())
+        .expect_err("current payloads must reject the retired inner version field");
+    assert!(matches!(
+        error,
+        DynamicSceneError::SerializationLoad(source)
+            if matches!(source.as_ref(), LoadError::PayloadDecode { .. })
+    ));
+}
+
+#[test]
+fn dynamic_scene_migrates_v1_envelope_to_versionless_v2_payload() {
+    let mut v1: serde_json::Value = serde_json::from_str(
+        &DynamicScene::empty()
+            .to_versioned_json_pretty()
+            .expect("current dynamic scene should serialize"),
+    )
+    .unwrap();
+    v1["$zircon"]["header"]["schema_version"] = json!(1);
+    v1["$zircon"]["payload"]["format_version"] = json!(1);
+
+    let migrated = DynamicScene::from_versioned_json(&v1.to_string())
+        .expect("v1 dynamic scene should migrate through the explicit chain");
+    let current: serde_json::Value =
+        serde_json::from_str(&migrated.to_versioned_json_pretty().unwrap()).unwrap();
+    assert_eq!(current["$zircon"]["header"]["schema_version"], 2);
+    assert!(
+        current["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
 }
 
 #[test]
@@ -328,6 +375,12 @@ fn versioned_json_migrates_legacy_world_project_documents() {
     let encoded = scene
         .to_versioned_json_pretty()
         .expect("dynamic scene should write versioned JSON");
+    let current: serde_json::Value = serde_json::from_str(&encoded).unwrap();
+    assert!(
+        current["$zircon"]["payload"]
+            .get("format_version")
+            .is_none()
+    );
     assert_text_excludes_authoring_tokens(
         "versioned dynamic scene JSON",
         &encoded,

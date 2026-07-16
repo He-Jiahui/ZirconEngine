@@ -5,7 +5,7 @@ use crate::core::editor_extension::{
     EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
     ViewDescriptor,
 };
-use crate::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+use crate::core::editor_operation::EditorOperationPath;
 use crate::core::editor_plugin::{EditorPlugin, EditorPluginDescriptor};
 use zircon_runtime_interface::resource::ResourceKind;
 
@@ -38,11 +38,8 @@ impl EditorPlugin for ExampleWindowEditorPlugin {
     ) -> Result<(), EditorExtensionRegistryError> {
         let operation_path = parse_operation("sdk.example.toggle_weather_window")?;
         registry.register_command(
-            EditorCommandDescriptor::pending_operation(
-                operation_path.clone(),
-                "Toggle SDK Weather Window",
-            )
-            .with_menu_path("Tools/SDK Examples/Toggle Weather Window"),
+            EditorCommandDescriptor::operation(operation_path.clone(), "Toggle SDK Weather Window")
+                .with_menu_path("Tools/SDK Examples/Toggle Weather Window"),
         )?;
         registry.register_view(ViewDescriptor::new(
             "sdk.example.weather_window",
@@ -86,14 +83,10 @@ impl EditorPlugin for ExampleAssetInspectorPlugin {
         let import_operation = parse_operation("sdk.example.import_model")?;
         let open_operation = parse_operation("sdk.example.open_model_inspector")?;
         registry.register_command(
-            EditorCommandDescriptor::pending_operation(
-                import_operation.clone(),
-                "Import SDK Model",
-            )
-            .with_menu_path("Assets/SDK Examples/Import Model")
-            .with_undoable(UndoableEditorOperation::new("Import SDK Model")),
+            EditorCommandDescriptor::operation(import_operation.clone(), "Import SDK Model")
+                .with_menu_path("Assets/SDK Examples/Import Model"),
         )?;
-        registry.register_command(EditorCommandDescriptor::pending_operation(
+        registry.register_command(EditorCommandDescriptor::operation(
             open_operation.clone(),
             "Open SDK Model Inspector",
         ))?;

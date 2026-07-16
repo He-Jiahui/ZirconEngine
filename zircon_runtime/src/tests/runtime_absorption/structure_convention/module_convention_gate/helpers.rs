@@ -4,18 +4,18 @@ pub(super) const AUDIT_ROOT: &str =
     ".codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts";
 
 pub(super) const CORE_DOCS: &[&str] = &[
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     "docs/zircon_runtime/structure/module-convention.md",
 ];
 
 pub(super) const CORE_DOCS_WITH_SESSION: &[&str] = &[
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
-    "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     "docs/zircon_runtime/structure/module-convention.md",
 ];
 

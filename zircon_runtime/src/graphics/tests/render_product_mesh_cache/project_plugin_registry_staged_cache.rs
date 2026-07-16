@@ -78,7 +78,7 @@ fn submit_registry_material_with_staged_cache(
     register_registry_shader(&asset_manager, case, shader_source);
     register_registry_material(&asset_manager, case);
 
-    let framework = WgpuRenderFramework::new(asset_manager).expect("WGPU framework");
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).expect("WGPU framework");
     framework.replace_shader_variant_disk_cache_for_tests(
         ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root]),
     );

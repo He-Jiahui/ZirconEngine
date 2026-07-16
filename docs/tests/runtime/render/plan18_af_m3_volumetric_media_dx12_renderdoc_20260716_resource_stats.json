@@ -1,0 +1,349 @@
+{
+  "capture": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_capture_capture.rdc",
+  "exports": [
+    {
+      "event": 4977,
+      "resource": "ResourceId::892",
+      "label": "frame0_media_z48",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame0_media_z48.png",
+      "slice": 48,
+      "width": 160,
+      "height": 90,
+      "depth": 96,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 11059200,
+        "pixels": 1382400,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.006961822509765625,
+            "max": 1.0498046875,
+            "nonzero": 1382400,
+            "mean": 0.9106991927270536
+          },
+          {
+            "min": 0.00543212890625,
+            "max": 0.81884765625,
+            "nonzero": 1382400,
+            "mean": 0.710344198456517
+          },
+          {
+            "min": 0.0036220550537109375,
+            "max": 0.5458984375,
+            "nonzero": 1382400,
+            "mean": 0.4735619075016843
+          },
+          {
+            "min": 0.0002321004867553711,
+            "max": 0.03497314453125,
+            "nonzero": 1382400,
+            "mean": 0.030342109385463927
+          }
+        ]
+      }
+    },
+    {
+      "event": 4999,
+      "resource": "ResourceId::894",
+      "label": "frame0_scatter_z48",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame0_scatter_z48.png",
+      "slice": 48,
+      "width": 160,
+      "height": 90,
+      "depth": 96,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 11059200,
+        "pixels": 1382400,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.0,
+            "max": 2.296875,
+            "nonzero": 54772,
+            "mean": 0.016008048987154057
+          },
+          {
+            "min": 0.0,
+            "max": 1.3623046875,
+            "nonzero": 54772,
+            "mean": 0.009489795921232414
+          },
+          {
+            "min": 0.0,
+            "max": 0.57373046875,
+            "nonzero": 54772,
+            "mean": 0.003995609803694404
+          },
+          {
+            "min": 0.0002321004867553711,
+            "max": 0.03497314453125,
+            "nonzero": 1382400,
+            "mean": 0.030342109385463927
+          }
+        ]
+      }
+    },
+    {
+      "event": 5019,
+      "resource": "ResourceId::892",
+      "label": "frame0_integrated_z48",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame0_integrated_z48.png",
+      "slice": 48,
+      "width": 160,
+      "height": 90,
+      "depth": 96,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 11059200,
+        "pixels": 1382400,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.0,
+            "max": 3.494140625,
+            "nonzero": 341095,
+            "mean": 0.16505531374136573
+          },
+          {
+            "min": 0.0,
+            "max": 2.0703125,
+            "nonzero": 341095,
+            "mean": 0.09784802115013547
+          },
+          {
+            "min": 0.0,
+            "max": 0.8720703125,
+            "nonzero": 341095,
+            "mean": 0.04119784033680507
+          },
+          {
+            "min": 0.07086181640625,
+            "max": 0.99951171875,
+            "nonzero": 1382400,
+            "mean": 0.8185862188869052
+          }
+        ]
+      }
+    },
+    {
+      "event": 5073,
+      "resource": "ResourceId::813",
+      "label": "frame0_scene_color",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame0_scene_color.png",
+      "slice": -1,
+      "width": 192,
+      "height": 128,
+      "depth": 1,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 196608,
+        "pixels": 24576,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.00799560546875,
+            "max": 2.4921875,
+            "nonzero": 24576,
+            "mean": 0.04418230056762695
+          },
+          {
+            "min": 0.0099945068359375,
+            "max": 1.4775390625,
+            "nonzero": 24576,
+            "mean": 0.03131807595491409
+          },
+          {
+            "min": 0.0159912109375,
+            "max": 0.6220703125,
+            "nonzero": 24576,
+            "mean": 0.02467497189839681
+          },
+          {
+            "min": 0.0,
+            "max": 1.0,
+            "nonzero": 23964,
+            "mean": 0.97509765625
+          }
+        ]
+      }
+    },
+    {
+      "event": 6331,
+      "resource": "ResourceId::894",
+      "label": "frame1_media_z48",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame1_media_z48.png",
+      "slice": 48,
+      "width": 160,
+      "height": 90,
+      "depth": 96,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 11059200,
+        "pixels": 1382400,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.006961822509765625,
+            "max": 1.0498046875,
+            "nonzero": 1382400,
+            "mean": 0.9106991927270536
+          },
+          {
+            "min": 0.00543212890625,
+            "max": 0.81884765625,
+            "nonzero": 1382400,
+            "mean": 0.710344198456517
+          },
+          {
+            "min": 0.0036220550537109375,
+            "max": 0.5458984375,
+            "nonzero": 1382400,
+            "mean": 0.4735619075016843
+          },
+          {
+            "min": 0.0002321004867553711,
+            "max": 0.03497314453125,
+            "nonzero": 1382400,
+            "mean": 0.030342109385463927
+          }
+        ]
+      }
+    },
+    {
+      "event": 6353,
+      "resource": "ResourceId::892",
+      "label": "frame1_scatter_z48",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame1_scatter_z48.png",
+      "slice": 48,
+      "width": 160,
+      "height": 90,
+      "depth": 96,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 11059200,
+        "pixels": 1382400,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.0,
+            "max": 2.296875,
+            "nonzero": 54772,
+            "mean": 0.016008048987154057
+          },
+          {
+            "min": 0.0,
+            "max": 1.3623046875,
+            "nonzero": 54772,
+            "mean": 0.009489795921232414
+          },
+          {
+            "min": 0.0,
+            "max": 0.57373046875,
+            "nonzero": 54772,
+            "mean": 0.003995609803694404
+          },
+          {
+            "min": 0.0002321004867553711,
+            "max": 0.03497314453125,
+            "nonzero": 1382400,
+            "mean": 0.030342109385463927
+          }
+        ]
+      }
+    },
+    {
+      "event": 6373,
+      "resource": "ResourceId::894",
+      "label": "frame1_integrated_z48",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame1_integrated_z48.png",
+      "slice": 48,
+      "width": 160,
+      "height": 90,
+      "depth": 96,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 11059200,
+        "pixels": 1382400,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.0,
+            "max": 3.494140625,
+            "nonzero": 341095,
+            "mean": 0.16505531374136573
+          },
+          {
+            "min": 0.0,
+            "max": 2.0703125,
+            "nonzero": 341095,
+            "mean": 0.09784802115013547
+          },
+          {
+            "min": 0.0,
+            "max": 0.8720703125,
+            "nonzero": 341095,
+            "mean": 0.04119784033680507
+          },
+          {
+            "min": 0.07086181640625,
+            "max": 0.99951171875,
+            "nonzero": 1382400,
+            "mean": 0.8185862188869052
+          }
+        ]
+      }
+    },
+    {
+      "event": 6427,
+      "resource": "ResourceId::813",
+      "label": "frame1_scene_color",
+      "path": "E:\\Git\\ZirconEngine\\docs\\tests\\runtime\\render\\plan18_af_m3_volumetric_media_dx12_renderdoc_20260716_frame1_scene_color.png",
+      "slice": -1,
+      "width": 192,
+      "height": 128,
+      "depth": 1,
+      "format": "R16G16B16A16_FLOAT",
+      "save_result": "<Result: 'Success'>",
+      "stats": {
+        "bytes": 196608,
+        "pixels": 24576,
+        "nonfinite_values": 0,
+        "channels": [
+          {
+            "min": 0.00799560546875,
+            "max": 2.4921875,
+            "nonzero": 24576,
+            "mean": 0.04418230056762695
+          },
+          {
+            "min": 0.0099945068359375,
+            "max": 1.4775390625,
+            "nonzero": 24576,
+            "mean": 0.03131807595491409
+          },
+          {
+            "min": 0.0159912109375,
+            "max": 0.6220703125,
+            "nonzero": 24576,
+            "mean": 0.02467497189839681
+          },
+          {
+            "min": 0.0,
+            "max": 1.0,
+            "nonzero": 23964,
+            "mean": 0.97509765625
+          }
+        ]
+      }
+    }
+  ]
+}

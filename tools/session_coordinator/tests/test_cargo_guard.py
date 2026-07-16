@@ -42,7 +42,7 @@ class CargoGuardTests(unittest.TestCase):
 
         self.assertFalse(decision.allowed)
         self.assertEqual("test", decision.subcommand)
-        log = self.repo / ".codex/state/session-coordinator/logs/blocked-cargo.jsonl"
+        log = self.repo / ".codex/state/session-coordinator/logs/blocked-workflow.jsonl"
         record = json.loads(log.read_text(encoding="utf-8").strip())
         self.assertEqual("test", record["subcommand"])
         self.assertNotIn("zircon_runtime", log.read_text(encoding="utf-8"))
@@ -59,6 +59,47 @@ class CargoGuardTests(unittest.TestCase):
             with self.subTest(command=command):
                 decision = self.guard.evaluate_pre_tool_use(self._payload(command), self.repo)
                 self.assertTrue(decision.allowed)
+
+    def test_rejects_unregistered_artifact_directory_creation_without_path_logging(self) -> None:
+        for command, expected_subcommand in (
+            (r"New-Item -ItemType Directory -Path D:\targets\manual-output", "new-item"),
+            (r"mkdir E:\ZirconBuilds\manual-output", "mkdir"),
+        ):
+            with self.subTest(command=command):
+                decision = self.guard.evaluate_pre_tool_use(self._payload(command), self.repo)
+
+                self.assertFalse(decision.allowed)
+                self.assertEqual(expected_subcommand, decision.subcommand)
+        log = self.repo / ".codex/state/session-coordinator/logs/blocked-workflow.jsonl"
+        contents = log.read_text(encoding="utf-8")
+        self.assertIn("unmanaged_artifact_directory", contents)
+        self.assertNotIn("manual-output", contents)
+        self.assertNotIn("D:\\targets", contents)
+        self.assertNotIn("E:\\ZirconBuilds", contents)
+
+    def test_allows_read_only_inspection_of_managed_artifact_roots(self) -> None:
+        decision = self.guard.evaluate_pre_tool_use(
+            self._payload(r"Get-ChildItem D:\targets -Force"), self.repo
+        )
+
+        self.assertTrue(decision.allowed)
+
+    def test_allows_manual_git_commands_without_creating_a_denial_record(self) -> None:
+        for command in (
+            'git commit -m "manual implementation detail"',
+            'git -c core.hooksPath=NUL commit -m "manual bypass"',
+            "git add zircon_runtime/src/lib.rs",
+            "git rm obsolete.rs",
+            "git -c core.hooksPath=NUL reset --mixed",
+            "git restore --staged docs/plan.md",
+        ):
+            with self.subTest(command=command):
+                decision = self.guard.evaluate_pre_tool_use(self._payload(command), self.repo)
+                self.assertTrue(decision.allowed)
+                self.assertIsNone(decision.subcommand)
+        self.assertFalse(
+            (self.repo / ".codex/state/session-coordinator/logs/blocked-workflow.jsonl").exists()
+        )
 
     def test_ignores_non_bash_or_external_working_directory(self) -> None:
         payload = self._payload("cargo check")

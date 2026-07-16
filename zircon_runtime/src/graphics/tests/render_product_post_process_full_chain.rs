@@ -347,7 +347,7 @@ fn render_product_post_full_chain_all_effects_on() {
 }
 
 fn full_chain_product_framework(asset_manager: Arc<ProjectAssetManager>) -> WgpuRenderFramework {
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+    let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         asset_manager,
         [particle_render_feature_descriptor_with_velocity()],
         [RenderPassExecutorRegistration::new(

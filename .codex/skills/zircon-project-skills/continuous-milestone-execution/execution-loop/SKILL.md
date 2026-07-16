@@ -11,7 +11,7 @@
 
 1. Rebuild context from the repository and the active plan.
    - Read the touched code and the plan artifacts that define the current milestone.
-   - Scan the active numbered child-plan directory for `failure-*.md`. Resolve applicable handoffs before selecting ordinary feature work.
+   - Scan for applicable `failure-*.md` at milestone start. A handoff blocks only slices that depend on its cause.
    - State the current milestone in concrete repository terms.
 
 2. Decide the next unfinished slice inside the milestone.
@@ -24,20 +24,20 @@
    - Do not run compile/build/unit-test commands after every slice by default.
    - If implementation exposes missing lower-layer support, go fix that lower layer and then resume upward progress.
    - If another numbered plan owns that lower layer, apply `../../handle-plan-failure-handoffs/SKILL.md`, publish the failure there, and continue every independent slice in the current plan rather than pausing the session.
-   - When the slice is complete, immediately append one row to the active plan's `## 状态与产出记录` table with milestone, slice, status, local completion date, and concrete evidence.
+   - Keep the completed slices in the milestone batch; do not append plan rows while the batch is still in implementation.
 
 4. Use lightweight checks during implementation.
-   - For small tasks or pre-handoff confidence, run scoped Rust syntax/type checks such as `cargo check` when practical.
-   - Defer compile/build/unit-test execution to the milestone testing stage unless the user asks for earlier validation or a blocker requires it.
+   - Use formatting, `git diff --check`, and source guards by default.
+   - Defer Cargo compile/build/unit-test execution to the milestone testing stage unless the user asks for earlier validation or a blocker, ABI change, unsafe change, or persistence risk requires it.
    - If a lightweight check fails, debug and continue within the same milestone rather than stopping at the first obstacle.
 
 5. Enter the milestone testing stage at the boundary.
    - Run the declared compile/build/unit-test commands only when the implementation slices for that milestone are ready.
    - Debug and correct failures, starting from the lowest shared support layer that can explain the failure.
-   - Record the testing-stage result in the same `## 状态与产出记录` table before calling the milestone complete.
+   - Record one accepted milestone outcome in `## 状态与产出记录` before calling the milestone complete.
 
 6. Stop only at a real milestone boundary.
-   - End the work only when the milestone's completion gate has been satisfied and the status/output table has been updated row by row, or when a real branch ambiguity requires the user to choose between materially different directions.
+   - End the work only when the milestone's completion gate and concise outcome record are complete, or when a real branch ambiguity requires the user to choose between materially different directions.
 
 ## Anti-Patterns
 
@@ -48,7 +48,7 @@
 - "There may be more work, but I will wait for confirmation before continuing."
 - "I found a failure in a lower shared layer, but I will postpone it and keep patching the upper layer."
 - "Another plan owns the failure, so this session must stop instead of publishing a handoff and continuing independent work."
-- "I will fill the plan's status table once everything is done."
+- "I will skip the milestone outcome record because the code and tests are enough."
 
 ## Reporting
 

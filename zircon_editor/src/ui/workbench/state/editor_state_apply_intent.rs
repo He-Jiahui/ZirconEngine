@@ -1,4 +1,5 @@
 use crate::core::editing::command::EditorCommand;
+use crate::core::editing::history::HistorySelectionSnapshot;
 use crate::core::editing::intent::EditorIntent;
 
 use super::editor_state::EditorState;
@@ -8,28 +9,51 @@ impl EditorState {
     pub fn apply_intent(&mut self, intent: EditorIntent) -> Result<bool, String> {
         match intent {
             EditorIntent::CreateNode(kind) => {
-                let selected = self.viewport_controller.selected_node();
+                let selection_before = self.active_history_selection_snapshot();
+                let selected = self.viewport_controller.selection().active_primary();
                 let command = self
                     .world
                     .try_with_world_mut(|scene| EditorCommand::create_node(scene, selected, kind))
                     .ok_or_else(no_project_open)??;
                 let id = command.target_node();
                 self.viewport_controller
-                    .set_selected_node(command.selection_after());
-                self.history.push(command);
+                    .selection_mut()
+                    .select_only_active(id);
+                let selection_after = self.active_history_selection_snapshot();
+                self.history
+                    .push_with_selection(command, selection_before, selection_after);
                 self.sync_selection_state();
                 self.status_line = format!("Created node {id}");
                 Ok(true)
             }
             EditorIntent::DeleteNode(id) => {
-                let selected = self.viewport_controller.selected_node();
+                let selection_before = self
+                    .viewport_controller
+                    .selection()
+                    .active_items()
+                    .iter()
+                    .copied()
+                    .collect::<Vec<_>>();
+                let primary_before = self.viewport_controller.selection().active_primary();
+                let history_selection_before =
+                    HistorySelectionSnapshot::new(selection_before.clone(), primary_before);
                 let command = self
                     .world
-                    .try_with_world_mut(|scene| EditorCommand::delete_node(scene, selected, id))
+                    .try_with_world_mut(|scene| {
+                        EditorCommand::delete_node(scene, primary_before, id)
+                    })
                     .ok_or_else(no_project_open)??;
-                self.viewport_controller
-                    .set_selected_node(command.selection_after());
-                self.history.push(command);
+                self.reconcile_selection_after_delete(
+                    selection_before,
+                    primary_before,
+                    command.selection_after(),
+                )?;
+                let selection_after = self.active_history_selection_snapshot();
+                self.history.push_with_selection(
+                    command,
+                    history_selection_before,
+                    selection_after,
+                );
                 self.sync_selection_state();
                 self.status_line = format!("Deleted node {id}");
                 Ok(true)
@@ -42,13 +66,15 @@ impl EditorState {
                 {
                     return Err(format!("Cannot select missing node {id}"));
                 }
-                self.viewport_controller.set_selected_node(Some(id));
+                self.viewport_controller
+                    .selection_mut()
+                    .select_only_active(id);
                 self.sync_selection_state();
                 self.status_line = format!("Selected node {id}");
                 Ok(true)
             }
             EditorIntent::RenameNode(id, name) => {
-                let selected = self.viewport_controller.selected_node();
+                let selected = self.viewport_controller.selection().active_primary();
                 let command = self
                     .world
                     .try_with_world_mut(|scene| {
@@ -58,15 +84,13 @@ impl EditorState {
                 let Some(command) = command else {
                     return Ok(false);
                 };
-                self.viewport_controller
-                    .set_selected_node(command.selection_after());
                 self.history.push(command);
                 self.sync_selection_state();
                 self.status_line = format!("Renamed node {id}");
                 Ok(true)
             }
             EditorIntent::SetParent(id, parent) => {
-                let selected = self.viewport_controller.selected_node();
+                let selected = self.viewport_controller.selection().active_primary();
                 let command = self
                     .world
                     .try_with_world_mut(|scene| {
@@ -76,8 +100,6 @@ impl EditorState {
                 let Some(command) = command else {
                     return Ok(false);
                 };
-                self.viewport_controller
-                    .set_selected_node(command.selection_after());
                 self.history.push(command);
                 self.sync_selection_state();
                 self.status_line = match parent {
@@ -87,7 +109,7 @@ impl EditorState {
                 Ok(true)
             }
             EditorIntent::SetTransform(id, transform) => {
-                let selected = self.viewport_controller.selected_node();
+                let selected = self.viewport_controller.selection().active_primary();
                 let command = self
                     .world
                     .try_with_world_mut(|scene| {
@@ -97,8 +119,6 @@ impl EditorState {
                 let Some(command) = command else {
                     return Ok(false);
                 };
-                self.viewport_controller
-                    .set_selected_node(command.selection_after());
                 self.history.push(command);
                 self.sync_selection_state();
                 self.status_line = format!("Updated transform for node {id}");
@@ -106,7 +126,7 @@ impl EditorState {
             }
             EditorIntent::ApplyInspectorChanges => self.apply_inspector_changes(),
             EditorIntent::BeginGizmoDrag => {
-                let selected = self.viewport_controller.selected_node();
+                let selected = self.viewport_controller.selection().active_primary();
                 let history = &mut self.history;
                 self.world
                     .try_with_world(|scene| history.begin_drag(scene, selected))
@@ -119,15 +139,13 @@ impl EditorState {
                 Ok(false)
             }
             EditorIntent::EndGizmoDrag => {
-                let selected = self.viewport_controller.selected_node();
+                let selected = self.viewport_controller.selection().active_primary();
                 let history = &mut self.history;
                 let command = self
                     .world
                     .try_with_world(|scene| history.end_drag(scene, selected))
                     .ok_or_else(no_project_open)??;
                 if let Some(command) = command {
-                    self.viewport_controller
-                        .set_selected_node(command.selection_after());
                     self.history.push(command);
                     self.sync_selection_state();
                 }
@@ -135,14 +153,18 @@ impl EditorState {
                 Ok(false)
             }
             EditorIntent::Undo => {
-                let mut selected = self.viewport_controller.selected_node();
                 let history = &mut self.history;
-                let changed = self
+                let outcome = self
                     .world
-                    .try_with_world_mut(|scene| history.undo(scene, &mut selected))
+                    .try_with_world_mut(|scene| history.undo(scene))
                     .ok_or_else(no_project_open)??;
-                if changed {
-                    self.viewport_controller.set_selected_node(selected);
+                if let Some(outcome) = outcome {
+                    if let Some(selection) = outcome.selection {
+                        let (items, primary) = selection.into_parts();
+                        self.viewport_controller
+                            .selection_mut()
+                            .replace_active(items, primary);
+                    }
                     self.sync_selection_state();
                     self.status_line = "Undo".to_string();
                     Ok(true)
@@ -152,14 +174,18 @@ impl EditorState {
                 }
             }
             EditorIntent::Redo => {
-                let mut selected = self.viewport_controller.selected_node();
                 let history = &mut self.history;
-                let changed = self
+                let outcome = self
                     .world
-                    .try_with_world_mut(|scene| history.redo(scene, &mut selected))
+                    .try_with_world_mut(|scene| history.redo(scene))
                     .ok_or_else(no_project_open)??;
-                if changed {
-                    self.viewport_controller.set_selected_node(selected);
+                if let Some(outcome) = outcome {
+                    if let Some(selection) = outcome.selection {
+                        let (items, primary) = selection.into_parts();
+                        self.viewport_controller
+                            .selection_mut()
+                            .replace_active(items, primary);
+                    }
                     self.sync_selection_state();
                     self.status_line = "Redo".to_string();
                     Ok(true)
@@ -169,5 +195,46 @@ impl EditorState {
                 }
             }
         }
+    }
+
+    fn reconcile_selection_after_delete(
+        &mut self,
+        selection_before: Vec<u64>,
+        primary_before: Option<u64>,
+        fallback: Option<u64>,
+    ) -> Result<(), String> {
+        let surviving = self
+            .world
+            .try_with_world(|scene| {
+                selection_before
+                    .into_iter()
+                    .filter(|entity| scene.contains_entity(*entity))
+                    .collect::<Vec<_>>()
+            })
+            .ok_or_else(no_project_open)?;
+        if surviving.is_empty() {
+            match fallback {
+                Some(entity) => self
+                    .viewport_controller
+                    .selection_mut()
+                    .select_only_active(entity),
+                None => self.viewport_controller.selection_mut().clear_active(),
+            };
+            return Ok(());
+        }
+
+        let primary = primary_before.filter(|entity| surviving.contains(entity));
+        self.viewport_controller
+            .selection_mut()
+            .replace_active(surviving, primary);
+        Ok(())
+    }
+
+    fn active_history_selection_snapshot(&self) -> HistorySelectionSnapshot {
+        let selection = self.viewport_controller.selection();
+        HistorySelectionSnapshot::new(
+            selection.active_items().iter().copied().collect(),
+            selection.active_primary(),
+        )
     }
 }

@@ -106,6 +106,22 @@ pub(super) fn execute_menu_action(
                         shell
                             .state
                             .sync_bridge_diagnostics_matrix(report.bridge_diagnostics.as_ref());
+                        if let Err(error) = controller.begin_runtime_event_consumers() {
+                            if controller.runtime_event_consumer_session_active() {
+                                shell.state.set_status_line(format!(
+                                    "Runtime event consumer startup cleanup failed; play mode remains active for retry: {error}"
+                                ));
+                                return Err(format!(
+                                    "Failed to bind runtime plugin event consumers; runtime remains active so Exit Play can retry cleanup: {error}"
+                                ));
+                            }
+                            let _ = controller.play_bridge().backend().exit_play_mode();
+                            let _ = shell.state.exit_play_mode();
+                            shell.state.sync_bridge_diagnostics_matrix(None);
+                            return Err(format!(
+                                "Failed to bind runtime plugin event consumers: {error}"
+                            ));
+                        }
                         if !is_clean {
                             shell.state.set_status_line(format!(
                                 "Entered play mode; native runtime diagnostics: {}",
@@ -126,6 +142,16 @@ pub(super) fn execute_menu_action(
             })
         }
         MenuAction::ExitPlayMode => {
+            if controller.runtime_event_consumer_session_active() {
+                if let Err(error) = controller.end_runtime_event_consumers() {
+                    shell.state.set_status_line(format!(
+                        "Runtime event consumer cleanup failed; play mode remains active for retry: {error}"
+                    ));
+                    return Err(format!(
+                        "Failed to clean up runtime event consumers; runtime remains active for retry: {error}"
+                    ));
+                }
+            }
             let changed = shell.state.exit_play_mode()?;
             if changed {
                 match controller.play_bridge().backend().exit_play_mode() {

@@ -6,8 +6,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) struct Wor
     pub surface: [u8; 4],
     pub hover_surface: [u8; 4],
     pub pressed_surface: [u8; 4],
+    pub selected_surface: [u8; 4],
     pub surface_disabled: [u8; 4],
     pub border: [u8; 4],
+    pub selected_border: [u8; 4],
     pub text: [u8; 4],
     pub text_muted: [u8; 4],
     pub text_disabled: [u8; 4],
@@ -27,8 +29,10 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn workben
         surface: palette.surface,
         hover_surface: palette.surface_hover,
         pressed_surface: palette.surface_pressed,
+        selected_surface: palette.surface_selected,
         surface_disabled: palette.surface_disabled,
         border: palette.border,
+        selected_border: palette.accent_soft,
         text: palette.text,
         text_muted: palette.text_muted,
         text_disabled: palette.text_disabled,
@@ -45,6 +49,8 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_su
         palette.surface_disabled
     } else if node.pressed || node.popup_open {
         palette.pressed_surface
+    } else if node.selected || node.checked {
+        palette.selected_surface
     } else if node.hovered {
         palette.hover_surface
     } else {
@@ -60,8 +66,16 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn chip_bo
         palette.border_disabled
     } else if node.focused || node.pressed || node.popup_open {
         palette.focus_ring
-    } else {
+    } else if node.selected || node.checked {
+        palette.selected_border
+    } else if node.hovered {
         palette.border
+    } else {
+        // Starship's quiet/simple button state deliberately has no visible
+        // outline.  Keeping the border equal to the fill prevents a passive
+        // chip from reading as a text input while still preserving the
+        // rounded hit target and the explicit interactive-state outlines.
+        palette.surface
     }
 }
 
@@ -141,5 +155,17 @@ mod tests {
 
         assert_eq!(chip_surface(&node), palette.pressed_surface);
         assert_eq!(chip_glyph_color(&node), palette.focus_ring);
+    }
+
+    #[test]
+    fn selected_chip_uses_a_low_emphasis_selection_surface_without_focus_ring() {
+        let mut node = TemplatePaneNodeData::default();
+        node.selected = true;
+
+        let palette = workbench_chip_palette();
+
+        assert_eq!(chip_surface(&node), palette.selected_surface);
+        assert_eq!(chip_border(&node), palette.selected_border);
+        assert_ne!(chip_border(&node), palette.focus_ring);
     }
 }

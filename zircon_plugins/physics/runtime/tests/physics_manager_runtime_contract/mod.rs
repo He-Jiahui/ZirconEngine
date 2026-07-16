@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use std::time::Duration;
 
 use zircon_plugin_physics_runtime::{
@@ -16,7 +17,7 @@ use zircon_runtime::core::framework::{
         PhysicsJointConstraintMetadata, PhysicsJointDrive, PhysicsSkeletonJointBinding,
     },
 };
-use zircon_runtime::core::manager::resolve_physics_manager;
+use zircon_runtime::core::manager::ManagerResolver;
 use zircon_runtime::core::math::{Quat, Transform, Vec3};
 use zircon_runtime::core::CoreRuntime;
 use zircon_runtime::foundation::FOUNDATION_MODULE_NAME;
@@ -31,6 +32,13 @@ use zircon_runtime::scene::{
 
 const TEST_MAX_FIXED_STEPS: u32 = 4;
 const TEST_FIXED_TIMESTEP_NANOS: u64 = 1_000_000_000 / 60;
+
+fn physics_manager(runtime: &CoreRuntime) -> Arc<dyn PhysicsManager> {
+    let resolver = ManagerResolver::new(runtime.handle());
+    resolver
+        .resolve(resolver.physics_handle().expect("physics manager handle"))
+        .expect("physics manager should resolve")
+}
 
 fn create_runtime_with_scene_and_physics() -> CoreRuntime {
     let runtime = CoreRuntime::new();
@@ -80,9 +88,7 @@ fn empty_jolt_feature_slot_reports_unavailable_not_ready() {
         })
         .unwrap();
 
-    let status = resolve_physics_manager(&runtime.handle())
-        .unwrap()
-        .backend_status();
+    let status = physics_manager(&runtime).backend_status();
 
     assert_eq!(status.requested_backend, "jolt");
     assert_eq!(status.active_backend, None);
@@ -104,9 +110,7 @@ fn linked_jolt_backend_reports_ready() {
         })
         .unwrap();
 
-    let status = resolve_physics_manager(&runtime.handle())
-        .unwrap()
-        .backend_status();
+    let status = physics_manager(&runtime).backend_status();
 
     assert_eq!(status.requested_backend, "jolt");
     assert_eq!(status.active_backend.as_deref(), Some("jolt"));
@@ -127,9 +131,7 @@ fn unknown_backend_reports_unavailable_not_ready() {
         })
         .unwrap();
 
-    let status = resolve_physics_manager(&runtime.handle())
-        .unwrap()
-        .backend_status();
+    let status = physics_manager(&runtime).backend_status();
 
     assert_eq!(status.requested_backend, "experimental");
     assert_eq!(status.active_backend, None);

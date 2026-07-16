@@ -1,0 +1,285 @@
+from __future__ import annotations
+
+import unittest
+import tempfile
+from contextlib import redirect_stdout
+from io import StringIO
+from pathlib import Path
+from unittest import mock
+
+from tools.session_coordinator.client import (
+    CoordinatorClient,
+    CoordinatorClientError,
+)
+from tools.session_coordinator import cli
+from tools.session_coordinator.config import CoordinatorConfig
+from tools.session_coordinator.offline_queue import OfflineCommandSpool
+
+
+class DeferredActionClientTests(unittest.TestCase):
+    def _client(self, *, timeout: float = 1.0) -> CoordinatorClient:
+        return CoordinatorClient(
+            "http://127.0.0.1:6518",
+            "",
+            command_timeout_seconds=timeout,
+        )
+
+    @staticmethod
+    def _preview() -> dict[str, object]:
+        return {
+            "action": {
+                "actionId": "action-a",
+                "confirmationPhrase": "CONFIRM",
+                "status": "previewed",
+            }
+        }
+
+    def test_terminal_failure_states_stop_polling_and_return_action(self) -> None:
+        for status in ("failed", "cancelled", "expired", "state_changed", "denied"):
+            with self.subTest(status=status):
+                terminal = {
+                    "actionId": "action-a",
+                    "status": status,
+                    "errorCode": f"action_{status}",
+                    "result": None,
+                }
+                with mock.patch.object(
+                    CoordinatorClient,
+                    "control_request",
+                    autospec=True,
+                    side_effect=(self._preview(), {"action": terminal}),
+                ) as request:
+                    result = self._client().execute_control_action(
+                        "validation.start",
+                        {"sessionId": "session-a"},
+                        reason="exercise terminal status",
+                    )
+
+                self.assertEqual(terminal, result)
+                self.assertEqual(2, request.call_count)
+
+    def test_poll_timeout_is_typed_and_does_not_repeat_confirmation(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        with mock.patch.object(
+            CoordinatorClient,
+            "control_request",
+            autospec=True,
+            side_effect=(self._preview(), {"action": executing}),
+        ) as request:
+            with self.assertRaises(CoordinatorClientError) as rejected:
+                self._client(timeout=0.0).execute_control_action(
+                    "validation.start",
+                    {"sessionId": "session-a"},
+                    reason="exercise timeout",
+                )
+
+        self.assertEqual("command_timeout", rejected.exception.code)
+        self.assertEqual(
+            {"actionId": "action-a", "kind": "validation.start"},
+            rejected.exception.details,
+        )
+        self.assertEqual(2, request.call_count)
+
+    def test_malformed_polled_detail_is_typed_invalid_response(self) -> None:
+        executing = {
+            "actionId": "action-a",
+            "status": "executing",
+            "result": None,
+        }
+        with mock.patch.object(
+            CoordinatorClient,
+            "control_request",
+            autospec=True,
+            side_effect=(
+                self._preview(),
+                {"action": executing},
+                {"action": "malformed"},
+            ),
+        ), mock.patch(
+            "tools.session_coordinator.client.time.sleep",
+            return_value=None,
+        ):
+            with self.assertRaises(CoordinatorClientError) as rejected:
+                self._client().execute_control_action(
+                    "validation.start",
+                    {"sessionId": "session-a"},
+                    reason="exercise malformed detail",
+                )
+
+        self.assertEqual("invalid_response", rejected.exception.code)
+        self.assertIn("detail omitted", rejected.exception.message)
+
+    def test_descriptor_absence_queues_an_allowed_session_command_for_later_replay(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = StringIO()
+            with redirect_stdout(output):
+                exit_code = cli.main(
+                    [
+                        "--repo-root",
+                        ".",
+                        "--state-root",
+                        temporary,
+                        "--json",
+                        "session",
+                        "heartbeat",
+                        "--session-id",
+                        "session-a",
+                    ]
+                )
+
+            self.assertEqual(0, exit_code)
+            result = __import__("json").loads(output.getvalue())
+            self.assertEqual("queued", result["status"])
+            config = CoordinatorConfig.for_repo(".", state_root=temporary)
+            spool = OfflineCommandSpool(
+                config.offline_command_queue_root,
+                repository_key=config.repository_key,
+            )
+            queued = spool.validated_pending()
+            self.assertEqual(1, len(queued))
+            self.assertEqual("session.heartbeat", queued[0].command)
+            self.assertEqual({"session_id": "session-a"}, queued[0].arguments)
+
+    def test_offline_implicit_session_registration_is_not_queued_with_a_new_random_identity(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = StringIO()
+            with redirect_stdout(output), mock.patch.dict("os.environ", {}, clear=True):
+                exit_code = cli.main(
+                    [
+                        "--repo-root",
+                        ".",
+                        "--state-root",
+                        temporary,
+                        "--json",
+                        "session",
+                        "register",
+                    ]
+                )
+
+            self.assertEqual(3, exit_code)
+            config = CoordinatorConfig.for_repo(".", state_root=temporary)
+            spool = OfflineCommandSpool(
+                config.offline_command_queue_root,
+                repository_key=config.repository_key,
+            )
+            self.assertEqual(0, spool.snapshot().pending)
+
+    def test_offline_cargo_command_is_not_queued(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = StringIO()
+            with redirect_stdout(output):
+                exit_code = cli.main(
+                    [
+                        "--repo-root",
+                        ".",
+                        "--state-root",
+                        temporary,
+                        "--json",
+                        "cargo",
+                        "acquire",
+                        "test",
+                        "--session-id",
+                        "session-a",
+                    ]
+                )
+
+            self.assertEqual(3, exit_code)
+            config = CoordinatorConfig.for_repo(".", state_root=temporary)
+            spool = OfflineCommandSpool(
+                config.offline_command_queue_root,
+                repository_key=config.repository_key,
+            )
+            self.assertEqual(0, spool.snapshot().pending)
+
+    def test_offline_session_status_change_is_not_queued(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            output = StringIO()
+            with redirect_stdout(output):
+                exit_code = cli.main(
+                    [
+                        "--repo-root",
+                        ".",
+                        "--state-root",
+                        temporary,
+                        "--json",
+                        "session",
+                        "set-status",
+                        "active",
+                        "--session-id",
+                        "session-a",
+                    ]
+                )
+
+            self.assertEqual(3, exit_code)
+            config = CoordinatorConfig.for_repo(".", state_root=temporary)
+            spool = OfflineCommandSpool(
+                config.offline_command_queue_root,
+                repository_key=config.repository_key,
+            )
+            self.assertEqual(0, spool.snapshot().pending)
+
+    def test_ambiguous_connection_loss_is_not_queued_after_client_dispatch_begins(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            client = mock.Mock()
+            client.command.side_effect = CoordinatorClientError(
+                "offline",
+                "connection lost",
+                details={"transport": "connection_uncertain"},
+            )
+            output = StringIO()
+            with (
+                mock.patch.object(CoordinatorClient, "from_runtime", return_value=client),
+                redirect_stdout(output),
+            ):
+                exit_code = cli.main(
+                    [
+                        "--repo-root",
+                        ".",
+                        "--state-root",
+                        temporary,
+                        "--json",
+                        "session",
+                        "heartbeat",
+                        "--session-id",
+                        "session-a",
+                    ]
+                )
+
+            self.assertEqual(3, exit_code)
+            config = CoordinatorConfig.for_repo(".", state_root=temporary)
+            spool = OfflineCommandSpool(
+                config.offline_command_queue_root,
+                repository_key=config.repository_key,
+            )
+            self.assertEqual(0, spool.snapshot().pending)
+
+    def test_healthy_status_replays_pending_work_before_returning(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            config = CoordinatorConfig.for_repo(".", state_root=temporary)
+            spool = OfflineCommandSpool(
+                config.offline_command_queue_root,
+                repository_key=config.repository_key,
+            )
+            spool.enqueue("session.heartbeat", {"session_id": "session-a"})
+            client = mock.Mock()
+            client.health.return_value = {"status": "ok"}
+            arguments = cli._parser().parse_args(
+                ["--repo-root", ".", "--state-root", temporary, "status"]
+            )
+
+            with mock.patch.object(CoordinatorClient, "from_runtime", return_value=client):
+                result = cli._run(arguments)
+
+            self.assertEqual("ok", result["status"])
+            self.assertEqual({"acknowledged": 1, "failed": 0, "quarantined": 0, "retained": 0}, result["offlineReplay"])
+            client.command.assert_called_once_with(
+                "session.heartbeat", {"session_id": "session-a"}
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()

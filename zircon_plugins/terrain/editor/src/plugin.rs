@@ -93,38 +93,32 @@ fn terrain_authoring_batch() -> EditorAuthoringContributionBatch {
     let sculpt = operation("terrain.authoring.sculpt");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(
+            EditorCommandDescriptor::operation(
                 import_heightfield.clone(),
                 "Import Terrain Heightfield",
             )
             .with_menu_path("Plugins/Terrain/Import Heightfield")
             .with_payload_schema_id("terrain.import_heightfield.v1")
             .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
+            EditorCommandDescriptor::operation(
                 import_weightmap.clone(),
                 "Import Terrain Weightmap",
             )
             .with_menu_path("Plugins/Terrain/Import Weightmap")
             .with_payload_schema_id("terrain.import_weightmap.v1")
             .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                create.clone(),
-                "Create Terrain Heightfield",
-            )
-            .with_menu_path("Plugins/Terrain/Create Heightfield")
-            .with_payload_schema_id("terrain.create_heightfield.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(open.clone(), "Open Terrain")
+            EditorCommandDescriptor::operation(create.clone(), "Create Terrain Heightfield")
+                .with_menu_path("Plugins/Terrain/Create Heightfield")
+                .with_payload_schema_id("terrain.create_heightfield.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(open.clone(), "Open Terrain")
                 .with_menu_path("Plugins/Terrain/Open Terrain Asset")
                 .with_payload_schema_id("terrain.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(
-                sculpt.clone(),
-                "Activate Terrain Sculpt Tool",
-            )
-            .with_menu_path("Plugins/Terrain/Sculpt")
-            .with_payload_schema_id("terrain.activate_sculpt_tool.v1")
-            .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(sculpt.clone(), "Activate Terrain Sculpt Tool")
+                .with_menu_path("Plugins/Terrain/Sculpt")
+                .with_payload_schema_id("terrain.activate_sculpt_tool.v1")
+                .with_required_capabilities([CAPABILITY]),
         ],
         menu_items: vec![
             menu_item("Plugins/Terrain/Import Heightfield", &import_heightfield),

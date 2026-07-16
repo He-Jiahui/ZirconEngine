@@ -5,16 +5,14 @@ use std::time::{Duration, Instant};
 use crate::core::framework::asset::ResourceManager;
 use crate::core::resource::{ResourceEventKind, ResourceKind, ResourceState, RuntimeResourceState};
 
-use crate::asset::project::{ProjectManifest, ProjectPaths};
+use crate::asset::project::{AssetMetaDocument, ProjectManager, ProjectManifest, ProjectPaths};
 use crate::asset::tests::project::unique_temp_project_root;
 use crate::asset::tests::support::{
-    write_checker_png, write_default_material, write_default_scene, write_triangle_obj,
-    write_valid_wgsl,
+    read_project_material, write_checker_png, write_default_material, write_default_scene,
+    write_project_material, write_triangle_obj, write_valid_wgsl,
 };
-use crate::asset::watch::AssetChangeKind;
-use crate::asset::{
-    AssetImporterCapabilityStatus, AssetManager, AssetUri, MaterialAsset, ProjectAssetManager,
-};
+use crate::asset::watch::{AssetChange, AssetChangeKind};
+use crate::asset::{AssetImporterCapabilityStatus, AssetManager, AssetUri, ProjectAssetManager};
 
 mod model_import;
 mod project_open;

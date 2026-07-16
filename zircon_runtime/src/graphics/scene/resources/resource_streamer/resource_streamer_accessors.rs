@@ -24,6 +24,7 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::ResourceId;
 use crate::graphics::shader::ShaderTemplateInclude;
+use crate::graphics::GraphicsError;
 
 mod material_capture;
 #[cfg(test)]
@@ -36,8 +37,16 @@ use super::super::{
 use super::ResourceStreamer;
 
 impl ResourceStreamer {
-    pub(crate) fn asset_manager(&self) -> Arc<ProjectAssetManager> {
-        self.asset_manager.clone()
+    pub(crate) fn asset_manager(&self) -> Result<Arc<ProjectAssetManager>, GraphicsError> {
+        self.asset_manager_access
+            .resolve()
+            .map_err(|error| GraphicsError::Asset(error.to_string()))
+    }
+
+    #[cfg(test)]
+    fn test_asset_manager(&self) -> Arc<ProjectAssetManager> {
+        self.asset_manager()
+            .expect("test ProjectAssetManager runtime must remain available")
     }
 
     pub(crate) fn model(&self, id: &ResourceId) -> Option<&Arc<GpuModelResource>> {
@@ -77,17 +86,18 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ModelAssetManagementRecord> {
-        self.asset_manager.model_asset_management_record(*id)
+        self.test_asset_manager().model_asset_management_record(*id)
     }
 
     #[cfg(test)]
     pub(crate) fn model_asset_management_records(&self) -> Vec<ModelAssetManagementRecord> {
-        self.asset_manager.model_asset_management_records()
+        self.test_asset_manager().model_asset_management_records()
     }
 
     #[cfg(test)]
     pub(crate) fn model_asset_management_record_set(&self) -> ModelAssetManagementRecordSet {
-        self.asset_manager.model_asset_management_record_set()
+        self.test_asset_manager()
+            .model_asset_management_record_set()
     }
 
     #[cfg(test)]
@@ -108,7 +118,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<Result<MeshAssetOverview, MeshValidationError>> {
-        self.asset_manager
+        self.test_asset_manager()
             .load_mesh_asset(*id)
             .ok()
             .map(|asset| asset.overview())
@@ -119,7 +129,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<Result<MeshAssetManagementRecord, MeshValidationError>> {
-        self.asset_manager.mesh_asset_management_record(*id)
+        self.test_asset_manager().mesh_asset_management_record(*id)
     }
 
     #[cfg(test)]
@@ -129,17 +139,18 @@ impl ResourceStreamer {
         ResourceId,
         Result<MeshAssetManagementRecord, MeshValidationError>,
     )> {
-        self.asset_manager.mesh_asset_management_record_results()
+        self.test_asset_manager()
+            .mesh_asset_management_record_results()
     }
 
     #[cfg(test)]
     pub(crate) fn mesh_asset_management_record_set(&self) -> MeshAssetManagementRecordSet {
-        self.asset_manager.mesh_asset_management_record_set()
+        self.test_asset_manager().mesh_asset_management_record_set()
     }
 
     #[cfg(test)]
     pub(crate) fn scene_asset_overview(&self, id: &ResourceId) -> Option<SceneAssetOverview> {
-        self.asset_manager
+        self.test_asset_manager()
             .load_scene_asset(*id)
             .ok()
             .map(|asset| asset.overview())
@@ -150,32 +161,34 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<SceneAssetManagementRecord> {
-        self.asset_manager.scene_asset_management_record(*id)
+        self.test_asset_manager().scene_asset_management_record(*id)
     }
 
     #[cfg(test)]
     pub(crate) fn scene_asset_management_records(&self) -> Vec<SceneAssetManagementRecord> {
-        self.asset_manager.scene_asset_management_records()
+        self.test_asset_manager().scene_asset_management_records()
     }
 
     #[cfg(test)]
     pub(crate) fn scene_asset_management_record_set(&self) -> SceneAssetManagementRecordSet {
-        self.asset_manager.scene_asset_management_record_set()
+        self.test_asset_manager()
+            .scene_asset_management_record_set()
     }
 
     #[cfg(test)]
     pub(crate) fn scene_entity_management_records(&self) -> Vec<SceneEntityManagementRecord> {
-        self.asset_manager.scene_entity_management_records()
+        self.test_asset_manager().scene_entity_management_records()
     }
 
     #[cfg(test)]
     pub(crate) fn scene_entity_management_record_set(&self) -> SceneEntityManagementRecordSet {
-        self.asset_manager.scene_entity_management_record_set()
+        self.test_asset_manager()
+            .scene_entity_management_record_set()
     }
 
     #[cfg(test)]
     pub(crate) fn material_asset_overview(&self, id: &ResourceId) -> Option<MaterialAssetOverview> {
-        self.asset_manager
+        self.test_asset_manager()
             .load_material_asset(*id)
             .ok()
             .map(|asset| asset.overview())
@@ -186,17 +199,20 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<MaterialAssetManagementRecord> {
-        self.asset_manager.material_asset_management_record(*id)
+        self.test_asset_manager()
+            .material_asset_management_record(*id)
     }
 
     #[cfg(test)]
     pub(crate) fn material_asset_management_records(&self) -> Vec<MaterialAssetManagementRecord> {
-        self.asset_manager.material_asset_management_records()
+        self.test_asset_manager()
+            .material_asset_management_records()
     }
 
     #[cfg(test)]
     pub(crate) fn material_asset_management_record_set(&self) -> MaterialAssetManagementRecordSet {
-        self.asset_manager.material_asset_management_record_set()
+        self.test_asset_manager()
+            .material_asset_management_record_set()
     }
 
     #[cfg(test)]
@@ -204,7 +220,7 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ShaderReadinessReport> {
-        self.asset_manager.shader_asset_readiness_report(*id)
+        self.test_asset_manager().shader_asset_readiness_report(*id)
     }
 
     #[cfg(test)]
@@ -212,7 +228,8 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ShaderAssetReadinessSummary> {
-        self.asset_manager.shader_asset_readiness_summary(*id)
+        self.test_asset_manager()
+            .shader_asset_readiness_summary(*id)
     }
 
     #[cfg(test)]
@@ -220,22 +237,24 @@ impl ResourceStreamer {
         &self,
         id: &ResourceId,
     ) -> Option<ShaderAssetManagementRecord> {
-        self.asset_manager.shader_asset_management_record(*id)
+        self.test_asset_manager()
+            .shader_asset_management_record(*id)
     }
 
     #[cfg(test)]
     pub(crate) fn shader_asset_management_records(&self) -> Vec<ShaderAssetManagementRecord> {
-        self.asset_manager.shader_asset_management_records()
+        self.test_asset_manager().shader_asset_management_records()
     }
 
     #[cfg(test)]
     pub(crate) fn shader_asset_management_record_set(&self) -> ShaderAssetManagementRecordSet {
-        self.asset_manager.shader_asset_management_record_set()
+        self.test_asset_manager()
+            .shader_asset_management_record_set()
     }
 
     #[cfg(test)]
     pub(crate) fn asset_management_record_sets(&self) -> AssetManagementRecordSets {
-        self.asset_manager
+        self.test_asset_manager()
             .asset_management_record_sets_with_prepared_materials(
                 self.material_management_record_set(),
             )
@@ -421,14 +440,23 @@ impl ResourceStreamer {
         &self,
         shader_id: &ResourceId,
     ) -> Vec<ShaderTemplateInclude> {
+        let Ok(asset_manager) = self.asset_manager() else {
+            return Vec::new();
+        };
         let mut includes = Vec::new();
         let mut visited = HashSet::new();
-        self.collect_shader_module_include_sources(shader_id, &mut visited, &mut includes);
+        self.collect_shader_module_include_sources(
+            asset_manager.as_ref(),
+            shader_id,
+            &mut visited,
+            &mut includes,
+        );
         includes
     }
 
     fn collect_shader_module_include_sources(
         &self,
+        asset_manager: &ProjectAssetManager,
         shader_id: &ResourceId,
         visited: &mut HashSet<ResourceId>,
         includes: &mut Vec<ShaderTemplateInclude>,
@@ -443,7 +471,7 @@ impl ResourceStreamer {
             let Some(reference) = import.redirect.as_ref() else {
                 continue;
             };
-            let Some(import_id) = self.asset_manager.resolve_asset_id(&reference.locator) else {
+            let Some(import_id) = asset_manager.resolve_asset_id(&reference.locator) else {
                 continue;
             };
             if let Some(import_shader) = self.shaders.get(&import_id) {
@@ -456,7 +484,12 @@ impl ResourceStreamer {
                     }
                 }
             }
-            self.collect_shader_module_include_sources(&import_id, visited, includes);
+            self.collect_shader_module_include_sources(
+                asset_manager,
+                &import_id,
+                visited,
+                includes,
+            );
         }
     }
 

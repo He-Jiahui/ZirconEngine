@@ -97,26 +97,23 @@ fn tilemap_authoring_batch() -> EditorAuthoringContributionBatch {
     let paint = operation("tilemap_2d.authoring.paint");
     EditorAuthoringContributionBatch {
         commands: vec![
-            EditorCommandDescriptor::pending_operation(
-                import_tiled.clone(),
-                "Import Tiled Tilemap",
-            )
-            .with_menu_path("Plugins/Tilemap 2D/Import Tiled")
-            .with_payload_schema_id("tilemap_2d.import_tiled.v1")
-            .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(create_tilemap.clone(), "Create Tilemap")
+            EditorCommandDescriptor::operation(import_tiled.clone(), "Import Tiled Tilemap")
+                .with_menu_path("Plugins/Tilemap 2D/Import Tiled")
+                .with_payload_schema_id("tilemap_2d.import_tiled.v1")
+                .with_required_capabilities([CAPABILITY]),
+            EditorCommandDescriptor::operation(create_tilemap.clone(), "Create Tilemap")
                 .with_menu_path("Plugins/Tilemap 2D/Create Tilemap")
                 .with_payload_schema_id("tilemap_2d.create_tilemap.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(create_tileset.clone(), "Create Tileset")
+            EditorCommandDescriptor::operation(create_tileset.clone(), "Create Tileset")
                 .with_menu_path("Plugins/Tilemap 2D/Create Tileset")
                 .with_payload_schema_id("tilemap_2d.create_tileset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(open.clone(), "Open Tilemap")
+            EditorCommandDescriptor::operation(open.clone(), "Open Tilemap")
                 .with_menu_path("Plugins/Tilemap 2D/Open Tilemap Asset")
                 .with_payload_schema_id("tilemap_2d.open_asset.v1")
                 .with_required_capabilities([CAPABILITY]),
-            EditorCommandDescriptor::pending_operation(paint.clone(), "Paint Tilemap")
+            EditorCommandDescriptor::operation(paint.clone(), "Paint Tilemap")
                 .with_menu_path("Plugins/Tilemap 2D/Paint")
                 .with_payload_schema_id("tilemap_2d.paint.v1")
                 .with_required_capabilities([CAPABILITY]),

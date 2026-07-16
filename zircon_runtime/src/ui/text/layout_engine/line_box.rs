@@ -1,26 +1,24 @@
-use crate::graphics::text::layout::{
+use crate::text::layout::{
     justify_line_advances, measure_line_width_with_provider,
     measured_grapheme_widths_with_provider, tab_aligned_advances,
 };
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::SharedTextLayoutSession;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::{UiResolvedStyle, UiTextAlign, UiTextDirection};
 
+use super::super::adapter::text_style;
 use super::candidate_line::CandidateLine;
 use super::direction::is_rtl_direction;
 
 pub(super) const MIN_TEXT_FONT_SIZE: f32 = 1.0;
 
-pub(super) fn resolve_line_widths_with_provider<P>(
+pub(super) fn resolve_line_widths_with_provider(
     line: &CandidateLine,
     style: &UiResolvedStyle,
     frame_width: f32,
     is_last_line: bool,
-    provider: &mut P,
-) -> (f32, Vec<f32>, f32)
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> (f32, Vec<f32>, f32) {
     let natural_advances = line_grapheme_advances_with_provider(&line.text, style, provider);
     let natural_width = natural_advances.iter().sum();
     if should_justify_line(line, style, frame_width, is_last_line) {
@@ -36,15 +34,13 @@ where
     (natural_width, natural_advances, line_width)
 }
 
-fn line_grapheme_advances_with_provider<P>(
+fn line_grapheme_advances_with_provider(
     text: &str,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> Vec<f32>
-where
-    P: TextShapeRunProvider + ?Sized,
-{
-    let advances = measured_grapheme_widths_with_provider(text, style, provider);
+    provider: &mut SharedTextLayoutSession,
+) -> Vec<f32> {
+    let neutral_style = text_style(style);
+    let advances = measured_grapheme_widths_with_provider(text, &neutral_style, provider);
     if !text.contains('\t') {
         return advances;
     }
@@ -52,8 +48,8 @@ where
     tab_aligned_advances(
         text,
         &advances,
-        style,
-        measure_line_width_with_provider(" ", style, provider),
+        &neutral_style,
+        measure_line_width_with_provider(" ", &neutral_style, provider),
     )
 }
 

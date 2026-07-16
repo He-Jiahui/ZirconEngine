@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
     (
         "src/runtime_api/api_table.rs",
-        &["ZrHostApiV1", "ZrRuntimeApiV1"],
+        &["ZrHostApiV1", "ZrRuntimeApiV2"],
     ),
     (
         "src/plugin_api.rs",
@@ -23,7 +23,7 @@ const FUNCTION_TABLE_SOURCES: &[(&str, &[&str])] = &[
 ];
 const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/runtime_api/api_table.rs", "ZrHostApiV1", 4),
-    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV1", 13),
+    ("src/runtime_api/api_table.rs", "ZrRuntimeApiV2", 19),
     ("src/plugin_api.rs", "ZrHostApiV3", 7),
     ("src/plugin_api.rs", "ZrHostEcsApiV1", 3),
     ("src/plugin_api.rs", "ZrHostAssetApiV1", 1),
@@ -33,7 +33,7 @@ const FUNCTION_TABLE_FIELD_COUNTS: &[(&str, &str, usize)] = &[
     ("src/plugin_api.rs", "ZrPluginStateSnapshotApiV1", 4),
     ("src/plugin_api.rs", "ZrPluginApiV1", 4),
 ];
-const RUNTIME_API_SESSION_OPERATION_FIELDS: &[&str] = &[
+const RUNTIME_API_V2_SESSION_OPERATION_FIELDS: &[&str] = &[
     "create_session",
     "destroy_session",
     "handle_event",
@@ -45,6 +45,12 @@ const RUNTIME_API_SESSION_OPERATION_FIELDS: &[&str] = &[
     "profile_control",
     "tick_frame",
     "drain_host_requests",
+    "subscribe_plugin_event",
+    "unsubscribe_plugin_event",
+    "drain_plugin_events",
+    "submit_operation",
+    "poll_operation",
+    "harvest_operation",
 ];
 const FORBIDDEN_PUBLIC_SIGNATURE_NEEDLES: &[&str] = &["Box<dyn", "Rc<", "Arc<dyn", "impl Trait"];
 
@@ -103,8 +109,9 @@ fn function_table_field_counts_match_runtime_10_inventory() {
 #[test]
 fn runtime_api_session_operation_surface_matches_inventory() {
     let source = read_manifest_source("src/runtime_api/api_table.rs");
-    let fields = discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV1");
-    let operation_fields = fields
+    let v2_fields =
+        discover_struct_fields(&source, "src/runtime_api/api_table.rs", "ZrRuntimeApiV2");
+    let v2_operation_fields = v2_fields
         .iter()
         .filter_map(|field| match field.as_str() {
             "abi_version" | "size_bytes" => None,
@@ -113,8 +120,47 @@ fn runtime_api_session_operation_surface_matches_inventory() {
         .collect::<Vec<_>>();
 
     assert_eq!(
-        operation_fields, RUNTIME_API_SESSION_OPERATION_FIELDS,
-        "ZrRuntimeApiV1 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
+        v2_operation_fields, RUNTIME_API_V2_SESSION_OPERATION_FIELDS,
+        "ZrRuntimeApiV2 session operation surface changed; update runtime 10 docs and failure-path tests before changing the guard"
+    );
+}
+
+#[test]
+fn runtime_table_v1_export_and_loader_fallback_stay_hard_deleted() {
+    let sources = [
+        (
+            "zircon_runtime_interface/src/runtime_api/api_table.rs",
+            read_manifest_source("src/runtime_api/api_table.rs"),
+        ),
+        (
+            "zircon_runtime/src/dynamic_api/exports.rs",
+            read_repo_file("zircon_runtime/src/dynamic_api/exports.rs"),
+        ),
+        (
+            "zircon_app/src/entry/runtime_library/loaded_runtime.rs",
+            read_repo_file("zircon_app/src/entry/runtime_library/loaded_runtime.rs"),
+        ),
+    ];
+    let forbidden = [
+        "ZrRuntimeApiV1",
+        "ZrRuntimeGetApiFnV1",
+        "ZR_RUNTIME_GET_API_SYMBOL_V1",
+        "zircon_runtime_get_api_v1",
+        "RuntimeApi::V1",
+    ];
+    let violations = sources
+        .iter()
+        .flat_map(|(path, source)| {
+            forbidden.iter().filter_map(move |needle| {
+                source.contains(needle).then(|| format!("{path}: {needle}"))
+            })
+        })
+        .collect::<Vec<_>>();
+
+    assert!(
+        violations.is_empty(),
+        "the runtime table is V2-only; remove old table/export/loader fallback:\n{}",
+        violations.join("\n")
     );
 }
 
@@ -128,7 +174,7 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
         "field addition, removal, reorder, type change, or meaning change creates a new table version",
         "does not rely on silent tail-field extension under the same version",
         "`size_bytes` remains a diagnostic/validation field",
-        "`ZIRCON_RUNTIME_ABI_VERSION_V1` governs the dynamic runtime C ABI DTO family",
+        "`ZIRCON_RUNTIME_ABI_VERSION_V1` continues to govern unchanged DTO records and `ZrHostApiV1`",
     ] {
         assert!(
             convergence_doc.contains(phrase),
@@ -145,14 +191,14 @@ fn runtime_10_version_strategy_rejects_in_place_table_shape_changes() {
 fn repr_c_guard_fails_on_missing_local_attribute() {
     let source = r#"
 #[derive(Clone, Copy, Debug)]
-pub struct ZrRuntimeApiV1 {
+pub struct ZrSyntheticApiV1 {
     pub abi_version: u32,
 }
 "#;
 
     assert!(
         std::panic::catch_unwind(|| {
-            assert_repr_c_before_struct(source, "synthetic_api.rs", "ZrRuntimeApiV1");
+            assert_repr_c_before_struct(source, "synthetic_api.rs", "ZrSyntheticApiV1");
         })
         .is_err(),
         "function table guard must reject a table without a local #[repr(C)]"

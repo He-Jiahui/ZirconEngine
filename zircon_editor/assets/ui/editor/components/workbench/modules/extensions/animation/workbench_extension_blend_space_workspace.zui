@@ -20,6 +20,7 @@ widgets = [
   "res://ui/editor/components/workbench/primitives/data/workbench_table_row.zui#WorkbenchTableRow",
   "res://ui/editor/components/workbench/primitives/data/workbench_timeline_strip.zui#WorkbenchTimelineStrip",
   "res://ui/editor/components/workbench/primitives/data/workbench_tree_row.zui#WorkbenchTreeRow",
+  "res://ui/editor/components/workbench/primitives/chrome/workbench_chip.zui#WorkbenchChip",
   "res://ui/editor/components/workbench/primitives/chrome/workbench_section_title.zui#WorkbenchSectionTitle",
   "res://ui/editor/components/workbench/composites/chrome/workbench_panel_header.zui#WorkbenchPanelHeader",
   "res://ui/editor/components/workbench/primitives/inputs/workbench_tab.zui#WorkbenchTab",
@@ -269,21 +270,21 @@ layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 component = "VerticalGroup"
 control_id = "WorkbenchExtensionBlendSpacePreviewViewport"
 classes = ["workbench-panel", "workbench-module-canvas"]
-layout = { clip = true, container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 132.0, preferred = 156.0, max = 184.0, stretch = "Fixed" } }
+layout = { clip = true, container = { kind = "VerticalBox", gap = 2.0 }, width = { stretch = "Stretch" }, height = { min = 164.0, preferred = 184.0, max = 216.0, stretch = "Fixed" } }
 children = [{ node = "blend_space_preview_toolbar" }, { node = "blend_space_preview_viewport_image" }, { node = "blend_space_preview_status" }]
 
 [nodes.blend_space_preview_toolbar]
 component = "HorizontalGroup"
 control_id = "WorkbenchExtensionBlendSpacePreviewToolbar"
 classes = ["workbench-panel-toolbar"]
-layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 20.0, preferred = 22.0, max = 24.0, stretch = "Fixed" } }
+layout = { container = { kind = "HorizontalBox", gap = 4.0 }, width = { stretch = "Stretch" }, height = { min = 28.0, preferred = 30.0, max = 32.0, stretch = "Fixed" } }
 children = [{ node = "blend_space_preview_camera" }, { node = "blend_space_preview_toolbar_fill" }, { node = "blend_space_preview_lighting" }]
 
 [nodes.blend_space_preview_camera]
-component = "WorkbenchCaption"
+component = "WorkbenchChip"
 control_id = "WorkbenchExtensionBlendSpacePreviewCamera"
 props = { text = "Perspective" }
-layout = { width = { min = 66.0, preferred = 72.0, max = 80.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 70.0, preferred = 80.0, max = 96.0, stretch = "Fixed" } }
 
 [nodes.blend_space_preview_toolbar_fill]
 component = "Container"
@@ -291,10 +292,10 @@ control_id = "WorkbenchExtensionBlendSpacePreviewToolbarFill"
 layout = { width = { stretch = "Stretch" }, height = { stretch = "Stretch" } }
 
 [nodes.blend_space_preview_lighting]
-component = "WorkbenchCaption"
+component = "WorkbenchChip"
 control_id = "WorkbenchExtensionBlendSpacePreviewLighting"
 props = { text = "Lit" }
-layout = { width = { min = 22.0, preferred = 26.0, max = 30.0, stretch = "Fixed" }, height = { stretch = "Stretch" } }
+layout = { width = { min = 40.0, preferred = 44.0, max = 52.0, stretch = "Fixed" } }
 
 [nodes.blend_space_preview_viewport_image]
 component = "WorkbenchPreviewViewport"

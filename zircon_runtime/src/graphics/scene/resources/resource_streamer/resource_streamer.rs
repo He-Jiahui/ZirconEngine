@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
+use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     RenderCameraTargetGraphImportReport, RenderCameraTargetWritebackReport,
 };
@@ -17,7 +17,7 @@ use super::super::{
 };
 
 pub(crate) struct ResourceStreamer {
-    pub(super) asset_manager: Arc<ProjectAssetManager>,
+    pub(super) asset_manager_access: ProjectAssetManagerAccess,
     pub(super) shading_model_registry: ShadingModelRegistry,
     pub(super) models: HashMap<ResourceId, PreparedModel>,
     pub(super) meshes: HashMap<ResourceId, PreparedMesh>,

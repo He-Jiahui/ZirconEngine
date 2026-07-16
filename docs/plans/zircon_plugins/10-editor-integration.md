@@ -1,5 +1,19 @@
 # 10 · 插件编辑器集成规范（Editor Plugin 约定与 AI Workbench 风格）
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "plugins-10-editor-integration",
+  "goal": "维护插件 Editor 与 Runtime UI 之间的共享集成合同、受管验证和跨计划回传。",
+  "milestones": [
+    {"id": "M1", "title": "Shared UI integration support", "depends_on": []}
+  ]
+}
+```
+
+<!-- Workflow topology is maintained independently from milestone output records. -->
+<!-- M1 closeout is submitted through the shared UI integration owner session. -->
+
 > 状态：工程化细化版 v2 · 优先级：P1（横切规范，随各插件 Editor 里程碑落地）
 > 关联：`zircon_editor/src/core/editor_plugin.rs`（`EditorPlugin` trait）、`zircon_editor/src/core/editor_extension.rs`（`EditorExtensionRegistry`）
 > UI 参考：`docs/ui-and-layout/ai-workbench-style/`（STYLE-NOTES.md + 62 张 workbench 布局图）

@@ -65,7 +65,6 @@ const DOCK_SUBTITLE_CONTROL_ID: &str = "DockSubtitle";
 const STATUS_PRIMARY_CONTROL_ID: &str = "StatusPrimaryLabel";
 const STATUS_SECONDARY_CONTROL_ID: &str = "StatusSecondaryLabel";
 const STATUS_VIEWPORT_CONTROL_ID: &str = "StatusViewportLabel";
-const STATUS_BAR_PANEL_CONTROL_ID: &str = "StatusBarPanel";
 const OUTER_MARGIN_PX: f32 = 0.0;
 const RAIL_WIDTH_PX: f32 = 34.0;
 const MENU_TOP_BAR_HEIGHT_PX: f32 = 24.0;

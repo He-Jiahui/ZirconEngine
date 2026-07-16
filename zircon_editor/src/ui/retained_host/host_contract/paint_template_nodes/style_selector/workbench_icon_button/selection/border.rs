@@ -1,8 +1,7 @@
 use super::super::model::WorkbenchIconButtonContext;
 use super::super::palette::workbench_icon_button_palette;
-use super::super::state::is_unavailable_icon_button_state;
+use super::super::state::{icon_button_node_is_hot, is_unavailable_icon_button_state};
 use super::declared::declared_icon_button_border;
-use super::toolbar_chrome::icon_toolbar_normal_chrome_enabled;
 use crate::ui::retained_host::host_contract::data::TemplatePaneNodeData;
 use crate::ui::retained_host::host_contract::paint_theme::{
     current_host_metrics, HostControlMetrics,
@@ -22,6 +21,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
     if danger && context == WorkbenchIconButtonContext::Panel {
         return declared_icon_button_border(node).or(Some(palette.error));
     }
+    if context == WorkbenchIconButtonContext::Toolbar {
+        // Starship's ToolbarButton selection is a rounded fill, not an input-like
+        // outline. Keep an outline exclusively for keyboard focus visibility.
+        return (state == UiPainterResolvedState::Focused && !icon_button_node_is_hot(node))
+            .then_some(palette.focus_ring);
+    }
     match state {
         UiPainterResolvedState::Pressed
         | UiPainterResolvedState::Focused
@@ -37,10 +42,6 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
         UiPainterResolvedState::Normal => {
             if context == WorkbenchIconButtonContext::Panel {
                 declared_icon_button_border(node).or(Some(palette.panel_border))
-            } else if context == WorkbenchIconButtonContext::Toolbar
-                && icon_toolbar_normal_chrome_enabled(node)
-            {
-                Some(palette.border)
             } else {
                 None
             }
@@ -62,11 +63,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn icon_bo
     state: UiPainterResolvedState,
     metrics: HostControlMetrics,
 ) -> f32 {
-    if context == WorkbenchIconButtonContext::Panel
-        || (context == WorkbenchIconButtonContext::Toolbar
-            && icon_toolbar_normal_chrome_enabled(node))
-        || state != UiPainterResolvedState::Normal
-    {
+    if context == WorkbenchIconButtonContext::Toolbar {
+        return (state == UiPainterResolvedState::Focused && !icon_button_node_is_hot(node))
+            .then_some(metrics.border_width)
+            .unwrap_or(0.0);
+    }
+    if context == WorkbenchIconButtonContext::Panel || state != UiPainterResolvedState::Normal {
         metrics.border_width
     } else {
         0.0

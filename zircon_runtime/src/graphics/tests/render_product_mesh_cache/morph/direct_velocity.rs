@@ -47,7 +47,7 @@ fn capture_direct_morph_velocity_product() -> DirectMorphVelocityCapture {
         "product-direct-morph-velocity-mesh-v1",
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(128, 128);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

@@ -163,15 +163,24 @@ zircon_plugins/zr_vm_language/runtime/src/
 
 | 里程碑 | 状态 | 产出记录 / 边界 |
 |---|---|---|
-| M1 | 代码与验证完成（服务收口待共享暂存释放） | [`08/2026-07-14-zr-vm-m1-output-records.md`](08/2026-07-14-zr-vm-m1-output-records.md)；derive/统一注册契约、`fixed/**` 硬切、VM 反向注册与 dense call-site 已完成，Runtime 15 原复现 1/1、`ecs_reflect` 61/61、插件默认路径 13/13 通过。共享 main 存在其他 Session 的 staged 内容，按 closeout gate 未执行 M1 服务提交。 |
+| M1 | 完成，等待协调器 validation-copy 与里程碑提交 | [`08/2026-07-14-zr-vm-m1-output-records.md`](08/2026-07-14-zr-vm-m1-output-records.md)；derive/统一注册契约、`fixed/**` 硬切及初版 dense call-site 已随共享 main 提交 `facb719f` 落库。本轮进一步完成 VM-backed 完整 JSON 闭环、clean builtin catalog、retained payload 事务、trusted manifest namespace、闭合 `List<T>`/`Map<String,T>` grammar、prepared candidate/committed epoch 身份与 catalog provenance、opaque token、自守卫 name resolution 与 unload rollback。最终 Windows 证据为插件 **21/21**、Runtime reflection **29/29**、hot reload **16/16**、`vm_type_backing` **3/3**、dynamic components **14/14**；failure validator 115/0、插件结构审计全 0，独立复核 0 Critical / 0 Important。主计划状态与跨计划 `fixed-*` 回执由各自 owner Session 独立持有，当前 M1 output record Files 为 98/98 unique。 |
 | M2 | 完成 | [`08/2026-07-13-zr-vm-m2-output-records.md`](08/2026-07-13-zr-vm-m2-output-records.md)；四通道、capability gate、世代回调与 Windows/default/真实后端验证已有记录。 |
 | M3 | 完成 | [`08/2026-07-13-zr-vm-m3-output-records.md`](08/2026-07-13-zr-vm-m3-output-records.md)；runtime-neutral GC 协约与默认插件路径通过 81 + 11 项 Windows 测试。逻辑 `script.gc_step` 使用包所有权注册 ID `zr_vm_language.script.gc_step`。 |
-| M4 | 待实施 | 当前 `E:/Git/zr_vm/build` 不存在；真实 ZrVM root/collector 接通与 feature 矩阵仍属本里程碑。 |
-| M5 | 完成（真实后端 feature 验证归 M4） | [`08/2026-07-14-zr-vm-m5-output-records.md`](08/2026-07-14-zr-vm-m5-output-records.md)；v2 完整 envelope、权威类型表、统一反射 schema、缺省/改名迁移和精确回滚已通过 86 项 Script VM 回归。真实 ZrVM 已接 `saveState`/`restoreState` 完整 blob + 可选 `stateSchema` 协议，但 `E:/Git/zr_vm/build` 缺失，feature 编译/执行仍由 M4 验收。 |
+| M4 | 待实施（M1 提交后进入） | `E:/Git/zr_vm/build` 当前已存在 Windows import libraries 与 DLL；真实 ZrVM root/collector 接通、`backend-zr-vm` feature 执行和 feature 矩阵属于下一里程碑。 |
+| M5 | 完成（真实后端 feature 验证归 M4） | [`08/2026-07-14-zr-vm-m5-output-records.md`](08/2026-07-14-zr-vm-m5-output-records.md)；v2 完整 envelope、权威类型表、统一反射 schema、缺省/改名迁移和精确回滚已通过 86 项 Script VM 回归。真实 ZrVM 已接 `saveState`/`restoreState` 完整 blob + 可选 `stateSchema` 协议；新出现的外部 build 产物及 feature 编译/执行仍由 M4 验收。 |
 
 - fixed 已修复：[derived-reflection-hard-cut-guard](08/fixed-2026-07-14-derived-reflection-hard-cut-guard.md)
 
 - fixed 已修复：[derived-reflection-visibility-compilation](../zircon_runtime/render/18/fixed-2026-07-14-derived-reflection-visibility-compilation.md)
+
+- fixed 已修复：[milestone-validation-copy-template-scope](08/fixed-2026-07-14-milestone-validation-copy-template-scope.md)
+
+- fixed 已修复：[vm-reflection-catalog-test-support-import-drift](../zircon_editor/editor/02/fixed-2026-07-14-vm-reflection-catalog-test-support-import-drift.md)
+
+- fixed 已修复：[zr-vm-host-modules-runtime-test-owner-drift](../zircon_runtime/runtime/04/fixed-2026-07-14-zr-vm-host-modules-runtime-test-owner-drift.md)
+- fixed 已修复：[dynamic-reflection-json-projection-regression](../zircon_editor/editor/02/fixed-2026-07-14-dynamic-reflection-json-projection-regression.md)
+- fixed 已修复：[vm-dynamic-property-write-structure-regression](../zircon_editor/editor/02/fixed-2026-07-14-vm-dynamic-property-write-structure-regression.md)
+- 2026-07-14 回传后 owner 清单复验：插件受管测试 18/18；Runtime core-min lib-test 早期 scene filter 为 595/596，独立复核确认唯一 `JsonNumber` 失败属于本 M1 的 legacy descriptor 回归而非其他 owner。最终 VM owner 标记与声明类型双向转换修复后，受管旧 ECS 路径为 14/14、反射目录为 16/16；Runtime04 migration-journal 精确回归 1/1。Runtime13/Runtime06 定向结构审计分别为 18/14 sources，均 `missing_source_files = []`、`risks = []`。
 
 ## 6. 验收命令
 

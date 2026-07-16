@@ -18,7 +18,7 @@ use crate::core::editor_extension::EditorExtensionRegistry;
 use crate::core::editor_operation::EditorOperationPath;
 use crate::core::project::{NewProjectDraft, NewProjectTemplate, ProjectAuthority};
 use crate::ui::host::editor_asset_manager::{
-    resolve_editor_asset_manager, EditorAssetCatalogSnapshotRecord,
+    editor_asset_manager_handle, EditorAssetCatalogSnapshotRecord,
 };
 use crate::ui::host::module::{self, EDITOR_MANAGER_NAME};
 use crate::ui::host::EditorHostEventController;
@@ -175,9 +175,14 @@ impl EventRuntimeHarness {
             .open_project(&created.root)
             .expect("event-runtime fixture project should open through EditorManager");
 
-        let catalog = resolve_editor_asset_manager(&self.core.handle())
-            .expect("event-runtime fixture should resolve EditorAssetManager")
-            .catalog_snapshot();
+        let core = self.core.handle();
+        let catalog = zircon_runtime::core::manager::resolve_manager_service(
+            &core,
+            editor_asset_manager_handle(&core)
+                .expect("event-runtime fixture should resolve EditorAssetManager handle"),
+        )
+        .expect("event-runtime fixture should resolve EditorAssetManager")
+        .catalog_snapshot();
         self.runtime.sync_asset_catalog(catalog.clone());
         catalog
     }
@@ -205,7 +210,7 @@ impl EventRuntimeHarness {
         let timeline_open = EditorOperationPath::parse("timeline_sequence.authoring.open").unwrap();
         let mut timeline = EditorExtensionRegistry::default();
         timeline
-            .register_command(EditorCommandDescriptor::pending_operation(
+            .register_command(EditorCommandDescriptor::operation(
                 timeline_open.clone(),
                 "Open Timeline Sequence",
             ))
@@ -238,7 +243,7 @@ impl EventRuntimeHarness {
             (state_machine_open.clone(), "Open Animation State Machine"),
         ] {
             graph
-                .register_command(EditorCommandDescriptor::pending_operation(operation, label))
+                .register_command(EditorCommandDescriptor::operation(operation, label))
                 .unwrap();
         }
         for (kind, operation) in [

@@ -85,7 +85,7 @@ The request and response are JSON-encoded `ProfileControlRequest` and `ProfileCo
 - `export_report`.
 - `reset`.
 
-`ZrRuntimeApiV1` appends `profile_control` after `present_viewport`. It remains optional so hosts can safely load older runtimes by checking the advertised function-table size before reading the field. The required v1 prefix still ends at `capture_frame`; viewport surface present and profile control are both optional extensions. The later Bevy-style time continuation appends `tick_frame` after `profile_control`; that field is not part of profiling, but it keeps the same optional-extension ABI rule.
+`ZrRuntimeApiV2` places `profile_control` after `present_viewport`. The V2 table layout is validated through its operation tail, while capability-optional entries may still be null and are read through offset-gated accessors. The later `tick_frame` field follows `profile_control`; it is not part of profiling but follows the same nullable capability rule. There is no V1 table fallback.
 
 ## Buffer Ownership
 

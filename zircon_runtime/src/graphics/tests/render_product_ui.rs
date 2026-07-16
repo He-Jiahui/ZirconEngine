@@ -44,7 +44,8 @@ fn render_product_ui_compile_order_tracks_core2d_and_core3d_terminal_semantics()
 
 #[test]
 fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -116,7 +117,8 @@ fn render_product_ui_submit_records_graph_pass_order_and_payload_stats() {
 
 #[test]
 fn render_product_ui_submit_keeps_presentation_target_under_dynamic_resolution() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -178,7 +180,7 @@ fn render_product_ui_submit_targets_direct_import_texture_under_dynamic_resoluti
         )
         .expect("texture target insert");
 
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -271,7 +273,8 @@ fn render_product_ui_submit_targets_direct_import_texture_under_dynamic_resoluti
 
 #[test]
 fn render_product_ui_submit_keeps_ui_pixels_over_scene_overlay_product() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

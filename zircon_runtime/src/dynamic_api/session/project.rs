@@ -4,9 +4,10 @@ use std::path::{Path, PathBuf};
 use zircon_runtime_interface::ZrByteSlice;
 
 use crate::asset::project::{ProjectManager, ProjectScriptManifest};
-use crate::asset::{ProjectAssetManager, PROJECT_ASSET_MANAGER_NAME};
+use crate::asset::{asset_manager_handle, project_asset_manager_handle};
 use crate::core::framework::navigation::NavMeshAsset;
-use crate::core::manager::resolve_navigation_manager;
+use crate::core::framework::project::ProjectPluginManifest;
+use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
 use crate::core::CoreHandle;
 use crate::diagnostic_log::write_log;
 use crate::scene::{DynamicSceneAssetReloadQueue, LevelSystem};
@@ -22,6 +23,10 @@ pub(super) struct RuntimeProjectConfig {
 }
 
 impl RuntimeProjectConfig {
+    pub(super) fn from_root(root: impl Into<PathBuf>) -> Self {
+        Self { root: root.into() }
+    }
+
     pub(super) fn from_abi_slice(slice: ZrByteSlice) -> RuntimeProjectResult<Option<Self>> {
         if slice.is_empty() {
             return Ok(None);
@@ -51,19 +56,22 @@ impl RuntimeProjectConfig {
         })?;
         Ok(RuntimeLoadedProjectManifest {
             default_scene: project.manifest().default_scene.to_string(),
+            plugins: project.manifest().plugins.clone(),
             scripts: project.manifest().scripts.clone(),
         })
     }
 
+    pub(super) fn load_plugin_manifest(&self) -> RuntimeProjectResult<ProjectPluginManifest> {
+        self.load_manifest().map(|manifest| manifest.plugins)
+    }
+
     pub(super) fn open_project_assets(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
-        let asset_manager =
-            crate::asset::pipeline::manager::resolve_asset_manager(core).map_err(|source| {
-                RuntimeProjectError::ResolveAssetManager {
-                    root: self.root.clone(),
-                    source,
-                }
+        let asset_manager = asset_manager_handle(core)
+            .and_then(|handle| resolve_manager_service(core, handle))
+            .map_err(|source| RuntimeProjectError::ResolveAssetManager {
+                root: self.root.clone(),
+                source,
             })?;
-        let asset_manager = asset_manager.shared();
         asset_manager
             .open_project(&self.root_display())
             .map(|_| ())
@@ -90,8 +98,8 @@ impl RuntimeProjectConfig {
         &self,
         core: &CoreHandle,
     ) -> RuntimeProjectResult<DynamicSceneAssetReloadQueue> {
-        let asset_manager = core
-            .resolve_manager::<ProjectAssetManager>(PROJECT_ASSET_MANAGER_NAME)
+        let asset_manager = project_asset_manager_handle(core)
+            .and_then(|handle| resolve_manager_service(core, handle))
             .map_err(|source| RuntimeProjectError::ResolveProjectAssetManager {
                 root: self.root.clone(),
                 source,
@@ -126,12 +134,12 @@ impl RuntimeProjectConfig {
                 source,
             }
         })?;
-        let navigation = resolve_navigation_manager(core).map_err(|source| {
-            RuntimeProjectError::ResolveNavigationManager {
+        let navigation = navigation_manager_handle(core)
+            .and_then(|handle| resolve_manager_service(core, handle))
+            .map_err(|source| RuntimeProjectError::ResolveNavigationManager {
                 root: self.root.clone(),
                 source,
-            }
-        })?;
+            })?;
         navigation
             .load_nav_mesh(asset)
             .map(|_| ())
@@ -205,6 +213,7 @@ impl RuntimeProjectConfig {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct RuntimeLoadedProjectManifest {
     default_scene: String,
+    plugins: ProjectPluginManifest,
     scripts: ProjectScriptManifest,
 }
 
@@ -250,6 +259,7 @@ impl RuntimeLoadedProjectManifest {
 #[cfg(test)]
 mod tests {
     use crate::asset::project::ProjectScriptManifest;
+    use crate::core::framework::project::ProjectPluginManifest;
     use crate::script::{
         CapabilitySet, DiscoveredVmPluginPackage, VmPluginManagementPolicy, VmPluginManifest,
         VmPluginPackage, VmPluginPackageSource,
@@ -294,6 +304,7 @@ mod tests {
     fn project_manifest_filters_startup_script_packages() {
         let manifest = RuntimeLoadedProjectManifest {
             default_scene: "res://scenes/main.scene.toml".to_string(),
+            plugins: ProjectPluginManifest::default(),
             scripts: ProjectScriptManifest {
                 package_roots: vec!["scripts".to_string()],
                 startup_packages: vec!["vampire_game".to_string()],
@@ -315,6 +326,7 @@ mod tests {
     fn project_manifest_rejects_missing_startup_script_package() {
         let manifest = RuntimeLoadedProjectManifest {
             default_scene: "res://scenes/main.scene.toml".to_string(),
+            plugins: ProjectPluginManifest::default(),
             scripts: ProjectScriptManifest {
                 package_roots: vec!["scripts".to_string()],
                 startup_packages: vec!["vampire_game".to_string()],

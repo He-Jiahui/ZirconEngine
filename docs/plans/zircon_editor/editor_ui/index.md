@@ -180,14 +180,12 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 
 ## 6. 全局验收与测试基线
 
-按 milestone-first 政策：实现切片期间只做轻量 check，里程碑末进入测试阶段。
+按 [`milestone-validation-policy.md`](../../milestone-validation-policy.md) 执行：实现切片期间只做格式、结构守卫与已知失败的聚焦回归；里程碑末将所有受影响包和接口一次性纳入测试阶段。
 
-- 切片期：`cargo check -p zircon_runtime --lib --locked`、`cargo check -p zircon_editor --lib --locked`
-- 里程碑测试：`cargo test -p zircon_runtime --lib --locked`（按子计划过滤词收窄）、`cargo test -p zircon_editor --lib --locked`、`cargo test -p zircon_runtime_interface --locked`（凡动 interface）
+- 里程碑测试：一次合并的 `cargo check` 覆盖受影响的 runtime/editor/interface targets；随后按子计划过滤词合并运行 `cargo test -p zircon_runtime --lib --locked`、`cargo test -p zircon_editor --lib --locked`，并在 interface 变更时加入 `cargo test -p zircon_runtime_interface --locked`。
 - 组件契约：`zui_asset_governance` 测试 + component-prototype 的 `verify-native-component-contract.mjs` 等握手脚本
-- 集成：`cargo test -p zircon_editor --test integration_contracts --features integration-contracts --locked`
-- 实机验收：`cargo run -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor`
-- 构建纪律沿 CLAUDE.md：共享 `CARGO_TARGET_DIR`、不并行重型构建、优先包级命令。
+- 集成和实机验收：仅在依赖波次收口时运行 `integration_contracts` 与 editor host。
+- 构建纪律沿 [`milestone-validation-policy.md`](../../milestone-validation-policy.md)：开发可并行，Cargo 重型验证由专门验证线合并调度。
 
 ## 7. 全局里程碑依赖格与执行波次
 
@@ -270,7 +268,7 @@ render(rhi/rhi_wgpu) —— UI pass 作为 graph 末端 executor 上屏;见 `doc
 
 ## 10. 编辑器完成阶段记录
 
-> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 Editor UI 总索引中的完成阶段明细已迁入 Editor UI 08 产出目录。
 

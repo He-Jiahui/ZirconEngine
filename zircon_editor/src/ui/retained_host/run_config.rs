@@ -1,9 +1,11 @@
+use crate::core::editor_plugin::EditorPluginRegistrationReport;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default)]
 pub struct EditorHostRunConfig {
     startup_request: Option<EditorGuiStartupRequest>,
     exit_after_first_presented_frame: bool,
+    editor_plugin_registrations: Vec<EditorPluginRegistrationReport>,
 }
 
 impl EditorHostRunConfig {
@@ -21,6 +23,14 @@ impl EditorHostRunConfig {
         self
     }
 
+    pub fn with_editor_plugin_registrations(
+        mut self,
+        registrations: impl IntoIterator<Item = EditorPluginRegistrationReport>,
+    ) -> Self {
+        self.editor_plugin_registrations.extend(registrations);
+        self
+    }
+
     pub fn startup_request(&self) -> Option<&EditorGuiStartupRequest> {
         self.startup_request.as_ref()
     }
@@ -29,8 +39,17 @@ impl EditorHostRunConfig {
         self.exit_after_first_presented_frame
     }
 
-    pub(crate) fn into_startup_request(self) -> Option<EditorGuiStartupRequest> {
-        self.startup_request
+    pub fn editor_plugin_registration_count(&self) -> usize {
+        self.editor_plugin_registrations.len()
+    }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        Option<EditorGuiStartupRequest>,
+        Vec<EditorPluginRegistrationReport>,
+    ) {
+        (self.startup_request, self.editor_plugin_registrations)
     }
 }
 
@@ -61,5 +80,25 @@ mod tests {
             ))
         );
         assert!(config.exit_after_first_presented_frame());
+    }
+
+    #[test]
+    fn editor_host_run_config_carries_composition_root_plugin_registrations() {
+        let descriptor = crate::core::editor_plugin::EditorPluginDescriptor::new(
+            "tests.composed",
+            "Composed",
+            "tests_composed_editor",
+        );
+        let registration = crate::core::editor_plugin::EditorPluginRegistrationReport::from_plugin(
+            &descriptor,
+            descriptor.standalone_package_manifest(),
+        );
+
+        let config = EditorHostRunConfig::new().with_editor_plugin_registrations([registration]);
+
+        assert_eq!(config.editor_plugin_registration_count(), 1);
+        let (_, registrations) = config.into_parts();
+        assert_eq!(registrations.len(), 1);
+        assert_eq!(registrations[0].package_manifest.id, "tests.composed");
     }
 }

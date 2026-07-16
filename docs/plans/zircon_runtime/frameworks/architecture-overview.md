@@ -42,7 +42,7 @@ plan_sources:
                               ┌─────────────────────────────────────────────┐
                               │  zircon_runtime（rlib + cdylib）             │
                               │  引擎实现：门面 + 内部 zr_* 分层 crate（图 2）  │
-                              │  dynamic_api 会话出口（ZrRuntimeApiV1）       │
+                               │  dynamic_api 会话出口（ZrRuntimeApiV2-only）  │
                               └──────────┬──────────────────▲───────────────┘
                                          │ 消费契约/DTO/句柄   │ ABI v3 函数表
                               ┌──────────▼──────────────────┴───────────────┐

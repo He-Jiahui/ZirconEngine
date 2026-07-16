@@ -10,6 +10,22 @@ pub(super) fn unload_mutation_source() -> &'static str {
     include_str!("../../../handle/activation/unload_mutation.rs")
 }
 
+pub(super) fn batch_activation_source() -> &'static str {
+    include_str!("../../../handle/activation/batch.rs")
+}
+
+pub(super) fn service_lifecycle_source() -> &'static str {
+    include_str!("../../../handle/activation/service_lifecycle.rs")
+}
+
+pub(super) fn service_entry_source() -> &'static str {
+    include_str!("../../../state/service_entry.rs")
+}
+
+pub(super) fn reactivation_tests_source() -> &'static str {
+    include_str!("../behavior/reactivation.rs")
+}
+
 pub(super) fn blocked_dependencies_root_source() -> &'static str {
     include_str!("../../../handle/activation/blocked_dependencies/mod.rs")
 }

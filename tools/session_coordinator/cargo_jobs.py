@@ -12,7 +12,8 @@ from typing import Callable
 
 from .cargo_reservations import (
     expire_invalid_pending_cpu_reservations,
-    reconcile_terminal_finished_cpu_reservations,
+    expire_invalid_pending_lane_reservations,
+    reconcile_terminal_finished_lane_reservations,
     require_executable_cargo_session,
 )
 from .database import Database
@@ -60,6 +61,15 @@ class CargoCleanupStatus(StrEnum):
 
 ACTIVE_CARGO_STATUSES = (CargoJobStatus.LEASED.value, CargoJobStatus.RUNNING.value)
 ALLOWED_TARGET_ROOT_NAMES = frozenset({"cargo-targets", "targets", "zirconbuilds"})
+RECOVERED_RESERVATION_TTL_SECONDS = 900
+
+
+def reservation_scope_for_lane(lane_kind: CargoLaneKind) -> str:
+    return "gpu" if lane_kind is CargoLaneKind.GPU else "cpu"
+
+
+def reservation_code(lane_scope: str, suffix: str) -> str:
+    return f"cargo_{lane_scope}_reservation_{suffix}"
 
 
 def target_identity(value: str | Path) -> str:
@@ -270,6 +280,7 @@ class CargoJobService:
             else self.process_tree_pids
         )
         self.process_creation_time = process_creation_time or read_process_creation_time
+        self._reported_health_timeouts: set[str] = set()
 
     def reserve_cpu(
         self,
@@ -280,10 +291,47 @@ class CargoJobService:
         ttl_seconds: int = 900,
     ) -> dict[str, object]:
         """Reserve the next CPU Cargo lane for one exact managed command."""
+        return self._reserve_lane(
+            session_id,
+            lane_scope="cpu",
+            compatibility=compatibility,
+            command=command,
+            ttl_seconds=ttl_seconds,
+        )
+
+    def reserve_gpu(
+        self,
+        session_id: str,
+        *,
+        compatibility: CargoCompatibility,
+        target_dir: str | Path,
+        command: list[str] | tuple[str, ...],
+        ttl_seconds: int = 900,
+    ) -> dict[str, object]:
+        """Reserve the sole GPU lane for one exact managed command."""
+        return self._reserve_lane(
+            session_id,
+            lane_scope="gpu",
+            compatibility=compatibility,
+            target_dir=target_dir,
+            command=command,
+            ttl_seconds=ttl_seconds,
+        )
+
+    def _reserve_lane(
+        self,
+        session_id: str,
+        *,
+        lane_scope: str,
+        compatibility: CargoCompatibility,
+        target_dir: str | Path | None = None,
+        command: list[str] | tuple[str, ...],
+        ttl_seconds: int,
+    ) -> dict[str, object]:
         if not 30 <= ttl_seconds <= 3600:
             raise CoordinatorError(
                 "cargo_reservation_ttl_invalid",
-                "CPU lane reservation TTL must be between 30 and 3600 seconds",
+                "Cargo lane reservation TTL must be between 30 and 3600 seconds",
             )
         command_tuple = tuple(str(part) for part in command if str(part))
         if not command_tuple:
@@ -291,6 +339,14 @@ class CargoJobService:
         canonical = compatibility.canonical()
         compatibility_json = json.dumps(canonical, sort_keys=True, separators=(",", ":"))
         compatibility_key = self._compatibility_fingerprint(compatibility_json)
+        canonical_target = (
+            str(self.target_policy.validate(target_dir)) if target_dir is not None else None
+        )
+        if lane_scope == "gpu" and canonical_target is None:
+            raise CoordinatorError(
+                "cargo_gpu_reservation_target_required",
+                "A GPU reservation requires a coordinator-approved target directory",
+            )
         command_fingerprint = self._command_fingerprint(command_tuple)
         now = utc_now()
         now_text = utc_text(now)
@@ -298,39 +354,48 @@ class CargoJobService:
         reservation_id = uuid.uuid4().hex
         with self.database.transaction() as connection:
             require_executable_cargo_session(connection, session_id)
-            expire_invalid_pending_cpu_reservations(connection, now=now_text)
-            reconcile_terminal_finished_cpu_reservations(connection, now=now_text)
+            expire_invalid_pending_lane_reservations(
+                connection, lane_scope=lane_scope, now=now_text
+            )
+            reconcile_terminal_finished_lane_reservations(
+                connection, lane_scope=lane_scope, now=now_text
+            )
+            # A lane may have one executing reservation plus one durable
+            # successor.  The successor closes the release-to-acquire race
+            # without allowing it to consume ahead of the FIFO head.
             existing = connection.execute(
-                """
-                SELECT * FROM cargo_lane_reservations
-                WHERE lane_scope='cpu' AND status IN ('pending', 'leased', 'running', 'finished')
-                ORDER BY created_at LIMIT 1
-                """
+                """SELECT * FROM cargo_lane_reservations
+                   WHERE lane_scope=? AND status='pending'
+                   ORDER BY created_at LIMIT 1""",
+                (lane_scope,),
             ).fetchone()
             if existing is not None:
                 if (
                     existing["session_id"] == session_id
                     and existing["compatibility_key"] == compatibility_key
                     and existing["command_fingerprint"] == command_fingerprint
+                    and existing["target_dir"] == canonical_target
                 ):
                     return self._reservation_dict(existing)
                 raise CoordinatorError(
-                    "cargo_cpu_lane_reserved",
-                    "The next managed CPU lane is reserved for another exact job",
+                    f"cargo_{lane_scope}_lane_reserved",
+                    f"The next managed {lane_scope.upper()} lane is reserved for another exact job",
                     details={"sessionId": existing["session_id"], "reservationId": existing["reservation_id"]},
                 )
             connection.execute(
                 """
                 INSERT INTO cargo_lane_reservations(
                     reservation_id, session_id, lane_scope, compatibility_key,
-                    compatibility_json, command_fingerprint, status, created_at, expires_at
-                ) VALUES (?, ?, 'cpu', ?, ?, ?, 'pending', ?, ?)
+                    compatibility_json, target_dir, command_fingerprint, status, created_at, expires_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
                 """,
                 (
                     reservation_id,
                     session_id,
+                    lane_scope,
                     compatibility_key,
                     compatibility_json,
+                    canonical_target,
                     command_fingerprint,
                     now_text,
                     expires_at,
@@ -433,6 +498,270 @@ class CargoJobService:
             ).fetchone()
         return self._reservation_dict(row)
 
+    def consume_cpu_reservation(
+        self,
+        reservation_id: str,
+        *,
+        session_id: str,
+        lane_kind: CargoLaneKind,
+    ) -> CargoJob:
+        """Bind one pending CPU reservation to exactly one unstarted managed job.
+
+        The reservation, not the caller, supplies the canonical compatibility
+        payload.  ``acquire`` rechecks ownership, FIFO position, expiry and the
+        exact compatibility JSON in its single write transaction.
+        """
+        if lane_kind is CargoLaneKind.GPU:
+            raise CoordinatorError(
+                "cargo_cpu_reservation_lane_invalid",
+                "A CPU reservation cannot create a GPU Cargo job",
+            )
+        return self._consume_reservation(
+            reservation_id,
+            session_id=session_id,
+            lane_kind=lane_kind,
+            lane_scope="cpu",
+        )
+
+    def consume_gpu_reservation(
+        self,
+        reservation_id: str,
+        *,
+        session_id: str,
+    ) -> CargoJob:
+        """Bind one pending GPU reservation to its sole unstarted job."""
+        return self._consume_reservation(
+            reservation_id,
+            session_id=session_id,
+            lane_kind=CargoLaneKind.GPU,
+            lane_scope="gpu",
+        )
+
+    def recover_expired_reservation(
+        self,
+        reservation_id: str,
+        *,
+        job_id: str,
+        session_id: str,
+    ) -> CargoJob:
+        """Restore one orphaned pre-start lease without allocating a new job.
+
+        A daemon handoff may outlive the five-minute pre-start watchdog.  This
+        recovery is deliberately narrower than acquire: it accepts only the
+        same owner-bound reservation/job pair, no process identity, and no
+        command, target or compatibility input from the caller.
+        """
+        now = utc_now()
+        now_text = utc_text(now)
+        expires_at = utc_text(now + timedelta(seconds=RECOVERED_RESERVATION_TTL_SECONDS))
+        with self.database.transaction() as connection:
+            require_executable_cargo_session(connection, session_id)
+            reservation = connection.execute(
+                "SELECT * FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation_id,),
+            ).fetchone()
+            if reservation is None:
+                raise CoordinatorError(
+                    "cargo_reservation_not_found",
+                    f"Unknown Cargo reservation {reservation_id}",
+                )
+            lane_scope = str(reservation["lane_scope"])
+            if reservation["session_id"] != session_id or reservation["job_id"] != job_id:
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "binding_invalid"),
+                    f"{lane_scope.upper()} reservation is not bound to the requested job",
+                    details={"reservationId": reservation_id, "jobId": reservation["job_id"]},
+                )
+            if reservation["status"] != "expired":
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "recovery_not_allowed"),
+                    "Only an expired reservation can be restored without a new acquire",
+                    details={"reservationId": reservation_id, "status": reservation["status"]},
+                )
+            job = connection.execute(
+                "SELECT * FROM cargo_jobs WHERE job_id=?", (job_id,)
+            ).fetchone()
+            if (
+                job is None
+                or job["session_id"] != session_id
+                or job["status"] != CargoJobStatus.ORPHANED.value
+                or job["pid"] is not None
+                or job["started_at"] is not None
+                or job["released_at"] is not None
+                or job["command_json"] != "[]"
+                or job["process_tree_live_pids_json"] != "[]"
+            ):
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "recovery_not_allowed"),
+                    "Recovery requires the same orphaned job to have never started a process",
+                    details={"reservationId": reservation_id, "jobId": job_id},
+                )
+            connection.execute(
+                """
+                UPDATE cargo_jobs
+                SET status='leased', exit_code=NULL, finished_at=NULL,
+                    last_heartbeat_at=?, process_tree_observed_at=NULL,
+                    process_tree_exited_at=NULL
+                WHERE job_id=?
+                """,
+                (now_text, job_id),
+            )
+            connection.execute(
+                """
+                UPDATE cargo_lane_reservations
+                SET status='leased', expires_at=?, started_at=NULL, completed_at=NULL
+                WHERE reservation_id=? AND status='expired'
+                """,
+                (expires_at, reservation_id),
+            )
+            self._record_event(
+                connection,
+                session_id,
+                "cargo.reservation_recovered",
+                {
+                    "reservationId": reservation_id,
+                    "jobId": job_id,
+                    "laneScope": lane_scope,
+                    "reason": "orphaned_unstarted_lease",
+                },
+            )
+        return self.get(job_id)
+
+    def _consume_reservation(
+        self,
+        reservation_id: str,
+        *,
+        session_id: str,
+        lane_kind: CargoLaneKind,
+        lane_scope: str,
+    ) -> CargoJob:
+        with self.database.connect() as connection:
+            require_executable_cargo_session(connection, session_id)
+            reservation = connection.execute(
+                """SELECT compatibility_json, target_dir FROM cargo_lane_reservations
+                   WHERE reservation_id=? AND lane_scope=?""",
+                (reservation_id, lane_scope),
+            ).fetchone()
+        if reservation is None:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "not_found"),
+                f"Unknown {lane_scope.upper()} reservation {reservation_id}",
+            )
+        try:
+            payload = json.loads(reservation["compatibility_json"])
+            compatibility = CargoCompatibility(**payload)
+        except (TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "compatibility_invalid"),
+                f"{lane_scope.upper()} reservation has no usable canonical compatibility payload",
+                details={"reservationId": reservation_id},
+            ) from error
+        arguments = {
+            "compatibility": compatibility,
+            "requested_target": reservation["target_dir"],
+            "expected_cpu_reservation_id": reservation_id if lane_scope == "cpu" else None,
+            "expected_gpu_reservation_id": reservation_id if lane_scope == "gpu" else None,
+        }
+        return self.acquire(session_id, lane_kind, **arguments)
+
+    def reserved_run_environment(
+        self,
+        reservation_id: str,
+        *,
+        session_id: str,
+        job_id: str,
+        command: list[str] | tuple[str, ...],
+    ) -> dict[str, str]:
+        """Validate the reserved command before the daemon creates its child process."""
+        command_tuple = tuple(str(part) for part in command if str(part))
+        if not command_tuple:
+            raise CoordinatorError("cargo_run_command_empty", "Managed Cargo command cannot be empty")
+        with self.database.connect() as connection:
+            require_executable_cargo_session(connection, session_id)
+            reservation = connection.execute(
+                "SELECT * FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation_id,),
+            ).fetchone()
+            if reservation is None:
+                raise CoordinatorError(
+                    "cargo_reservation_not_found",
+                    f"Unknown Cargo reservation {reservation_id}",
+                )
+            lane_scope = str(reservation["lane_scope"])
+            if reservation["session_id"] != session_id:
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "owner_mismatch"),
+                    f"{lane_scope.upper()} reservation {reservation_id} belongs to Session {reservation['session_id']}",
+                )
+            if reservation["status"] != "leased" or reservation["job_id"] != job_id:
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "binding_invalid"),
+                    f"{lane_scope.upper()} reservation is not bound to the requested leased job",
+                    details={"reservationId": reservation_id, "jobId": reservation["job_id"]},
+                )
+            job = connection.execute(
+                "SELECT status, session_id FROM cargo_jobs WHERE job_id=?",
+                (job_id,),
+            ).fetchone()
+        if job is None or job["session_id"] != session_id or job["status"] != CargoJobStatus.LEASED.value:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "binding_invalid"),
+                f"{lane_scope.upper()} reservation job is not available for a managed start",
+                details={"reservationId": reservation_id, "jobId": job_id},
+            )
+        if reservation["command_fingerprint"] != self._command_fingerprint(command_tuple):
+            raise CoordinatorError(
+                reservation_code(lane_scope, "command_mismatch"),
+                f"The reserved {lane_scope.upper()} job must run its exact approved command",
+                details={"reservationId": reservation_id},
+            )
+        return self._environment_from_reservation_compatibility(reservation)
+
+    @staticmethod
+    def _environment_from_reservation_compatibility(reservation) -> dict[str, str]:
+        """Derive the allowlisted process environment from canonical reservation data."""
+        try:
+            compatibility = json.loads(reservation["compatibility_json"])
+            build_config_raw = compatibility["build_config"]
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+            raise CoordinatorError(
+                reservation_code(str(reservation["lane_scope"]), "compatibility_invalid"),
+                f"{reservation['lane_scope'].upper()} reservation does not contain a canonical build configuration",
+                details={"reservationId": reservation["reservation_id"]},
+            ) from error
+        if not isinstance(build_config_raw, str):
+            raise CoordinatorError(
+                reservation_code(str(reservation["lane_scope"]), "compatibility_invalid"),
+                f"{reservation['lane_scope'].upper()} reservation build configuration must be text",
+                details={"reservationId": reservation["reservation_id"]},
+            )
+        try:
+            build_config = json.loads(build_config_raw)
+        except json.JSONDecodeError:
+            # Historical compatible pools use the established semicolon profile
+            # form. It has no privileged environment unless it explicitly names
+            # one of the two allowlisted keys.
+            build_config = {
+                key.strip().casefold(): value.strip()
+                for part in build_config_raw.split(";")
+                if (key_value := part.partition("="))[1]
+                for key, _, value in (key_value,)
+            }
+        if not isinstance(build_config, dict):
+            raise CoordinatorError(
+                reservation_code(str(reservation["lane_scope"]), "compatibility_invalid"),
+                f"{reservation['lane_scope'].upper()} reservation build configuration must be an object or profile string",
+                details={"reservationId": reservation["reservation_id"]},
+            )
+        environment: dict[str, str] = {}
+        rustflags = build_config.get("rustflags")
+        if isinstance(rustflags, str) and rustflags:
+            environment["RUSTFLAGS"] = rustflags
+        cargo_incremental = build_config.get("cargo_incremental", build_config.get("incremental"))
+        if isinstance(cargo_incremental, str) and cargo_incremental:
+            environment["CARGO_INCREMENTAL"] = cargo_incremental
+        return environment
+
     def acquire(
         self,
         session_id: str,
@@ -443,6 +772,8 @@ class CargoJobService:
         owner_pid: int | None = None,
         ephemeral: bool = False,
         compatibility: CargoCompatibility | None = None,
+        expected_cpu_reservation_id: str | None = None,
+        expected_gpu_reservation_id: str | None = None,
     ) -> CargoJob:
         if not isinstance(lane_kind, CargoLaneKind):
             raise ValueError("lane_kind must be a CargoLaneKind")
@@ -475,15 +806,53 @@ class CargoJobService:
         now = utc_text()
         with self.database.transaction() as connection:
             require_executable_cargo_session(connection, session_id)
-            self._require_gpu_reservation(connection, session_id, lane_kind)
+            if expected_cpu_reservation_id is not None and expected_gpu_reservation_id is not None:
+                raise CoordinatorError(
+                    "cargo_reservation_consume_arguments_invalid",
+                    "A managed Cargo job can consume exactly one lane reservation",
+                )
+            if expected_cpu_reservation_id is not None and lane_kind is CargoLaneKind.GPU:
+                raise CoordinatorError(
+                    "cargo_cpu_reservation_lane_invalid",
+                    "A CPU reservation cannot create a GPU Cargo job",
+                )
+            if expected_gpu_reservation_id is not None and lane_kind is not CargoLaneKind.GPU:
+                raise CoordinatorError(
+                    "cargo_gpu_reservation_lane_invalid",
+                    "A GPU reservation can create only a GPU Cargo job",
+                )
+            expected_reservation_id = expected_cpu_reservation_id or expected_gpu_reservation_id
+            expected_scope = "cpu" if expected_cpu_reservation_id else "gpu"
+            if expected_reservation_id is not None:
+                existing_job = self._bound_reservation_job(
+                    connection,
+                    reservation_id=expected_reservation_id,
+                    session_id=session_id,
+                    lane_kind=lane_kind,
+                    lane_scope=expected_scope,
+                )
+                if existing_job is not None:
+                    return existing_job
+            gpu_reservation = self._require_gpu_reservation(
+                connection,
+                session_id,
+                lane_kind,
+                compatibility_key=reuse_key,
+                compatibility_json=compatibility_json,
+                now=now,
+                expected_reservation_id=expected_gpu_reservation_id,
+            )
             self._require_gpu_lane_available(connection, lane_kind)
             cpu_reservation = self._require_cpu_reservation(
                 connection,
                 session_id=session_id,
                 lane_kind=lane_kind,
                 compatibility_key=reuse_key,
+                compatibility_json=compatibility_json,
                 now=now,
+                expected_reservation_id=expected_cpu_reservation_id,
             )
+            lane_reservation = gpu_reservation or cpu_reservation
             if reuse_key is not None:
                 active_pool = connection.execute(
                     """
@@ -637,14 +1006,14 @@ class CargoJobService:
                     reused_from_job_id,
                 ),
             )
-            if cpu_reservation is not None:
+            if lane_reservation is not None:
                 connection.execute(
                     """
                     UPDATE cargo_lane_reservations
                     SET job_id=?, status='leased'
                     WHERE reservation_id=? AND status='pending'
                     """,
-                    (job_id, cpu_reservation["reservation_id"]),
+                    (job_id, lane_reservation["reservation_id"]),
                 )
         if not dry_run:
             try:
@@ -662,43 +1031,147 @@ class CargoJobService:
         session_id: str,
         lane_kind: CargoLaneKind,
         compatibility_key: str | None,
+        compatibility_json: str | None,
         now: str,
+        expected_reservation_id: str | None = None,
     ):
         if lane_kind is CargoLaneKind.GPU:
             return None
-        expire_invalid_pending_cpu_reservations(connection, now=now)
-        reconcile_terminal_finished_cpu_reservations(connection, now=now)
-        reservation = connection.execute(
-            """
-            SELECT * FROM cargo_lane_reservations
-            WHERE lane_scope='cpu' AND status IN ('pending', 'leased', 'running', 'finished')
-            ORDER BY created_at LIMIT 1
-            """
-        ).fetchone()
+        return self._require_lane_reservation(
+            connection,
+            session_id=session_id,
+            lane_scope="cpu",
+            compatibility_key=compatibility_key,
+            compatibility_json=compatibility_json,
+            now=now,
+            expected_reservation_id=expected_reservation_id,
+        )
+
+    @staticmethod
+    def _require_lane_reservation(
+        connection,
+        *,
+        session_id: str,
+        lane_scope: str,
+        compatibility_key: str | None,
+        compatibility_json: str | None,
+        now: str,
+        expected_reservation_id: str | None,
+    ):
+        expire_invalid_pending_lane_reservations(connection, lane_scope=lane_scope, now=now)
+        reconcile_terminal_finished_lane_reservations(connection, lane_scope=lane_scope, now=now)
+        if expected_reservation_id is None:
+            reservation = connection.execute(
+                """SELECT * FROM cargo_lane_reservations
+                   WHERE lane_scope=? AND status IN ('pending', 'leased', 'running', 'finished')
+                   ORDER BY created_at LIMIT 1""",
+                (lane_scope,),
+            ).fetchone()
+        else:
+            reservation = connection.execute(
+                "SELECT * FROM cargo_lane_reservations WHERE reservation_id=? AND lane_scope=?",
+                (expected_reservation_id, lane_scope),
+            ).fetchone()
+            if reservation is None:
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "not_found"),
+                    f"Unknown {lane_scope.upper()} reservation {expected_reservation_id}",
+                )
+            fifo_head = connection.execute(
+                """SELECT reservation_id FROM cargo_lane_reservations
+                   WHERE lane_scope=? AND status IN ('pending', 'leased', 'running', 'finished')
+                   ORDER BY created_at LIMIT 1""",
+                (lane_scope,),
+            ).fetchone()
+            if fifo_head is None or fifo_head["reservation_id"] != expected_reservation_id:
+                raise CoordinatorError(
+                    reservation_code(lane_scope, "not_fifo_head"),
+                    f"{lane_scope.upper()} reservation is no longer the next eligible FIFO entry",
+                    details={"reservationId": expected_reservation_id},
+                )
         if reservation is None:
             return None
         if reservation["session_id"] != session_id:
             raise CoordinatorError(
-                "cargo_cpu_lane_reserved",
-                "The next managed CPU lane is reserved for another Session",
+                f"cargo_{lane_scope}_lane_reserved",
+                f"The next managed {lane_scope.upper()} lane is reserved for another Session",
                 details={"sessionId": reservation["session_id"], "reservationId": reservation["reservation_id"]},
             )
         if reservation["status"] != "pending":
             raise CoordinatorError(
-                "cargo_cpu_reservation_consumed",
-                "The CPU reservation already owns a Cargo job",
+                reservation_code(lane_scope, "consumed"),
+                f"The {lane_scope.upper()} reservation already owns a Cargo job",
                 details={"reservationId": reservation["reservation_id"], "jobId": reservation["job_id"]},
             )
         if compatibility_key != reservation["compatibility_key"]:
             raise CoordinatorError(
-                "cargo_cpu_reservation_compatibility_mismatch",
-                "The reserved CPU job requires its exact compatibility pool",
+                reservation_code(lane_scope, "compatibility_mismatch"),
+                f"The reserved {lane_scope.upper()} job requires its exact compatibility pool",
+                details={"reservationId": reservation["reservation_id"]},
+            )
+        if compatibility_json != reservation["compatibility_json"]:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "compatibility_mismatch"),
+                f"The reserved {lane_scope.upper()} job requires its exact canonical compatibility payload",
                 details={"reservationId": reservation["reservation_id"]},
             )
         return reservation
 
+    def _bound_reservation_job(
+        self,
+        connection,
+        *,
+        reservation_id: str,
+        session_id: str,
+        lane_kind: CargoLaneKind,
+        lane_scope: str,
+    ) -> CargoJob | None:
+        """Return an existing exact binding so retrying consume is idempotent."""
+        reservation = connection.execute(
+            "SELECT * FROM cargo_lane_reservations WHERE reservation_id=? AND lane_scope=?",
+            (reservation_id, lane_scope),
+        ).fetchone()
+        if reservation is None:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "not_found"),
+                f"Unknown {lane_scope.upper()} reservation {reservation_id}",
+            )
+        if reservation["session_id"] != session_id:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "owner_mismatch"),
+                f"{lane_scope.upper()} reservation {reservation_id} belongs to Session {reservation['session_id']}",
+            )
+        if reservation["status"] == "pending":
+            return None
+        if reservation["status"] != "leased" or not reservation["job_id"]:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "consumed"),
+                f"The {lane_scope.upper()} reservation is no longer available for a new Cargo job",
+                details={"reservationId": reservation_id, "jobId": reservation["job_id"]},
+            )
+        row = connection.execute(
+            "SELECT * FROM cargo_jobs WHERE job_id=?",
+            (reservation["job_id"],),
+        ).fetchone()
+        if row is None or row["session_id"] != session_id or row["lane_kind"] != lane_kind.value:
+            raise CoordinatorError(
+                reservation_code(lane_scope, "binding_invalid"),
+                f"{lane_scope.upper()} reservation binding does not match the requested managed lane",
+                details={"reservationId": reservation_id, "jobId": reservation["job_id"]},
+            )
+        return self._from_row(row)
+
     @staticmethod
-    def _require_gpu_reservation(connection, session_id: str, lane_kind: CargoLaneKind) -> None:
+    def _require_gpu_reservation(
+        connection,
+        session_id: str,
+        lane_kind: CargoLaneKind,
+        *,
+        compatibility_key: str | None,
+        compatibility_json: str | None,
+        now: str,
+        expected_reservation_id: str | None,
+    ):
         """Honor the one-shot GPU lane reservation carried by the latest resume action.
 
         The action record is already durable and auditable.  The reservation is
@@ -707,7 +1180,26 @@ class CargoJobService:
         cannot lose FIFO priority to another Session.
         """
         if lane_kind is not CargoLaneKind.GPU:
-            return
+            return None
+        durable = CargoJobService._require_lane_reservation(
+            connection,
+            session_id=session_id,
+            lane_scope="gpu",
+            compatibility_key=compatibility_key,
+            compatibility_json=compatibility_json,
+            now=now,
+            expected_reservation_id=expected_reservation_id,
+        )
+        if durable is not None:
+            if expected_reservation_id is None:
+                raise CoordinatorError(
+                    "cargo_gpu_reservation_requires_consume",
+                    "A pending GPU reservation must be consumed through its exact typed path",
+                    details={"reservationId": durable["reservation_id"]},
+                )
+            return durable
+        if expected_reservation_id is not None:
+            return None
         action = connection.execute(
             """
             SELECT parameters_json, completed_at
@@ -719,14 +1211,14 @@ class CargoJobService:
             """
         ).fetchone()
         if action is None:
-            return
+            return None
         try:
             parameters = json.loads(action["parameters_json"])
         except (TypeError, json.JSONDecodeError):
-            return
+            return None
         reserved_session_id = parameters.get("gpuReservationSessionId")
         if not isinstance(reserved_session_id, str) or not reserved_session_id:
-            return
+            return None
         active = connection.execute(
             """
             SELECT job_id FROM cargo_jobs
@@ -738,7 +1230,7 @@ class CargoJobService:
         ).fetchone()
         if active is not None:
             if session_id == reserved_session_id:
-                return
+                return None
             raise CoordinatorError(
                 "cargo_gpu_lane_reserved",
                 "The next managed GPU lane is reserved for another Session",
@@ -755,7 +1247,7 @@ class CargoJobService:
             (reserved_session_id, action["completed_at"]),
         ).fetchone()
         if terminal_started is not None or session_id == reserved_session_id:
-            return
+            return None
         raise CoordinatorError(
             "cargo_gpu_lane_reserved",
             "The next managed GPU lane is reserved for another Session",
@@ -814,6 +1306,7 @@ class CargoJobService:
         )
         try:
             with self.database.transaction() as connection:
+                require_executable_cargo_session(connection, session_id)
                 self._require_status(
                     connection, job_id, {CargoJobStatus.LEASED}, session_id=session_id
                 )
@@ -821,17 +1314,20 @@ class CargoJobService:
                     "SELECT * FROM cargo_lane_reservations WHERE job_id=?", (job_id,)
                 ).fetchone()
                 if reservation is not None:
-                    expire_invalid_pending_cpu_reservations(connection, now=now)
+                    lane_scope = str(reservation["lane_scope"])
+                    expire_invalid_pending_lane_reservations(
+                        connection, lane_scope=lane_scope, now=now
+                    )
                     if reservation["status"] != "leased":
                         raise CoordinatorError(
-                            "cargo_cpu_reservation_expired",
-                            "The CPU reservation is no longer active",
+                            reservation_code(lane_scope, "expired"),
+                            f"The {lane_scope.upper()} reservation is no longer active",
                             details={"reservationId": reservation["reservation_id"]},
                         )
                     if reservation["command_fingerprint"] != self._command_fingerprint(tuple(command)):
                         raise CoordinatorError(
-                            "cargo_cpu_reservation_command_mismatch",
-                            "The reserved CPU job must start its exact approved command",
+                            reservation_code(lane_scope, "command_mismatch"),
+                            f"The reserved {lane_scope.upper()} job must start its exact approved command",
                             details={"reservationId": reservation["reservation_id"]},
                         )
                 connection.execute(
@@ -1108,6 +1604,7 @@ class CargoJobService:
                 if row["compatibility_json"]
                 else None
             ),
+            "targetDir": row["target_dir"],
             "jobId": row["job_id"],
             "status": row["status"],
             "createdAt": row["created_at"],
@@ -1137,25 +1634,89 @@ class CargoJobService:
         *,
         now: datetime | None = None,
         leased_timeout_seconds: int = 300,
+        running_health_timeout_seconds: int = 300,
     ) -> tuple[CargoJob, ...]:
         orphaned_ids: list[str] = []
         current_time = now or utc_now()
         now_text = utc_text(current_time)
-        with self.database.transaction() as connection:
-            rows = connection.execute(
+
+        # Process-tree discovery can take seconds on a busy Windows host.  Do
+        # not hold SQLite's write transaction while asking the OS for that
+        # information, or normal control requests (tray, lease, reservation)
+        # queue behind the watcher.
+        with self.database.connect() as connection:
+            snapshots = connection.execute(
                 """
                 SELECT *
                 FROM cargo_jobs WHERE status IN ('leased', 'running')
                 """
             ).fetchall()
-            for row in rows:
+
+        for snapshot in snapshots:
+            snapshot_job = self._from_row(snapshot)
+            live_pids = self._live_process_pids(snapshot_job)
+
+            # Re-read under a short write transaction.  A job may have
+            # finished, been replaced, or acquired a new supervisor while the
+            # OS scan was running; in that case discard the stale observation.
+            with self.database.transaction() as connection:
+                row = connection.execute(
+                    """
+                    SELECT * FROM cargo_jobs
+                    WHERE job_id=? AND status IN ('leased', 'running')
+                    """,
+                    (snapshot_job.job_id,),
+                ).fetchone()
+                if row is None:
+                    continue
+                if (
+                    row["pid"] != snapshot["pid"]
+                    or row["root_process_creation_time"]
+                    != snapshot["root_process_creation_time"]
+                    or row["root_process_kind"] != snapshot["root_process_kind"]
+                ):
+                    continue
+
                 job = self._from_row(row)
-                live_pids = self._live_process_pids(job)
                 self._record_process_tree_observation(
                     connection, job.job_id, live_pids, now_text
                 )
                 if live_pids:
+                    heartbeat_age_seconds = (
+                        current_time - parse_utc(row["last_heartbeat_at"])
+                    ).total_seconds()
+                    if (
+                        row["status"] == CargoJobStatus.RUNNING.value
+                        and heartbeat_age_seconds > running_health_timeout_seconds
+                        and job.job_id not in self._reported_health_timeouts
+                    ):
+                        # A live child cannot be safely preempted or have its
+                        # lane reused.  Record the timeout once, then leave
+                        # global admission open for all unrelated work.
+                        connection.execute(
+                            "INSERT INTO events(session_id, event_type, payload_json, created_at) "
+                            "VALUES (?, ?, ?, ?)",
+                            (
+                                job.session_id,
+                                "cargo.health_timeout",
+                                json.dumps(
+                                    {
+                                        "jobId": job.job_id,
+                                        "laneKind": job.lane_kind.value,
+                                        "livePids": list(live_pids),
+                                        "heartbeatAgeSeconds": int(heartbeat_age_seconds),
+                                        "timeoutSeconds": running_health_timeout_seconds,
+                                    },
+                                    sort_keys=True,
+                                ),
+                                now_text,
+                            ),
+                        )
+                        self._reported_health_timeouts.add(job.job_id)
+                    elif heartbeat_age_seconds <= running_health_timeout_seconds:
+                        self._reported_health_timeouts.discard(job.job_id)
                     continue
+                self._reported_health_timeouts.discard(job.job_id)
                 if (
                     row["status"] == CargoJobStatus.LEASED.value
                     and job.pid is None

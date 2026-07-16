@@ -28,16 +28,29 @@ fn text_field_loading_state_uses_unavailable_visuals() {
 }
 
 #[test]
-fn text_field_focused_state_uses_neutral_slate_chrome() {
+fn text_field_focused_state_uses_starship_primary_outline_without_raising_input_surface() {
     let mut node = TemplatePaneNodeData::default();
     node.focused = true;
 
     let style = select_workbench_text_field_style(&node, false);
 
     assert_eq!(style.state, UiPainterResolvedState::Focused);
-    assert_eq!(style.surface, PALETTE.surface);
-    assert_eq!(style.border, PALETTE.border);
-    assert_ne!(style.border, PALETTE.accent);
+    assert_eq!(style.surface, PALETTE.surface_inset);
+    assert_eq!(style.border, PALETTE.focus_ring);
+}
+
+#[test]
+fn text_field_hover_uses_hover_outline_without_impersonating_keyboard_focus() {
+    let node = TemplatePaneNodeData {
+        hovered: true,
+        ..TemplatePaneNodeData::default()
+    };
+
+    let style = select_workbench_text_field_style(&node, false);
+
+    assert_eq!(style.state, UiPainterResolvedState::Hovered);
+    assert_eq!(style.surface, PALETTE.surface_inset);
+    assert_eq!(style.border, PALETTE.surface_hover);
     assert_ne!(style.border, PALETTE.focus_ring);
 }
 
@@ -45,7 +58,8 @@ fn text_field_focused_state_uses_neutral_slate_chrome() {
 fn text_field_palette_projects_from_global_appearance_palette() {
     let mut tokens = EditorDesignTokens::workbench_dark();
     tokens.palette.surface_recessed = UiRgbaColor::from_u8(11, 15, 18, 255);
-    tokens.palette.surface[2] = UiRgbaColor::from_u8(31, 37, 42, 255);
+    tokens.palette.surface_hover = UiRgbaColor::from_u8(31, 37, 42, 255);
+    tokens.palette.focus_ring = UiRgbaColor::from_u8(9, 180, 220, 255);
     tokens.palette.border = UiRgbaColor::from_u8(72, 82, 90, 255);
     tokens.palette.separator_soft = UiRgbaColor::from_u8(42, 48, 54, 255);
     tokens.palette.text_secondary = UiRgbaColor::from_u8(150, 160, 168, 255);
@@ -54,9 +68,10 @@ fn text_field_palette_projects_from_global_appearance_palette() {
         super::palette::workbench_text_field_palette_from_host(project_host_palette(&tokens));
 
     assert_eq!(palette.surface, [11, 15, 18, 255]);
-    assert_eq!(palette.toolbar_surface, [31, 37, 42, 255]);
-    assert_eq!(palette.hover_surface, [31, 37, 42, 255]);
-    assert_eq!(palette.focused_border, [72, 82, 90, 255]);
+    assert_eq!(palette.toolbar_surface, [11, 15, 18, 255]);
+    assert_eq!(palette.hover_surface, [11, 15, 18, 255]);
+    assert_eq!(palette.hover_border, [31, 37, 42, 255]);
+    assert_eq!(palette.focus_border, [9, 180, 220, 255]);
     assert_eq!(palette.placeholder, [150, 160, 168, 255]);
     assert_eq!(palette.stepper_divider, [42, 48, 54, 255]);
 }
@@ -74,7 +89,7 @@ fn asset_browser_toolbar_search_field_ignores_legacy_declared_chrome() {
 
     let style = select_workbench_text_field_style(&node, true);
 
-    assert_eq!(style.surface, PALETTE.surface);
+    assert_eq!(style.surface, PALETTE.surface_inset);
     assert_eq!(style.border, PALETTE.separator_soft);
     assert_ne!(style.surface, [1, 2, 3, 255]);
     assert_ne!(style.border, [4, 5, 6, 255]);

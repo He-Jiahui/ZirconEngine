@@ -1,21 +1,21 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/text/sdf/offline
-  - zircon_runtime/src/graphics/text/font_sdf_build_tool
+  - zircon_runtime/src/text/sdf/offline
+  - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
   - tools/zircon_build_font_sdf.py
 implementation_files:
-  - zircon_runtime/src/graphics/text/sdf/offline/artifact.rs
-  - zircon_runtime/src/graphics/text/sdf/offline/codec.rs
-  - zircon_runtime/src/graphics/text/sdf/offline/error.rs
-  - zircon_runtime/src/graphics/text/sdf/offline/identity.rs
-  - zircon_runtime/src/graphics/text/sdf/offline/path.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
-  - zircon_runtime/src/graphics/text/font_sdf_build_tool/bake.rs
-  - zircon_runtime/src/graphics/text/font_sdf_build_tool/pack.rs
-  - zircon_runtime/src/graphics/text/font_sdf_build_tool/request.rs
+  - zircon_runtime/src/text/sdf/offline/artifact.rs
+  - zircon_runtime/src/text/sdf/offline/codec.rs
+  - zircon_runtime/src/text/sdf/offline/error.rs
+  - zircon_runtime/src/text/sdf/offline/identity.rs
+  - zircon_runtime/src/text/sdf/offline/path.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
+  - zircon_runtime/src/text/font_sdf_build_tool/bake.rs
+  - zircon_runtime/src/text/font_sdf_build_tool/pack.rs
+  - zircon_runtime/src/text/font_sdf_build_tool/request.rs
   - zircon_runtime/src/bin/zircon_font_sdf_bake/args.rs
   - zircon_runtime/src/bin/zircon_font_sdf_bake/write.rs
 plan_sources:
@@ -24,21 +24,23 @@ plan_sources:
   - docs/superpowers/plans/2026-07-13-runtime-zsdf-offline-bake.md
 tests:
   - text_sdf_variation_hash_is_order_stable_and_instance_sensitive
-  - zircon_runtime/src/graphics/text/sdf/tests/offline.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests/offline.rs
+  - zircon_runtime/src/text/sdf/tests/offline.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/offline.rs
   - zircon_runtime/tests/runtime_text_sdf_offline_artifact.rs
   - tools/tests/test_zircon_build_font_sdf.py
 doc_type: module-detail
 status: accepted
 ---
 
+> 当前 owner 已硬切为 [`zircon_runtime::text`](../../text/mod.md)。本文件保留 offline SDF/MSDF/MTSDF 细节；`graphics::text` 旧 namespace 不再存在。
+
 # Runtime offline SDF/MSDF/MTSDF artifacts
 
 ## Ownership and boundary
 
-`graphics/text/sdf/offline/` owns the versioned `.zsdf` binary contract. It is the only decoder used by runtime prefill and the only encoder used by the feature-gated build tool. The offline path therefore shares `SdfBakeParams`, `SdfMode`, the fdsm glyph generator, and atlas storage rules with dynamic generation; Python and the CLI do not carry a second distance-field implementation.
+`text/sdf/offline/` owns the versioned `.zsdf` binary contract. It is the only decoder used by runtime prefill and the only encoder used by the feature-gated build tool. The offline path therefore shares `SdfBakeParams`, `SdfMode`, the fdsm glyph generator, and atlas storage rules with dynamic generation; Python and the CLI do not carry a second distance-field implementation.
 
-The public surface is deliberately feature-gated at `zircon_runtime::graphics::text::font_sdf_build_tool` behind `font-sdf-build-tool`. Normal runtime builds keep the artifact representation crate-private. The former crate-root build-tool path was removed rather than forwarded, so the offline tool cannot add an unclassified Runtime crate-root seat. `tools/zircon_build.py` only selects the `font-sdf` target, while `tools/zircon_build_font_sdf.py` owns manifest validation and orchestration. The Rust binary owns font decoding, cmap selection, glyph generation, packing, artifact encoding, and atomic file replacement.
+The public surface is deliberately feature-gated at `zircon_runtime::text::font_sdf_build_tool` behind `font-sdf-build-tool`. Normal runtime builds keep the artifact representation crate-private. The former crate-root build-tool path was removed rather than forwarded, so the offline tool cannot add an unclassified Runtime crate-root seat. `tools/zircon_build.py` only selects the `font-sdf` target, while `tools/zircon_build_font_sdf.py` owns manifest validation and orchestration. The Rust binary owns font decoding, cmap selection, glyph generation, packing, artifact encoding, and atomic file replacement.
 
 ## `.zsdf` format contract
 
@@ -77,7 +79,7 @@ Explicit selections expand in scalar order and deduplicate before the Rust CLI r
 
 ## Runtime precedence and failure behavior
 
-The renderer keeps this precedence:
+The Text-owned SDF preparation state keeps this precedence:
 
 1. return the existing mode-keyed in-memory glyph cache;
 2. for the requested primary project font face, resolve the authoritative manifest `.zmeta` UUID and exact standalone face bytes;
@@ -85,7 +87,7 @@ The renderer keeps this precedence:
 4. if the artifact is absent, stale, corrupt, or does not cover the glyph, run the existing dynamic generator;
 5. retain the existing typed per-glyph failure/native-overlay path if dynamic generation also fails.
 
-Offline pixels are copied into the existing R8/RGBA atlas-page stream. They use the existing upload commands, WGPU texture arrays, draw pass, and shader decode mode. There is no offline-only GPU atlas, texture binding, renderer pass, layout cache, or public UI DTO.
+Offline pixels are copied by Text into the existing R8/RGBA atlas-page stream. Graphics consumes the resulting pixel/metric report for the existing upload commands, WGPU texture arrays, draw pass, and shader decode mode. There is no offline-only GPU atlas, texture binding, renderer pass, layout cache, public UI DTO, or Graphics-owned font database/cache.
 
 The accepted diagnostics add only `offline_glyph_count` and `dynamic_glyph_count` to the internal atlas bake report. These counts prove path selection without changing layout or exposing a permanent engine API.
 

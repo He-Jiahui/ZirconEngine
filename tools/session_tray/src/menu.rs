@@ -5,6 +5,7 @@ use crate::tray_state::MenuEnablement;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MenuCommand {
     OpenConsole,
+    Refresh,
     Start,
     Drain,
     Resume,
@@ -25,6 +26,7 @@ impl MenuCommand {
     pub fn id(self) -> &'static str {
         match self {
             Self::OpenConsole => "open-console",
+            Self::Refresh => "refresh",
             Self::Start => "start",
             Self::Drain => "drain",
             Self::Resume => "resume",
@@ -65,34 +67,14 @@ pub fn menu_model(
             enabled: enablement.open_console,
         },
         MenuEntry {
+            command: MenuCommand::Refresh,
+            label: "刷新托盘状态".into(),
+            enabled: enablement.refresh,
+        },
+        MenuEntry {
             command: MenuCommand::Start,
             label: "启动服务".into(),
             enabled: enablement.start,
-        },
-        MenuEntry {
-            command: MenuCommand::Drain,
-            label: lifecycle_label(LifecycleAction::Drain, pending),
-            enabled: enablement.drain,
-        },
-        MenuEntry {
-            command: MenuCommand::Resume,
-            label: lifecycle_label(LifecycleAction::Resume, pending),
-            enabled: enablement.resume,
-        },
-        MenuEntry {
-            command: MenuCommand::Stop,
-            label: lifecycle_label(LifecycleAction::Stop, pending),
-            enabled: enablement.stop,
-        },
-        MenuEntry {
-            command: MenuCommand::Restart,
-            label: lifecycle_label(LifecycleAction::Restart, pending),
-            enabled: enablement.restart,
-        },
-        MenuEntry {
-            command: MenuCommand::ForceStop,
-            label: lifecycle_label(LifecycleAction::ForceStop, pending),
-            enabled: enablement.force_stop,
         },
         MenuEntry {
             command: MenuCommand::Diagnostics,
@@ -158,28 +140,45 @@ fn startup_label(action: StartupAction, pending: Option<StartupAction>) -> Strin
     }
 }
 
-fn lifecycle_label(action: LifecycleAction, pending: Option<LifecycleAction>) -> String {
-    let label = match action {
-        LifecycleAction::Drain => "暂停新写入（排空）",
-        LifecycleAction::Resume => "恢复新写入",
-        LifecycleAction::Stop => "停止服务",
-        LifecycleAction::Restart => "重启服务",
-        LifecycleAction::ForceStop => "高级恢复：强制停止",
-    };
-    if pending == Some(action) {
-        format!("确认：{label}（再次点击）")
-    } else {
-        label.into()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::startup::StartupAction;
 
     #[test]
-    fn pending_lifecycle_requires_a_second_explicit_click() {
+    fn healthy_menu_exposes_refresh_without_global_lifecycle_commands() {
+        let entries = menu_model(
+            MenuEnablement {
+                open_console: true,
+                refresh: true,
+                diagnostics: true,
+                exit_tray: true,
+                ..MenuEnablement::default()
+            },
+            None,
+            None,
+            None,
+            false,
+            false,
+        );
+
+        assert!(entries
+            .iter()
+            .find(|entry| entry.command == MenuCommand::Refresh)
+            .is_some_and(|entry| entry.enabled));
+        for command in [
+            MenuCommand::Drain,
+            MenuCommand::Resume,
+            MenuCommand::Stop,
+            MenuCommand::Restart,
+            MenuCommand::ForceStop,
+        ] {
+            assert!(!entries.iter().any(|entry| entry.command == command));
+        }
+    }
+
+    #[test]
+    fn pending_legacy_lifecycle_keeps_only_the_cancel_command() {
         let entries = menu_model(
             MenuEnablement {
                 stop: true,
@@ -193,12 +192,9 @@ mod tests {
             false,
             false,
         );
-        let stop = entries
+        assert!(!entries
             .iter()
-            .find(|entry| entry.command == MenuCommand::Stop)
-            .unwrap();
-        assert!(stop.enabled);
-        assert!(stop.label.starts_with("确认："));
+            .any(|entry| entry.command == MenuCommand::Stop));
         assert!(entries
             .iter()
             .find(|entry| entry.command == MenuCommand::CancelPending)
@@ -248,7 +244,7 @@ mod tests {
     }
 
     #[test]
-    fn confirmed_draining_lifecycle_exposes_a_separate_cancel_command() {
+    fn legacy_active_lifecycle_remains_cancellable_without_being_reoffered() {
         let entries = menu_model(
             MenuEnablement::default(),
             None,
@@ -263,5 +259,8 @@ mod tests {
             .unwrap();
         assert!(cancel.enabled);
         assert!(cancel.label.contains("service.restart"));
+        assert!(!entries
+            .iter()
+            .any(|entry| entry.command == MenuCommand::Restart));
     }
 }

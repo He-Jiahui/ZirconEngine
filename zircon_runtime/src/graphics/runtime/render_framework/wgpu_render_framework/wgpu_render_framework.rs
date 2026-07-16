@@ -135,7 +135,7 @@ mod tests {
 
     #[test]
     fn wgpu_render_framework_accessors_recover_poisoned_locks() {
-        let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default()))
+        let framework = WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default()))
             .expect("framework should initialize for lock recovery test");
 
         let _ = catch_unwind(AssertUnwindSafe(|| {

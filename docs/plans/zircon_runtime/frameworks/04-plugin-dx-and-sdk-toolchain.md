@@ -89,9 +89,9 @@ zircon_plugin_sdk::declare_plugin! {
 
 实现切片：`declare_plugin!` 宏 + manifest 生成/同步机制；`gltf_importer` 与 `native_dynamic_fixture` 先迁为样板；其余 first-party 插件批量迁移（硬切换，同批删除手写常量文件）。
 
-测试阶段：
-- `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked`
+测试阶段（policy §3 最小批次）：
 - `cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked`
+- focused 过滤词批：`cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked declare_plugin manifest plugin_id`（宏展开/manifest 生成/迁移插件变更面）；插件工作区全量 test 留给波次收口（policy §4）
 - 一致性守卫：生成的 plugin.toml 与库内快照 diff 为空；Python 审计脚本全绿。
 - 验收证据：任一插件全文 `grep <id>` 只出现在单源声明与生成物；文档更新 `zircon_plugins/README.md`。
 
@@ -99,8 +99,8 @@ zircon_plugin_sdk::declare_plugin! {
 
 实现切片：`cargo zircon plugin new/check/validate` 三命令；模板覆盖 importer/system/editor 三形态；`check` 接入 CI。
 
-测试阶段：
-- 端到端：`cargo zircon plugin new demo_probe --kind system` → 插件工作区全量 build/test 通过 → 删除 demo_probe；
+测试阶段（policy §3 最小批次）：
+- 端到端：`cargo zircon plugin new demo_probe --kind system` → 生成插件包级 build + focused `cargo test --manifest-path zircon_plugins/Cargo.toml -p demo_probe --locked` 通过 → 删除 demo_probe；插件工作区全量 build/test 留给波次收口（policy §4）；
 - `cargo test -p cargo-zircon --locked`（模板快照测试）；
 - 验收证据：新插件从命令到可加载 ≤3 步（new → 填实现 → build）；`docs/` 新增 walkthrough 教程（“新插件五分钟指南”）。
 
@@ -108,17 +108,17 @@ zircon_plugin_sdk::declare_plugin! {
 
 实现切片：`PluginLoadError` 类型树替换加载链的字符串错误；能力协商 missing/denied 明细；export_bootstrap 与 native_plugin_loader 的报告结构化。
 
-测试阶段：
-- `cargo test -p zircon_runtime --lib --locked`（新增故障注入单测：坏符号/坏 ABI/坏 manifest/缺能力四类各有断言错误码与提示文案）；
-- `cargo test -p zircon_app --locked`；
+测试阶段（policy §3 最小批次）：
+- focused 过滤词批：`cargo test -p zircon_runtime --lib --locked plugin_load native_plugin capability`（新增故障注入单测：坏符号/坏 ABI/坏 manifest/缺能力四类各有断言错误码与提示文案）；全量 lib 回归留给波次收口（policy §4）；
+- `cargo test -p zircon_app --locked export_bootstrap plugin`；
 - 验收证据：四类故障的错误输出快照入测试。
 
 ### M4 native 热重载 harness
 
 实现切片：save_state/restore_state/unload 实装（fixture + 一个 importer）；live-host 替换流程与文件监视开发模式（仅 dev profile 开启）；与计划 02 生命周期钩子对接。
 
-测试阶段：
-- `cargo test -p zircon_runtime --lib --locked`（重载状态迁移契约测试）；
+测试阶段（policy §3 最小批次）：
+- focused 过滤词批：`cargo test -p zircon_runtime --lib --locked plugin_load hot_reload save_state restore_state`（重载状态迁移契约测试）；全量 lib 回归留给波次收口（policy §4）；
 - 手工验收脚本：修改 fixture 源码 → 重编 dist → 运行中的 editor-host 完成替换且句柄不变；
 - 验收证据：契约测试 + 替换日志；文档更新 `docs/engine-architecture/native-plugin-boundary.md` 勾稽。
 

@@ -253,6 +253,7 @@ function Start-CoordinatorCargoTarget {
     Invoke-SessionCoordinatorJson -RepoRoot $RepoRoot -Arguments @(
         "cargo", "start", $ResolvedTarget.JobId,
         "--pid", [string]$PID,
+        "--supervisor",
         "--session-id", $ResolvedTarget.OwnerId,
         [Environment]::CommandLine
     ) | Out-Null

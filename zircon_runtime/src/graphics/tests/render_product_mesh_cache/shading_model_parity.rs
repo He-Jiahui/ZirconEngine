@@ -88,7 +88,7 @@ fn capture_three_shading_models(
         register_shading_model_material(&asset_manager, &case);
     }
 
-    let framework = WgpuRenderFramework::new(asset_manager).expect("WGPU framework");
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).expect("WGPU framework");
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(output_size))
         .expect("viewport");

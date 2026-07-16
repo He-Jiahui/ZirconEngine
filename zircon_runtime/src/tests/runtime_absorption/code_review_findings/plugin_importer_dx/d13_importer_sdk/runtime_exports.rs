@@ -3,7 +3,7 @@ use super::runtime_crates::IMPORTER_RUNTIME_CRATES;
 #[test]
 fn review_d13_importer_runtime_exports_use_sdk_macro() {
     let review_findings = concat!(
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let sdk_exports =

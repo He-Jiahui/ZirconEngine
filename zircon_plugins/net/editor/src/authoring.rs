@@ -73,22 +73,22 @@ pub fn register_net_authoring_workflows(
                     "Plugins/Network/Route",
                     "net.route_config.v1",
                 ),
-                EditorCommandDescriptor::pending_operation(
+                EditorCommandDescriptor::operation(
                     schema_open.clone(),
                     "Open Network Replication Schema",
                 )
                 .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorCommandDescriptor::pending_operation(
+                EditorCommandDescriptor::operation(
                     schema_validate.clone(),
                     "Validate Network Replication Schema",
                 )
                 .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorCommandDescriptor::pending_operation(
+                EditorCommandDescriptor::operation(
                     schema_compile.clone(),
                     "Compile Network Replication Schema",
                 )
                 .with_required_capabilities([NET_AUTHORING_CAPABILITY]),
-                EditorCommandDescriptor::pending_operation(
+                EditorCommandDescriptor::operation(
                     schema_create.clone(),
                     "Create Network Replication Schema",
                 )
@@ -188,7 +188,7 @@ fn configure_operation(
     menu_path: &'static str,
     payload_schema_id: &'static str,
 ) -> EditorCommandDescriptor {
-    EditorCommandDescriptor::pending_operation(path, display_name)
+    EditorCommandDescriptor::operation(path, display_name)
         .with_menu_path(menu_path)
         .with_payload_schema_id(payload_schema_id)
         .with_required_capabilities([NET_AUTHORING_CAPABILITY])

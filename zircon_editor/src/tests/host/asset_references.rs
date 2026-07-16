@@ -26,7 +26,7 @@ use zircon_runtime_interface::project::{AssetRef, PersistedAssetReference, RelPa
 use zircon_runtime_interface::resource::ResourceScheme;
 
 use crate::tests::support::env_lock;
-use crate::ui::host::editor_asset_manager::resolve_editor_asset_manager;
+use crate::ui::host::editor_asset_manager::editor_asset_manager_handle;
 use crate::ui::host::module::{module_descriptor, EDITOR_MANAGER_NAME, EDITOR_MODULE_NAME};
 use crate::ui::host::EditorManager;
 
@@ -78,7 +78,12 @@ fn editor_asset_manager_tracks_scene_animation_and_physics_references() {
     let manager = runtime
         .resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)
         .unwrap();
-    let editor_assets = resolve_editor_asset_manager(&runtime.handle()).unwrap();
+    let core = runtime.handle();
+    let editor_assets = zircon_runtime::core::manager::resolve_manager_service(
+        &core,
+        editor_asset_manager_handle(&core).unwrap(),
+    )
+    .unwrap();
 
     let paths = ProjectPaths::from_root(&project_root).unwrap();
     paths

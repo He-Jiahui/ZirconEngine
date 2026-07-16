@@ -176,6 +176,16 @@ mod tests {
         assert_eq!(iem_desc.mip_levels, 1);
     }
 
+    #[test]
+    fn readback_descriptor_preserves_independent_source_and_pmrem_layouts() {
+        let request = request(16, 5, IblBakeArtifactContents::PMREM_SH9_IEM);
+        let descriptor = descriptor_for(&request);
+
+        assert_ne!(request.source_face_size(), request.pmrem_face_size());
+        assert_ne!(request.source_mip_count(), request.pmrem_mip_count());
+        assert!(descriptor.is_current_for(&request));
+    }
+
     fn materialized_ibl_bake_resources(
         backend: &RenderBackend,
         request: &IblBakeArtifactRequest,
@@ -208,12 +218,7 @@ mod tests {
     }
 
     fn descriptor_for(request: &IblBakeArtifactRequest) -> IblBakeArtifactDescriptor {
-        IblBakeArtifactDescriptor::current(
-            request.bake_key(),
-            request.pmrem_face_size(),
-            request.pmrem_mip_count(),
-            request.required_contents(),
-        )
+        IblBakeArtifactDescriptor::current_for_request(request)
     }
 
     fn descriptor(

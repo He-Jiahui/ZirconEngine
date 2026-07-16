@@ -70,7 +70,6 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
         "ecs/storage/component_storage/store.rs",
         "ecs/storage/component_storage/table.rs",
         "ecs/storage_type.rs",
-        "ecs/system_stage.rs",
     ] {
         assert!(
             scene_root.join(relative).exists(),
@@ -78,6 +77,26 @@ fn scene_components_keep_only_runtime_world_domains_after_editor_boundary_cutove
             scene_root
         );
     }
+
+    let framework_scene_root = scene_root
+        .parent()
+        .expect("src directory exists")
+        .join("core")
+        .join("framework")
+        .join("scene");
+    assert!(
+        framework_scene_root.join("system_stage.rs").exists(),
+        "SystemStage should stay owned by core/framework/scene after the hard cutover"
+    );
+    assert!(
+        !scene_root.join("ecs/system_stage.rs").exists(),
+        "retired scene/ecs/system_stage.rs must not return as an alias or compatibility owner"
+    );
+    let ecs_root_source = std::fs::read_to_string(scene_root.join("ecs/mod.rs")).unwrap();
+    assert!(
+        ecs_root_source.contains("pub use crate::core::framework::scene::SystemStage;"),
+        "scene/ecs should route SystemStage from its core/framework owner"
+    );
 
     for relative in ["render_extract.rs", "viewport.rs", "gizmo.rs"] {
         assert!(

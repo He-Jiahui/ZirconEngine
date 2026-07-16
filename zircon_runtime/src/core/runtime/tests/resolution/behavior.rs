@@ -1,11 +1,15 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
+use std::sync::{mpsc, Arc, Barrier, Condvar, Mutex};
+use std::thread;
+use std::time::Duration;
 
 use super::super::super::*;
 use super::super::fixtures::{TestDriver, TestManager};
 use crate::core::runtime::ServiceObject;
 use crate::core::CoreError;
 use crate::core::{LifecycleState, ServiceKind, StartupMode};
+
+mod dependency_cycles;
 
 #[test]
 fn lazy_manager_is_created_on_first_resolve() {
@@ -33,6 +37,321 @@ fn lazy_manager_is_created_on_first_resolve() {
         .resolve_manager::<TestManager>("LazyModule.Manager.LazyManager")
         .unwrap();
     assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn concurrent_lazy_manager_resolve_executes_factory_once() {
+    let runtime = CoreRuntime::new();
+    let service_name = RegistryName::from_parts(
+        "ConcurrentLazyModule",
+        ServiceKind::Manager,
+        "ConcurrentLazyManager",
+    );
+    let calls = Arc::new(AtomicUsize::new(0));
+    let factory_calls = Arc::clone(&calls);
+    let factory_release = Arc::new((Mutex::new(false), Condvar::new()));
+    let factory_release_for_call = Arc::clone(&factory_release);
+    let (factory_invoked_tx, factory_invoked_rx) = mpsc::channel();
+
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ConcurrentLazyModule", "concurrent lazy manager").with_manager(
+                ManagerDescriptor::new(
+                    service_name.clone(),
+                    StartupMode::Lazy,
+                    Vec::new(),
+                    Arc::new(move |_| {
+                        factory_calls.fetch_add(1, Ordering::SeqCst);
+                        factory_invoked_tx
+                            .send(())
+                            .expect("factory invocation should remain observable");
+                        let (release, released) = factory_release_for_call.as_ref();
+                        let guard = release.lock().unwrap();
+                        drop(released.wait_while(guard, |release| !*release).unwrap());
+                        Ok(Arc::new(TestManager) as ServiceObject)
+                    }),
+                ),
+            ),
+        )
+        .unwrap();
+    runtime.activate_module("ConcurrentLazyModule").unwrap();
+
+    let first_runtime = runtime.clone();
+    let first_service_name = service_name.clone();
+    let first = thread::spawn(move || {
+        first_runtime.resolve_manager::<TestManager>(first_service_name.as_str())
+    });
+    factory_invoked_rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("first resolver should enter the lazy factory");
+
+    let second_runtime = runtime.clone();
+    let second_service_name = service_name.clone();
+    let second_started = Arc::new(Barrier::new(2));
+    let second_started_in_thread = Arc::clone(&second_started);
+    let second = thread::spawn(move || {
+        second_started_in_thread.wait();
+        second_runtime.resolve_manager::<TestManager>(second_service_name.as_str())
+    });
+    second_started.wait();
+    assert!(
+        factory_invoked_rx
+            .recv_timeout(Duration::from_millis(100))
+            .is_err(),
+        "a concurrent lazy resolve must wait for the in-flight factory",
+    );
+
+    let (release, released) = factory_release.as_ref();
+    *release.lock().unwrap() = true;
+    released.notify_all();
+
+    let first = first.join().unwrap().unwrap();
+    let second = second.join().unwrap().unwrap();
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+}
+
+#[test]
+fn concurrent_cyclic_lazy_manager_dependencies_return_without_deadlock() {
+    let runtime = CoreRuntime::new();
+    let first_name = RegistryName::from_parts(
+        "ConcurrentCycleModule",
+        ServiceKind::Manager,
+        "FirstManager",
+    );
+    let second_name = RegistryName::from_parts(
+        "ConcurrentCycleModule",
+        ServiceKind::Manager,
+        "SecondManager",
+    );
+    let factory_calls = Arc::new(AtomicUsize::new(0));
+    let first_factory_calls = Arc::clone(&factory_calls);
+    let second_factory_calls = Arc::clone(&factory_calls);
+
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ConcurrentCycleModule", "concurrent dependency cycle")
+                .with_manager(ManagerDescriptor::new(
+                    first_name.clone(),
+                    StartupMode::Lazy,
+                    vec![DependencySpec::named(second_name.clone())],
+                    Arc::new(move |_| {
+                        first_factory_calls.fetch_add(1, Ordering::SeqCst);
+                        Ok(Arc::new(TestManager) as ServiceObject)
+                    }),
+                ))
+                .with_manager(ManagerDescriptor::new(
+                    second_name.clone(),
+                    StartupMode::Lazy,
+                    vec![DependencySpec::named(first_name.clone())],
+                    Arc::new(move |_| {
+                        second_factory_calls.fetch_add(1, Ordering::SeqCst);
+                        Ok(Arc::new(TestManager) as ServiceObject)
+                    }),
+                )),
+        )
+        .unwrap();
+    runtime.activate_module("ConcurrentCycleModule").unwrap();
+
+    runtime
+        .handle()
+        .install_service_resolution_claim_barrier(2, Arc::new(Barrier::new(2)));
+    let (result_tx, result_rx) = mpsc::channel();
+
+    let first_runtime = runtime.clone();
+    let first_service_name = first_name.clone();
+    let first_result_tx = result_tx.clone();
+    let first = thread::spawn(move || {
+        let result = first_runtime
+            .resolve_manager::<TestManager>(first_service_name.as_str())
+            .map(|_| ());
+        first_result_tx.send(result).unwrap();
+    });
+
+    let second_runtime = runtime.clone();
+    let second_service_name = second_name.clone();
+    let second = thread::spawn(move || {
+        let result = second_runtime
+            .resolve_manager::<TestManager>(second_service_name.as_str())
+            .map(|_| ());
+        result_tx.send(result).unwrap();
+    });
+
+    for _ in 0..2 {
+        let result = result_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("cyclic concurrent resolves must terminate within the bounded budget");
+        match result {
+            Err(CoreError::DependencyCycle(name)) => {
+                assert!(name == first_name.as_str() || name == second_name.as_str());
+            }
+            other => panic!("expected dependency cycle, got {other:?}"),
+        }
+    }
+
+    first.join().unwrap();
+    second.join().unwrap();
+    assert_eq!(factory_calls.load(Ordering::SeqCst), 0);
+}
+
+#[test]
+fn registered_manager_identity_is_unique_and_resolves_the_registered_generation() {
+    let service_name =
+        RegistryName::from_parts("IdentityModule", ServiceKind::Manager, "IdentityManager");
+    let first_runtime = CoreRuntime::new();
+    let second_runtime = CoreRuntime::new();
+
+    for runtime in [&first_runtime, &second_runtime] {
+        runtime
+            .register_module(
+                ModuleDescriptor::new("IdentityModule", "identity").with_manager(
+                    ManagerDescriptor::new(
+                        service_name.clone(),
+                        StartupMode::Lazy,
+                        Vec::new(),
+                        Arc::new(|_| Ok(Arc::new(TestManager) as ServiceObject)),
+                    ),
+                ),
+            )
+            .unwrap();
+        runtime.activate_module("IdentityModule").unwrap();
+    }
+
+    let first_handle = first_runtime.handle();
+    let first_identity = first_handle
+        .registered_manager_identity(service_name.as_str())
+        .unwrap();
+    let second_identity = second_runtime
+        .handle()
+        .registered_manager_identity(service_name.as_str())
+        .unwrap();
+
+    assert_ne!(first_identity.index(), second_identity.index());
+    assert_eq!(first_identity.generation(), 1);
+    assert_eq!(first_identity.service(), &service_name);
+    first_handle
+        .resolve_registered_manager::<TestManager>(&first_identity)
+        .unwrap();
+}
+
+#[test]
+fn deactivation_invalidates_registered_manager_identity_before_reactivation() {
+    let runtime = CoreRuntime::new();
+    let service_name = RegistryName::from_parts(
+        "StaleIdentityModule",
+        ServiceKind::Manager,
+        "IdentityManager",
+    );
+    runtime
+        .register_module(
+            ModuleDescriptor::new("StaleIdentityModule", "stale identity").with_manager(
+                ManagerDescriptor::new(
+                    service_name.clone(),
+                    StartupMode::Immediate,
+                    Vec::new(),
+                    Arc::new(|_| Ok(Arc::new(TestManager) as ServiceObject)),
+                ),
+            ),
+        )
+        .unwrap();
+    runtime.activate_module("StaleIdentityModule").unwrap();
+
+    let handle = runtime.handle();
+    let stale_identity = handle
+        .registered_manager_identity(service_name.as_str())
+        .unwrap();
+    runtime.deactivate_module("StaleIdentityModule").unwrap();
+
+    assert!(matches!(
+        handle.registered_manager_identity(service_name.as_str()),
+        Err(CoreError::ServiceUnavailable(name)) if name == service_name.as_str()
+    ));
+    assert!(matches!(
+        handle.resolve_manager::<TestManager>(service_name.as_str()),
+        Err(CoreError::ServiceUnavailable(name)) if name == service_name.as_str()
+    ));
+
+    let stale_error = handle
+        .resolve_registered_manager::<TestManager>(&stale_identity)
+        .unwrap_err();
+    assert!(matches!(
+        stale_error,
+        CoreError::StaleServiceHandle {
+            name,
+            expected_index,
+            expected_generation,
+            actual_index,
+            actual_generation,
+        } if name == service_name.as_str()
+            && expected_index == stale_identity.index()
+            && expected_generation == stale_identity.generation()
+            && actual_index == stale_identity.index()
+            && actual_generation == stale_identity.generation() + 1
+    ));
+
+    runtime.activate_module("StaleIdentityModule").unwrap();
+    let current_identity = handle
+        .registered_manager_identity(service_name.as_str())
+        .unwrap();
+    assert_eq!(current_identity.index(), stale_identity.index());
+    assert_eq!(
+        current_identity.generation(),
+        stale_identity.generation() + 1
+    );
+    handle
+        .resolve_registered_manager::<TestManager>(&current_identity)
+        .unwrap();
+}
+
+#[test]
+fn lazy_factory_cannot_restore_service_after_concurrent_module_unload() {
+    let runtime = CoreRuntime::new();
+    let service_name = RegistryName::from_parts(
+        "ConcurrentUnloadModule",
+        ServiceKind::Manager,
+        "LazyManager",
+    );
+    let factory_entered = Arc::new(Barrier::new(2));
+    let factory_release = Arc::new(Barrier::new(2));
+    let entered = Arc::clone(&factory_entered);
+    let release = Arc::clone(&factory_release);
+
+    runtime
+        .register_module(
+            ModuleDescriptor::new("ConcurrentUnloadModule", "concurrent unload").with_manager(
+                ManagerDescriptor::new(
+                    service_name.clone(),
+                    StartupMode::Lazy,
+                    Vec::new(),
+                    Arc::new(move |_| {
+                        entered.wait();
+                        release.wait();
+                        Ok(Arc::new(TestManager) as ServiceObject)
+                    }),
+                ),
+            ),
+        )
+        .unwrap();
+    runtime.activate_module("ConcurrentUnloadModule").unwrap();
+
+    let resolver_runtime = runtime.clone();
+    let resolved_service_name = service_name.clone();
+    let resolve_thread = thread::spawn(move || {
+        resolver_runtime.resolve_manager::<TestManager>(resolved_service_name.as_str())
+    });
+    factory_entered.wait();
+    runtime.deactivate_module("ConcurrentUnloadModule").unwrap();
+    factory_release.wait();
+
+    assert!(matches!(
+        resolve_thread.join().unwrap(),
+        Err(CoreError::ServiceUnavailable(name)) if name == service_name.as_str()
+    ));
+    let handle = runtime.handle();
+    let services = handle.inner.services.lock().unwrap();
+    let entry = services.get(&service_name).unwrap();
+    assert_eq!(entry.lifecycle, LifecycleState::Unloaded);
+    assert!(entry.instance.is_none());
 }
 
 #[test]
@@ -387,118 +706,4 @@ fn resolve_exact_five_dependencies_initializes_cached_keys_directly() {
 
     assert_eq!(dependency_calls.load(Ordering::SeqCst), 5);
     assert_eq!(manager_calls.load(Ordering::SeqCst), 1);
-}
-
-#[test]
-fn four_frame_resolution_cycle_reports_canonical_registry_key() {
-    let runtime = CoreRuntime::new();
-    let first_driver_name =
-        RegistryName::from_parts("FourFrameCycleModule", ServiceKind::Driver, "FirstDriver");
-    let second_driver_name =
-        RegistryName::from_parts("FourFrameCycleModule", ServiceKind::Driver, "SecondDriver");
-    let third_driver_name =
-        RegistryName::from_parts("FourFrameCycleModule", ServiceKind::Driver, "ThirdDriver");
-    let fourth_driver_name =
-        RegistryName::from_parts("FourFrameCycleModule", ServiceKind::Driver, "FourthDriver");
-
-    runtime
-        .register_module(
-            ModuleDescriptor::new("FourFrameCycleModule", "four frame cycle")
-                .with_driver(DriverDescriptor::new(
-                    first_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(second_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 0 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    second_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(third_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 1 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    third_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(fourth_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 2 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    fourth_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(first_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 3 }) as ServiceObject)),
-                )),
-        )
-        .unwrap();
-    runtime.activate_module("FourFrameCycleModule").unwrap();
-
-    let error = runtime
-        .resolve_driver::<TestDriver>(first_driver_name.as_str())
-        .unwrap_err();
-
-    assert!(matches!(
-        error,
-        CoreError::DependencyCycle(name) if name == first_driver_name.as_str()
-    ));
-}
-
-#[test]
-fn five_frame_resolution_cycle_reports_canonical_registry_key() {
-    let runtime = CoreRuntime::new();
-    let first_driver_name =
-        RegistryName::from_parts("FiveFrameCycleModule", ServiceKind::Driver, "FirstDriver");
-    let second_driver_name =
-        RegistryName::from_parts("FiveFrameCycleModule", ServiceKind::Driver, "SecondDriver");
-    let third_driver_name =
-        RegistryName::from_parts("FiveFrameCycleModule", ServiceKind::Driver, "ThirdDriver");
-    let fourth_driver_name =
-        RegistryName::from_parts("FiveFrameCycleModule", ServiceKind::Driver, "FourthDriver");
-    let fifth_driver_name =
-        RegistryName::from_parts("FiveFrameCycleModule", ServiceKind::Driver, "FifthDriver");
-
-    runtime
-        .register_module(
-            ModuleDescriptor::new("FiveFrameCycleModule", "five frame cycle")
-                .with_driver(DriverDescriptor::new(
-                    first_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(second_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 0 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    second_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(third_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 1 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    third_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(fourth_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 2 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    fourth_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(fifth_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 3 }) as ServiceObject)),
-                ))
-                .with_driver(DriverDescriptor::new(
-                    fifth_driver_name.clone(),
-                    StartupMode::Lazy,
-                    vec![DependencySpec::named(first_driver_name.clone())],
-                    Arc::new(|_| Ok(Arc::new(TestDriver { order: 4 }) as ServiceObject)),
-                )),
-        )
-        .unwrap();
-    runtime.activate_module("FiveFrameCycleModule").unwrap();
-
-    let error = runtime
-        .resolve_driver::<TestDriver>(first_driver_name.as_str())
-        .unwrap_err();
-
-    assert!(matches!(
-        error,
-        CoreError::DependencyCycle(name) if name == first_driver_name.as_str()
-    ));
 }

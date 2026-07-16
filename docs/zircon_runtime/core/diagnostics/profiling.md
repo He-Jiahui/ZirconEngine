@@ -131,7 +131,7 @@ When `profiling` is disabled, the static macro bodies are cfg-stripped and do no
 
 ## Tracy Sink
 
-`profiling/tracy.rs` installs `tracing_tracy::TracyLayer` through `initialize_tracy_sink`. Installation is idempotent per linked image and returns a status instead of panicking when another subscriber is already installed. `zircon_app` calls it during editor/runtime process startup, and `zircon_runtime::dynamic_api::zircon_runtime_get_api_v1` calls it for the dynamically loaded runtime image. This covers both statically linked app/editor spans and the runtime cdylib's own tracing statics without moving process startup policy into the recorder.
+`profiling/tracy.rs` installs `tracing_tracy::TracyLayer` through `initialize_tracy_sink`. Installation is idempotent per linked image and returns a status instead of panicking when another subscriber is already installed. `zircon_app` calls it during editor/runtime process startup, and `zircon_runtime::dynamic_api::zircon_runtime_get_api_v2` calls it for the dynamically loaded runtime image. This covers both statically linked app/editor spans and the runtime cdylib's own tracing statics without moving process startup policy into the recorder.
 
 The sink follows the same reference shape used by Bevy's `trace_tracy` support: spans are regular `tracing` spans, and frame boundaries are info events containing the `tracy.frame_mark` field so Tracy can draw frame marks in the external GUI.
 

@@ -18,8 +18,9 @@ impl ResourceStreamer {
     ) -> Result<(ResourceId, u64, Option<RenderMaterialReadinessReport>), GraphicsError> {
         let uri = &reference.locator;
         let mut fallback_report = None;
-        let (shader_id, shader) = match self.asset_manager.resolve_asset_id(uri) {
-            Some(shader_id) => match self.asset_manager.load_shader_asset(shader_id) {
+        let asset_manager = self.asset_manager()?;
+        let (shader_id, shader) = match asset_manager.resolve_asset_id(uri) {
+            Some(shader_id) => match asset_manager.load_shader_asset(shader_id) {
                 Ok(shader) => (shader_id, shader),
                 Err(_) => {
                     fallback_report = Some(missing_shader_readiness_report(reference));
@@ -83,14 +84,13 @@ impl ResourceStreamer {
         &self,
     ) -> Result<(ResourceId, crate::asset::ShaderAsset), GraphicsError> {
         let fallback_uri = fallback_shader_uri();
-        let shader_id = self
-            .asset_manager
+        let asset_manager = self.asset_manager()?;
+        let shader_id = asset_manager
             .resolve_asset_id(&fallback_uri)
             .ok_or_else(|| {
                 GraphicsError::Asset(format!("missing shader resource for {fallback_uri}"))
             })?;
-        let shader = self
-            .asset_manager
+        let shader = asset_manager
             .load_shader_asset(shader_id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         Ok((shader_id, shader))

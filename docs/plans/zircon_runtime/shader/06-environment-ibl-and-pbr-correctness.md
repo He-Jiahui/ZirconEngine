@@ -373,6 +373,7 @@ cmftStudio 的 diffuse 消费端是 32³ irradiance cubemap 直采(`fs_mesh.shdr
 - fixed 已修复：[deferred-lighting-nested-include-resolution](06/fixed-2026-07-15-deferred-lighting-nested-include-resolution.md)
 - fixed 已修复：[runtime-operation-phase-terminal-matcher](06/fixed-2026-07-15-runtime-operation-phase-terminal-matcher.md)
 - fixed 已修复：[external-source-cubemap-contract-api-drift](../../zircon_editor/editor/03/fixed-2026-07-15-external-source-cubemap-contract-api-drift.md)
+- fixed 已修复：[rich-text-dto-shader06-source-staging-gate](06/fixed-2026-07-15-rich-text-dto-shader06-source-staging-gate.md)
 - M1 已完成：[current-source HDRI PBR acceptance](06/2026-07-14-current-source-hdri-pbr-acceptance.md)
 - M2 已完成：[current-source cubemap and IBL binding acceptance](06/2026-07-15-current-source-cubemap-ibl-binding-acceptance.md)
 - M3 已完成：[PMREM artifact layout convergence](06/2026-07-14-pmrem-artifact-layout-convergence.md)

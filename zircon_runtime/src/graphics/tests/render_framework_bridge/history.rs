@@ -3,7 +3,7 @@ use super::*;
 #[test]
 fn render_framework_records_temporal_history_after_compatible_history_exists() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -49,7 +49,7 @@ fn render_framework_records_temporal_history_after_compatible_history_exists() {
 #[test]
 fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -80,7 +80,7 @@ fn render_framework_tracks_text_payloads_submitted_with_shared_ui_extracts() {
 #[test]
 fn render_framework_reuses_frame_history_handle_for_compatible_submissions() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -107,7 +107,7 @@ fn render_framework_reuses_frame_history_handle_for_compatible_submissions() {
 #[test]
 fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -169,7 +169,7 @@ fn render_framework_reports_frame_history_invalidation_when_camera_moves() {
 #[test]
 fn render_framework_invalidates_history_when_dynamic_render_size_changes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport_size = UVec2::new(320, 240);
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))

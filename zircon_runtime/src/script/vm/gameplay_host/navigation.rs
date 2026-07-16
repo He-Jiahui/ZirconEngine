@@ -3,7 +3,7 @@ use crate::core::framework::navigation::{
     NAV_MESH_AGENT_COMPONENT_TYPE,
 };
 use crate::core::framework::script::{ScriptHostCallContext, ScriptHostError, ScriptHostValue};
-use crate::core::manager::resolve_navigation_manager;
+use crate::core::manager::{navigation_manager_handle, resolve_manager_service};
 use crate::core::math::Vec3;
 use crate::scene::{
     SceneNavigationRuntime, SceneNavigationRuntimeHandle, SCENE_NAVIGATION_RUNTIME_DRIVER_NAME,
@@ -22,7 +22,9 @@ pub(super) fn nav_next_point_json(
     let end = expect_vec3_json(context, 1)?;
     let runtime = current_script_runtime_call_context()?;
     let core = runtime.core_handle()?;
-    let navigation = resolve_navigation_manager(&core).map_err(script_core_error)?;
+    let navigation = navigation_manager_handle(&core)
+        .and_then(|handle| resolve_manager_service(&core, handle))
+        .map_err(script_core_error)?;
     let result = navigation
         .find_path(NavPathQuery {
             nav_mesh: None,
@@ -113,7 +115,9 @@ pub(super) fn navigation_next_point(
     target: Vec3,
 ) -> Option<Vec3> {
     let core = runtime.core_handle().ok()?;
-    let navigation = resolve_navigation_manager(&core).ok()?;
+    let navigation = navigation_manager_handle(&core)
+        .and_then(|handle| resolve_manager_service(&core, handle))
+        .ok()?;
     let result = navigation
         .find_path(NavPathQuery {
             nav_mesh: None,

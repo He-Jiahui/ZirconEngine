@@ -163,7 +163,7 @@ GPU command stream：glyph atlas（SDF / 位图按 raster_path_for）→ 提交
 | # | 切片 | 涉及文件 | 验证命令 | 硬切换 |
 |---|------|---------|---------|--------|
 | M1.S1 | （2026-07-02 评审收口：选型切片作废，降级为**验证性对拍**——栅格定稿 swash，见 U3/text/index §5）样张（拉丁/CJK 混排/数字）× 字号档 11/12/14/16/24/32，对拍 swash 输出质量/栅格耗时/atlas 占用；结论写 `docs/zircon_runtime/ui/text.md` | 对拍 harness | `cargo test -p zircon_runtime --lib text_raster_bench --locked -- --nocapture` | 无删除 |
-| M1.S2 | （2026-07-02 评审收口：「−glyphon」义务**作废**，glyphon 保留为 bitmap atlas 绘制后端）依赖收口按 text/02（shaping/cosmic-text 定位）与 text/04（atlas/glyphon 定位）执行；全工作区 check | Cargo.toml | `cargo check --workspace --locked` | 无删除 |
+| M1.S2 | （2026-07-02 评审收口：「−glyphon」义务**作废**，glyphon 保留为 bitmap atlas 绘制后端）依赖收口按 text/02（shaping/cosmic-text 定位）与 text/04（atlas/glyphon 定位）执行；workspace 全量 check 义务已随 U2 裁决一并作废，包级 focused check 留给对应 text/ 里程碑的最小批次（policy §4 波次收口执行全量） | Cargo.toml | `cargo check -p zircon_runtime --lib --locked` | 无删除 |
 | M2.S1 | （实现主体让渡 text/01 `FontDatabase`）编辑器侧接入 FontAsset→FontDatabase 注册链（复用 assets/font.rs 加载链；前置=text/01 里程碑） | font_registry.rs | `cargo test -p zircon_runtime --lib font_registry --locked` | 无删除 |
 | M2.S2 | 默认字体包（含 CJK）注册进 FontDatabase + fallback 链配置；editor 启动注册 | zircon_editor/assets/fonts/ | `cargo test -p zircon_editor --lib --locked` | 无删除 |
 | M2.S3 | resolve_text_layout 落地，shaper.layout_text 切换；CJK/混排 shaping 测试（前置=text/02/03 里程碑） | resolved_layout.rs、shaper.rs | `cargo test -p zircon_runtime --lib text --locked` | 删 shaper 旧路径 |
@@ -210,7 +210,7 @@ GPU command stream：glyph atlas（SDF / 位图按 raster_path_for）→ 提交
 | CJK 默认字体包体积大 | 评估 subset/按需加载；staged build 产物体积进验收记录 |
 | 宽度桶设计不当（缓存命中低或换行错误） | 桶按换行等价类划分；M3 边界测试覆盖「桶内不换行变化、跨桶必 reshape」 |
 | IME 行为平台差异 | 以 Windows 实机为验收基准；其他平台差异显式记录为后续项 |
-| glyphon 移除波及未知引用 | （2026-07-02 评审收口：glyphon 保留，本风险随 U2 裁决作废）~~:117 已证实未接布局；M1.S2 以 `cargo check --workspace` 全量验证~~ |
+| glyphon 移除波及未知引用 | （2026-07-02 评审收口：glyphon 保留，本风险随 U2 裁决作废）~~:117 已证实未接布局；M1.S2 workspace 全量 check 义务已随裁决作废，参 policy §4 波次收口~~ |
 
 ## 10. 里程碑级依赖表
 

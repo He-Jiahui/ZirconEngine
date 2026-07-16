@@ -1,5 +1,5 @@
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     glyph_atlas_bitmap_render_submission_plan_with_padding, render_plan::GlyphAtlasScreenRect,
     GlyphAtlasBitmapFaceValidity, GlyphAtlasBitmapPageUploadStaging,
     GlyphAtlasBitmapPreparedUploadPlan, GlyphAtlasBitmapSource, GlyphAtlasBitmapStagedUpload,

@@ -1,4 +1,4 @@
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     glyph_atlas_bitmap_texture_upload_request_plan,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas,
     glyph_atlas_bitmap_texture_upload_request_plan_with_atlas_and_face_validity,

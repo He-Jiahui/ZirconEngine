@@ -28,19 +28,18 @@ RUNTIME_DOMAINS = frozenset(
         "rhi_wgpu",
         "scene",
         "script",
+        "text",
         "ui",
     }
 )
 
+RUST_IDENTIFIER_PATTERN = r"(?:r#)?[A-Za-z_][A-Za-z0-9_]*"
 CRATE_DOMAIN_REFERENCE = re.compile(
-    r"\bcrate::([A-Za-z_][A-Za-z0-9_]*)(?=::|\s*(?:as\b|[,;}]))"
+    rf"\bcrate\s*::\s*({RUST_IDENTIFIER_PATTERN})"
+    r"(?=\s*::|\s*(?:as\b|[,;}]))"
 )
-GROUPED_CRATE_USE_START = re.compile(r"\buse\s+crate::\{")
-CFG_TEST_ATTRIBUTE = re.compile(
-    r"#\s*\[\s*cfg\s*\(\s*"
-    r"(?:test|all\s*\(\s*test(?:\s*,[^)\r\n]*)?\))"
-    r"\s*\)\s*\]"
-)
+GROUPED_CRATE_USE_START = re.compile(r"\buse\s+crate\s*::\s*\{")
+CFG_ATTRIBUTE_START = re.compile(r"#\s*\[\s*cfg\s*\(")
 EXTERNAL_MODULE_DECLARATION = re.compile(
     r"(?P<attributes>(?:#\s*\[[^\]]*\]\s*)*)"
     r"(?:(?:pub(?:\s*\([^)]*\))?|unsafe)\s+)*"
@@ -51,6 +50,7 @@ RAW_STRING_LITERAL_START = re.compile(r'(?:b|c)?r(?P<hashes>#{0,255})"')
 WHITESPACE = re.compile(r"\s*")
 SIMPLE_CHAR_ESCAPES = frozenset({"'", '"', "n", "r", "t", "\\", "0"})
 HEX_DIGITS = frozenset("0123456789abcdefABCDEF")
+RUST_USE_TOKEN = re.compile(rf"::|{RUST_IDENTIFIER_PATTERN}|[{{}},*]")
 
 
 @dataclass(frozen=True, order=True)
@@ -60,6 +60,17 @@ class DomainReference:
     path: str
     line: int
     source: str
+
+
+@dataclass(frozen=True)
+class _CfgExpression:
+    name: str
+    arguments: tuple["_CfgExpression", ...] | None = None
+    atom_key: str | None = None
+
+
+def _canonical_rust_identifier(identifier: str) -> str:
+    return identifier[2:] if identifier.startswith("r#") else identifier
 
 
 def _rust_char_literal_end(source: str, start: int) -> int | None:
@@ -209,6 +220,73 @@ def _rust_code_view(source: str) -> str:
     return "".join(rendered)
 
 
+def _rust_use_paths(
+    code_view: str,
+) -> list[tuple[tuple[str, ...], str | None, int]]:
+    """Return canonical-looking leaf paths, aliases, and lines from Rust use trees."""
+    paths: list[tuple[tuple[str, ...], str | None, int]] = []
+
+    def parse_tree(
+        tokens: list[tuple[str, int]], index: int, prefix: tuple[str, ...]
+    ) -> tuple[list[tuple[tuple[str, ...], str | None, int]], int]:
+        parsed: list[tuple[tuple[str, ...], str | None, int]] = []
+        if index >= len(tokens):
+            return parsed, index
+
+        token, offset = tokens[index]
+        if token == "{":
+            index += 1
+            while index < len(tokens) and tokens[index][0] != "}":
+                if tokens[index][0] == ",":
+                    index += 1
+                    continue
+                children, index = parse_tree(tokens, index, prefix)
+                parsed.extend(children)
+            return parsed, min(index + 1, len(tokens))
+
+        if token == "*":
+            parsed.append((prefix + (token,), None, offset))
+            return parsed, index + 1
+
+        if token in {",", "}"}:
+            return parsed, index + 1
+
+        path = prefix if token == "self" and prefix else prefix + (token,)
+        index += 1
+        if index < len(tokens) and tokens[index][0] == "::":
+            return parse_tree(tokens, index + 1, path)
+
+        alias = None
+        if index < len(tokens) and tokens[index][0] == "as":
+            if index + 1 < len(tokens):
+                alias = tokens[index + 1][0]
+                index += 2
+            else:
+                index += 1
+        parsed.append((path, alias, offset))
+        return parsed, index
+
+    for use_statement in re.finditer(r"\buse\s+(?P<body>[^;]+);", code_view):
+        body_start = use_statement.start("body")
+        tokens = [
+            (
+                _canonical_rust_identifier(token.group(0)),
+                body_start + token.start(),
+            )
+            for token in RUST_USE_TOKEN.finditer(use_statement.group("body"))
+        ]
+        index = 1 if tokens and tokens[0][0] == "::" else 0
+        while index < len(tokens):
+            parsed, next_index = parse_tree(tokens, index, ())
+            paths.extend(
+                (path, alias, code_view.count("\n", 0, offset) + 1)
+                for path, alias, offset in parsed
+            )
+            index = max(next_index, index + 1)
+
+    return paths
+
+
 def _matching_delimiter_end(source: str, start: int, opening: str, closing: str) -> int:
     depth = 0
     for index in range(start, len(source)):
@@ -222,18 +300,192 @@ def _matching_delimiter_end(source: str, start: int, opening: str, closing: str)
     return len(source)
 
 
+def _parse_cfg_expression(
+    expression: str, start: int = 0
+) -> tuple[_CfgExpression | None, int]:
+    cursor = start
+    while cursor < len(expression) and expression[cursor].isspace():
+        cursor += 1
+    atom_start = cursor
+    identifier = re.match(r"[A-Za-z_][A-Za-z0-9_]*", expression[cursor:])
+    if identifier is None:
+        return None, cursor
+    name = identifier.group(0)
+    cursor += identifier.end()
+    while cursor < len(expression) and expression[cursor].isspace():
+        cursor += 1
+    if cursor >= len(expression) or expression[cursor] != "(":
+        in_string = False
+        escaped = False
+        while cursor < len(expression):
+            character = expression[cursor]
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif character == "\\":
+                    escaped = True
+                elif character == '"':
+                    in_string = False
+            elif character == '"':
+                in_string = True
+            elif character in {",", ")"}:
+                break
+            cursor += 1
+        return _CfgExpression(
+            name=name,
+            atom_key=_normalize_cfg_atom(expression[atom_start:cursor]),
+        ), cursor
+
+    cursor += 1
+    arguments: list[_CfgExpression] = []
+    while cursor < len(expression):
+        while cursor < len(expression) and expression[cursor].isspace():
+            cursor += 1
+        if cursor >= len(expression) or expression[cursor] == ")":
+            end = cursor + 1
+            return _CfgExpression(
+                name=name,
+                arguments=tuple(arguments),
+                atom_key=(
+                    None
+                    if name in {"all", "any", "not"}
+                    else _normalize_cfg_atom(expression[atom_start:end])
+                ),
+            ), end
+        argument, next_cursor = _parse_cfg_expression(expression, cursor)
+        if argument is None or next_cursor <= cursor:
+            return None, cursor
+        arguments.append(argument)
+        cursor = next_cursor
+        while cursor < len(expression) and expression[cursor].isspace():
+            cursor += 1
+        if cursor < len(expression) and expression[cursor] == ",":
+            cursor += 1
+            continue
+        if cursor < len(expression) and expression[cursor] == ")":
+            end = cursor + 1
+            return _CfgExpression(
+                name=name,
+                arguments=tuple(arguments),
+                atom_key=(
+                    None
+                    if name in {"all", "any", "not"}
+                    else _normalize_cfg_atom(expression[atom_start:end])
+                ),
+            ), end
+        return None, cursor
+    return None, cursor
+
+
+def _normalize_cfg_atom(atom: str) -> str:
+    rendered: list[str] = []
+    in_string = False
+    escaped = False
+    for character in atom:
+        if in_string:
+            rendered.append(character)
+            if escaped:
+                escaped = False
+            elif character == "\\":
+                escaped = True
+            elif character == '"':
+                in_string = False
+        elif character == '"':
+            in_string = True
+            rendered.append(character)
+        elif not character.isspace():
+            rendered.append(character)
+    return "".join(rendered)
+
+
+def _cfg_unknown_atoms(expression: _CfgExpression) -> set[str]:
+    if expression.arguments is None or expression.name not in {"all", "any", "not"}:
+        if expression.name == "test" and expression.atom_key == "test":
+            return set()
+        return {expression.atom_key or expression.name}
+    return {
+        atom
+        for argument in expression.arguments
+        for atom in _cfg_unknown_atoms(argument)
+    }
+
+
+def _evaluate_cfg_with_test_false(
+    expression: _CfgExpression, assignment: dict[str, bool]
+) -> bool:
+    if expression.arguments is None or expression.name not in {"all", "any", "not"}:
+        if expression.name == "test" and expression.atom_key == "test":
+            return False
+        return assignment[expression.atom_key or expression.name]
+    if expression.name == "all":
+        return all(
+            _evaluate_cfg_with_test_false(argument, assignment)
+            for argument in expression.arguments
+        )
+    if expression.name == "any":
+        return any(
+            _evaluate_cfg_with_test_false(argument, assignment)
+            for argument in expression.arguments
+        )
+    return len(expression.arguments) == 1 and not _evaluate_cfg_with_test_false(
+        expression.arguments[0], assignment
+    )
+
+
+def _cfg_attributes(
+    code_view: str, cfg_source: str | None = None
+) -> list[tuple[int, int, _CfgExpression]]:
+    attributes: list[tuple[int, int, _CfgExpression]] = []
+    for attribute in CFG_ATTRIBUTE_START.finditer(code_view):
+        opening = attribute.end() - 1
+        closing = _matching_delimiter_end(code_view, opening, "(", ")")
+        predicate_source = cfg_source if cfg_source is not None else code_view
+        expression, _cursor = _parse_cfg_expression(
+            predicate_source[opening + 1 : closing - 1]
+        )
+        if expression is None:
+            continue
+        attribute_end = closing
+        while attribute_end < len(code_view) and code_view[attribute_end].isspace():
+            attribute_end += 1
+        if attribute_end < len(code_view) and code_view[attribute_end] == "]":
+            attribute_end += 1
+        attributes.append((attribute.start(), attribute_end, expression))
+    return attributes
+
+
+def _cfg_expressions_imply_test(expressions: list[_CfgExpression]) -> bool:
+    if not expressions:
+        return False
+    combined = _CfgExpression(name="all", arguments=tuple(expressions))
+    atoms = sorted(_cfg_unknown_atoms(combined))
+    if len(atoms) > 16:
+        return False
+    for bit_mask in range(1 << len(atoms)):
+        assignment = {
+            atom: bool(bit_mask & (1 << index))
+            for index, atom in enumerate(atoms)
+        }
+        if _evaluate_cfg_with_test_false(combined, assignment):
+            return False
+    return True
+
+
 def _grouped_crate_use_references(code_view: str) -> list[tuple[str, int]]:
     """Return top-level domains from `use crate::{...}` trees and their lines."""
     references: list[tuple[str, int]] = []
 
     def append_entry(entry_start: int, entry_end: int) -> None:
         entry = code_view[entry_start:entry_end]
-        identifier = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)\b", entry)
-        if identifier is None or identifier.group(1) not in RUNTIME_DOMAINS:
+        identifier = re.search(rf"\b({RUST_IDENTIFIER_PATTERN})\b", entry)
+        if identifier is None:
+            return
+        domain = _canonical_rust_identifier(identifier.group(1))
+        if domain not in RUNTIME_DOMAINS:
             return
         absolute_offset = entry_start + identifier.start(1)
         references.append(
-            (identifier.group(1), code_view.count("\n", 0, absolute_offset) + 1)
+            (domain, code_view.count("\n", 0, absolute_offset) + 1)
         )
 
     for grouped_use in GROUPED_CRATE_USE_START.finditer(code_view):
@@ -268,10 +520,20 @@ def _skip_whitespace_and_attributes(code_view: str, start: int) -> int:
     return cursor
 
 
-def _cfg_test_item_spans(code_view: str) -> list[tuple[int, int]]:
+def _cfg_test_item_spans(
+    code_view: str, cfg_source: str | None = None
+) -> list[tuple[int, int]]:
     spans: list[tuple[int, int]] = []
-    for cfg_match in CFG_TEST_ATTRIBUTE.finditer(code_view):
-        item_start = _skip_whitespace_and_attributes(code_view, cfg_match.end())
+    attributes_by_item: dict[int, list[tuple[int, _CfgExpression]]] = {}
+    for cfg_start, cfg_end, expression in _cfg_attributes(code_view, cfg_source):
+        item_start = _skip_whitespace_and_attributes(code_view, cfg_end)
+        attributes_by_item.setdefault(item_start, []).append((cfg_start, expression))
+    for item_start, attributes in attributes_by_item.items():
+        if not _cfg_expressions_imply_test(
+            [expression for _start, expression in attributes]
+        ):
+            continue
+        cfg_start = min(start for start, _expression in attributes)
         parenthesis_depth = 0
         bracket_depth = 0
         cursor = item_start
@@ -286,12 +548,12 @@ def _cfg_test_item_spans(code_view: str) -> list[tuple[int, int]]:
             elif character == "]":
                 bracket_depth = max(0, bracket_depth - 1)
             elif character == ";" and parenthesis_depth == 0 and bracket_depth == 0:
-                spans.append((cfg_match.start(), cursor + 1))
+                spans.append((cfg_start, cursor + 1))
                 break
             elif character == "{" and parenthesis_depth == 0 and bracket_depth == 0:
                 spans.append(
                     (
-                        cfg_match.start(),
+                        cfg_start,
                         _matching_delimiter_end(code_view, cursor, "{", "}"),
                     )
                 )
@@ -352,7 +614,18 @@ def _module_edges(
         )
         if target_path is not None:
             edges.append(
-                (target_path, CFG_TEST_ATTRIBUTE.search(original_attributes) is not None)
+                (
+                    target_path,
+                    _cfg_expressions_imply_test(
+                        [
+                            expression
+                            for _start, _end, expression in _cfg_attributes(
+                                _rust_code_view(original_attributes),
+                                original_attributes,
+                            )
+                        ]
+                    ),
+                )
             )
     return edges
 
@@ -429,9 +702,10 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
         if code_view is None:
             code_view = _rust_code_view(source)
         audit_source = code_view
-        if CFG_TEST_ATTRIBUTE.search(source) is not None:
+        test_item_spans = _cfg_test_item_spans(code_view, source)
+        if test_item_spans:
             masked_source = list(code_view)
-            for span_start, span_end in _cfg_test_item_spans(code_view):
+            for span_start, span_end in test_item_spans:
                 for offset in range(span_start, span_end):
                     if masked_source[offset] not in {"\r", "\n"}:
                         masked_source[offset] = " "
@@ -443,12 +717,11 @@ def audit_runtime_domain_dependencies(repo_root: Path) -> dict[str, object]:
             zip(source.splitlines(), audit_source.splitlines(), strict=True),
             start=1,
         ):
-            targets = {
-                match.group(1)
-                for match in CRATE_DOMAIN_REFERENCE.finditer(audit_line)
-                if match.group(1) in RUNTIME_DOMAINS
-                and match.group(1) != source_domain
-            }
+            targets = set()
+            for match in CRATE_DOMAIN_REFERENCE.finditer(audit_line):
+                target_domain = _canonical_rust_identifier(match.group(1))
+                if target_domain in RUNTIME_DOMAINS and target_domain != source_domain:
+                    targets.add(target_domain)
             targets.update(
                 target_domain
                 for target_domain in grouped_targets_by_line.get(line_number, ())

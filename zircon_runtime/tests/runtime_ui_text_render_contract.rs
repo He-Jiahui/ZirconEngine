@@ -1,3 +1,5 @@
+#![cfg(feature = "ui")]
+
 use std::sync::Arc;
 
 use zircon_runtime::asset::pipeline::manager::ProjectAssetManager;
@@ -16,6 +18,8 @@ use zircon_runtime_interface::ui::surface::{
     UiRenderCommand, UiRenderCommandKind, UiRenderExtract, UiRenderList, UiResolvedStyle,
     UiTextAlign, UiTextRenderMode, UiTextWrap,
 };
+
+mod support;
 
 #[test]
 fn native_runtime_ui_text_renders_sparse_glyph_pixels_without_placeholder_band() {
@@ -398,7 +402,8 @@ fn render_ui_extract_frame(
     zircon_runtime::core::framework::render::RenderStats,
 ) {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let asset_runtime = support::ProjectAssetTestRuntime::new(asset_manager);
+    let server = WgpuRenderFramework::new(asset_runtime.access()).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
         .unwrap();

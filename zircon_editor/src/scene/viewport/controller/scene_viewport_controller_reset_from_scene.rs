@@ -9,7 +9,9 @@ impl SceneViewportController {
     pub(crate) fn reset_from_scene(&mut self, scene: Option<&Scene>) {
         self.reset_camera_from_scene(scene);
         self.state.orbit_target = scene
-            .and_then(|scene| Self::selected_world_position(scene, self.selected_node()))
+            .and_then(|scene| {
+                Self::selected_world_position(scene, self.state.selection.active_primary())
+            })
             .unwrap_or(Vec3::ZERO);
         self.state
             .orbit_controller

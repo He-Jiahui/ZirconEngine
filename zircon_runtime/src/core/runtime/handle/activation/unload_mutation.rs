@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::core::LifecycleState;
-
 use super::super::super::descriptors::RegistryName;
 use super::super::super::state::ServiceEntry;
 
@@ -51,7 +49,6 @@ pub(super) fn unload_services(
 
 fn unload_service(services: &mut HashMap<RegistryName, ServiceEntry>, service_name: &RegistryName) {
     if let Some(entry) = services.get_mut(service_name) {
-        entry.instance = None;
-        entry.lifecycle = LifecycleState::Unloaded;
+        entry.invalidate_for_unload();
     }
 }

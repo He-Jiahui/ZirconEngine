@@ -80,7 +80,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "runtime_diagnostics_profile_control_static_passed_cargo_deferred_tests_deferred",
             "ProfileControlCommand::RuntimeDiagnosticsSnapshot",
             "runtime_diagnostics_anchors = 15/15",
-            "no new `ZrRuntimeApiV1` function pointer",
+            "no new `ZrRuntimeApiV2` function pointer",
         ],
     ),
     (
@@ -134,7 +134,7 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[ExpectedStatusOutputSlice] = &
             "runtime_10_failure_boundary_inventory_split_static_passed_cargo_deferred_tests_deferred",
             "dynamic_runtime_api_failure_inventory.py",
             "ffi_panic_anchors = 9/9",
-            "loader_failure_anchors = 10/10",
+            "loader_failure_anchors = 11/11",
         ],
     ),
     (

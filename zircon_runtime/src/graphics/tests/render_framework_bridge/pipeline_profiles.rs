@@ -5,7 +5,7 @@ use super::*;
 #[test]
 fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -84,7 +84,7 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
 #[test]
 fn render_framework_rotates_frame_history_handle_when_pipeline_changes() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -112,7 +112,7 @@ fn render_framework_rotates_frame_history_handle_when_pipeline_changes() {
 #[test]
 fn quality_profile_can_disable_ssao_clustered_and_history_features() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -151,7 +151,7 @@ fn quality_profile_can_disable_ssao_clustered_and_history_features() {
 #[test]
 fn render_framework_rejects_unknown_pipeline_handles() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -169,7 +169,7 @@ fn render_framework_rejects_unknown_pipeline_handles() {
 #[test]
 fn render_framework_rejects_quality_profile_when_requested_feature_lacks_backend_caps() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -202,7 +202,7 @@ fn render_framework_rejects_quality_profile_when_requested_feature_lacks_backend
 #[test]
 fn render_framework_rejects_pipeline_switch_when_active_profile_loses_required_caps() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -232,7 +232,7 @@ fn render_framework_rejects_pipeline_switch_when_active_profile_loses_required_c
 #[cfg(target_os = "windows")]
 fn render_framework_rejects_submit_when_active_profile_loses_required_caps() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -261,7 +261,7 @@ fn render_framework_rejects_submit_when_active_profile_loses_required_caps() {
 #[test]
 fn render_framework_accepts_built_in_deferred_pipeline_handle() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -284,7 +284,7 @@ fn render_framework_accepts_built_in_deferred_pipeline_handle() {
 #[test]
 fn render_framework_registers_pipeline_assets_and_validates_reload() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -307,7 +307,7 @@ fn render_framework_registers_pipeline_assets_and_validates_reload() {
 #[test]
 fn registering_and_reloading_inactive_pipeline_assets_do_not_change_last_pipeline_stats() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let before = server.query_stats().unwrap().last_pipeline;
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
     custom_pipeline.handle = RenderPipelineHandle::new(85);
@@ -323,7 +323,7 @@ fn registering_and_reloading_inactive_pipeline_assets_do_not_change_last_pipelin
 #[test]
 fn render_framework_rejects_pipeline_asset_with_unknown_executor_id() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
     custom_pipeline.handle = RenderPipelineHandle::new(78);
     custom_pipeline.name = "bad-executor-pipeline".to_string();
@@ -364,7 +364,7 @@ fn render_framework_rejects_pipeline_asset_with_unknown_executor_id() {
 #[test]
 fn render_framework_accepts_pipeline_asset_with_culled_unknown_executor_id() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
     custom_pipeline.handle = RenderPipelineHandle::new(79);
     custom_pipeline.name = "bad-culled-executor-pipeline".to_string();
@@ -397,7 +397,7 @@ fn render_framework_accepts_pipeline_asset_with_culled_unknown_executor_id() {
 #[test]
 fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
     custom_pipeline.handle = RenderPipelineHandle::new(80);
     custom_pipeline.name = "bad-gated-descriptor-pipeline".to_string();
@@ -438,7 +438,7 @@ fn render_framework_rejects_quality_gated_bad_descriptor_during_registration() {
 #[test]
 fn render_framework_rejects_quality_gated_unknown_executor_during_registration() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let mut custom_pipeline = RenderPipelineAsset::default_forward_plus();
     custom_pipeline.handle = RenderPipelineHandle::new(81);
     custom_pipeline.name = "bad-gated-executor-pipeline".to_string();
@@ -480,7 +480,7 @@ fn render_framework_rejects_quality_gated_unknown_executor_during_registration()
 #[test]
 fn quality_profile_can_override_the_default_pipeline_asset() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -507,7 +507,7 @@ fn quality_profile_can_override_the_default_pipeline_asset() {
 #[test]
 fn render_framework_rejects_quality_profile_with_unknown_pipeline_override() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -529,7 +529,7 @@ fn render_framework_rejects_quality_profile_with_unknown_pipeline_override() {
 #[test]
 fn render_framework_reports_profile_override_pipeline_for_capability_mismatch() {
     let asset_manager = Arc::new(ProjectAssetManager::default());
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let viewport = server
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

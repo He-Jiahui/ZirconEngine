@@ -17,7 +17,8 @@ fn render_product_submit_default_profile_accepts_default_3d_ui_and_2d_sprite_pat
     assert!(!bundle.has_feature(RenderProductFeature::HybridGlobalIllumination));
     assert!(!bundle.has_feature(RenderProductFeature::Solari));
 
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

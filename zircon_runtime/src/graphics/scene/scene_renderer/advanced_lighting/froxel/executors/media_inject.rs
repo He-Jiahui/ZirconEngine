@@ -29,7 +29,12 @@ impl RenderPassExecutor for VolumetricMediaInjectExecutor {
         let extract = gpu.frame_extract();
         let advanced = &extract.lighting.advanced_lighting;
         let settings = resolved_volumetric_fog_settings(extract)?;
-        let local_volumes = advanced.fog_volumes.clone();
+        let render_layers = extract
+            .view
+            .selected_camera_descriptor()
+            .map(|camera| camera.culling_mask.clone())
+            .unwrap_or_default();
+        let local_volumes = advanced.fog_volumes_for_layers(&render_layers);
         let camera = extract.view.selected_effective_camera();
         let viewport_size = gpu.viewport_size();
         let quality = FroxelGridQuality::from_shader_quality(gpu.shader_quality());

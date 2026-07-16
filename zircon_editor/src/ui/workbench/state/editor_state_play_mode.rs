@@ -1,8 +1,9 @@
 use crate::core::editing::history::EditorHistory;
+use crate::scene::selection::{SelectionModel, WorldDomain};
 use crate::ui::workbench::snapshot::EditorBridgeDiagnosticsSnapshot;
 use crate::ui::workbench::startup::EditorSessionMode;
 use zircon_runtime::plugin::BridgeDiagnosticsMatrix;
-use zircon_runtime::scene::{NodeId, Scene};
+use zircon_runtime::scene::Scene;
 
 use super::editor_state::EditorState;
 use super::no_project_open::no_project_open;
@@ -10,7 +11,7 @@ use super::no_project_open::no_project_open;
 #[derive(Clone, Debug)]
 pub(crate) struct EditorPlaySession {
     scene: Scene,
-    selected_node: Option<NodeId>,
+    selection: SelectionModel,
     history: EditorHistory,
     session_mode_before_play: EditorSessionMode,
 }
@@ -19,7 +20,7 @@ impl EditorPlaySession {
     fn capture(state: &EditorState, scene: Scene) -> Self {
         Self {
             scene,
-            selected_node: state.viewport_controller.selected_node(),
+            selection: state.viewport_controller.selection().clone(),
             history: state.history.clone(),
             session_mode_before_play: state.session_mode,
         }
@@ -44,6 +45,20 @@ impl EditorState {
         };
 
         self.play_session = Some(EditorPlaySession::capture(self, scene));
+        let edit_items = self
+            .viewport_controller
+            .selection()
+            .items(WorldDomain::Edit)
+            .iter()
+            .copied()
+            .collect::<Vec<_>>();
+        let edit_primary = self
+            .viewport_controller
+            .selection()
+            .primary(WorldDomain::Edit);
+        let selection = self.viewport_controller.selection_mut();
+        selection.replace(WorldDomain::Play, edit_items, edit_primary);
+        selection.set_active_domain(WorldDomain::Play);
         self.session_mode = EditorSessionMode::Playing;
         self.history.clear();
         self.status_line = "Entered play mode".to_string();
@@ -65,8 +80,7 @@ impl EditorState {
         self.world
             .try_with_world_mut(|scene| *scene = session.scene)
             .ok_or_else(no_project_open)?;
-        self.viewport_controller
-            .set_selected_node(restored_selected_node(self, session.selected_node));
+        *self.viewport_controller.selection_mut() = session.selection;
         self.history = session.history;
         self.session_mode = session.session_mode_before_play;
         self.sync_selection_state();
@@ -82,13 +96,4 @@ impl EditorState {
             .map(EditorBridgeDiagnosticsSnapshot::from_runtime_matrix)
             .unwrap_or_default();
     }
-}
-
-fn restored_selected_node(state: &EditorState, selected_node: Option<NodeId>) -> Option<NodeId> {
-    selected_node.filter(|node_id| {
-        state
-            .world
-            .try_with_world(|scene| scene.find_node(*node_id).is_some())
-            .unwrap_or(false)
-    })
 }

@@ -20,6 +20,8 @@ pub use compile::{
 pub(crate) use executor::{
     abort_behavior_tree_instance, evaluate_behavior_tree, BehaviorTreeInstanceState,
 };
+#[cfg(test)]
+pub(crate) use nodes::IntegrationTaskResult;
 pub(crate) use nodes::{
     BehaviorIntegrationHost, BehaviorIntegrationTaskContext, RuntimeBehaviorIntegrationHost,
 };

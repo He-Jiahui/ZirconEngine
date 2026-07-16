@@ -316,7 +316,7 @@ fn dispatch_sh9_graph_output(
             entries: &[],
         });
     let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(16, 16));
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -406,7 +406,7 @@ fn dispatch_pmrem_graph_output(
             entries: &[],
         });
     let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(32, 32));
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -502,7 +502,7 @@ fn dispatch_irradiance_cube_graph_output(
             entries: &[],
         });
     let frame = ViewportRenderFrame::from_extract(test_extract(), UVec2::new(32, 32));
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,

@@ -8,7 +8,7 @@ use zircon_editor::core::editor_extension::{
     EditorExtensionRegistryError, EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
     ViewDescriptor,
 };
-use zircon_editor::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_runtime_interface::resource::ResourceKind;
 
 use crate::capability::{ASSET_FIXTURE_CAPABILITY, WINDOW_CAPABILITY};
@@ -22,12 +22,9 @@ pub(crate) fn register_example_window(
 ) -> Result<(), EditorExtensionRegistryError> {
     let operation_path = parse_operation("sdk.examples.toggle_weather_window")?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(
-            operation_path.clone(),
-            "Toggle SDK Weather Window",
-        )
-        .with_menu_path("Tools/SDK Examples/Toggle Weather Window")
-        .with_required_capabilities([WINDOW_CAPABILITY]),
+        EditorCommandDescriptor::operation(operation_path.clone(), "Toggle SDK Weather Window")
+            .with_menu_path("Tools/SDK Examples/Toggle Weather Window")
+            .with_required_capabilities([WINDOW_CAPABILITY]),
     )?;
     registry.register_menu_item(
         EditorMenuItemDescriptor::new("Tools/SDK Examples/Toggle Weather Window", operation_path)
@@ -48,9 +45,8 @@ pub(crate) fn register_importer_and_inspector(
     let create_settings_operation = parse_operation("sdk.examples.create_model_import_settings")?;
 
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(import_operation.clone(), "Import SDK Model")
+        EditorCommandDescriptor::operation(import_operation.clone(), "Import SDK Model")
             .with_menu_path("Assets/SDK Examples/Import Model")
-            .with_undoable(UndoableEditorOperation::new("Import SDK Model"))
             .with_required_capabilities([ASSET_FIXTURE_CAPABILITY]),
     )?;
     registry.register_menu_item(
@@ -58,21 +54,15 @@ pub(crate) fn register_importer_and_inspector(
             .with_required_capabilities([ASSET_FIXTURE_CAPABILITY]),
     )?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(
-            open_operation.clone(),
-            "Open SDK Model Inspector",
-        )
-        .with_required_capabilities([ASSET_FIXTURE_CAPABILITY]),
+        EditorCommandDescriptor::operation(open_operation.clone(), "Open SDK Model Inspector")
+            .with_required_capabilities([ASSET_FIXTURE_CAPABILITY]),
     )?;
     registry.register_command(
-        EditorCommandDescriptor::pending_operation(
+        EditorCommandDescriptor::operation(
             create_settings_operation.clone(),
             "Create SDK Model Import Settings",
         )
         .with_menu_path("Assets/Create/SDK Examples/Model Import Settings")
-        .with_undoable(UndoableEditorOperation::new(
-            "Create SDK Model Import Settings",
-        ))
         .with_required_capabilities([ASSET_FIXTURE_CAPABILITY]),
     )?;
     registry.register_menu_item(

@@ -98,7 +98,7 @@ fn submit_material_mesh_passes_with_staged_cache(
         1.0,
     );
 
-    let framework = WgpuRenderFramework::new(asset_manager).expect("WGPU framework");
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).expect("WGPU framework");
     framework.replace_shader_variant_disk_cache_for_tests(
         ShaderVariantCacheDisk::with_fallback_roots(runtime_root, [staged_root]),
     );

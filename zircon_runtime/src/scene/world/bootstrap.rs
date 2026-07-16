@@ -60,6 +60,7 @@ impl World {
             resource_registry: Default::default(),
             resources: Default::default(),
             events: Default::default(),
+            event_mirrors: Default::default(),
             messages: Default::default(),
             observers: Default::default(),
             command_queue: Default::default(),

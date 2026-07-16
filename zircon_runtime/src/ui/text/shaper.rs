@@ -6,7 +6,7 @@ use zircon_runtime_interface::ui::{
     },
 };
 
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::SharedTextLayoutSession;
 
 use super::layout_engine::{
     layout_text as shared_layout_text,
@@ -141,14 +141,11 @@ impl UiTextShaper for UiSharedTextShaper {
 }
 
 impl UiSharedTextShaper {
-    fn shape_text_with_provider<P>(
+    fn shape_text_with_provider(
         &self,
         request: &UiTextShapeRequest<'_>,
-        provider: &mut P,
-    ) -> UiResolvedTextLayout
-    where
-        P: TextShapeRunProvider + ?Sized,
-    {
+        provider: &mut SharedTextLayoutSession,
+    ) -> UiResolvedTextLayout {
         shared_layout_text_with_provider(
             request.text,
             request.style,
@@ -158,15 +155,12 @@ impl UiSharedTextShaper {
         )
     }
 
-    fn measure_text_with_provider<P>(
+    fn measure_text_with_provider(
         &self,
         text: &str,
         style: &UiResolvedStyle,
-        provider: &mut P,
-    ) -> UiSize
-    where
-        P: TextShapeRunProvider + ?Sized,
-    {
+        provider: &mut SharedTextLayoutSession,
+    ) -> UiSize {
         shared_measure_text_size_with_provider(text, style, provider)
     }
 }
@@ -187,14 +181,11 @@ impl UiTextShaperStack {
         UiTextShaperSelection::for_style(style)
     }
 
-    pub(crate) fn shape_text_with_provider<P>(
+    pub(crate) fn shape_text_with_provider(
         &self,
         request: &UiTextShapeRequest<'_>,
-        provider: &mut P,
-    ) -> UiResolvedTextLayout
-    where
-        P: TextShapeRunProvider + ?Sized,
-    {
+        provider: &mut SharedTextLayoutSession,
+    ) -> UiResolvedTextLayout {
         let selection = self.selection_for_style(request.style);
 
         debug_assert_eq!(selection.requested_mode, request.style.text_render_mode);
@@ -209,15 +200,12 @@ impl UiTextShaperStack {
         }
     }
 
-    pub(crate) fn measure_text_with_provider<P>(
+    pub(crate) fn measure_text_with_provider(
         &self,
         text: &str,
         style: &UiResolvedStyle,
-        provider: &mut P,
-    ) -> UiSize
-    where
-        P: TextShapeRunProvider + ?Sized,
-    {
+        provider: &mut SharedTextLayoutSession,
+    ) -> UiSize {
         let selection = self.selection_for_style(style);
 
         debug_assert!(selection.fallback_reason.is_none());
@@ -287,16 +275,13 @@ pub fn layout_text(
     UiTextShaperStack::new().shape_text(&UiTextShapeRequest::new(text, style, frame, clip_frame))
 }
 
-pub(crate) fn layout_text_with_provider<P>(
+pub(crate) fn layout_text_with_provider(
     text: &str,
     style: &UiResolvedStyle,
     frame: UiFrame,
     clip_frame: Option<UiFrame>,
-    provider: &mut P,
-) -> UiResolvedTextLayout
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiResolvedTextLayout {
     UiTextShaperStack::new().shape_text_with_provider(
         &UiTextShapeRequest::new(text, style, frame, clip_frame),
         provider,
@@ -307,14 +292,11 @@ pub(crate) fn measure_text_size(text: &str, style: &UiResolvedStyle) -> UiSize {
     UiTextShaperStack::new().measure_text(text, style)
 }
 
-pub(crate) fn measure_text_size_with_provider<P>(
+pub(crate) fn measure_text_size_with_provider(
     text: &str,
     style: &UiResolvedStyle,
-    provider: &mut P,
-) -> UiSize
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiSize {
     UiTextShaperStack::new().measure_text_with_provider(text, style, provider)
 }
 

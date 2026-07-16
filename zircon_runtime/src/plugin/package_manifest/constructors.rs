@@ -32,6 +32,7 @@ impl PluginModuleManifest {
             capabilities: Vec::new(),
             system_sets: Vec::new(),
             system_anchors: Vec::new(),
+            event_consumers: Vec::new(),
         }
     }
 
@@ -48,6 +49,7 @@ impl PluginModuleManifest {
             capabilities: Vec::new(),
             system_sets: Vec::new(),
             system_anchors: Vec::new(),
+            event_consumers: Vec::new(),
         }
     }
 
@@ -64,6 +66,7 @@ impl PluginModuleManifest {
             capabilities: Vec::new(),
             system_sets: Vec::new(),
             system_anchors: Vec::new(),
+            event_consumers: Vec::new(),
         }
     }
 
@@ -80,6 +83,7 @@ impl PluginModuleManifest {
             capabilities: Vec::new(),
             system_sets: Vec::new(),
             system_anchors: Vec::new(),
+            event_consumers: Vec::new(),
         }
     }
 
@@ -152,6 +156,19 @@ impl PluginModuleManifest {
         S: Into<String>,
     {
         self.system_anchors = system_anchors.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn with_event_consumer(mut self, consumer: super::PluginEventConsumerManifest) -> Self {
+        self.event_consumers.push(consumer);
+        self
+    }
+
+    pub fn with_event_consumers(
+        mut self,
+        consumers: impl IntoIterator<Item = super::PluginEventConsumerManifest>,
+    ) -> Self {
+        self.event_consumers = consumers.into_iter().collect();
         self
     }
 }

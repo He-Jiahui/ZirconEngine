@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use crate::asset::assets::FontAsset;
-use crate::graphics::text::font::FontDatabase;
+use crate::text::font::FontDatabase;
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]

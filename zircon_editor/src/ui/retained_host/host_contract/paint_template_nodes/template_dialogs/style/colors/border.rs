@@ -11,7 +11,7 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn dialog_
     let palette = dialog_palette();
     if unavailable {
         palette.disabled_border
-    } else if matches!(kind, DialogKind::ConfirmDialog) {
+    } else if kind.uses_severity_chrome() {
         severity_border_color(node)
     } else if node.pressed || node.popup_open {
         palette.active_border

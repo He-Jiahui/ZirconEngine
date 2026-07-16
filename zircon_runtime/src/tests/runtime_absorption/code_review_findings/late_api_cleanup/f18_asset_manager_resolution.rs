@@ -1,15 +1,15 @@
 #[test]
 fn review_f18_asset_manager_resolution_returns_registered_handle() {
-    let resolver =
-        include_str!("../../../../asset/pipeline/manager/asset_manager/resolve_asset_manager.rs");
-    let handle =
-        include_str!("../../../../asset/pipeline/manager/asset_manager/asset_manager_handle.rs");
+    let handle = include_str!("../../../../asset/pipeline/manager/asset_manager/handle.rs");
+    let service = include_str!("../../../../core/manager/service.rs");
     let runtime = include_str!("../../../../core/runtime/runtime.rs");
     let runtime_handle = include_str!("../../../../core/runtime/handle/resolution.rs");
     let project_session = include_str!("../../../../dynamic_api/session/project.rs");
     let review_findings = concat!(
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+        include_str!(
+            "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        )
     );
     let convention =
         include_str!("../../../../../../docs/plans/engine-code-structure-convention.md");
@@ -50,34 +50,37 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
     }
 
     for required in [
-        "pub fn resolve_asset_manager(core: &CoreHandle) -> Result<Arc<AssetManagerHandle>, CoreError>",
-        "core.resolve_manager::<AssetManagerHandle>(ASSET_MANAGER_NAME)",
+        "pub fn asset_manager_handle(",
+        "Result<ManagerServiceHandle<dyn AssetManager>, CoreError>",
+        "manager_service_handle(core, ASSET_MANAGER_NAME)",
     ] {
         assert!(
-            resolver.contains(required),
-            "F18 asset manager resolver should contain `{required}`"
+            handle.contains(required),
+            "F18 asset manager handle owner should contain `{required}`"
         );
     }
     for forbidden in [
-        "Result<Arc<dyn AssetManager>, CoreError>",
-        ".map(|holder| holder.shared())",
+        "AssetManagerHandle",
+        "inner: Arc<dyn AssetManager>",
+        "resolve_asset_manager",
     ] {
         assert!(
-            !resolver.contains(forbidden),
-            "F18 asset manager resolver should not return trait objects directly or hide handle conversion `{forbidden}`"
+            !handle.contains(forbidden),
+            "F18 asset manager handle owner should not retain legacy Arc-holder shape `{forbidden}`"
         );
     }
     assert!(
-        handle.contains("pub struct AssetManagerHandle")
-            && handle.contains("inner: Arc<dyn AssetManager>")
-            && handle.contains("pub fn shared(&self) -> Arc<dyn AssetManager>"),
-        "AssetManagerHandle should remain the registered manager handle that owns the object-safe shared service"
+        service.contains("pub struct ManagerServiceHandle<T: ?Sized>")
+            && service.contains("pub index: u32")
+            && service.contains("pub generation: u32")
+            && service.contains("pub service: RegistryName"),
+        "AssetManager should use the generic versioned manager service handle"
     );
     assert!(
-        project_session.contains("resolve_asset_manager(core)")
-            && project_session.contains("let asset_manager = asset_manager.shared();")
+        project_session.contains("asset_manager_handle(core)")
+            && project_session.contains("resolve_manager_service(core, handle)")
             && project_session.contains(".open_project(&self.root_display())"),
-        "dynamic project startup should make the trait-object conversion explicit at the caller boundary"
+        "dynamic project startup should resolve the versioned handle at its use point"
     );
 
     for doc_anchor in [

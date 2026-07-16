@@ -10,6 +10,7 @@ mod plugin_api_contracts;
 mod reflect_contracts;
 mod render_contracts;
 mod resource_contracts;
+mod runtime_operation;
 mod surface_frame_contracts;
 mod ui_contract_spine;
 mod ui_dispatch_error_contracts;

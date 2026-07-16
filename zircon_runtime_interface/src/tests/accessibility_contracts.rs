@@ -12,10 +12,11 @@ use crate::{
         },
         event_ui::UiNodeId,
     },
-    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV1,
+    ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeAccessibilityTreeRequestV1, ZrRuntimeApiV2,
     ZrRuntimeCaptureAccessibilityTreeFnV1, ZrRuntimeEventV1, ZrRuntimeSessionHandle,
     ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode,
-    ZIRCON_RUNTIME_ABI_VERSION_V1, ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
+    ZIRCON_RUNTIME_ABI_VERSION_V1, ZIRCON_RUNTIME_API_VERSION_V2,
+    ZR_RUNTIME_EVENT_KIND_ACCESSIBILITY_ACTION_V1,
 };
 
 fn round_trip<T>(value: &T) -> T
@@ -204,16 +205,16 @@ fn runtime_accessibility_capture_function_type_matches_abi_shape() {
 
 #[test]
 fn runtime_api_default_leaves_accessibility_capture_optional() {
-    let api = ZrRuntimeApiV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
+    let api = ZrRuntimeApiV2::empty();
 
-    assert_eq!(api.abi_version, ZIRCON_RUNTIME_ABI_VERSION_V1);
-    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV1>());
+    assert_eq!(api.abi_version, ZIRCON_RUNTIME_API_VERSION_V2);
+    assert_eq!(api.size_bytes, core::mem::size_of::<ZrRuntimeApiV2>());
     assert!(api.capture_frame.is_none());
     assert!(api.capture_accessibility_tree.is_none());
     assert!(api.profile_control.is_none());
     assert_eq!(
-        core::mem::offset_of!(ZrRuntimeApiV1, capture_accessibility_tree),
-        core::mem::offset_of!(ZrRuntimeApiV1, capture_frame)
+        core::mem::offset_of!(ZrRuntimeApiV2, capture_accessibility_tree),
+        core::mem::offset_of!(ZrRuntimeApiV2, capture_frame)
             + core::mem::size_of::<Option<ZrRuntimeCaptureFrameFnV1>>()
     );
 }

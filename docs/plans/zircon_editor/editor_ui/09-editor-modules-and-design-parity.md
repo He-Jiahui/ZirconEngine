@@ -198,6 +198,8 @@ pub struct HierarchyViewModel {                    // 新增（workbench/model/ 
 
 ## 12. 边界约束
 
+- fixed 已修复：[runtime-diagnostics-pane-payload-visibility-drift](../editor/02/fixed-2026-07-14-runtime-diagnostics-pane-payload-visibility-drift.md)
+
 - 模块业务逻辑（场景操作、资产操作）归 editor `core/`/`scene/`，UI 层只做投影与意图转发。
 - 不为单个模块发明专属控件——缺组件先回计划 06 补清单。
 - 数据接线只经 EditorRuntimeClient / interface 契约；禁止新私有通道。

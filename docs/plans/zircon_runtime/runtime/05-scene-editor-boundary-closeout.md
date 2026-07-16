@@ -574,6 +574,6 @@ last_refined: 2026-07-13
 
 2026-07-13 完成概述：`runtime_05_scene_1642_structure_1304_review_298_pmrem_parity_passed_closeout_acceptance_complete` 已在同一 fresh Windows lib-test 程序闭合 full `scene::`（1642 passed / 0 failed / 5 ignored）、`structure_convention`（1304/1304）、`code_review_findings`（298/298）以及 PMREM CPU/GPU parity（1/1，`PMREM_TEXEL_TOLERANCE=0.006` 未放宽）。机器守卫 `runtime_05_closeout_status_records_completed_scene_cargo_gate` 锁定该完成证据；父计划仅保留当前状态与路由，具体命令、时间和修复记录继续由编号归档拥有。
 
-- 迁入记录：[`05/2026-07-09-scene-editor-boundary-closeout-output-records.md`](05/2026-07-09-scene-editor-boundary-closeout-output-records.md)
+- 迁入记录：[`../../_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md`](../../_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md)
 - fixed 已修复：[dynamic-scene-version-validation](02/fixed-2026-07-12-dynamic-scene-version-validation.md)
 - fixed 已修复：[scene-test-support-file-budget](../frameworks/06/fixed-2026-07-13-scene-test-support-file-budget.md)

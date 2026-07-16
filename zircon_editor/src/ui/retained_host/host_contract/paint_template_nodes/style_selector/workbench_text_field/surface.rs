@@ -60,13 +60,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn text_fi
         palette.error
     } else {
         match state {
-            UiPainterResolvedState::Pressed => palette.focus_ring,
-            UiPainterResolvedState::Focused | UiPainterResolvedState::Open => {
-                palette.focused_border
-            }
+            UiPainterResolvedState::Pressed => palette.focus_border,
+            UiPainterResolvedState::Focused | UiPainterResolvedState::Open => palette.focus_border,
             UiPainterResolvedState::Hovered
             | UiPainterResolvedState::Dragging
-            | UiPainterResolvedState::DropHovered => palette.focused_border,
+            | UiPainterResolvedState::DropHovered => palette.hover_border,
             UiPainterResolvedState::Disabled | UiPainterResolvedState::Loading => {
                 palette.disabled_border
             }

@@ -7,8 +7,10 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn sync_asset_catalog_snapshot(&mut self) {
-        self.runtime
-            .sync_asset_catalog(self.editor_asset_manager.catalog_snapshot());
+        if let Ok(editor_asset_manager) = self.editor_asset_manager_at_use_point() {
+            self.runtime
+                .sync_asset_catalog(editor_asset_manager.catalog_snapshot());
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn sync_asset_resources(&mut self) {
@@ -17,8 +19,10 @@ impl RetainedEditorHost {
     }
 
     pub(super) fn sync_asset_resources_snapshot(&mut self) {
-        self.runtime
-            .sync_asset_resources(self.resource_manager.list_resources());
+        if let Ok(resource_manager) = self.resolve_resource_manager() {
+            self.runtime
+                .sync_asset_resources(resource_manager.list_resources());
+        }
     }
 
     pub(in crate::ui::retained_host::app) fn refresh_selected_asset_details(&mut self) {
@@ -27,15 +31,22 @@ impl RetainedEditorHost {
             .editor_snapshot()
             .asset_activity
             .selected_asset_uuid;
-        self.runtime.sync_asset_details(
-            selected_uuid
-                .as_deref()
-                .and_then(|uuid| self.editor_asset_manager.asset_details(uuid)),
-        );
+        let details = self
+            .editor_asset_manager_at_use_point()
+            .ok()
+            .and_then(|manager| {
+                selected_uuid
+                    .as_deref()
+                    .and_then(|uuid| manager.asset_details(uuid))
+            });
+        self.runtime.sync_asset_details(details);
     }
 
     pub(in crate::ui::retained_host::app) fn refresh_visible_asset_previews(&mut self) {
-        if self.asset_manager.current_project().is_none() {
+        let Ok(asset_manager) = self.asset_manager_at_use_point() else {
+            return;
+        };
+        if asset_manager.current_project().is_none() {
             return;
         }
 
@@ -68,10 +79,11 @@ impl RetainedEditorHost {
             }
         }
 
+        let Ok(editor_asset_manager) = self.editor_asset_manager_at_use_point() else {
+            return;
+        };
         for uuid in visible {
-            let _ = self
-                .editor_asset_manager
-                .request_preview_refresh(&uuid, true);
+            let _ = editor_asset_manager.request_preview_refresh(&uuid, true);
         }
     }
 

@@ -7,7 +7,7 @@ use zircon_editor::core::editor_extension::{
     ComponentDrawerDescriptor, EditorExtensionRegistry, EditorExtensionRegistryError,
     EditorMenuItemDescriptor, EditorUiTemplateDescriptor,
 };
-use zircon_editor::core::editor_operation::{EditorOperationPath, UndoableEditorOperation};
+use zircon_editor::core::editor_operation::EditorOperationPath;
 use zircon_plugin_editor_support::{
     register_authoring_extensions, EditorAuthoringExtensions, EditorAuthoringSurface,
 };
@@ -177,28 +177,25 @@ fn export_operations() -> Result<Vec<EditorCommandDescriptor>, EditorExtensionRe
     let open_profile = parse_operation(EXPORT_OPERATION_OPEN_PROFILE)?;
 
     Ok(vec![
-        EditorCommandDescriptor::pending_operation(generate, "Generate Desktop Export Plan")
+        EditorCommandDescriptor::operation(generate, "Generate Desktop Export Plan")
             .with_menu_path("Project/Export/Desktop/Generate Plan")
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::pending_operation(source_template, "Export Source Template")
+        EditorCommandDescriptor::operation(source_template, "Export Source Template")
             .with_menu_path("Project/Export/Desktop/Source Template")
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::pending_operation(library_embed, "Export Library Embed")
+        EditorCommandDescriptor::operation(library_embed, "Export Library Embed")
             .with_menu_path("Project/Export/Desktop/Library Embed")
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::pending_operation(native_dynamic, "Export Native Dynamic")
+        EditorCommandDescriptor::operation(native_dynamic, "Export Native Dynamic")
             .with_menu_path("Project/Export/Desktop/Native Dynamic")
             .with_required_capabilities([CAPABILITY, NATIVE_DYNAMIC_REPORT_CAPABILITY]),
-        EditorCommandDescriptor::pending_operation(diagnostics, "Open Export Diagnostics")
+        EditorCommandDescriptor::operation(diagnostics, "Open Export Diagnostics")
             .with_menu_path("Project/Export/Desktop/Diagnostics")
             .with_required_capabilities([CAPABILITY, DIAGNOSTICS_CAPABILITY]),
-        EditorCommandDescriptor::pending_operation(create_profile, "Create Desktop Export Profile")
+        EditorCommandDescriptor::operation(create_profile, "Create Desktop Export Profile")
             .with_menu_path("Assets/Create/Desktop Export Profile")
-            .with_undoable(UndoableEditorOperation::new(
-                "Create Desktop Export Profile",
-            ))
             .with_required_capabilities([CAPABILITY]),
-        EditorCommandDescriptor::pending_operation(open_profile, "Open Desktop Export Profile")
+        EditorCommandDescriptor::operation(open_profile, "Open Desktop Export Profile")
             .with_menu_path("Assets/Open/Desktop Export Profile")
             .with_required_capabilities([CAPABILITY]),
     ])

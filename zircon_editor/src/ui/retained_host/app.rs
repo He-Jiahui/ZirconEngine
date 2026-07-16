@@ -10,7 +10,7 @@ use zircon_runtime::asset::project::{ProjectManager, ProjectPaths};
 use zircon_runtime::asset::watch::AssetChange;
 use zircon_runtime::core::framework::asset::ResourceManager;
 use zircon_runtime::core::framework::channel::ChannelReceiver;
-use zircon_runtime::core::manager::ManagerResolver;
+use zircon_runtime::core::manager::{ManagerResolver, ManagerServiceHandle};
 use zircon_runtime::core::CoreHandle;
 use zircon_runtime::scene::Scene;
 use zircon_runtime_interface::math::UVec2;
@@ -31,6 +31,7 @@ use zircon_runtime_interface::ui::{
 
 use crate::core::editing::paths::canonical_model_source_path;
 use crate::core::editor_event::EditorViewportEvent;
+use crate::core::gateway::SharedEditorRuntimeGateway;
 use crate::core::gui_startup_request::EditorGuiStartupRequest;
 use crate::core::play::NativePluginEditorRuntimePlayModeBackend;
 use crate::ui::binding_dispatch::WelcomeHostEvent;
@@ -41,7 +42,6 @@ use crate::ui::host::module::EDITOR_MANAGER_NAME;
 use crate::ui::host::resource_access::resolve_ready_handle;
 use crate::ui::host::EditorHostEventController;
 use crate::ui::host::EditorManager;
-use crate::ui::host::SharedEditorRuntimeClient;
 use crate::ui::preferences::editor_startup_appearance_preferences;
 use crate::ui::retained_host::ui_perf::UiPerfScenario;
 use crate::ui::template_runtime::EditorUiHostRuntime;
@@ -168,41 +168,43 @@ pub(super) use startup::build_startup_state;
 
 pub fn run_editor(
     core: CoreHandle,
-    runtime_client: SharedEditorRuntimeClient,
+    runtime_gateway: SharedEditorRuntimeGateway,
 ) -> Result<(), Box<dyn Error>> {
-    run_editor_with_config(core, runtime_client, EditorHostRunConfig::new())
+    run_editor_with_config(core, runtime_gateway, EditorHostRunConfig::new())
 }
 
 pub fn run_editor_with_startup_request(
     core: CoreHandle,
-    runtime_client: SharedEditorRuntimeClient,
+    runtime_gateway: SharedEditorRuntimeGateway,
     startup_request: Option<EditorGuiStartupRequest>,
 ) -> Result<(), Box<dyn Error>> {
     run_editor_with_config(
         core,
-        runtime_client,
+        runtime_gateway,
         EditorHostRunConfig::new().with_startup_request(startup_request),
     )
 }
 
 pub fn run_editor_with_config(
     core: CoreHandle,
-    runtime_client: SharedEditorRuntimeClient,
+    runtime_gateway: SharedEditorRuntimeGateway,
     config: EditorHostRunConfig,
 ) -> Result<(), Box<dyn Error>> {
     let appearance_preferences = editor_startup_appearance_preferences();
     let design_tokens = appearance_preferences.design_tokens();
     apply_host_appearance_from_tokens(design_tokens);
     let exit_after_first_presented_frame = config.exit_after_first_presented_frame();
-    let startup_request = config.into_startup_request();
+    let (startup_request, editor_plugin_registrations) = config.into_parts();
     let ui = UiHostWindow::new()?;
     ui.set_exit_after_first_presented_frame(exit_after_first_presented_frame);
-    let host = Rc::new(RefCell::new(RetainedEditorHost::new(
-        core,
-        runtime_client,
-        ui.clone_strong(),
-        startup_request,
-    )?));
+    let mut retained_host =
+        RetainedEditorHost::new(core, runtime_gateway, ui.clone_strong(), startup_request)?;
+    for registration in editor_plugin_registrations {
+        retained_host
+            .runtime
+            .register_editor_plugin_registration(registration)?;
+    }
+    let host = Rc::new(RefCell::new(retained_host));
     wire_callbacks(&ui, &host);
     let host_weak = Rc::downgrade(&host);
     ui.window().on_close_requested(move || {
@@ -225,16 +227,17 @@ struct RetainedEditorHost {
     runtime: EditorHostEventController,
     editor_manager: Arc<EditorManager>,
     #[cfg(feature = "profiling")]
-    runtime_client: SharedEditorRuntimeClient,
+    runtime_gateway: SharedEditorRuntimeGateway,
     module_plugin_live_host_backend: Box<dyn module_plugin_actions::ModulePluginLiveHostBackend>,
     desktop_export_reports: BTreeMap<String, build_export_actions::DesktopExportExecutionSummary>,
     desktop_export_jobs: build_export_actions::DesktopExportJobQueue,
     desktop_export_output_overrides: BTreeMap<String, std::path::PathBuf>,
     desktop_export_wizard_sessions: build_export_wizard_session::DesktopExportWizardSessions,
     viewport: RetainedViewportController,
-    asset_manager: Arc<dyn AssetManager>,
-    editor_asset_manager: Arc<dyn EditorAssetManagerContract>,
-    resource_manager: Arc<dyn ResourceManager>,
+    asset_manager: ManagerServiceHandle<dyn AssetManager>,
+    editor_asset_manager: ManagerServiceHandle<dyn EditorAssetManagerContract>,
+    resource_manager_resolver: ManagerResolver,
+    resource_manager: ManagerServiceHandle<dyn ResourceManager>,
     asset_change_events: ChannelReceiver<AssetChange>,
     editor_asset_change_events: ChannelReceiver<EditorAssetChange>,
     resource_change_events: ChannelReceiver<ResourceEvent>,

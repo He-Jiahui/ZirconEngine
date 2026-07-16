@@ -102,6 +102,7 @@ doc_type: module-detail
 7. M1-M2 remain read-only for Observer sessions. M3 mutations require a short-lived elevated role, a Session binding when applicable, CSRF validation and a catalog entry. No generic command, SQL or direct database mutation endpoint exists.
 8. API paths never fall back to HTML. Only extensionless navigation below `/ui/` may receive the SPA shell.
 9. Artifact paths are database-selected, canonically confined and never disclosed to the browser.
+10. A maintenance-hold bootstrap may create one previously unknown Session only through `session.activate@maintenanceSessionId`, with Maintainer authority and complete display name, plan path, and write scope. Its action fingerprint and pre-creation audit events bind to the existing maintenance Session; ordinary Session activation remains target-session-bound.
 
 ## Data Flow
 

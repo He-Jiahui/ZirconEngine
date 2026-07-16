@@ -46,6 +46,7 @@ impl BaseScenePass {
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats
@@ -61,6 +62,7 @@ impl BaseScenePass {
             light_zbins_buffer,
             light_tile_masks_buffer,
             integrated_volumetric_view,
+            transmission_scene_color_view,
         );
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("BaseScenePass"),
@@ -139,6 +141,7 @@ impl BaseScenePass {
         light_zbins_buffer: Option<&wgpu::Buffer>,
         light_tile_masks_buffer: Option<&wgpu::Buffer>,
         integrated_volumetric_view: Option<&wgpu::TextureView>,
+        transmission_scene_color_view: Option<&wgpu::TextureView>,
         attachment_ops: RenderGraphAttachmentOps,
         depth_attachment_ops: RenderGraphAttachmentOps,
     ) -> MeshDrawReplayStats {
@@ -159,6 +162,7 @@ impl BaseScenePass {
             light_zbins_buffer,
             light_tile_masks_buffer,
             integrated_volumetric_view,
+            transmission_scene_color_view,
         );
         let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("TransparentMixedScenePass"),

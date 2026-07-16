@@ -22,7 +22,8 @@ use zircon_runtime_interface::ProfileSnapshot;
 #[test]
 fn render_submit_records_render_graph_pass_and_wait_spans() {
     let _guard = test_capture_lock();
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -55,7 +56,8 @@ fn render_submit_records_render_graph_pass_and_wait_spans() {
 #[test]
 fn direct_runtime_frame_submit_nests_render_graph_spans_under_pipeline_scope() {
     let _guard = test_capture_lock();
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();
@@ -92,7 +94,8 @@ fn direct_runtime_frame_submit_nests_render_graph_spans_under_pipeline_scope() {
 #[test]
 fn direct_runtime_frame_submit_exports_perfetto_trace_artifacts() {
     let _guard = test_capture_lock();
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(320, 240)))
         .unwrap();

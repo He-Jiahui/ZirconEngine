@@ -4,7 +4,8 @@ use crate::core::framework::navigation::{
     NavAgentTickReport, NavMeshAgentDescriptor, NavMeshAsset, NavMeshBakeReport,
     NavMeshBakeRequest, NavMeshHandle, NavPathQuery, NavPathResult, NavPathStatus, NavQueryFilter,
     NavRaycastQuery, NavRaycastResult, NavSampleHit, NavSampleQuery, NavigationError,
-    NavigationErrorKind, NavigationManager, NavigationRuntimeStats, NavigationSettingsAsset,
+    NavigationErrorKind, NavigationGeneratedBakeSnapshot, NavigationManager,
+    NavigationRuntimeStats, NavigationSettingsAsset,
 };
 use crate::core::math::{Real, Transform, Vec3};
 use crate::scene::{SceneNavigationRuntime, World};
@@ -243,6 +244,21 @@ impl SceneNavigationRuntime for BuiltinNavigationManager {
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
         BuiltinNavigationManager::bake_surface(self, world, request)
+    }
+
+    fn generated_bake_snapshot(
+        &self,
+        surface_entity: Option<u64>,
+    ) -> NavigationGeneratedBakeSnapshot {
+        self.lock_state().generated_snapshot(surface_entity)
+    }
+
+    fn replace_generated_bake_snapshot(
+        &self,
+        snapshot: NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), NavigationError> {
+        self.lock_state().replace_generated_snapshot(snapshot);
+        Ok(())
     }
 
     fn tick_world_agents(

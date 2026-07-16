@@ -159,6 +159,18 @@ fn create_material_bind_group(
                 binding: 10,
                 resource: wgpu::BindingResource::Sampler(material_textures.emissive.sampler()),
             },
+            wgpu::BindGroupEntry {
+                binding: 11,
+                resource: wgpu::BindingResource::TextureView(
+                    material_textures.clearcoat_normal.view(),
+                ),
+            },
+            wgpu::BindGroupEntry {
+                binding: 12,
+                resource: wgpu::BindingResource::Sampler(
+                    material_textures.clearcoat_normal.sampler(),
+                ),
+            },
         ],
     })
 }

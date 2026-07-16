@@ -1,5 +1,5 @@
 use crate::core::math::UVec2;
-use crate::graphics::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
+use crate::text::atlas::{GlyphAtlasFormat, GlyphAtlasStorageFormat};
 
 use super::super::atlas_texture_upload::{
     create_glyph_atlas_texture_array_resources, glyph_atlas_texture_array_spec,

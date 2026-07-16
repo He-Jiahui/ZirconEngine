@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use crate::ui::{surface::measure_text_with_cache, text::UiTextMeasureCache};
 use zircon_runtime_interface::ui::{
     event_ui::UiNodeId,
@@ -21,6 +23,7 @@ pub(crate) fn measure_node(
     node_id: UiNodeId,
     mut text_measure_cache: Option<&mut UiTextMeasureCache>,
 ) -> Result<DesiredSize, UiTreeError> {
+    let profile_started = std::env::var_os("ZR_UI_LAYOUT_PROFILE").map(|_| Instant::now());
     let (children, layout_boundary, constraints, container, template_metadata) = {
         let node = tree
             .node(node_id)
@@ -70,7 +73,37 @@ pub(crate) fn measure_node(
         node.layout_cache.virtual_window = None;
     }
 
+    emit_slow_measure_profile(
+        profile_started,
+        node_id,
+        children.len(),
+        container,
+        template_metadata.as_ref(),
+    );
+
     Ok(desired)
+}
+
+fn emit_slow_measure_profile(
+    started: Option<Instant>,
+    node_id: UiNodeId,
+    child_count: usize,
+    container: UiContainerKind,
+    metadata: Option<&UiTemplateNodeMetadata>,
+) {
+    let Some(started) = started else {
+        return;
+    };
+    let elapsed_ms = started.elapsed().as_millis();
+    if elapsed_ms < 10 {
+        return;
+    }
+    let component = metadata
+        .map(|metadata| metadata.component.as_str())
+        .unwrap_or("<missing>");
+    eprintln!(
+        "ui-layout-profile stage=slow-measure elapsed_ms={elapsed_ms} node_id={node_id:?} component={component} container={container:?} children={child_count}"
+    );
 }
 
 fn collapse_node_measure(tree: &mut UiTree, node_id: UiNodeId) -> Result<DesiredSize, UiTreeError> {

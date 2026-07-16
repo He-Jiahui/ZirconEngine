@@ -159,19 +159,20 @@ fn render_skin_sphere(mode: ProductSssMode) -> ProductRender {
     } else {
         Vec::new()
     };
-    let framework = WgpuRenderFramework::new_with_plugin_render_extensions_and_shading_models(
-        asset_manager,
-        render_features,
-        executors,
-        Vec::new(),
-        Vec::new(),
-        registered_sss
-            .then(sss_shading_model_descriptor)
-            .into_iter(),
-        Vec::new(),
-        Vec::new(),
-    )
-    .expect("WGPU framework should initialize for the SSS product scene");
+    let framework =
+        WgpuRenderFramework::new_for_test_with_plugin_render_extensions_and_shading_models(
+            asset_manager,
+            render_features,
+            executors,
+            Vec::new(),
+            Vec::new(),
+            registered_sss
+                .then(sss_shading_model_descriptor)
+                .into_iter(),
+            Vec::new(),
+            Vec::new(),
+        )
+        .expect("WGPU framework should initialize for the SSS product scene");
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(PRODUCT_SIZE))
         .expect("SSS product viewport should be created");

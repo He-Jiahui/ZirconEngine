@@ -1,7 +1,7 @@
 use crate::core::editor_extension::ComponentDrawerDescriptor;
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::reflect::{
     ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectTypeRegistration,
@@ -22,11 +22,18 @@ impl EditorState {
         &self,
         component_drawers: &BTreeMap<String, ComponentDrawerDescriptor>,
     ) -> EditorDataSnapshot {
-        let selected = self.viewport_controller.selected_node();
+        let selection = self.viewport_controller.selection();
+        let selected = selection.active_primary();
+        let selected_items = selection.active_items().iter().copied().collect::<Vec<_>>();
         let (scene_entries, inspector) = self
             .world
             .try_with_world(|scene| {
                 let selected = selected.filter(|entity| scene.contains_entity(*entity));
+                let selected_items = selected_items
+                    .iter()
+                    .copied()
+                    .filter(|entity| scene.contains_entity(*entity))
+                    .collect::<BTreeSet<_>>();
                 let inspector = selected.map(|id| InspectorSnapshot {
                     id,
                     name: self.name_field.clone(),
@@ -46,7 +53,7 @@ impl EditorState {
                         id: node.id,
                         name: node.name.clone(),
                         depth: hierarchy_depth(scene, node.id),
-                        selected: selected == Some(node.id),
+                        selected: selected_items.contains(&node.id),
                     })
                     .collect();
 

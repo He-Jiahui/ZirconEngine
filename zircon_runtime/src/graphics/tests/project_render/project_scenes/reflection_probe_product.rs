@@ -38,7 +38,7 @@ fn render_product_probe_blend_boundary_smooth() {
 #[test]
 fn render_product_probe_feature_off_falls_back_to_skybox() {
     let fixture = ProbeProductFixture::new("probe_feature_off");
-    let framework = WgpuRenderFramework::new_with_plugin_render_features(
+    let framework = WgpuRenderFramework::new_for_test_with_plugin_render_features(
         Arc::clone(&fixture.asset_manager),
         [reflection_probe_render_feature_descriptor()],
         Vec::new(),
@@ -186,7 +186,7 @@ impl ProbeProductFixture {
         snapshot.environment = environment;
         snapshot.preview =
             PreviewEnvironmentExtract::from_environment(&snapshot.environment, true, Vec4::ZERO);
-        let mut renderer = SceneRenderer::new_with_plugin_render_features(
+        let mut renderer = SceneRenderer::new_for_test_with_plugin_render_features(
             Arc::clone(&self.asset_manager),
             [reflection_probe_render_feature_descriptor()],
             Vec::new(),

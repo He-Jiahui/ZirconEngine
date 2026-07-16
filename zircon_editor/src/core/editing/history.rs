@@ -15,14 +15,63 @@ struct GizmoDragState {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct EditorHistory {
-    undo_stack: Vec<EditorCommand>,
-    redo_stack: Vec<EditorCommand>,
+    undo_stack: Vec<HistoryEntry>,
+    redo_stack: Vec<HistoryEntry>,
     drag_origin: Option<GizmoDragState>,
+}
+
+#[derive(Clone, Debug)]
+struct HistoryEntry {
+    command: EditorCommand,
+    selection_before: Option<HistorySelectionSnapshot>,
+    selection_after: Option<HistorySelectionSnapshot>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct HistorySelectionSnapshot {
+    items: Vec<NodeId>,
+    primary: Option<NodeId>,
+}
+
+impl HistorySelectionSnapshot {
+    pub(crate) fn new(items: Vec<NodeId>, primary: Option<NodeId>) -> Self {
+        Self { items, primary }
+    }
+
+    pub(crate) fn into_parts(self) -> (Vec<NodeId>, Option<NodeId>) {
+        (self.items, self.primary)
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct HistoryResult {
+    pub(crate) selection: Option<HistorySelectionSnapshot>,
 }
 
 impl EditorHistory {
     pub(crate) fn push(&mut self, command: EditorCommand) {
-        self.undo_stack.push(command);
+        self.push_entry(HistoryEntry {
+            command,
+            selection_before: None,
+            selection_after: None,
+        });
+    }
+
+    pub(crate) fn push_with_selection(
+        &mut self,
+        command: EditorCommand,
+        selection_before: HistorySelectionSnapshot,
+        selection_after: HistorySelectionSnapshot,
+    ) {
+        self.push_entry(HistoryEntry {
+            command,
+            selection_before: Some(selection_before),
+            selection_after: Some(selection_after),
+        });
+    }
+
+    fn push_entry(&mut self, entry: HistoryEntry) {
+        self.undo_stack.push(entry);
         if self.undo_stack.len() > HISTORY_LIMIT {
             self.undo_stack.remove(0);
         }
@@ -80,32 +129,26 @@ impl EditorHistory {
         .map(EditorCommand::UpdateNode))
     }
 
-    pub(crate) fn undo(
-        &mut self,
-        scene: &mut Scene,
-        selected: &mut Option<NodeId>,
-    ) -> Result<bool, String> {
+    pub(crate) fn undo(&mut self, scene: &mut Scene) -> Result<Option<HistoryResult>, String> {
         self.drag_origin = None;
-        let Some(command) = self.undo_stack.pop() else {
-            return Ok(false);
+        let Some(entry) = self.undo_stack.pop() else {
+            return Ok(None);
         };
-        *selected = command.undo(scene)?;
-        self.redo_stack.push(command);
-        Ok(true)
+        let _selection = entry.command.undo(scene)?;
+        let selection = entry.selection_before.clone();
+        self.redo_stack.push(entry);
+        Ok(Some(HistoryResult { selection }))
     }
 
-    pub(crate) fn redo(
-        &mut self,
-        scene: &mut Scene,
-        selected: &mut Option<NodeId>,
-    ) -> Result<bool, String> {
+    pub(crate) fn redo(&mut self, scene: &mut Scene) -> Result<Option<HistoryResult>, String> {
         self.drag_origin = None;
-        let Some(command) = self.redo_stack.pop() else {
-            return Ok(false);
+        let Some(entry) = self.redo_stack.pop() else {
+            return Ok(None);
         };
-        *selected = command.apply(scene)?;
-        self.undo_stack.push(command);
-        Ok(true)
+        let _selection = entry.command.apply(scene)?;
+        let selection = entry.selection_after.clone();
+        self.undo_stack.push(entry);
+        Ok(Some(HistoryResult { selection }))
     }
 
     pub(crate) fn clear(&mut self) {

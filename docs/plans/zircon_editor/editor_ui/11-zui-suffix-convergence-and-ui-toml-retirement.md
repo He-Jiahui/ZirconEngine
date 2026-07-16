@@ -116,13 +116,14 @@ doc_type: plan
 - T1：删除 `file_cache.rs`、`registry.rs`、`import_ui_v2_asset.rs`、`editor_extension.rs` 中 `.v2.ui.toml`/`.ui.toml` 残留分支与错误文案（收敛为单一 `.zui`）。
 - T2：新增防回归闸口 `production_ui_assets_use_only_zui_suffix`（`tests/ui/boundary`）：扫描 `zircon_editor/assets`、`zircon_runtime/assets`、`zircon_plugins/*/editor` 下生产 UI 资产，断言无 `.ui.toml`/`.v2.ui.toml` 后缀（`ui_legacy` 已删除）。
 - T3：CLI/导出/staged build 若按后缀挑 UI 资产，同步改 `.zui`（核查 `tools/zircon_build*.py`、export packer 的 UI 资产收集）。
-- 全局验收：
+- 全局验收（policy §3 最小批次）：
   ```bash
-  cargo test -p zircon_runtime --lib --locked
-  cargo test -p zircon_editor --lib --locked
+  cargo test -p zircon_runtime --lib --locked zui suffix ui_toml
+  cargo test -p zircon_editor --lib --locked zui_asset_governance production_ui_assets suffix
   cargo check --manifest-path zircon_plugins/Cargo.toml --workspace --all-targets --locked
   cargo fmt --all --check
   ```
+  全量 runtime/editor lib 回归留给波次收口（policy §4）。
 
 ## 4. 依赖与推进顺序
 
@@ -153,7 +154,7 @@ M3 + M4 ──→ M5（删后缀支持 + 闸口）
 
 ## 7. 状态与产出记录
 
-> 请将产出记录放置在子计划中，子计划中记录超过10条则全部放到子目录，此处仅展示当前现状的概述
+> 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

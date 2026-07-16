@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::HistoryContextId;
+use crate::core::gateway::EditorRuntimeGatewayHandle;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct SelectionSnapshot(serde_json::Value);
@@ -20,6 +21,8 @@ impl SelectionSnapshot {
 }
 
 pub trait EditContext: Any + Send {
+    fn runtime_gateway(&self) -> &EditorRuntimeGatewayHandle;
+
     fn selection_snapshot(&self) -> SelectionSnapshot;
 
     fn restore_selection(&mut self, snapshot: &SelectionSnapshot) -> Result<(), EditCommandError>;

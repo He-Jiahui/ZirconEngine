@@ -29,7 +29,8 @@ const POST_SSR_RESOLVE_EXECUTOR_ID: &str = "post.screen-space-reflection-resolve
 #[test]
 fn render_product_post_scene_composite_fog_changes_final_frame() {
     let viewport_size = UVec2::new(128, 96);
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let baseline_viewport =
         create_scene_composite_product_viewport(&framework, viewport_size, "post-fog-baseline");
     let fog_viewport =
@@ -124,7 +125,7 @@ fn render_product_post_scene_composite_ssr_changes_final_frame() {
             false,
         ),
     );
-    let framework = WgpuRenderFramework::new(asset_manager).unwrap();
+    let framework = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
     let baseline_viewport =
         create_scene_composite_ssr_product_viewport(&framework, viewport_size, "post-ssr-baseline");
     let ssr_viewport =

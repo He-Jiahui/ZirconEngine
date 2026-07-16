@@ -1,4 +1,5 @@
 use super::super::super::data::FrameRect;
+use super::identity::DialogKind;
 use super::metrics::dialog_metrics;
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn pixel_aligned_rect(
@@ -32,14 +33,40 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn title_r
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn body_rect(
     rect: &FrameRect,
-) -> FrameRect {
+    kind: DialogKind,
+    action_top: Option<f32>,
+) -> Option<FrameRect> {
     let metrics = dialog_metrics();
-    FrameRect {
+    if matches!(kind, DialogKind::AlertDialog) {
+        return Some(FrameRect {
+            x: content_left(rect, metrics.padding_x),
+            y: rect.y + metrics.body_top,
+            width: content_width(rect, metrics.padding_x),
+            height: metrics.body_line_height,
+        });
+    }
+
+    let top = action_rail_floor(rect);
+    let body_bottom = top + metrics.body_line_height;
+    let body_fits = action_top
+        .map(|action_top| {
+            let available_gap = action_top - body_bottom;
+            available_gap.min(metrics.content_action_gap) >= metrics.content_gap
+        })
+        .unwrap_or_else(|| body_bottom <= rect.y + rect.height - metrics.action_bottom);
+    body_fits.then(|| FrameRect {
         x: content_left(rect, metrics.padding_x),
-        y: rect.y + metrics.body_top,
+        y: top,
         width: content_width(rect, metrics.padding_x),
         height: metrics.body_line_height,
-    }
+    })
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn action_rail_floor(
+    rect: &FrameRect,
+) -> f32 {
+    let metrics = dialog_metrics();
+    rect.y + metrics.title_top + metrics.title_line_height + metrics.content_gap
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn severity_mark_rect(
@@ -58,6 +85,12 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn action_
     rect: &FrameRect,
 ) -> f32 {
     rect.x + rect.width - dialog_metrics().padding_x
+}
+
+pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn action_available_width(
+    rect: &FrameRect,
+) -> f32 {
+    content_width(rect, dialog_metrics().padding_x)
 }
 
 fn content_left(rect: &FrameRect, padding_x: f32) -> f32 {

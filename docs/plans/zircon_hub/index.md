@@ -94,13 +94,12 @@ Hub 同样遵守引擎级 [`engine-code-structure-convention.md`](../engine-code
 
 ## 4. 全局验收与测试基线
 
-按 milestone-first 政策：切片期轻量检查，里程碑末进入测试阶段。
+按 [`milestone-validation-policy.md`](../milestone-validation-policy.md) 执行：切片期只做格式、类型/源码静态检查与已知失败的聚焦回归；里程碑末将 Rust、前端和必要集成检查合并为一次测试阶段。
 
-- Rust 切片期：`cargo check -p zircon_hub --locked`。
-- Rust 里程碑：`cargo test -p zircon_hub --locked`（按子计划过滤词收窄，如 `cargo test -p zircon_hub project_workflow --locked`）；`cargo fmt --all --check`。
-- 前端：`npm run typecheck`、`npm run build`（`zircon_hub/` 下）。
+- Rust 里程碑：一次 `cargo check -p zircon_hub --locked` 后，运行按子计划过滤词合并的 `cargo test -p zircon_hub --locked`；`cargo fmt --all --check` 不触发 Cargo 编译，可在切片期执行。
+- 前端：在同一里程碑阶段运行一次 `npm run typecheck` 与 `npm run build`（`zircon_hub/` 下）。
 - 集成：必要时 `npm run tauri:dev` 实跑或 `python tools/zircon_build.py --targets hub` 出 staged payload 验证。
-- 视觉验收（06 计划详述）：运行 Tauri Hub 截图矩阵——Projects / New Project / Project Detail / Editor / Builds / Cloud / Settings，覆盖中文默认、错误态、运行中、空态；确认无溢出、无遮挡、无英文硬编码残留。
+- 视觉验收（06 计划详述）：仅在改变页面布局、文案或组件行为的里程碑运行 Tauri Hub 截图矩阵——Projects / New Project / Project Detail / Editor / Builds / Cloud / Settings，覆盖中文默认、错误态、运行中、空态；确认无溢出、无遮挡、无英文硬编码残留。
 
 ## 5. 协调与避让
 

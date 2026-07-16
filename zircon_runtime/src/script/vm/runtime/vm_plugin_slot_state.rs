@@ -6,6 +6,7 @@ pub enum VmPluginSlotState {
     #[default]
     Active,
     Reloading,
+    Unloading,
     Failed,
 }
 
@@ -14,6 +15,7 @@ impl VmPluginSlotState {
         match self {
             Self::Active => "active",
             Self::Reloading => "reloading",
+            Self::Unloading => "unloading",
             Self::Failed => "failed",
         }
     }

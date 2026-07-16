@@ -13,7 +13,7 @@ EXPECTED_LARGE_FILE_OWNER_CLASSES = (
 )
 
 RUNTIME_07_SOURCE_FILES = (
-    "zircon_runtime/src/dynamic_api/session.rs",
+    "zircon_runtime/src/dynamic_api/session/state.rs",
     "zircon_runtime/src/dynamic_api/session/extract.rs",
     "zircon_runtime/src/dynamic_api/session/extract_cache.rs",
     "zircon_runtime/src/dynamic_api/session/extract_stats.rs",

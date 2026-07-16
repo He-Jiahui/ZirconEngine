@@ -1,9 +1,6 @@
 use super::*;
 use crate::core::math::UVec2;
-use crate::graphics::scene::scene_renderer::ui::sdf_atlas::{
-    SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot,
-};
-use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
+use crate::text::sdf::{SdfAtlasGlyphKey, SdfAtlasRect, SdfAtlasSlot, SdfBakeParams, SdfMode};
 
 #[test]
 fn sdf_upload_report_uses_full_texture_when_atlas_resizes() {
@@ -472,7 +469,7 @@ fn atlas_plan(slot_count: usize) -> SdfAtlasPlan {
         .collect();
     SdfAtlasPlan {
         atlas_size: UVec2::splat(512),
-        atlas_set: crate::graphics::text::atlas::GlyphAtlasSet::from_page(GlyphAtlasPageSpec::new(
+        atlas_set: crate::text::atlas::GlyphAtlasSet::from_page(GlyphAtlasPageSpec::new(
             GlyphAtlasPageKey::new(GlyphAtlasFormat::Sdf, 0),
             UVec2::splat(512),
         )),
@@ -488,7 +485,7 @@ fn atlas_plan_with_page_slots(slots: Vec<SdfAtlasSlot>) -> SdfAtlasPlan {
         .iter()
         .map(|slot| slot.page_key)
         .collect::<std::collections::BTreeSet<_>>();
-    let mut atlas_set = crate::graphics::text::atlas::GlyphAtlasSet::default();
+    let mut atlas_set = crate::text::atlas::GlyphAtlasSet::default();
     for page_key in page_keys {
         atlas_set = atlas_set.with_page(GlyphAtlasPageSpec::new(page_key, UVec2::splat(512)));
     }
@@ -554,13 +551,8 @@ fn sdf_rect(x: u32, y: u32, width: u32, height: u32) -> SdfAtlasRect {
     }
 }
 
-fn glyph_rect(
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
-) -> crate::graphics::text::atlas::GlyphAtlasRect {
-    crate::graphics::text::atlas::GlyphAtlasRect {
+fn glyph_rect(x: u32, y: u32, width: u32, height: u32) -> crate::text::atlas::GlyphAtlasRect {
+    crate::text::atlas::GlyphAtlasRect {
         x,
         y,
         width,

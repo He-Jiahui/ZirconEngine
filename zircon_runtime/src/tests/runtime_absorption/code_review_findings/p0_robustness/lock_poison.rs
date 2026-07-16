@@ -11,7 +11,7 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
     let level_doc = include_str!("../../../../../../docs/zircon_runtime/scene/level_system.md");
     let event_doc = include_str!("../../../../../../docs/zircon_runtime/core/runtime/events.md");
     let review_findings = concat!(
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/plans/engine-code-review-findings-2026-06.md")
     );
     let runtime_15_plan = include_str!(
@@ -59,7 +59,8 @@ fn review_f2_scene_eventbus_locks_recover_after_poison() {
         );
     }
     for required in [
-        "self.lock_levels().insert(handle, level.clone())",
+        "let mut levels = self.lock_levels();",
+        "levels.insert(handle, level.clone());",
         "self.lock_levels().get(&handle).cloned()",
     ] {
         assert!(

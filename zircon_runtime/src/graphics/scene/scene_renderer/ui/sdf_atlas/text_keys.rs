@@ -2,11 +2,11 @@ use std::collections::BTreeSet;
 
 use zircon_runtime_interface::ui::surface::{normalize_ui_text_language_tag, UiResolvedStyle};
 
+use crate::core::framework::text::TextFontFaceHandle;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::graphics::scene::scene_renderer::ui::sdf_char_run::sdf_scalar_requires_atlas_slot;
-use crate::graphics::text::sdf::SdfBakeParams;
+use crate::text::sdf::{sdf_scalar_requires_atlas_slot, SdfBakeParams};
 
 use super::SdfAtlasGlyphKey;
 
@@ -57,8 +57,8 @@ fn shaped_key(
             text,
             glyph.source_scalar,
             Some(glyph.glyph_id),
-            glyph.font_id.map(|font_id| font_id.0),
-            glyph.font_instance_id.map(|font_id| font_id.0),
+            glyph.font_id,
+            glyph.font_instance_id,
         )
     })
 }
@@ -67,8 +67,8 @@ fn glyph_key(
     text: &ScreenSpaceUiTextBatch,
     glyph: char,
     glyph_id: Option<u32>,
-    font_id: Option<u64>,
-    font_instance_id: Option<u64>,
+    font_id: Option<TextFontFaceHandle>,
+    font_instance_id: Option<TextFontFaceHandle>,
 ) -> SdfAtlasGlyphKey {
     SdfAtlasGlyphKey {
         glyph,

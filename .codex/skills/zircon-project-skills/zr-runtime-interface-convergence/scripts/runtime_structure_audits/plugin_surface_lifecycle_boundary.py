@@ -26,7 +26,7 @@ EXPECTED_NATIVE_TEST_NAMESPACE_IMPORT_FILE_COUNT = 3
 EXPECTED_NATIVE_TEST_ROOT_IMPORT_LEAK_COUNT = 0
 EXPECTED_LIFECYCLE_FALLBACK_TEST_COUNT = 4
 EXPECTED_RUNTIME_06_STATUS = "in_progress"
-EXPECTED_RUNTIME_06_LAST_REFINED = "2026-07-12"
+EXPECTED_RUNTIME_06_LAST_REFINED = "2026-07-14"
 EXPECTED_M4_GATE_STATUS = "classified-and-clear"
 MIRROR_DOCS_GUARD = "runtime_06_plugin_surface_lifecycle_mirror_docs_match_structure_audit_counts"
 NATIVE_TEST_NAMESPACE_GUARD = "runtime_06_native_loader_tests_use_isolated_plugin_native_namespace"
@@ -41,7 +41,7 @@ RUNTIME_06_SOURCE_FILES = (
     "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/lifecycle.rs",
     "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/hot_reload.rs",
     "zircon_runtime/src/plugin/native_plugin_loader/native_plugin_live_host/tests/hot_reload_failures.rs",
-    "zircon_runtime/src/script/vm/backend/zr_vm_project_backend/real_backend/instance.rs",
+    "zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs",
     "zircon_runtime/src/script/vm/tests.rs",
     "zircon_runtime/src/script/vm/tests/lifecycle_failures.rs",
     "zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_06.rs",
@@ -63,10 +63,10 @@ RUNTIME_06_DOC_FILES = (
 SOURCE_ANCHORS = (
     "pub mod native;",
     "pub use super::native_plugin_loader::{",
-    'call_entry_lifecycle_export("activate", &[])',
-    'call_entry_lifecycle_export("deactivate", &[])',
-    'call_entry_lifecycle_export("saveState", &[])',
-    'call_entry_lifecycle_export("restoreState", &[argument])',
+    'self.call_entry_lifecycle_export(&guard, "activate", &[])',
+    'self.call_entry_lifecycle_export(&guard, "deactivate", &[])',
+    'self.call_entry_lifecycle_export(&guard, "saveState", &[])',
+    'self.call_entry_lifecycle_export(&guard, "restoreState", &[argument])',
     "mod lifecycle_failures;",
     "pub fn hot_reload_runtime_plugin(",
     "pub fn hot_reload_editor_plugin(",

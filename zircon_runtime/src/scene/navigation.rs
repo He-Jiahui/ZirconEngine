@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use crate::core::framework::navigation::{
     NavAgentTickReport, NavMeshBakeReport, NavMeshBakeRequest, NavigationError,
+    NavigationGeneratedBakeSnapshot,
 };
 use crate::core::math::Real;
 use crate::scene::World;
@@ -16,6 +17,16 @@ pub trait SceneNavigationRuntime: Send + Sync {
         world: &World,
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError>;
+
+    fn generated_bake_snapshot(
+        &self,
+        surface_entity: Option<u64>,
+    ) -> NavigationGeneratedBakeSnapshot;
+
+    fn replace_generated_bake_snapshot(
+        &self,
+        snapshot: NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), NavigationError>;
 
     fn tick_world_agents(
         &self,
@@ -55,6 +66,20 @@ impl SceneNavigationRuntime for SceneNavigationRuntimeHandle {
         request: NavMeshBakeRequest,
     ) -> Result<NavMeshBakeReport, NavigationError> {
         self.runtime.bake_surface(world, request)
+    }
+
+    fn generated_bake_snapshot(
+        &self,
+        surface_entity: Option<u64>,
+    ) -> NavigationGeneratedBakeSnapshot {
+        self.runtime.generated_bake_snapshot(surface_entity)
+    }
+
+    fn replace_generated_bake_snapshot(
+        &self,
+        snapshot: NavigationGeneratedBakeSnapshot,
+    ) -> Result<(), NavigationError> {
+        self.runtime.replace_generated_bake_snapshot(snapshot)
     }
 
     fn tick_world_agents(

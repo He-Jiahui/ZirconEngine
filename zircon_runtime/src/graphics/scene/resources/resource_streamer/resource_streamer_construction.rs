@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use crate::asset::pipeline::manager::ProjectAssetManager;
+#[cfg(test)]
+use crate::asset::ProjectAssetManager;
+use crate::asset::ProjectAssetManagerAccess;
 use crate::core::framework::render::{
     RenderMaterialPropertyUniformPayload, ShadingModelDescriptor,
 };
@@ -17,7 +19,7 @@ use super::ResourceStreamer;
 
 impl ResourceStreamer {
     pub(crate) fn new(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
@@ -32,7 +34,7 @@ impl ResourceStreamer {
     }
 
     pub(crate) fn new_with_plugin_shading_models(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
@@ -52,14 +54,14 @@ impl ResourceStreamer {
     }
 
     fn new_with_shading_model_registry(
-        asset_manager: Arc<ProjectAssetManager>,
+        asset_manager: ProjectAssetManagerAccess,
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
         shading_model_registry: ShadingModelRegistry,
     ) -> Self {
         Self {
-            asset_manager,
+            asset_manager_access: asset_manager,
             shading_model_registry,
             models: HashMap::new(),
             meshes: HashMap::new(),
@@ -108,7 +110,12 @@ impl ResourceStreamer {
         queue: &wgpu::Queue,
         texture_layout: &wgpu::BindGroupLayout,
     ) -> Self {
-        Self::new(asset_manager, device, queue, texture_layout)
+        Self::new(
+            ProjectAssetManagerAccess::for_test(asset_manager),
+            device,
+            queue,
+            texture_layout,
+        )
     }
 
     #[cfg(test)]
@@ -120,7 +127,7 @@ impl ResourceStreamer {
         plugin_shading_models: impl IntoIterator<Item = ShadingModelDescriptor>,
     ) -> Result<Self, GraphicsError> {
         Self::new_with_plugin_shading_models(
-            asset_manager,
+            ProjectAssetManagerAccess::for_test(asset_manager),
             device,
             queue,
             texture_layout,

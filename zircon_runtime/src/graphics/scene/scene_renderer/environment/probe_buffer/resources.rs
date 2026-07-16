@@ -287,7 +287,10 @@ impl SceneReflectionProbeResources {
         });
         candidates.truncate(MAX_REFLECTION_PROBES);
 
-        let asset_manager = streamer.asset_manager();
+        let asset_manager = match streamer.asset_manager() {
+            Ok(asset_manager) => asset_manager,
+            Err(_) => return report,
+        };
         let resource_manager = asset_manager.resource_manager();
         let mut gpu_probes = Vec::with_capacity(candidates.len());
         for probe in candidates {

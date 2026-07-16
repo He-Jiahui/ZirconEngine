@@ -25,8 +25,15 @@ impl ResourceStreamer {
     pub(crate) fn shading_model_include_source_set(
         &self,
     ) -> Result<ShadingModelIncludeSourceSet, ShadingModelIncludeSourceError> {
+        let asset_manager =
+            self.asset_manager()
+                .map_err(|error| ShadingModelIncludeSourceError::LoadShader {
+                    token: "project_asset_manager".to_string(),
+                    locator: "runtime://manager/project-assets".to_string(),
+                    message: error.to_string(),
+                })?;
         ShadingModelIncludeSourceSet::from_project_asset_manager(
-            &self.asset_manager,
+            asset_manager.as_ref(),
             &self.shading_model_descriptors(),
         )
     }

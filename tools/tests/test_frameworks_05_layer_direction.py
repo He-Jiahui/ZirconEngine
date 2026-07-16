@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -388,6 +389,283 @@ class Frameworks05LayerDirectionTests(unittest.TestCase):
             source = (REPO_ROOT / relative_path).read_text(encoding="utf-8")
             self.assertNotIn("crate::plugin", source)
             self.assertIn("core::framework::project", source)
+
+    def test_manager_services_use_versioned_handles_without_legacy_arc_holders(self) -> None:
+        manager_root = REPO_ROOT / "zircon_runtime/src/core/manager"
+        service_source = (manager_root / "service.rs").read_text(encoding="utf-8")
+        resolver_source = (manager_root / "resolver.rs").read_text(encoding="utf-8")
+        manager_mod_source = (manager_root / "mod.rs").read_text(encoding="utf-8")
+        runtime_resolution_source = (
+            REPO_ROOT / "zircon_runtime/src/core/runtime/handle/resolution.rs"
+        ).read_text(encoding="utf-8")
+        runtime_handle_source = (
+            REPO_ROOT / "zircon_runtime/src/core/runtime/handle/core_handle.rs"
+        ).read_text(encoding="utf-8")
+        service_entry_source = (
+            REPO_ROOT / "zircon_runtime/src/core/runtime/state/service_entry.rs"
+        ).read_text(encoding="utf-8")
+        resolution_test_source = (
+            REPO_ROOT / "zircon_runtime/src/core/runtime/tests/resolution/behavior.rs"
+        ).read_text(encoding="utf-8")
+        manager_resolution_contract_source = (
+            REPO_ROOT / "zircon_runtime/tests/frameworks05_manager_resolution_contract.rs"
+        ).read_text(encoding="utf-8")
+        scene_module_source = (
+            REPO_ROOT / "zircon_runtime/src/scene/module/mod.rs"
+        ).read_text(encoding="utf-8")
+        error_source = (
+            REPO_ROOT / "zircon_runtime/src/core/framework/error.rs"
+        ).read_text(encoding="utf-8")
+        content_download_state_source = (
+            REPO_ROOT
+            / "zircon_plugins/net/features/content_download/runtime/src/manager/state.rs"
+        ).read_text(encoding="utf-8")
+
+        for required in (
+            "pub struct ManagerServiceHandle<T: ?Sized>",
+            "pub index: u32",
+            "pub generation: u32",
+            "pub service: RegistryName",
+            "pub struct RegisteredManagerService",
+            "pub trait ManagerServiceResolver",
+        ):
+            self.assertIn(required, service_source)
+        self.assertIn("StaleServiceHandle", error_source)
+        self.assertIn("ServiceUnavailable", error_source)
+        self.assertIn("manager_service_handle(core, $service_name)", resolver_source)
+        self.assertIn("ensure_service_resolution_available", runtime_resolution_source)
+        self.assertIn("wait_for_service_resolution_change", runtime_resolution_source)
+        self.assertIn("notify_service_resolution_changed", runtime_resolution_source)
+        self.assertIn("initialization_owner", service_entry_source)
+        self.assertIn("try_register_service_resolution_wait", runtime_handle_source)
+        self.assertIn("clear_service_resolution_wait", runtime_handle_source)
+        self.assertIn("service_activation_reentries", runtime_handle_source)
+        self.assertIn(
+            "concurrent_cyclic_lazy_manager_dependencies_return_without_deadlock",
+            resolution_test_source,
+        )
+        self.assertIn(
+            "direct_immediate_service_resolution_reuses_module_activation_instance",
+            manager_resolution_contract_source,
+        )
+        self.assertIn("core: Option<CoreWeak>", content_download_state_source)
+        self.assertNotIn("core: Option<CoreHandle>", content_download_state_source)
+        self.assertNotIn(
+            "pub use crate::core::framework",
+            manager_mod_source,
+            "core::manager must not alias neutral framework trait owners",
+        )
+        self.assertNotIn("pub const LEVEL_MANAGER_NAME", scene_module_source)
+
+        legacy_symbols = (
+            "RenderingManagerHandle",
+            "RenderFrameworkHandle",
+            "LevelManagerHandle",
+            "ResourceManagerHandle",
+            "InputManagerHandle",
+            "InputActionManagerHandle",
+            "ConfigManagerHandle",
+            "EventManagerHandle",
+            "AiManagerHandle",
+            "NetManagerHandle",
+            "PhysicsManagerHandle",
+            "AnimationManagerHandle",
+            "SoundManagerHandle",
+            "NavigationManagerHandle",
+            "resolve_rendering_manager",
+            "resolve_render_framework",
+            "resolve_level_manager",
+            "resolve_resource_manager",
+            "resolve_input_manager",
+            "resolve_input_action_manager",
+            "resolve_config_manager",
+            "resolve_event_manager",
+            "resolve_ai_manager",
+            "resolve_net_manager",
+            "resolve_physics_manager",
+            "resolve_animation_manager",
+            "resolve_sound_manager",
+            "resolve_navigation_manager",
+        )
+        for legacy in legacy_symbols:
+            self.assertNotIn(legacy, manager_mod_source)
+            self.assertNotIn(legacy, resolver_source)
+
+        manager_trait = (
+            "RenderingManager|RenderFramework|LevelManager|ResourceManager|InputManager|"
+            "InputActionManager|ConfigManager|EventManager|AiManager|NetManager|"
+            "PhysicsManager|AnimationManager|SoundManager|NavigationManager"
+        )
+        stored_arc = re.compile(
+            rf"^\s*[A-Za-z_][A-Za-z0-9_]*\s*:\s*(?:Option<)?Arc<dyn (?:{manager_trait})>"
+        )
+        storage_paths = (
+            "zircon_runtime/src/dynamic_api/session.rs",
+            "zircon_runtime/src/dynamic_api/session/state.rs",
+            "zircon_runtime/src/dynamic_api/runtime_loop.rs",
+            "zircon_editor/src/ui/retained_host/app.rs",
+            "zircon_editor/src/ui/retained_host/viewport/viewport_state.rs",
+            "zircon_plugins/net/features/content_download/runtime/src/manager/state.rs",
+        )
+        for relative_path in storage_paths:
+            lines = (REPO_ROOT / relative_path).read_text(encoding="utf-8").splitlines()
+            for index, line in enumerate(lines):
+                previous = lines[index - 1].strip() if index else ""
+                if previous == "#[cfg(test)]":
+                    continue
+                self.assertIsNone(
+                    stored_arc.search(line),
+                    f"production manager Arc storage remains at {relative_path}:{index + 1}",
+                )
+
+    def test_asset_manager_consumers_use_versioned_handles_at_use_points(self) -> None:
+        retired_owners = (
+            REPO_ROOT
+            / "zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs",
+            REPO_ROOT
+            / "zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs",
+        )
+        for retired_owner in retired_owners:
+            self.assertFalse(retired_owner.exists())
+
+        production_roots = (
+            REPO_ROOT / "zircon_runtime/src",
+            REPO_ROOT / "zircon_app/src",
+            REPO_ROOT / "zircon_editor/src",
+            REPO_ROOT / "zircon_plugins",
+        )
+        legacy_symbols = (
+            "AssetManagerHandle",
+            "IntoProjectAssetManagerAccess",
+            "resolve_asset_manager",
+            "resolve_manager::<ProjectAssetManager>",
+        )
+        violations = []
+        for root in production_roots:
+            for path in root.rglob("*.rs"):
+                relative = path.relative_to(REPO_ROOT).as_posix()
+                if "/tests/" in f"/{relative}/" or "/test_" in relative:
+                    continue
+                source = path.read_text(encoding="utf-8")
+                for symbol in legacy_symbols:
+                    if symbol in source:
+                        violations.append(f"{relative}: {symbol}")
+        self.assertEqual(
+            violations,
+            [],
+            "asset manager legacy resolution remains:\n" + "\n".join(violations),
+        )
+
+        project_access_source = (
+            REPO_ROOT
+            / "zircon_runtime/src/asset/pipeline/manager/project_asset_manager/access.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "pub struct ProjectAssetManagerAccess {\n    core: CoreWeak",
+            project_access_source,
+        )
+        self.assertNotIn(
+            "pub struct ProjectAssetManagerAccess {\n    core: CoreHandle",
+            project_access_source,
+        )
+        self.assertNotIn("fn standalone(", project_access_source)
+
+        manager_resolver_source = (
+            REPO_ROOT / "zircon_runtime/src/core/manager/resolver.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn(
+            "pub struct ManagerResolver {\n    core: CoreWeak", manager_resolver_source
+        )
+        self.assertNotIn(
+            "pub struct ManagerResolver {\n    core: CoreHandle", manager_resolver_source
+        )
+
+        concrete_level_manager_violations = []
+        concrete_level_manager_pattern = re.compile(
+            r"(?:use\s+[^;]*\bDefaultLevelManager\b|"
+            r"resolve_manager::<DefaultLevelManager>|"
+            r"(?:Arc|Weak)<DefaultLevelManager>)"
+        )
+        for root in production_roots:
+            for path in root.rglob("*.rs"):
+                relative = path.relative_to(REPO_ROOT).as_posix()
+                if relative.startswith("zircon_runtime/src/scene/"):
+                    continue
+                if (
+                    "/tests/" in f"/{relative}/"
+                    or "/test_support/" in f"/{relative}/"
+                    or "/test_sources/" in f"/{relative}/"
+                    or relative.endswith("_tests.rs")
+                    or relative.endswith("/tests.rs")
+                ):
+                    continue
+                source = path.read_text(encoding="utf-8")
+                if concrete_level_manager_pattern.search(source):
+                    concrete_level_manager_violations.append(relative)
+        self.assertEqual(
+            concrete_level_manager_violations,
+            [],
+            "cross-domain concrete LevelManager consumers remain:\n"
+            + "\n".join(concrete_level_manager_violations),
+        )
+
+        graphics_storage = re.compile(
+            r"^\s*[A-Za-z_][A-Za-z0-9_]*\s*:\s*(?:Option<)?Arc<ProjectAssetManager>"
+        )
+        graphics_violations = []
+        for path in (REPO_ROOT / "zircon_runtime/src/graphics").rglob("*.rs"):
+            relative = path.relative_to(REPO_ROOT).as_posix()
+            if (
+                "/tests/" in f"/{relative}/"
+                or "/test_support/" in f"/{relative}/"
+                or "/test_sources/" in f"/{relative}/"
+                or relative.endswith("_tests.rs")
+            ):
+                continue
+            lines = path.read_text(encoding="utf-8").splitlines()
+            for index, line in enumerate(lines):
+                if graphics_storage.search(line):
+                    preceding = "\n".join(lines[max(0, index - 5) : index])
+                    if "#[cfg(test)]" in preceding:
+                        continue
+                    graphics_violations.append(f"{relative}:{index + 1} {line.strip()}")
+        self.assertEqual(
+            graphics_violations,
+            [],
+            "graphics stores long-lived concrete asset managers:\n"
+            + "\n".join(graphics_violations),
+        )
+
+    def test_editor_manager_consumers_keep_explicit_versioned_resolution(self) -> None:
+        retained_assets = (
+            REPO_ROOT / "zircon_editor/src/ui/retained_host/app/assets.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn("use super::RetainedEditorHost;", retained_assets)
+        self.assertIn(
+            "EditorAssetManager as EditorAssetManagerContract", retained_assets
+        )
+        self.assertIn("impl RetainedEditorHost", retained_assets)
+        self.assertIn(".resolve(self.asset_manager.clone())", retained_assets)
+        self.assertIn(".resolve(self.editor_asset_manager.clone())", retained_assets)
+        self.assertIn(".resolve(self.resource_manager.clone())", retained_assets)
+
+        editor_render_fixture = (
+            REPO_ROOT / "zircon_editor/src/tests/editing/state.rs"
+        ).read_text(encoding="utf-8")
+        self.assertIn("ProjectAssetManagerAccess::new(core, handle)", editor_render_fixture)
+        self.assertIn("manager_service_handle(&core, SERVICE_NAME)", editor_render_fixture)
+        self.assertIn("RegisteredManagerService::new", editor_render_fixture)
+        self.assertNotIn(
+            "WgpuRenderFramework::new(asset_manager)", editor_render_fixture
+        )
+
+    def test_editor_creates_levels_through_scene_owner_without_concrete_manager(self) -> None:
+        project_access = (
+            REPO_ROOT / "zircon_editor/src/ui/host/project_access.rs"
+        ).read_text(encoding="utf-8")
+        self.assertNotIn("DefaultLevelManager", project_access)
+        self.assertNotIn("resolve_manager::<", project_access)
+        self.assertIn("zircon_runtime::scene::create_level", project_access)
 
 
 if __name__ == "__main__":

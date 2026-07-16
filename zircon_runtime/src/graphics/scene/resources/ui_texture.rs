@@ -2,11 +2,9 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use crate::asset::ProjectAssetManager;
-use crate::core::framework::render::{
-    InlineObjectRef, RenderImageDescriptor, RenderImageDimension,
-};
+use crate::core::framework::render::{RenderImageDescriptor, RenderImageDimension};
 use crate::core::resource::{ResourceId, ResourceLocator, ResourceScheme};
-use crate::graphics::text::rich::parse_rich_text;
+use crate::text::{rich::parse_rich_text, InlineObjectRef};
 use zircon_runtime_interface::ui::surface::{UiRenderExtract, UiRichTextFormat, UiVisualAssetRef};
 
 use super::{GpuTextureResource, ResourceStreamer};
@@ -39,7 +37,7 @@ pub(in crate::graphics::scene::resources) fn ui_texture_ids(
         let Some(markup) = command.text.as_deref() else {
             continue;
         };
-        let rich = parse_rich_text(markup, command.style.rich_text_format);
+        let rich = parse_rich_text(markup, command.style.rich_text_format.into());
         ids.extend(
             rich.runs
                 .iter()
@@ -85,8 +83,10 @@ pub(in crate::graphics::scene::resources) fn ui_texture_id_for_upload(
 
 impl ResourceStreamer {
     pub(crate) fn ui_texture(&self, requested: ResourceId) -> Arc<GpuTextureResource> {
-        let asset_manager = self.asset_manager();
-        let texture_id = resolve_ui_texture_id(&asset_manager, requested);
+        let Ok(asset_manager) = self.asset_manager() else {
+            return self.texture(None);
+        };
+        let texture_id = resolve_ui_texture_id(asset_manager.as_ref(), requested);
         let texture = self.texture(Some(texture_id));
         if is_ui_texture_descriptor(&texture.descriptor) {
             texture

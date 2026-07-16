@@ -124,7 +124,7 @@ fn abort_lower_priority_branch(
     clear_ancestor_control_state(tree, selector_index, context.instance);
 }
 
-fn abort_subtree(
+pub(super) fn abort_subtree(
     tree: &CompiledBehaviorTree,
     root_index: u32,
     context: &mut BehaviorTreeExecutionContext<'_, '_>,

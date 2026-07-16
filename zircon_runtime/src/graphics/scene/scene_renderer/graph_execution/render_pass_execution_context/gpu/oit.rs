@@ -81,6 +81,12 @@ impl RenderPassGpuExecutionContext<'_> {
             crate::core::framework::render::PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED,
             RenderGraphResourceAccessKind::Read,
         )?;
+        let transmission_scene_color_view = Self::optional_texture_view_by_name(
+            &*self.resources,
+            self.resource_resolver,
+            crate::core::framework::render::PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR,
+            RenderGraphResourceAccessKind::Read,
+        )?;
         let viewport_size = render_region.physical_size();
         let plan = OitBufferPlan::for_view([viewport_size.x, viewport_size.y], settings);
         let gpu_settings = OitGpuSettings {
@@ -132,6 +138,7 @@ impl RenderPassGpuExecutionContext<'_> {
             light_zbins_buffer,
             light_tile_masks_buffer,
             integrated_volumetric_view,
+            transmission_scene_color_view,
         );
         let mut pass = self.encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
             label: Some("oit.fragment_store"),

@@ -14,7 +14,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         runtime,
         startup_managers,
         #[cfg(feature = "profiling")]
-        runtime_client,
+        runtime_gateway,
         native_plugin_live_host,
         viewport,
         startup_session,
@@ -26,6 +26,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
     let StartupManagers {
         asset_manager,
         editor_asset_manager,
+        resource_manager_resolver,
         resource_manager,
         editor_manager,
         asset_change_events,
@@ -42,7 +43,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         runtime,
         editor_manager,
         #[cfg(feature = "profiling")]
-        runtime_client,
+        runtime_gateway,
         module_plugin_live_host_backend: Box::new(native_plugin_live_host),
         desktop_export_reports: BTreeMap::new(),
         desktop_export_jobs: build_export_actions::DesktopExportJobQueue::new(editor_jobs.clone()),
@@ -52,6 +53,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         viewport,
         asset_manager,
         editor_asset_manager,
+        resource_manager_resolver,
         resource_manager,
         asset_change_events,
         editor_asset_change_events,

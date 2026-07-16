@@ -1,5 +1,6 @@
 use crate::core::framework::platform::RuntimeTargetMode;
 use crate::core::framework::project::RuntimeProfileId;
+use crate::core::framework::render::GRAPHICS_MODULE_NAME;
 use crate::plugin::{PluginMaturity, RuntimeCoreProfile, RuntimeProfileDescriptor};
 use crate::prelude::*;
 

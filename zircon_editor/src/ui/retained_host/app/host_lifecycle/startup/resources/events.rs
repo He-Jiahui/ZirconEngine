@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use super::super::super::super::*;
 
 pub(super) struct StartupChangeEvents {
@@ -9,9 +7,9 @@ pub(super) struct StartupChangeEvents {
 }
 
 pub(super) fn subscribe_startup_change_events(
-    asset_manager: &Arc<dyn AssetManager>,
-    editor_asset_manager: &Arc<dyn EditorAssetManagerContract>,
-    resource_manager: &Arc<dyn ResourceManager>,
+    asset_manager: &dyn AssetManager,
+    editor_asset_manager: &dyn EditorAssetManagerContract,
+    resource_manager: &dyn ResourceManager,
 ) -> StartupChangeEvents {
     let asset_change_events = {
         zircon_runtime::profile_scope!("editor", "retained_host", "new_subscribe_asset_changes");

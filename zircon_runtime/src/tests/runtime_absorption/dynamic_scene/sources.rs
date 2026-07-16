@@ -45,13 +45,13 @@ pub(super) const RUNTIME_05_PLAN: &str = concat!(
         "../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
     ),
     include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md"
+        "../../../../../docs/plans/_archive/zircon_runtime/runtime/05/2026-07-09-scene-editor-boundary-closeout-output-records.md"
     )
 );
 pub(super) const RUNTIME_INDEX: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
     include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     )
 );
 pub(super) const DYNAMIC_SCENE_DOC: &str =

@@ -1,4 +1,6 @@
-use crate::core::manager::{resolve_animation_manager, resolve_render_framework};
+use crate::core::manager::{
+    animation_manager_handle, render_framework_handle, resolve_manager_service,
+};
 use crate::core::CoreHandle;
 
 use super::render_stats_store::record_render_stats_diagnostics;
@@ -24,7 +26,9 @@ pub fn collect_runtime_diagnostics(core: &CoreHandle) -> RuntimeDiagnosticsSnaps
 }
 
 fn collect_render_diagnostics(core: &CoreHandle) -> RuntimeRenderDiagnostics {
-    let render_framework = match resolve_render_framework(core) {
+    let render_framework = match render_framework_handle(core)
+        .and_then(|handle| resolve_manager_service(core, handle))
+    {
         Ok(render_framework) => render_framework,
         Err(error) => return RuntimeRenderDiagnostics::unavailable(error.to_string()),
     };
@@ -52,7 +56,9 @@ fn collect_physics_diagnostics(core: &CoreHandle) -> RuntimePhysicsDiagnostics {
 }
 
 fn collect_animation_diagnostics(core: &CoreHandle) -> RuntimeAnimationDiagnostics {
-    let animation = match resolve_animation_manager(core) {
+    let animation = match animation_manager_handle(core)
+        .and_then(|handle| resolve_manager_service(core, handle))
+    {
         Ok(animation) => animation,
         Err(error) => return RuntimeAnimationDiagnostics::unavailable(error.to_string()),
     };

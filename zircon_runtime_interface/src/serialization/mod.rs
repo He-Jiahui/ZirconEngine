@@ -1,3 +1,4 @@
+mod binary;
 mod error;
 mod format;
 mod load;

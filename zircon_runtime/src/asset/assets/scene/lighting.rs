@@ -31,6 +31,8 @@ pub struct SceneDirectionalLightAsset {
     pub direction: [Real; 3],
     pub color: [Real; 3],
     pub intensity: Real,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -38,6 +40,8 @@ pub struct ScenePointLightAsset {
     pub color: [Real; 3],
     pub intensity: Real,
     pub range: Real,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -54,6 +58,8 @@ pub struct SceneSpotLightAsset {
     pub inner_angle_radians: Real,
     #[serde(default)]
     pub outer_angle_radians: Real,
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 impl Default for SceneSpotLightAsset {
@@ -65,6 +71,7 @@ impl Default for SceneSpotLightAsset {
             range: default_rect_light_range(),
             inner_angle_radians: 0.0,
             outer_angle_radians: 0.0,
+            volumetric: false,
         }
     }
 }
@@ -79,6 +86,8 @@ pub struct SceneRectLightAsset {
     pub range: Real,
     #[serde(default = "default_rect_light_size")]
     pub size: [Real; 2],
+    #[serde(default)]
+    pub volumetric: bool,
 }
 
 impl Default for SceneRectLightAsset {
@@ -88,6 +97,7 @@ impl Default for SceneRectLightAsset {
             intensity: default_rect_light_intensity(),
             range: default_rect_light_range(),
             size: default_rect_light_size(),
+            volumetric: false,
         }
     }
 }

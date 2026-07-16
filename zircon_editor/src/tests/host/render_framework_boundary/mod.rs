@@ -17,9 +17,10 @@ fn editor_viewport_sources_route_through_render_framework_without_wgpu_preview_b
     assert!(
         viewport_new_source.contains("ViewportState::lazy(core)")
             && viewport_state_source.contains("RenderFrameworkResolveJob::new(core)")
-            && viewport_state_source.contains("JobTicket<Arc<dyn RenderFramework>>")
+            && viewport_state_source
+                .contains("JobTicket<ManagerServiceHandle<dyn RenderFramework>>")
             && viewport_state_source.contains("JobCategory::Misc")
-            && viewport_resolve_job_source.contains("resolve_render_framework(&self.core)")
+            && viewport_resolve_job_source.contains("render_framework_handle(&self.core)")
             && viewport_resolve_job_source.contains("context.check_cancelled()?")
             && startup_assembly_source.contains("viewport.bind_jobs(editor_jobs.clone())"),
         "editor viewport controller should lazily resolve RenderFramework from core"

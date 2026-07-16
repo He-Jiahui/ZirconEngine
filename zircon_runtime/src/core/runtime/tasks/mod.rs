@@ -11,7 +11,7 @@ mod thread_assignment;
 
 use std::thread::{self, JoinHandle};
 
-use crate::core::ZirconError;
+use crate::core::{CoreError, CoreResult};
 
 pub use crate::core::framework::tasks::{TaskPoolDescriptor, TaskPoolKind};
 use diagnostics::JobSchedulerDiagnosticsState;
@@ -27,10 +27,7 @@ pub use pools::{TaskPoolThreadCounts, TaskPools};
 pub use report::{JobSchedulerReport, TaskPoolReport, TaskPoolReportEntry};
 pub use thread_assignment::{TaskPoolOptions, TaskPoolThreadAssignmentPolicy};
 
-pub fn spawn_named_thread<F, T>(
-    name: impl Into<String>,
-    task: F,
-) -> Result<JoinHandle<T>, ZirconError>
+pub fn spawn_named_thread<F, T>(name: impl Into<String>, task: F) -> CoreResult<JoinHandle<T>>
 where
     F: FnOnce() -> T + Send + 'static,
     T: Send + 'static,
@@ -39,5 +36,5 @@ where
     thread::Builder::new()
         .name(name.clone())
         .spawn(task)
-        .map_err(|error| ZirconError::ThreadSpawn(format!("{name}: {error}")))
+        .map_err(|error| CoreError::ThreadSpawn(format!("{name}: {error}")))
 }

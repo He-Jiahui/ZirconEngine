@@ -108,10 +108,23 @@ impl ZrVmProjectFixture {
     }
 
     pub(super) fn new_with_extension_channels(name: &str, version: &str) -> Self {
-        Self::new_with_host_interfaces(name, version, true)
+        Self::new_with_configuration(name, version, true, false)
+    }
+
+    pub(super) fn new_with_cooperative_gc(name: &str, version: &str) -> Self {
+        Self::new_with_configuration(name, version, false, true)
     }
 
     fn new_with_host_interfaces(name: &str, version: &str, extension_channels: bool) -> Self {
+        Self::new_with_configuration(name, version, extension_channels, false)
+    }
+
+    fn new_with_configuration(
+        name: &str,
+        version: &str,
+        extension_channels: bool,
+        cooperative_gc: bool,
+    ) -> Self {
         let nonce = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
@@ -152,6 +165,16 @@ impl ZrVmProjectFixture {
         } else {
             ""
         };
+        let garbage_collection = if cooperative_gc {
+            concat!(
+                "\n",
+                "[management.garbage_collection]\n",
+                "mode = \"cooperative\"\n",
+                "interval_frames = 1\n",
+            )
+        } else {
+            ""
+        };
         fs::write(
             package_root.join("plugin.toml"),
             format!(
@@ -168,10 +191,12 @@ impl ZrVmProjectFixture {
                     "project = \"script/plugin.zrp\"\n",
                     "entry_module = \"main\"\n",
                     "execution_mode = \"binary\"\n",
+                    "{garbage_collection}",
                 ),
                 name = name,
                 version = version,
                 extension_capabilities = extension_capabilities,
+                garbage_collection = garbage_collection,
             ),
         )
         .unwrap();
@@ -259,6 +284,10 @@ fn zr_vm_source(extension_channels: bool) -> String {
         "}\n",
         "\n",
         "pub editorOpen(): void {\n",
+        "}\n",
+        "\n",
+        "pub retainedValue(): string {\n",
+        "    return \"adapter-owned-temporary\";\n",
         "}\n",
         "\n",
         "pub deactivate(): void {\n",

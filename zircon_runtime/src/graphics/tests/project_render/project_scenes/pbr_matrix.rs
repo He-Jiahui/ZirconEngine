@@ -62,7 +62,7 @@ pub(super) fn render_pbr_matrix_frame_with_environment(
     let world = World::load_scene_from_uri(&project, &scene_uri).unwrap();
     let snapshot = build_pbr_matrix_snapshot(&world, environment);
 
-    let mut renderer = SceneRenderer::new(asset_manager).unwrap();
+    let mut renderer = SceneRenderer::new_for_test(asset_manager).unwrap();
     let frame = renderer.render(snapshot, PBR_MATRIX_OUTPUT_SIZE).unwrap();
 
     let _ = fs::remove_dir_all(root);
@@ -237,6 +237,7 @@ fn write_pbr_matrix_scene(path: PathBuf) {
             direction: [-0.35, -0.55, -0.76],
             color: [1.0, 0.96, 0.88],
             intensity: 1.25,
+            volumetric: false,
         }),
         point_light: None,
         rect_light: None,

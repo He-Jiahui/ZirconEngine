@@ -14,7 +14,7 @@ pub fn apply_inspector_binding(
 ) -> Result<bool, EditorBindingDispatchError> {
     let batch = dispatch_inspector_binding(binding)?;
     let node_id = resolve_subject_path(state, &batch.subject_path)?;
-    if state.viewport_controller.selected_node() != Some(node_id) {
+    if state.viewport_controller.selection().active_primary() != Some(node_id) {
         state
             .apply_intent(EditorIntent::SelectNode(node_id))
             .map_err(EditorBindingDispatchError::StateMutation)?;
@@ -36,7 +36,7 @@ pub(crate) fn apply_inspector_draft_field(
     value: String,
 ) -> Result<bool, EditorBindingDispatchError> {
     let node_id = resolve_subject_path(state, subject_path)?;
-    if state.viewport_controller.selected_node() != Some(node_id) {
+    if state.viewport_controller.selection().active_primary() != Some(node_id) {
         state
             .apply_intent(EditorIntent::SelectNode(node_id))
             .map_err(EditorBindingDispatchError::StateMutation)?;

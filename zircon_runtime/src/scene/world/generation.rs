@@ -12,6 +12,11 @@ impl WorldGeneration {
     fn advance(&mut self) {
         self.0 = self.0.saturating_add(1);
     }
+
+    /// Carries a session revision across wholesale world replacement.
+    fn advance_after(&mut self, previous: Self) {
+        self.0 = self.0.max(previous.0).saturating_add(1);
+    }
 }
 
 // Runtime revisions do not participate in persistent world equality.
@@ -29,6 +34,11 @@ impl World {
 
     pub(super) fn advance_world_generation(&mut self) {
         self.world_generation.advance();
+    }
+
+    pub(in crate::scene) fn advance_world_generation_after(&mut self, previous: u64) {
+        self.world_generation
+            .advance_after(WorldGeneration(previous));
     }
 }
 

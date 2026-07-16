@@ -1,7 +1,7 @@
-use crate::core::framework::render::{
-    InlineObjectRef, LinkRef, ParagraphOverride, RichParseResult, RichTextFormat, StyleOverride,
+use crate::text::{
+    rich::parse_rich_text, InlineObjectRef, LinkRef, ParagraphOverride, RichParseResult,
+    RichTextFormat, StyleOverride,
 };
-use crate::graphics::text::rich::parse_rich_text;
 use zircon_runtime_interface::ui::surface::{UiTextRange, UiTextRunKind};
 
 mod link_hit;

@@ -4,6 +4,8 @@ mod crowd;
 mod dynamic_components;
 mod manager;
 mod off_mesh;
+mod operation;
 mod registration;
+mod runtime_mirror;
 mod support;
 mod tiled_bake_context;

@@ -49,7 +49,7 @@ fn render_product_mixed_shadow_atlas_lights_darkens_multiple_receivers_capture()
         true,
         false,
     );
-    let server = WgpuRenderFramework::new(asset_manager).unwrap();
+    let server = WgpuRenderFramework::new_for_test(asset_manager).unwrap();
 
     let (shadowed_frame, shadowed_stats) = render_mixed_shadow_frame(
         &server,

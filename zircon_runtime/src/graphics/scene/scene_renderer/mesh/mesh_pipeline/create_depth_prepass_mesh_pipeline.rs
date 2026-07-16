@@ -161,6 +161,8 @@ mod tests {
                 material_sampler_entry(8),
                 material_texture_entry(9),
                 material_sampler_entry(10),
+                material_texture_entry(11),
+                material_sampler_entry(12),
             ],
         })
     }

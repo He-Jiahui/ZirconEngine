@@ -10,16 +10,22 @@ fn runtime_15_mesh_draw_command_list_is_folder_backed() {
     let tests = read_runtime_src(
         "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs",
     );
+    let cache_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cache.rs",
+    );
+    let advanced_material_tests = read_runtime_src(
+        "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/advanced_materials.rs",
+    );
     let plan_02 = read_repo(
         "docs/plans/zircon_runtime/render/02/2026-07-09-mesh-draw-command-pipeline-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let review_findings = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
     );
     let structure_convention = read_repo(
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
     );
     let module_convention = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let mesh_draw_command_doc = read_repo(
@@ -71,13 +77,29 @@ fn runtime_15_mesh_draw_command_list_is_folder_backed() {
         "mesh draw command tests child owns behavior coverage",
         &tests,
         &[
+            "mod advanced_materials;",
+            "mod cache;",
             "fn mesh_draw_command_list_sorts_by_phase_then_sort_key",
             "fn mesh_batch_ref_emits_gpu_scene_instance_command",
             "fn mesh_pass_command_buffers_build_expected_phase_counts_from_batches",
             "fn mesh_pass_command_buffers_report_indirect_batch_stats_when_gpu_driven_supported",
             "fn mesh_pass_command_buffers_assign_cache_variants_by_pipeline_kind",
+        ],
+    );
+    assert_contains_all(
+        "cache test owner keeps cache lifecycle coverage",
+        &cache_tests,
+        &[
             "fn mesh_pass_command_buffers_reuse_static_cached_commands_on_second_frame",
             "fn mesh_pass_command_buffers_report_static_cache_invalidation_reasons",
+        ],
+    );
+    assert_contains_all(
+        "advanced-material test owner keeps advanced PBR and transmission phase ordering",
+        &advanced_material_tests,
+        &[
+            "fn render_advanced_static_material_bypasses_opaque_cache_and_keeps_late_forward_command",
+            "fn render_advanced_command_lists_keep_transmission_after_late_forward_opaque",
         ],
     );
 
@@ -96,6 +118,16 @@ fn runtime_15_mesh_draw_command_list_is_folder_backed() {
             "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests.rs",
             tests.as_str(),
             500,
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cache.rs",
+            cache_tests.as_str(),
+            180,
+        ),
+        (
+            "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/advanced_materials.rs",
+            advanced_material_tests.as_str(),
+            140,
         ),
     ] {
         let line_count = source.lines().count();
@@ -125,6 +157,15 @@ fn runtime_15_mesh_draw_command_list_is_folder_backed() {
             ],
         );
     }
+
+    assert!(
+        mesh_draw_command_doc.contains(
+            "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/cache.rs"
+        ) && mesh_draw_command_doc.contains(
+            "graphics/scene/scene_renderer/mesh/mesh_pass/mesh_draw_command_list/tests/advanced_materials.rs"
+        ),
+        "mesh draw command docs should list the cache and advanced-material test owners"
+    );
 }
 
 fn read_runtime_src(relative: &str) -> String {

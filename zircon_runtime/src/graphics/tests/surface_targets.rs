@@ -50,7 +50,8 @@ fn graphics_surface_default_contract_reports_unsupported_present_and_noop_unbind
 
 #[test]
 fn graphics_surface_bind_rejects_unknown_viewport_before_native_surface_creation() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
 
     let error = framework
         .bind_viewport_surface(RenderViewportHandle::new(404), win32_surface_descriptor())
@@ -64,7 +65,8 @@ fn graphics_surface_bind_rejects_unknown_viewport_before_native_surface_creation
 
 #[test]
 fn graphics_surface_unbind_rejects_unknown_viewport() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
 
     let error = framework
         .unbind_viewport_surface(RenderViewportHandle::new(404))
@@ -78,7 +80,8 @@ fn graphics_surface_unbind_rejects_unknown_viewport() {
 
 #[test]
 fn graphics_surface_present_without_bound_surface_reports_unsupported() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -92,7 +95,8 @@ fn graphics_surface_present_without_bound_surface_reports_unsupported() {
 
 #[test]
 fn graphics_surface_missing_surface_clears_pending_graphics_debugger_capture() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -118,7 +122,8 @@ fn graphics_surface_missing_surface_clears_pending_graphics_debugger_capture() {
 
 #[test]
 fn graphics_surface_offscreen_submit_and_capture_survive_unbind_noop() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport_size = UVec2::new(64, 48);
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(viewport_size))
@@ -161,7 +166,8 @@ fn graphics_surface_offscreen_submit_and_capture_survive_unbind_noop() {
 
 #[test]
 fn graphics_camera_target_headless_size_controls_offscreen_capture_size() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();
@@ -204,7 +210,8 @@ fn graphics_camera_target_headless_size_controls_offscreen_capture_size() {
 
 #[test]
 fn graphics_camera_target_headless_present_reports_unsupported_surface_fallback() {
-    let framework = WgpuRenderFramework::new(Arc::new(ProjectAssetManager::default())).unwrap();
+    let framework =
+        WgpuRenderFramework::new_for_test(Arc::new(ProjectAssetManager::default())).unwrap();
     let viewport = framework
         .create_viewport(RenderViewportDescriptor::new(UVec2::new(64, 48)))
         .unwrap();

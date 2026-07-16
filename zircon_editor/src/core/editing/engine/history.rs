@@ -22,6 +22,10 @@ impl TransactionId {
     pub(crate) const fn from_sequence(sequence: u64) -> Self {
         Self(sequence)
     }
+
+    pub const fn raw(self) -> u64 {
+        self.0
+    }
 }
 
 pub struct TransactionRecord {

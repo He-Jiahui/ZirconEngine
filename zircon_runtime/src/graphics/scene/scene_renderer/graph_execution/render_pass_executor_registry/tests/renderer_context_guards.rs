@@ -30,7 +30,7 @@ fn screen_space_ui_executor_uses_graph_attachment_ops_for_viewport_output() {
         &backend.device,
         PostProcessGraphResourceNames::VIEWPORT_OUTPUT,
     );
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -112,7 +112,7 @@ fn overlay_executor_requires_overlay_context_instead_of_nooping() {
         &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -190,7 +190,7 @@ fn sprite_executor_requires_renderer_context_instead_of_nooping() {
         &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -268,7 +268,7 @@ fn mesh_executor_requires_mesh_context_instead_of_nooping() {
         &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -341,7 +341,7 @@ fn depth_prepass_executor_requires_prepass_context_instead_of_nooping() {
         &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -420,7 +420,7 @@ fn shadow_atlas_executor_records_depth_only_pass_when_graph_resource_is_bound() 
         });
     let mut resources = RenderGraphExecutionResources::new();
     import_shadow_atlas_texture(&mut resources, &backend.device);
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -508,7 +508,7 @@ fn deferred_gbuffer_executor_requires_renderer_context_instead_of_nooping() {
         &backend.device,
         PostProcessGraphResourceNames::SCENE_DEPTH,
     );
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,
@@ -595,7 +595,7 @@ fn deferred_lighting_executor_requires_renderer_context_instead_of_nooping() {
     ] {
         import_test_buffer(&mut resources, &backend.device, resource, 256);
     }
-    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new(
+    let mut screen_space_ui_renderer = ScreenSpaceUiRenderer::new_for_test(
         Arc::new(ProjectAssetManager::default()),
         &backend.device,
         &backend.queue,

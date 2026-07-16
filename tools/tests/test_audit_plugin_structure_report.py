@@ -29,10 +29,28 @@ class AuditPluginStructureReportTests(unittest.TestCase):
             0,
             report["summary"]["registration_compatibility_shim_sites"],
         )
+        self.assertEqual(28, report["summary"]["runtime_plugin_descriptor_root_count"])
+        self.assertEqual(
+            0,
+            report["summary"][
+                "runtime_plugin_descriptor_single_source_violation_count"
+            ],
+        )
+        self.assertEqual(
+            "runtime-plugin-descriptor-single-source-clean",
+            report["summary"]["frameworks_02_runtime_plugin_descriptor_status"],
+        )
         markdown = render_markdown(report)
         self.assertIn("- Global free-function registration sites: 0", markdown)
         self.assertIn("- Native crate-name collisions: 0", markdown)
         self.assertIn("- Registration compatibility shim sites: 0", markdown)
+        self.assertIn("- RuntimePlugin embedded descriptor roots: 28", markdown)
+        self.assertIn("- RuntimePlugin embedded descriptor violations: 0", markdown)
+        self.assertIn(
+            "- Frameworks 02 descriptor gate status: "
+            "`runtime-plugin-descriptor-single-source-clean`",
+            markdown,
+        )
 
     def test_report_exposes_feature_provider_package_projection_count(self):
         report = _build_report()
@@ -139,6 +157,12 @@ def _registration_conformance():
         "split_importer_free_function_registration_sites": 0,
         "split_importer_free_function_registration_site_details": [],
         "importer_free_function_registration_sites": 0,
+        "runtime_plugin_descriptor_root_count": 28,
+        "runtime_plugin_descriptor_single_source_violation_count": 0,
+        "runtime_plugin_descriptor_single_source_violations": [],
+        "frameworks_02_runtime_plugin_descriptor_status": (
+            "runtime-plugin-descriptor-single-source-clean"
+        ),
         "runtime_registration_builder_roots": [],
         "runtime_registration_builder_violation_count": 0,
         "runtime_registration_builder_violations": [],
@@ -162,7 +186,7 @@ def _capability_conformance():
         "sdk_builder_mirror_violations": 0,
         "sdk_builder_mirror_violation_details": [],
         "m4_t2_builder_mirror_gate_status": "sdk-builder-mirror-clean",
-        "editor_runtime_mirror_root_count": 3,
+        "editor_runtime_mirror_root_count": 4,
         "editor_runtime_mirror_violations": 0,
         "editor_runtime_mirror_violation_details": [],
         "d9_editor_runtime_mirror_gate_status": "editor-runtime-mirror-clean",

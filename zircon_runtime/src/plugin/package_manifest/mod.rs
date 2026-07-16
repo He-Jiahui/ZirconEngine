@@ -20,7 +20,7 @@ pub use plugin_feature_bundle_manifest::PluginFeatureBundleManifest;
 pub use plugin_feature_dependency::PluginFeatureDependency;
 pub use plugin_interface_manifest::{PluginInterfaceManifest, PluginInterfaceMethodManifest};
 pub use plugin_module_kind::PluginModuleKind;
-pub use plugin_module_manifest::PluginModuleManifest;
+pub use plugin_module_manifest::{PluginEventConsumerManifest, PluginModuleManifest};
 pub use plugin_option_manifest::PluginOptionManifest;
 pub use plugin_package_kind::PluginPackageKind;
 pub use plugin_package_manifest::PluginPackageManifest;

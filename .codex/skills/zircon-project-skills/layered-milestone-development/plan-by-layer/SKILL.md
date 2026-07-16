@@ -21,7 +21,7 @@
    - Write the promotion gate for each milestone before implementation starts.
    - Include implementation slices, unit-test code to write, docs to update, required edge cases, and artifacts in the milestone definition itself.
    - Add a named testing stage for the milestone. This is where compile/build commands, unit tests, debug correction, and acceptance evidence run.
-   - Add the standard status/output record section to the plan so execution can write one row as each slice finishes.
+   - Add the standard status/output record section to the plan so execution can record the accepted milestone outcome after its testing stage.
 
 4. Protect VM core correctness first.
    - Prefer milestones that establish parser correctness, instruction correctness, execution correctness, and shared runtime correctness before polish, wrappers, or auxiliary tools.
@@ -42,15 +42,15 @@
 
 ## Required Status Record
 
-Every milestone plan must include this section. During execution, fill it slice by slice; after one slice completes, update exactly one row immediately. Do not batch backfill records at the end.
+Every milestone plan must include this section. Record one accepted milestone outcome after the testing stage; do not create a row for every implementation slice.
 
 ```markdown
 ## 状态与产出记录
 
-执行时逐切片填写；完成一个切片更新一行，不许批量补记。
+每个里程碑测试通过后记录一次；实现切片不单独写入产出记录。
 
-| 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
+| 里程碑 | 范围 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
 ```
 
-Use the local calendar date for `完成日期`. In `证据`, cite concrete files, commands, test names, or docs that prove the slice outcome.
+Use the local calendar date for `完成日期`. In `证据`, cite the validation batch, changed ownership boundary, and any accepted residual risk. Record one accepted milestone outcome rather than per-slice progress.

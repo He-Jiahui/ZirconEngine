@@ -8,7 +8,7 @@ use zircon_runtime_interface::ui::{
     },
 };
 
-use crate::graphics::text::shaping::TextShapeRunProvider;
+use crate::text::SharedTextLayoutSession;
 
 use super::shaper::{layout_text, layout_text_with_provider};
 
@@ -160,13 +160,10 @@ pub(crate) fn resolve_text_layout(request: &UiTextLayoutRequest<'_>) -> UiTextLa
     })
 }
 
-pub(crate) fn resolve_text_layout_with_provider<P>(
+pub(crate) fn resolve_text_layout_with_provider(
     request: &UiTextLayoutRequest<'_>,
-    provider: &mut P,
-) -> UiTextLayoutResolution
-where
-    P: TextShapeRunProvider + ?Sized,
-{
+    provider: &mut SharedTextLayoutSession,
+) -> UiTextLayoutResolution {
     resolve_text_layout_inner(request, |resolved_text| {
         layout_text_with_provider(
             resolved_text,

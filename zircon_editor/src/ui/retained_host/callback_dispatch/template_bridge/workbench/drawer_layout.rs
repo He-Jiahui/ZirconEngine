@@ -10,7 +10,8 @@ use zircon_runtime_interface::ui::{
 use crate::ui::workbench::autolayout::{
     balanced_side_widths_for_budget, compact_bottom_height_limit, compact_side_width_limit,
     minimum_document_width_fraction, right_drawer_should_collapse_for_physical_width,
-    ShellRegionId, WorkbenchChromeMetrics,
+    workbench_layout_tier_for_physical_width, ShellRegionId, WorkbenchChromeMetrics,
+    WorkbenchLayoutTier,
 };
 use crate::ui::workbench::layout::{ActivityDrawerMode, ActivityDrawerSlot};
 use crate::ui::workbench::model::WorkbenchViewModel;
@@ -179,7 +180,13 @@ fn apply_workbench_drawer_layout(
         scale_factor,
         rail_width,
     );
-    let bottom = compacted_bottom_region_input(drawer_inputs.bottom, shell_size, metrics, anchors);
+    let bottom = compacted_bottom_region_input(
+        drawer_inputs.bottom,
+        shell_size,
+        scale_factor,
+        metrics,
+        anchors,
+    );
     let (left, right) = reserve_document_width(left, right, shell_size, metrics);
 
     mark_roots_layout_dirty(surface)?;
@@ -283,11 +290,24 @@ fn compacted_side_region_input(
 fn compacted_bottom_region_input(
     region: WorkbenchDrawerRegionInput,
     shell_size: UiSize,
+    scale_factor: f32,
     metrics: WorkbenchChromeMetrics,
     anchors: Option<WorkbenchDrawerLayoutAnchors>,
 ) -> WorkbenchDrawerRegionInput {
     if !region.visible {
         return region;
+    }
+
+    if matches!(
+        workbench_layout_tier_for_physical_width(shell_size.width, scale_factor),
+        WorkbenchLayoutTier::Ultra | WorkbenchLayoutTier::Narrow
+    ) {
+        // The compact bottom drawer keeps its tab strip as the re-open affordance,
+        // but yields the remaining vertical budget to the active document surface.
+        return WorkbenchDrawerRegionInput {
+            extent: AUTHORED_DRAWER_HEADER_HEIGHT,
+            ..region
+        };
     }
 
     let separator = metrics.separator_thickness.max(0.0);
@@ -443,5 +463,27 @@ fn fixed_axis(size: f32) -> AxisConstraint {
         priority: 100,
         weight: 1.0,
         stretch_mode: StretchMode::Fixed,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn narrow_width_collapses_a_visible_bottom_drawer_to_its_tab_strip() {
+        let pinned_drawer = WorkbenchDrawerRegionInput {
+            visible: true,
+            extent: 228.0,
+        };
+        let compacted = compacted_bottom_region_input(
+            pinned_drawer,
+            UiSize::new(640.0, 520.0),
+            1.0,
+            WorkbenchChromeMetrics::default(),
+            Some(WorkbenchDrawerLayoutAnchors { body_height: 420.0 }),
+        );
+
+        assert_eq!(compacted.extent, AUTHORED_DRAWER_HEADER_HEIGHT);
     }
 }

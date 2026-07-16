@@ -13,7 +13,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 41
+LATEST_SCHEMA_VERSION = 43
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1847,6 +1847,68 @@ def _migration_41(connection: Connection) -> None:
     )
 
 
+def _migration_42(connection: Connection) -> None:
+    """Persist exact GPU reservations, including their coordinator-approved target."""
+    connection.executescript(
+        """
+        DROP INDEX cargo_lane_reservations_one_active_cpu;
+        DROP INDEX cargo_lane_reservations_session_status;
+        DROP INDEX cargo_lane_reservations_job;
+        ALTER TABLE cargo_lane_reservations RENAME TO cargo_lane_reservations_legacy;
+
+        CREATE TABLE cargo_lane_reservations (
+            reservation_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            lane_scope TEXT NOT NULL CHECK (lane_scope IN ('cpu', 'gpu')),
+            compatibility_key TEXT NOT NULL,
+            compatibility_json TEXT,
+            target_dir TEXT,
+            command_fingerprint TEXT NOT NULL,
+            job_id TEXT REFERENCES cargo_jobs(job_id),
+            status TEXT NOT NULL CHECK (status IN (
+                'pending', 'leased', 'running', 'finished', 'released', 'expired'
+            )),
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            started_at TEXT,
+            completed_at TEXT
+        );
+
+        INSERT INTO cargo_lane_reservations(
+            reservation_id, session_id, lane_scope, compatibility_key,
+            compatibility_json, command_fingerprint, job_id, status,
+            created_at, expires_at, started_at, completed_at
+        )
+        SELECT reservation_id, session_id, lane_scope, compatibility_key,
+               compatibility_json, command_fingerprint, job_id, status,
+               created_at, expires_at, started_at, completed_at
+        FROM cargo_lane_reservations_legacy;
+
+        DROP TABLE cargo_lane_reservations_legacy;
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_active_lane
+            ON cargo_lane_reservations(lane_scope)
+            WHERE lane_scope IN ('cpu', 'gpu')
+              AND status IN ('pending', 'leased', 'running', 'finished');
+        CREATE INDEX cargo_lane_reservations_session_status
+            ON cargo_lane_reservations(session_id, status, created_at);
+        CREATE INDEX cargo_lane_reservations_job
+            ON cargo_lane_reservations(job_id);
+        """
+    )
+
+
+def _migration_43(connection: Connection) -> None:
+    """Keep one durable FIFO successor behind an active lane reservation."""
+    connection.executescript(
+        """
+        DROP INDEX cargo_lane_reservations_one_active_lane;
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_pending_lane
+            ON cargo_lane_reservations(lane_scope)
+            WHERE lane_scope IN ('cpu', 'gpu') AND status='pending';
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1889,6 +1951,8 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     39: _migration_39,
     40: _migration_40,
     41: _migration_41,
+    42: _migration_42,
+    43: _migration_43,
 }
 
 

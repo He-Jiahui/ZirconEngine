@@ -13,7 +13,7 @@ fn builtin_runtime_modules_include_target_client_core_and_required_plugins() {
         crate::input::INPUT_MODULE_NAME,
         crate::asset::ASSET_MODULE_NAME,
         crate::scene::SCENE_MODULE_NAME,
-        crate::graphics::GRAPHICS_MODULE_NAME,
+        crate::core::framework::render::GRAPHICS_MODULE_NAME,
         crate::script::SCRIPT_MODULE_NAME,
     ] {
         assert!(
@@ -45,7 +45,7 @@ fn builtin_runtime_modules_keep_client_plugins_after_core_spine() {
         .expect("script module should exist in runtime builtins");
     let graphics_index = descriptors
         .iter()
-        .position(|name| *name == crate::graphics::GRAPHICS_MODULE_NAME)
+        .position(|name| *name == crate::core::framework::render::GRAPHICS_MODULE_NAME)
         .expect("graphics module should exist in runtime builtins");
     let scene_index = descriptors
         .iter()

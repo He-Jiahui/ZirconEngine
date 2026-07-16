@@ -39,7 +39,7 @@ fn review_f12_runtime_production_dead_code_suppression_is_globally_gated() {
 
     let review_findings = concat!(
         include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+        include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let f12_row = markdown_table_row(review_findings, "| F12 |");
     assert_contains_all(

@@ -2907,3 +2907,13 @@ cargo fmt --all --check
 `frameworks_02_m3_plugin_validate_module_description_python_guard_expansion_passed_full_integration_pending` / `plugins_13_m5_t1_plugin_validate_module_description_projection_gate` 补充上一条 module `description` 投影修复的完整低干扰 Python 验证。生产 owner 仍是 `tools/zircon_export/plugin_validate_modules.py`，不改变 module 字段闭集、不删除 generated descriptions、不新增旧 schema 兼容。
 
 验证：完整 `python -m unittest discover -s tools\zircon_export\tests -p "test_plugin_validate*.py"` 181/181 通过，完整 `python -m unittest discover -s tools\tests -p "test_plugin_docs_current_status*.py"` 324/324 通过。本补证不声明 Cargo build/test/export、完整插件 workspace test、真实插件构建、Hub/editor E2E 或 Frameworks02 full integration 完成。
+
+### 2026-07-15 open failure 路由：Virtual Geometry Runtime support workload drift
+
+Runtime04 的 fresh focused VG integration gate 已证明根级 support fixture 未跟随 Plugins13 AsyncCompute workload 合同；当前为 `待修复（open）`，完整证据、根因与验收只记录在编号子计划 [failure-2026-07-15-virtual-geometry-runtime-support-compute-workload-drift.md](13/failure-2026-07-15-virtual-geometry-runtime-support-compute-workload-drift.md)。在该 failure 回传前，本计划不得用 2026-07-03 的生产 descriptor focused green 覆盖当前 Runtime integration fixture 漂移。
+
+2026-07-15 补录：support descriptor 的 workload 实现与真实 Rust 回归已完成；fresh 受管 job
+`b8a1305560e4404f9f0fd5b459774d74` 尚未进入 VG test binary，当前由 Frameworks05 Text consumer
+与 Plugins05 `ControlPropRef` 的既有 failure 阻断，因此状态为 `实现完成 / 验收阻塞`，不得提前
+回传 fixed。首次 acquire 同时暴露 Coordinator01 的并发治理问题，当前为 `open / 待修复`：
+[failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md](../zircon_tooling/session_coordinator/01/failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md)（open / 待 Coordinator01 修复）；不得由 Plugins13 手工清理其他 Session 的 target。

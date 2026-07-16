@@ -1,16 +1,17 @@
 use std::collections::HashMap;
 
 use super::*;
-use crate::core::framework::render::{FontFaceId, InstancedFaceId, ShapedGlyphRotation};
+use crate::core::framework::text::TextFontFaceHandle;
 use crate::core::math::UVec2;
 use crate::graphics::scene::scene_renderer::ui::render::{
     ScreenSpaceUiShapedGlyph, ScreenSpaceUiTextBatch,
 };
-use crate::graphics::text::atlas::{
+use crate::text::atlas::{
     GlyphAtlasFormat, GlyphAtlasPageKey, GlyphAtlasPageSpec, GlyphAtlasSet,
     GlyphAtlasStorageFormat, GLYPH_ATLAS_DEFAULT_MAX_PAGES_PER_FORMAT,
 };
-use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
+use crate::text::sdf::{SdfBakeParams, SdfMode};
+use crate::text::ShapedGlyphRotation;
 use zircon_runtime_interface::ui::layout::UiFrame;
 use zircon_runtime_interface::ui::surface::UiTextWritingMode;
 use zircon_runtime_interface::ui::surface::{
@@ -30,6 +31,7 @@ fn text_batch(text: &str, frame: UiFrame) -> ScreenSpaceUiTextBatch {
         source_range: None,
         glyph_advances: Vec::new(),
         shaped_glyphs: Vec::new(),
+        layout_error: None,
         color: [1.0, 1.0, 1.0, 1.0],
         background_color: None,
         font: Some("res://fonts/default.font.toml".to_string()),

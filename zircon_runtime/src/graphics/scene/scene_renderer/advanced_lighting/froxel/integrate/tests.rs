@@ -238,6 +238,7 @@ fn run_volumetric_chain(device: &wgpu::Device, queue: &wgpu::Queue) -> Volumetri
                 grid,
                 view: test_froxel_view(),
                 phase_g: 0.0,
+                ambient_radiance: Vec3::ZERO,
                 viewport_size: TEST_OUTPUT,
                 media_view: &media_view,
                 history_view: &media_view,
@@ -504,6 +505,7 @@ fn create_lighting_resources(device: &wgpu::Device) -> LightingResources {
         direction_type: [0.0, 0.0, -1.0, GpuLightType::Directional.as_f32_bits()],
         shadow_slot_layer: [0, u32::MAX, 1, 1],
         shadow_params: [1.0, 0.0, 0.0, 1.0],
+        cookie_misc: [0, 0, 1, 0],
         ..GpuLightData::default()
     };
     let projection = Mat4::perspective_rh(90.0_f32.to_radians(), 2.0, 0.1, 20.0);

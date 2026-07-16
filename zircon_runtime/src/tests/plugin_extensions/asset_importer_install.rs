@@ -56,9 +56,13 @@ fn runtime_module_registration_reports_install_asset_importers_before_project_op
     runtime
         .activate_module(crate::asset::ASSET_MODULE_NAME)
         .unwrap();
-    let manager = runtime
-        .resolve_manager::<ProjectAssetManager>(crate::asset::PROJECT_ASSET_MANAGER_NAME)
-        .expect("project asset manager should activate with plugin importers");
+    let core = runtime.handle();
+    let manager = crate::core::manager::resolve_manager_service(
+        &core,
+        crate::asset::project_asset_manager_handle(&core)
+            .expect("project asset manager handle should be registered"),
+    )
+    .expect("project asset manager should activate with plugin importers");
 
     let (root, paths) = write_weather_project("runtime_module_importer_install");
     AssetManager::open_project(manager.as_ref(), root.to_string_lossy().as_ref())

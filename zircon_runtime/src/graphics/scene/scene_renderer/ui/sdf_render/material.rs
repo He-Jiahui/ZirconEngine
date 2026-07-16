@@ -4,7 +4,7 @@ use std::ops::Range;
 use bytemuck::{Pod, Zeroable};
 
 use crate::core::math::UVec2;
-use crate::graphics::text::sdf::{SdfBakeParams, SdfMode};
+use crate::text::sdf::{SdfBakeParams, SdfMode};
 
 use super::super::render::ScreenSpaceUiTextBatch;
 

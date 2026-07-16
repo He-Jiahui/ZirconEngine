@@ -1,4 +1,4 @@
-use crate::core::framework::render::RichTextFormat;
+use crate::text::RichTextFormat;
 use zircon_runtime_interface::ui::{
     layout::UiPoint,
     surface::{UiResolvedTextLayout, UiTextCaretAffinity, UiTextRange},

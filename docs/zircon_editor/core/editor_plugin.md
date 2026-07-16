@@ -24,6 +24,9 @@ tests:
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::builtin_editor_catalog_entries_are_derived_from_plugin_manifests
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::editor_module_plugin_manifests_are_present_in_builtin_catalog
   - zircon_editor/src/tests/editor_plugin_catalog_consistency.rs::editor_plugin_catalog_reports_missing_capabilities_as_structured_diagnostics
+  - zircon_editor/src/tests/editor_authoring_extension_descriptors.rs::authoring_registry_rejects_invalid_operation_payload_schema_ids
+  - zircon_editor/src/tests/editor_event/runtime/extensions_registration.rs::editor_runtime_consumes_plugin_registration_reports_with_capability_gate
+  - zircon_editor/src/tests/editor_event/runtime/extensions_validation.rs::editor_runtime_rejects_duplicate_extension_view_without_registering_operations
   - zircon_editor/src/tests/host/manager/minimal_host_contract/optional_features.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/core_contract.rs
   - zircon_editor/src/tests/host/manager/minimal_host_contract/native_plugins.rs
@@ -42,6 +45,8 @@ The generated catalog deliberately keeps `plugin.toml` as the source of truth fo
 `EditorPluginCatalog` also has an explicit `validate_capabilities(...)` pass that checks a caller-provided capability set against every registered editor plugin capability. Missing capabilities are reported as shared `RegistrationDiagnostic` values from `zircon_runtime_interface`, using code `editor.capability.missing` and `Error` severity.
 
 This is intentionally diagnostic-only. `EditorHostEventController::register_editor_plugin_registration(...)` forwards plugin capabilities as required capabilities on the installed `EditorExtensionRegistration`, using the controller's Workbench shell and operation owners rather than the deleted editor-event aggregate. The report gives editor/plugin tooling a structured way to explain why a registration would be disabled instead of relying on a silent boolean capability gate.
+
+Extension registration is transactional. Pure view, contribution-id, and asset-type conflict checks run before command candidates are materialized into a cloned `EditorCommandRegistry`; a rejected duplicate view therefore cannot leave an auto-generated command behind or mask the canonical view error with a later command collision. Generated view commands retain their `View/<category>/<name>` metadata for remote discovery, but declare `EditorCommandMenuProjection::ExtensionRegistry`. The command registry does not render that menu path itself. Workbench menu projection instead reads only capability-enabled extension registrations, so a disabled plugin contributes neither an activity descriptor nor a disabled View-menu placeholder while its command remains available to the shared permission gate for a typed missing-capability error.
 
 ## Optional Feature Dependency Enablement
 

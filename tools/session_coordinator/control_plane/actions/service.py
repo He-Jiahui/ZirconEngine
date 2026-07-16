@@ -18,6 +18,8 @@ from .models import (
     ActionRecord,
     ActionRisk,
     ActionStatus,
+    LifecycleParameters,
+    SessionParameters,
 )
 from .permissions import require_permission
 
@@ -45,9 +47,86 @@ class ActionService:
         self.daemon_instance_id = daemon_instance_id
         self._confirmation_lock = mutation_lock or threading.RLock()
         self._mutation_gate = mutation_gate
+        register_completion = getattr(executor, "set_deferred_completion", None)
+        if callable(register_completion):
+            register_completion(self.complete_deferred)
 
     def catalog(self) -> dict[str, object]:
         return {"actions": [spec.to_dict() for spec in ACTION_CATALOG.values()]}
+
+    def recover_interrupted_actions(self) -> int:
+        """Finish in-flight records left behind by a prior daemon instance."""
+        with self.database.transaction() as connection:
+            rows = connection.execute(
+                """SELECT action_id, action_kind, parameters_json
+                   FROM action_requests
+                   WHERE status='executing' AND daemon_instance_id <> ?""",
+                (self.daemon_instance_id,),
+            ).fetchall()
+            if not rows:
+                return 0
+            completed_at = utc_text()
+            for row in rows:
+                connection.execute(
+                    """UPDATE action_requests
+                       SET status='failed', error_code='action_interrupted_by_restart',
+                           completed_at=?
+                       WHERE action_id=? AND status='executing'""",
+                    (completed_at, row["action_id"]),
+                )
+                parameters = json.loads(row["parameters_json"])
+                self._event(
+                    connection,
+                    parameters.get("sessionId"),
+                    "action.failed",
+                    {
+                        "actionId": row["action_id"],
+                        "kind": row["action_kind"],
+                        "code": "action_interrupted_by_restart",
+                    },
+                )
+        return len(rows)
+
+    def complete_deferred(
+        self,
+        action_id: str,
+        parameters,
+        *,
+        result: dict[str, object] | None = None,
+        error_code: str | None = None,
+    ) -> None:
+        """Close a background action after its launching request has returned."""
+        with self.database.transaction() as connection:
+            row = connection.execute(
+                "SELECT action_kind FROM action_requests WHERE action_id=?", (action_id,)
+            ).fetchone()
+            if row is None:
+                return
+            if error_code is not None:
+                updated = connection.execute(
+                    """UPDATE action_requests
+                       SET status='failed', error_code=?, completed_at=?
+                       WHERE action_id=? AND status='executing'""",
+                    (error_code, utc_text(), action_id),
+                ).rowcount
+                event_type = "action.failed"
+                payload = {"actionId": action_id, "kind": row["action_kind"], "code": error_code}
+            else:
+                updated = connection.execute(
+                    """UPDATE action_requests
+                       SET status='succeeded', result_json=?, completed_at=?
+                       WHERE action_id=? AND status='executing'""",
+                    (json.dumps(result or {}, sort_keys=True), utc_text(), action_id),
+                ).rowcount
+                event_type = "action.succeeded"
+                payload = {"actionId": action_id, "kind": row["action_kind"]}
+            if updated:
+                self._event(
+                    connection,
+                    self._event_session_id(parameters),
+                    event_type,
+                    payload,
+                )
 
     def preview(
         self,
@@ -56,13 +135,13 @@ class ActionService:
         payload: dict[str, object],
     ) -> ActionRecord:
         spec = action_spec(kind)
-        if self._mutation_gate is not None:
-            self._mutation_gate(spec.kind.value)
         parameters = spec.parse_parameters(payload)
+        if self._mutation_gate is not None:
+            self._mutation_gate(self._mutation_operation(spec, parameters))
         target_session_id = getattr(parameters, "session_id", None)
         try:
             self._require_instance(context)
-            require_permission(context, spec, target_session_id)
+            require_permission(context, spec, target_session_id, parameters=parameters)
         except CoordinatorError as error:
             self._record_denial(context, spec, parameters.to_payload(), error.code)
             raise
@@ -107,7 +186,7 @@ class ActionService:
             )
             self._event(
                 connection,
-                target_session_id,
+                self._event_session_id(parameters),
                 "action.previewed",
                 {"actionId": action_id, "kind": spec.kind.value, "actor": context.actor},
             )
@@ -146,7 +225,11 @@ class ActionService:
         with self.database.connect() as connection:
             preview_row = self._request_row(connection, action_id)
         if self._mutation_gate is not None:
-            self._mutation_gate(str(preview_row["action_kind"]))
+            preview_spec = action_spec(preview_row["action_kind"])
+            preview_parameters = preview_spec.parse_parameters(
+                json.loads(preview_row["parameters_json"])
+            )
+            self._mutation_gate(self._mutation_operation(preview_spec, preview_parameters))
         with self._confirmation_lock:
             with self.database.transaction() as connection:
                 row = self._request_row(connection, action_id)
@@ -154,7 +237,12 @@ class ActionService:
                 parameters = spec.parse_parameters(json.loads(row["parameters_json"]))
                 context = self._context_for_request(context, row)
                 self._require_request_identity(context, row)
-                require_permission(context, spec, getattr(parameters, "session_id", None))
+                require_permission(
+                    context,
+                    spec,
+                    getattr(parameters, "session_id", None),
+                    parameters=parameters,
+                )
                 if spec.preview_only:
                     raise CoordinatorError(
                         "action_preview_only", "This catalog action intentionally has no M3 executor"
@@ -193,12 +281,15 @@ class ActionService:
                         )
                         self._event(
                             connection,
-                            getattr(parameters, "session_id", None),
+                            self._event_session_id(parameters),
                             "action.state_changed",
                             {"actionId": action_id, "kind": spec.kind.value},
                         )
                         state_changed = True
                     else:
+                        self._require_no_equivalent_inflight_action(
+                            connection, spec.kind, parameters, action_id
+                        )
                         now = utc_text()
                         connection.execute(
                             """UPDATE action_requests
@@ -262,11 +353,12 @@ class ActionService:
                 "action_execution_failed", "Controlled action execution failed"
             ) from error
         deferred = bool(result.get("deferred"))
+        deferred_start = result.pop("_start", None)
         with self.database.transaction() as connection:
             if deferred:
                 self._event(
                     connection,
-                    getattr(parameters, "session_id", None),
+                    self._event_session_id(parameters),
                     "action.accepted",
                     {"actionId": action_id, "kind": spec.kind.value},
                 )
@@ -279,11 +371,74 @@ class ActionService:
                 )
                 self._event(
                     connection,
-                    getattr(parameters, "session_id", None),
+                    self._event_session_id(parameters),
                     "action.succeeded",
                     {"actionId": action_id, "kind": spec.kind.value},
                 )
+        if callable(deferred_start):
+            deferred_start()
         return self.get(context, action_id)
+
+    @staticmethod
+    def _mutation_operation(spec, parameters) -> str:
+        if (
+            spec.kind is ActionKind.SESSION_ACTIVATE
+            and isinstance(parameters, SessionParameters)
+            and parameters.maintenance_session_id is not None
+        ):
+            return f"session.activate@{parameters.maintenance_session_id}"
+        if (
+            spec.kind is ActionKind.SERVICE_RESUME
+            and isinstance(parameters, LifecycleParameters)
+            and parameters.release_maintenance_hold
+        ):
+            # A release is authorized by the durable drain action it names.
+            # Binding this gate to a heartbeat-bound Session made a valid
+            # maintenance hold impossible to release after that Session aged out.
+            return "service.resume.release"
+        target_session_id = getattr(parameters, "session_id", None)
+        if isinstance(target_session_id, str) and target_session_id:
+            return f"{spec.kind.value}@{target_session_id}"
+        return spec.kind.value
+
+    @staticmethod
+    def _event_session_id(parameters) -> str | None:
+        if isinstance(parameters, SessionParameters):
+            if parameters.maintenance_session_id is not None:
+                return parameters.maintenance_session_id
+            return parameters.session_id
+        if isinstance(parameters, dict):
+            maintenance_session_id = parameters.get("maintenanceSessionId")
+            if isinstance(maintenance_session_id, str) and maintenance_session_id:
+                return maintenance_session_id
+            session_id = parameters.get("sessionId")
+            return session_id if isinstance(session_id, str) and session_id else None
+        session_id = getattr(parameters, "session_id", None)
+        return session_id if isinstance(session_id, str) and session_id else None
+
+    @staticmethod
+    def _require_no_equivalent_inflight_action(
+        connection,
+        kind: ActionKind,
+        parameters,
+        action_id: str,
+    ) -> None:
+        """Keep one managed validation in flight for an exact milestone target."""
+        if kind is not ActionKind.VALIDATION_START:
+            return
+        existing = connection.execute(
+            """SELECT action_id FROM action_requests
+               WHERE action_kind=? AND parameters_json=? AND status='executing'
+                 AND action_id<>?
+               ORDER BY confirmed_at LIMIT 1""",
+            (kind.value, json.dumps(parameters.to_payload(), sort_keys=True), action_id),
+        ).fetchone()
+        if existing is not None:
+            raise CoordinatorError(
+                "validation_already_running",
+                "The same milestone validation is already running",
+                details={"actionId": existing["action_id"]},
+            )
 
     def cancel(
         self, context: ActionContext, action_id: str, *, reason: str
@@ -321,7 +476,7 @@ class ActionService:
                 parameters = json.loads(current["parameters_json"])
                 self._event(
                     connection,
-                    parameters.get("sessionId"),
+                    self._event_session_id(parameters),
                     "action.cancelled",
                     {"actionId": action_id, "kind": current["action_kind"]},
                 )
@@ -413,7 +568,7 @@ class ActionService:
             )
             self._event(
                 connection,
-                getattr(parameters, "session_id", None),
+                self._event_session_id(parameters),
                 "action.failed",
                 {"actionId": action_id, "code": code},
             )

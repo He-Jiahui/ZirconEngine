@@ -2,14 +2,14 @@
 related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
 implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs
+  - zircon_runtime/src/text/native_bitmap_atlas.rs
   - zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests.rs
   - zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs
@@ -19,7 +19,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/retry_frame.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/tests/retry_frame.rs (2026-07-05: passed)
+  - rustfmt --edition 2021 --check zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs zircon_runtime/src/text/native_bitmap_atlas.rs zircon_runtime/src/text/native_bitmap_atlas/retry_frame.rs zircon_runtime/src/text/native_bitmap_atlas/tests.rs zircon_runtime/src/text/native_bitmap_atlas/tests/retry_frame.rs (2026-07-05: passed)
   - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_frame_state_preview_20260705.png (SHA256 4E4F6035CE84D6501DCF272D59F50156193D608EC1C3BFCE7365AEE4A8071041)
   - docs/tests/runtime/text/runtime_text_native_bitmap_atlas_retry_frame_state_validation_20260705.log (SHA256 87B2631FE1AC2C87433F548FF97D75FF0AE75979BD4590B7F39F99B1E5C983AB)
 status: in_progress

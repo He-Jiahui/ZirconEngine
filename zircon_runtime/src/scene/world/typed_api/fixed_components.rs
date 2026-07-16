@@ -524,87 +524,41 @@ impl World {
         &mut self,
         entity: EntityId,
     ) {
-        if let Some(component) = self.names.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
+        macro_rules! insert_presence {
+            ($field:ident) => {
+                if let Some(component) = self.$field.get(&entity).cloned() {
+                    self.insert_rebuilt_fixed_component_presence(entity, component);
+                }
+            };
         }
-        if let Some(component) = self.hierarchy.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.local_transforms.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.world_matrices.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.active_self.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.active_in_hierarchy.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.render_layer_masks.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.cameras.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.mesh_renderers.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.sprite_2d.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.mesh_2d.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.rigid_bodies.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.colliders.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.joints.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.animation_skeletons.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.animation_players.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.animation_sequence_players.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.animation_graph_players.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.animation_state_machine_players.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.ambient_lights.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.directional_lights.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.point_lights.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.rect_lights.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.spot_lights.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.post_process_settings.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.post_process_volumes.get(&entity).cloned() {
-            let _ = self.insert(entity, component);
-        }
-        if let Some(component) = self.mobility.get(&entity).copied() {
-            let _ = self.insert(entity, component);
-        }
+
+        insert_presence!(names);
+        insert_presence!(hierarchy);
+        insert_presence!(local_transforms);
+        insert_presence!(world_matrices);
+        insert_presence!(active_self);
+        insert_presence!(active_in_hierarchy);
+        insert_presence!(render_layer_masks);
+        insert_presence!(cameras);
+        insert_presence!(mesh_renderers);
+        insert_presence!(sprite_2d);
+        insert_presence!(mesh_2d);
+        insert_presence!(rigid_bodies);
+        insert_presence!(colliders);
+        insert_presence!(joints);
+        insert_presence!(animation_skeletons);
+        insert_presence!(animation_players);
+        insert_presence!(animation_sequence_players);
+        insert_presence!(animation_graph_players);
+        insert_presence!(animation_state_machine_players);
+        insert_presence!(ambient_lights);
+        insert_presence!(directional_lights);
+        insert_presence!(point_lights);
+        insert_presence!(rect_lights);
+        insert_presence!(spot_lights);
+        insert_presence!(post_process_settings);
+        insert_presence!(post_process_volumes);
+        insert_presence!(mobility);
     }
 }
 

@@ -351,6 +351,8 @@ render(rhi / rhi_wgpu) GPU —— wgpu pipeline/bind group/draw/clip/atlas 上�
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
+实现切片与运行时验证统一遵循 [`milestone-validation-policy.md`](../../milestone-validation-policy.md)：规范/契约切片只运行静态一致性检查，关联 editor_ui/runtime/render 的 Cargo 与实机验证按依赖里程碑集中执行。
+
 Editor Layout 总索引中的完成阶段明细已迁入 Editor Layout 15 产出目录。
 
 - 迁入记录：[`15/2026-07-09-index-output-records.md`](15/2026-07-09-index-output-records.md)

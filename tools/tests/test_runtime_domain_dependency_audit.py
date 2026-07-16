@@ -4,10 +4,102 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from tools.runtime_domain_dependency_audit import audit_runtime_domain_dependencies
+from tools.runtime_domain_dependency_audit import (
+    _rust_code_view,
+    _rust_use_paths,
+    audit_runtime_domain_dependencies,
+)
 
 
 class RuntimeDomainDependencyAuditTests(unittest.TestCase):
+    def test_lexes_nested_use_tree_paths_and_aliases(self) -> None:
+        source = (
+            "use crate::graphics as gfx;\n"
+            "use gfx::{text as gt};\n"
+            "use crate::graphics::{nested::{A}, text as nested_text};\n"
+            "use {wgpu as gpu};\n"
+        )
+
+        paths = [
+            (path, alias)
+            for path, alias, _line in _rust_use_paths(_rust_code_view(source))
+        ]
+
+        self.assertEqual(
+            paths,
+            [
+                (("crate", "graphics"), "gfx"),
+                (("gfx", "text"), "gt"),
+                (("crate", "graphics", "nested", "A"), None),
+                (("crate", "graphics", "text"), "nested_text"),
+                (("wgpu",), "gpu"),
+            ],
+        )
+
+    def test_canonicalizes_raw_identifiers_in_paths_and_use_trees(self) -> None:
+        source = (
+            "use crate::r#graphics::{r#text as raw_text};\n"
+            "use crate::r#ui as raw_ui;\n"
+        )
+
+        paths = [
+            (path, alias)
+            for path, alias, _line in _rust_use_paths(_rust_code_view(source))
+        ]
+
+        self.assertEqual(
+            [
+                (("crate", "graphics", "text"), "raw_text"),
+                (("crate", "ui"), "raw_ui"),
+            ],
+            paths,
+        )
+
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "builtin").mkdir(parents=True)
+            (source_root / "builtin" / "raw_domains.rs").write_text(
+                "use crate::{r#graphics::Renderer, r#ui as runtime_ui};\n"
+                "fn scene() { let _ = crate::r#scene::SceneHandle::default(); }\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(
+                ["graphics", "scene", "ui"],
+                sorted(row["target_domain"] for row in report["matrix"]),
+            )
+
+    def test_reports_shared_text_domain_dependencies(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary_directory:
+            repo_root = Path(temporary_directory)
+            source_root = repo_root / "zircon_runtime" / "src"
+            (source_root / "text").mkdir(parents=True)
+            (source_root / "text" / "mod.rs").write_text(
+                "use crate::{graphics::RenderContext, ui::UiTree};\n",
+                encoding="utf-8",
+            )
+
+            report = audit_runtime_domain_dependencies(repo_root)
+
+            self.assertEqual(
+                report["matrix"],
+                [
+                    {
+                        "source_domain": "text",
+                        "target_domain": "graphics",
+                        "reference_count": 1,
+                    },
+                    {
+                        "source_domain": "text",
+                        "target_domain": "ui",
+                        "reference_count": 1,
+                    },
+                ],
+            )
+
     def test_reports_unique_production_cross_domain_references(self) -> None:
         with tempfile.TemporaryDirectory() as temporary_directory:
             repo_root = Path(temporary_directory)
@@ -208,6 +300,19 @@ class RuntimeDomainDependencyAuditTests(unittest.TestCase):
                 "    fn nested() {\n"
                 "        let _ = crate::ui::UiTree::default();\n"
                 "    }\n"
+                "}\n"
+                '#[cfg(all(feature = "graphics", test))]\n'
+                "mod reverse_tests {\n"
+                "    use crate::ui::ReverseUiTree;\n"
+                "}\n"
+                '#[cfg(all(test, any(feature = "x", feature = "y")))]\n'
+                "mod nested_tests {\n"
+                "    use crate::ui::NestedUiTree;\n"
+                "}\n"
+                '#[cfg(any(test, feature = "graphics"))]\n'
+                '#[cfg(not(feature = "graphics"))]\n'
+                "mod joint_tests {\n"
+                "    use crate::ui::JointUiTree;\n"
                 "}\n"
                 "use crate::render_graph::RenderGraph;\n",
                 encoding="utf-8",

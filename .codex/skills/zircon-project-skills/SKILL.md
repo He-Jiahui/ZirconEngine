@@ -8,12 +8,13 @@ description: Use when Codex needs repository-local `zirconEngine`-specific guida
 ## Start Here
 
 - Read this parent file first instead of scanning every child skill under `zircon-project-skills`.
-- Read `milestone-first-workflow-policy.md` before planning, implementing, validating, or documenting `zirconEngine` work. It overrides generic workflows that would force per-slice compile/test loops.
-- Use `tools/zircon-session.ps1` as the local coordination entrypoint for Session enum state, numbered-plan ownership, Failure graph priority, file leases, delayed patches, baselines, and snapshots.
-- Read `architecture-overview.md` and `development-conventions.md` before starting to plan and develop.
-- Before advancing a numbered child plan, scan its `{id}/` directory for `failure-*.md`; if any exist, apply `handle-plan-failure-handoffs/SKILL.md` before normal feature work.
+- Read `../zircon-engineering/SKILL.md` first for the default delivery loop and capability tier.
+- Read `milestone-first-workflow-policy.md` when planning a milestone, selecting a validation gate, or writing plan evidence.
+- Use `tools/zircon-session.ps1` only when another active Session may overlap the same files, plan, or failure.
+- Load `architecture-overview.md` and `development-conventions.md` only for C3 architecture, public-boundary, or hard-migration work.
+- Apply `handle-plan-failure-handoffs/SKILL.md` only when a discovered failure applies to the active milestone or its direct dependency.
 - Choose the smallest child skill group that matches the task, then open only the referenced child `SKILL.md`.
-- If the task already fits `zircon-dev`, use `../zircon-dev/SKILL.md` for workspace workflow and validation, then come back here only for `zirconEngine`-specific project disciplines.
+- If the task fits `zircon-dev`, use `../zircon-dev/SKILL.md` only when Rust workspace editing or a Cargo gate is actually involved.
 
 ## Progressive Disclosure Index
 

@@ -16,6 +16,7 @@ mod image;
 mod light;
 mod material;
 mod mesh;
+mod module_identity;
 mod overlay;
 mod plugin_renderer_outputs;
 mod post_process;
@@ -29,7 +30,6 @@ mod solari;
 mod sprite;
 mod surface;
 mod temporal_jitter;
-mod text;
 mod view_matrix_pair;
 mod virtual_geometry_debug_snapshot;
 mod virtual_geometry_debug_snapshot_streams;
@@ -205,6 +205,7 @@ pub use material::{
     SHADING_MODEL_ID_UNLIT, SHADING_MODEL_PLUGIN_ID_START, STANDARD_MATERIAL_MIN_ROUGHNESS,
 };
 pub use mesh::{RenderMeshBounds, RenderMeshDescriptor, RenderMeshKind, RenderMeshTopology};
+pub use module_identity::GRAPHICS_MODULE_NAME;
 pub use overlay::{
     GridOverlayExtract, HandleElementExtract, HandleOverlayExtract, OverlayAxis,
     OverlayBillboardIcon, OverlayLineSegment, OverlayPickShape, OverlayWireShape,
@@ -323,19 +324,6 @@ pub use sprite::{
 };
 pub use surface::{RenderNativeSurfaceTarget, RenderViewportSurfaceDescriptor};
 pub use temporal_jitter::{halton, TemporalJitterSample, TemporalJitterSequence};
-pub use text::font::{
-    CompositeFontDescriptor, FaceIndex, FontCultureTag, FontFaceDescriptor, FontFaceId,
-    FontFamilyDescriptor, FontFamilyName, FontMatch, FontQuery, FontScript, FontStretch, FontStyle,
-    FontWeight, InstancedFaceId, SubFontRange, VariationCoords,
-};
-pub use text::{
-    normalized_open_type_features, InlineBaseline, InlineObjectRef, LaidOutLine, LaidOutText,
-    LayoutItem, LinkRef, OpenTypeFeature, ParagraphOverride, RichParseResult, RichTable,
-    RichTableCell, RichTableCellBoxStyle, RichTableCellPadding, RichTableColumn, RichTextFormat,
-    ShapedGlyph, ShapedGlyphClusterFlags, ShapedGlyphRotation, ShapedGlyphRun, ShapedGlyphScript,
-    ShapedTextLine, StyleOverride, StyledRun, TextOrientation, TextShapeRequest,
-    TextShapingService, VerticalMode, MAX_RICH_TABLE_ROW_SPAN,
-};
 pub use view_matrix_pair::ViewProjectionMatrixPair;
 pub use virtual_geometry_debug_snapshot::{
     RenderVirtualGeometryBvhVisualizationInstance, RenderVirtualGeometryBvhVisualizationNode,

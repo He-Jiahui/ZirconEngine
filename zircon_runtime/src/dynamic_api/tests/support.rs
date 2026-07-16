@@ -14,7 +14,7 @@ pub(super) use zircon_runtime_interface::{
     ZrRuntimeImeCursorAreaV1, ZrRuntimeImeHostRequestKindV1, ZrRuntimeNativeSurfaceTargetV1,
     ZrRuntimeSessionConfigV1, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
     ZrRuntimeViewportSizeV1, ZrStatus, ZrStatusCode, ZIRCON_RUNTIME_ABI_VERSION_V1,
-    ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
+    ZIRCON_RUNTIME_API_VERSION_V2, ZR_RUNTIME_MOUSE_WHEEL_UNIT_PIXEL_V1,
 };
 
 pub(super) use crate::core::framework::input::{
@@ -30,11 +30,11 @@ pub(super) use super::super::{
     session::{
         runtime_cursor_host_request, runtime_gamepad_rumble_request, runtime_ime_host_request,
     },
-    zircon_runtime_get_api_v1,
+    zircon_runtime_get_api_v2,
 };
 
-pub(super) fn runtime_api() -> &'static zircon_runtime_interface::ZrRuntimeApiV1 {
-    unsafe { &*zircon_runtime_get_api_v1(core::ptr::null()) }
+pub(super) fn runtime_api() -> &'static zircon_runtime_interface::ZrRuntimeApiV2 {
+    unsafe { &*zircon_runtime_get_api_v2(core::ptr::null()) }
 }
 
 pub(super) fn accessibility_tree_request(
@@ -50,13 +50,13 @@ pub(super) fn accessibility_tree_request(
 }
 
 pub(super) fn create_test_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV1,
+    api: &zircon_runtime_interface::ZrRuntimeApiV2,
 ) -> ZrRuntimeSessionHandle {
     create_test_session_with_profile(api, b"headless")
 }
 
 pub(super) fn create_test_session_with_profile(
-    api: &zircon_runtime_interface::ZrRuntimeApiV1,
+    api: &zircon_runtime_interface::ZrRuntimeApiV2,
     profile: &'static [u8],
 ) -> ZrRuntimeSessionHandle {
     let create_session = api.create_session.expect("create_session");
@@ -76,7 +76,7 @@ pub(super) fn create_test_session_with_profile(
 }
 
 pub(super) fn destroy_test_session(
-    api: &zircon_runtime_interface::ZrRuntimeApiV1,
+    api: &zircon_runtime_interface::ZrRuntimeApiV2,
     session: ZrRuntimeSessionHandle,
 ) {
     let destroy_session = api.destroy_session.expect("destroy_session");

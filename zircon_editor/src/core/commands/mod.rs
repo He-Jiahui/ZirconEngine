@@ -18,7 +18,10 @@ mod when;
 
 pub use asset_write_target::AssetWriteTargetDescriptor;
 pub use contribution::EditorCommandContributionSet;
-pub use descriptor::{EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor};
+pub use descriptor::{
+    EditorCommandAction, EditorCommandCategory, EditorCommandDescriptor,
+    EditorCommandMenuProjection,
+};
 pub use document_kind::{DocumentKind, DocumentKindError};
 pub use eval_snapshot_handle::CommandEvalSnapshotHandle;
 pub use key_chord::{EditorKeyChord, EditorKeyChordParseError};

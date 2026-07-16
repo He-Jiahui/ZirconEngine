@@ -1,7 +1,7 @@
 use super::*;
 use crate::asset::{FontAssetFaceMetrics, FontAssetLineMetrics};
 use crate::graphics::scene::scene_renderer::ui::render::text_decorations::ScreenSpaceUiTextDecorations;
-use crate::graphics::text::font::TextDecorationMetrics;
+use crate::text::font::TextDecorationMetrics;
 
 #[test]
 fn render_text_decorations_emit_solid_quads_from_face_metrics() {

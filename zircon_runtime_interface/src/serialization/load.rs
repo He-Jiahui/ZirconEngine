@@ -1,6 +1,7 @@
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 
+use super::binary::{decode_binary_header, decode_binary_payload};
 use super::text::{document::TextDocument, wire::TEXT_ENVELOPE_KEY};
 use super::{Format, LoadError, Loaded, VersionedSchema};
 
@@ -9,19 +10,26 @@ pub fn load_versioned<T>(bytes: &[u8], format: Format) -> Result<Loaded<T>, Load
 where
     T: VersionedSchema + DeserializeOwned + 'static,
 {
-    match format {
-        Format::Text => load_text(bytes),
-        Format::Binary => Err(LoadError::UnsupportedFormat { format }),
-    }
-}
-
-fn load_text<T>(bytes: &[u8]) -> Result<Loaded<T>, LoadError>
-where
-    T: VersionedSchema + DeserializeOwned + 'static,
-{
-    let parsed: Value =
-        serde_json::from_slice(bytes).map_err(|source| LoadError::MalformedText { source })?;
-    let (payload, source_version) = parse_text_payload::<T>(parsed)?;
+    let (payload, source_version) = match format {
+        Format::Text => {
+            let parsed = serde_json::from_slice(bytes)
+                .map_err(|source| LoadError::MalformedText { source })?;
+            parse_text_payload::<T>(parsed)?
+        }
+        Format::Binary => {
+            let (header, payload_body) = decode_binary_header(bytes)?;
+            validate_schema::<T>(&header.schema_id)?;
+            if header.schema_version > T::VERSION {
+                return Err(LoadError::FutureVersion {
+                    schema_id: T::SCHEMA.as_str().to_string(),
+                    found: header.schema_version,
+                    supported: T::VERSION,
+                });
+            }
+            let payload = decode_binary_payload(payload_body)?;
+            (payload, header.schema_version)
+        }
+    };
     if source_version > T::VERSION {
         return Err(LoadError::FutureVersion {
             schema_id: T::SCHEMA.as_str().to_string(),
@@ -57,11 +65,19 @@ where
     let document: TextDocument =
         serde_json::from_value(parsed).map_err(|source| LoadError::InvalidEnvelope { source })?;
     let envelope = document.envelope;
-    if envelope.header.schema_id != T::SCHEMA {
-        return Err(LoadError::SchemaMismatch {
-            expected: T::SCHEMA.as_str().to_string(),
-            found: envelope.header.schema_id.as_str().to_string(),
-        });
-    }
+    validate_schema::<T>(&envelope.header.schema_id)?;
     Ok((envelope.payload, envelope.header.schema_version))
+}
+
+fn validate_schema<T>(found: &super::SchemaId) -> Result<(), LoadError>
+where
+    T: VersionedSchema,
+{
+    if found == &T::SCHEMA {
+        return Ok(());
+    }
+    Err(LoadError::SchemaMismatch {
+        expected: T::SCHEMA.as_str().to_string(),
+        found: found.as_str().to_string(),
+    })
 }

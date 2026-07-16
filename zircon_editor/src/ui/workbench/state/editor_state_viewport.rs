@@ -26,7 +26,7 @@ impl EditorState {
     }
 
     pub fn frame_selection(&mut self) -> bool {
-        let Some(node_id) = self.viewport_controller.selected_node() else {
+        let Some(node_id) = self.viewport_controller.selection().active_primary() else {
             return false;
         };
         let _ = self.world.try_with_world_mut(|scene| {
@@ -38,7 +38,7 @@ impl EditorState {
     }
 
     pub fn handle_viewport_input(&mut self, input: ViewportInput) -> ViewportFeedback {
-        let selected_before = self.viewport_controller.selected_node();
+        let selected_before = self.viewport_controller.selection().active_primary();
         let was_handle_drag = self.viewport_controller.is_handle_drag_active();
         let Some(feedback) = self
             .world
@@ -49,7 +49,7 @@ impl EditorState {
         let is_handle_drag = self.viewport_controller.is_handle_drag_active();
 
         if !was_handle_drag && is_handle_drag {
-            let selected = self.viewport_controller.selected_node();
+            let selected = self.viewport_controller.selection().active_primary();
             let history = &mut self.history;
             let _ = self
                 .world
@@ -57,7 +57,7 @@ impl EditorState {
         }
 
         if was_handle_drag && !is_handle_drag {
-            let selected = self.viewport_controller.selected_node();
+            let selected = self.viewport_controller.selection().active_primary();
             let history = &mut self.history;
             let command = self
                 .world
@@ -69,7 +69,7 @@ impl EditorState {
             }
         }
 
-        let selected_after = self.viewport_controller.selected_node();
+        let selected_after = self.viewport_controller.selection().active_primary();
 
         if feedback.transformed_node.is_some() || selected_before != selected_after {
             self.sync_selection_state();

@@ -45,7 +45,7 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
     let mut texts = effect_text_batches();
     attach_transforms(&mut texts, viewport_size);
     let atlas_plan = plan_sdf_atlas(&texts);
-    let mut font_database = FontDatabase::with_default_fallbacks();
+    let mut text_state = TextRenderState::new(0);
     let asset_manager = ProjectAssetManager::default();
     let mut renderer = ScreenSpaceUiSdfRenderer::new(&backend.device, target_format);
     renderer.prepare(
@@ -56,7 +56,7 @@ fn render_text_sdf_effects_transformed_product_framebuffer() {
         &[],
         &atlas_plan,
         SdfAtlasCacheReport::default(),
-        &mut font_database,
+        &mut text_state,
         &asset_manager,
     );
 

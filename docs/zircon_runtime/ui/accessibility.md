@@ -246,7 +246,7 @@ Supported AccessKit actions map back into neutral requests before runtime dispat
 
 ## Dynamic Runtime ABI
 
-`zircon_runtime/src/dynamic_api/exports.rs` now exposes `ZrRuntimeApiV1.capture_accessibility_tree` for hosts that understand the appended optional ABI field. The function validates `ZrRuntimeAccessibilityTreeRequestV1.abi_version`, rejects non-default viewport handles with `NotFound`, captures the current dynamic preview accessibility snapshot, serializes it as JSON `UiAccessibilityTreeSnapshot`, and writes the bytes into `ZrOwnedByteBuffer`.
+`zircon_runtime/src/dynamic_api/exports.rs` exposes `ZrRuntimeApiV2.capture_accessibility_tree`. The function validates `ZrRuntimeAccessibilityTreeRequestV1.abi_version`, rejects non-default viewport handles with `NotFound`, captures the current dynamic preview accessibility snapshot, serializes it as JSON `UiAccessibilityTreeSnapshot`, and writes the bytes into `ZrOwnedByteBuffer`.
 
 Accessibility tree byte ownership mirrors frame byte ownership but uses a distinct owner token, `0x5a52_4131_3159_0001`, and a dedicated `free_runtime_accessibility_bytes` callback. Null output pointers return `InvalidArgument` with the diagnostic `missing accessibility tree output`. Invalid ownership, null data, or impossible length/capacity pairs are rejected by the accessibility free callback as invalid runtime accessibility buffers. Existing frame capture and frame byte reclamation remain unchanged.
 

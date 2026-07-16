@@ -9,7 +9,7 @@ fn runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge() {
         "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );
     let runtime_index_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
 
     for required_exports_anchor in [

@@ -185,7 +185,7 @@ fn componentized_workbench_status_bar_adapts_primary_runtime_text_without_shrink
     for surface_width in status_contract_widths() {
         let bridge = status_bridge(surface_width, &chrome);
 
-        let status_bar = status_frame(&bridge, "WorkbenchWindowStatusBar");
+        let status_bar = bridge.frames().status_bar;
         let ready = status_frame(&bridge, "WorkbenchStatusReady");
         let before_task = expected_status_controls_before_task(surface_width);
         let after_task = expected_status_controls_after_task(surface_width);
@@ -230,7 +230,7 @@ fn componentized_workbench_status_bar_prioritizes_primary_text_and_active_task_b
 
     for surface_width in status_contract_widths() {
         let bridge = status_bridge(surface_width, &chrome);
-        let status_bar = status_frame(&bridge, "WorkbenchWindowStatusBar");
+        let status_bar = bridge.frames().status_bar;
         let ready = status_frame(&bridge, "WorkbenchStatusReady");
         let task = status_frame(&bridge, "WorkbenchStatusTaskProgress");
         let task_label = status_frame(&bridge, "WorkbenchStatusTaskLabel");
@@ -349,9 +349,12 @@ fn status_signal_required_width(text: &str) -> f32 {
 }
 
 fn status_frame(bridge: &BuiltinWorkbenchWindowTemplateSurfaceBridge, control_id: &str) -> UiFrame {
-    bridge
-        .control_frame(control_id)
-        .unwrap_or_else(|| panic!("{control_id} should stay visible in the status bar"))
+    bridge.control_frame(control_id).unwrap_or_else(|| {
+        panic!(
+            "{control_id} should stay visible in the status bar; authored status region={:?}",
+            bridge.frames().status_bar
+        )
+    })
 }
 
 fn assert_compact_status_item_frame(frame: UiFrame, expected_width: f32) {

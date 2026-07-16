@@ -26,6 +26,7 @@ tests:
 | M1 | 1.3 route core contract | `CORE GREEN / CARGO PENDING` | 2026-07-14 | 独立 `rustc --test` harness 直接包含当前 `editor_operation.rs` 与 `toolkit_route.rs`，route serde roundtrip 与旧 payload 拒绝 2 passed / 0 failed / 0.01s，日志 `.codex/tmp/editor09-toolkit-route-standalone-20260714.log`；临时源码与 executable 已删除。该结果只验收 core route，不替代完整 `zircon_editor` 编译或 host integration。 |
 | M1 | 1.3 route deserialize validation | `CORE GREEN / CARGO PENDING` | 2026-07-14 | 新增 invalid `open_operation` RED 后，`AssetToolkitOpenRoute` 改为 `deny_unknown_fields` wire decoder 并显式调用 `EditorOperationPath::parse`。独立 harness 直接编译当前 route 与 operation 源码，roundtrip、旧 `{ path, operation_id }` 拒绝、非法 operation 拒绝共 3 passed / 0 failed / 0.02s，日志 `.codex/tmp/editor09-toolkit-route-standalone-green-20260714.log`；临时源码与 executable 已删除。canonical `EditorOperationPath` 派生 Deserialize 绕过 parse 的全局缺口仍由 Editor08 handoff 负责，本切片没有伪造兼容别名。 |
 | M1 | 1.3 route Cargo testing stage | `COMPLETED` | 2026-07-14 | 仓库 validator 在 coordinator-managed Windows pool 编译出当前 `zircon_editor` lib-test binary；同一当前二进制中 `editor_asset_type_registry::toolkit_route` 3/3、indexed toolkit open 与 suffix rejection 2/2 通过，日志 `.codex/tmp/editor09-toolkit-route-cargo-green-20260714.log`、`.codex/tmp/editor09-toolkit-open-integration-green-20260714.log` 与 `.codex/tmp/editor09-editor07-toolkit-upward-focused-20260714.log`。完整 package run 编译成功后以 Cargo 101 且无 test summary 结束，继续归 Runtime11/Editor14 已有 full-harness 资源生命周期 handoff；该聚合失败不撤销本 route 的 5 项 focused GREEN，也不宣称 Editor09 整体 M1 完成。 |
+| M1 | 1.3 canonical operation-id wire return | `COMPLETED` | 2026-07-15 | Editor08 已把 `EditorOperationPath` 硬切为手写 `Deserialize -> parse`，并删除 route 局部 `WireRoute<String>` 第二真源；canonical [fixed artifact](fixed-2026-07-15-editor-operation-path-deserialize-validation-bypass.md) 已回传。受管 lower-layer 1/1；标准池 current Cargo-built `zircon_editor-57c0b3f1608553a4.exe` 精确执行 toolkit route 3/3、registry/command/extension/Remote/CLI 14/14；格式、scoped diff 与 failure lifecycle 118/0 通过。 |
 
 ### 最低共享层根因
 
@@ -38,7 +39,8 @@ generic view payload 使用 `{ path, operation_id }`，animation session 又把 
 ### 架构硬切
 
 - `core::asset::AssetToolkitOpenRoute` 只持有 canonical `AssetUri` 与 typed
-  `EditorOperationPath`，serde 使用 `asset_locator/open_operation`，并拒绝未知旧字段。
+  `EditorOperationPath`，serde 使用 `asset_locator/open_operation`，并拒绝未知旧字段；operation id 的
+  wire 校验由 `EditorOperationPath` 唯一拥有，route 不再重复字符串解析。
 - `OpenAsset` 先解析 `AssetUri`，再用 typed locator 查询 catalog；无 scheme 的本地绝对路径在入口
   被拒绝，不再按 suffix 或物理路径推断 toolkit。
 - generic view payload 只序列化 typed route，不再写入 `path` 或 `operation_id`。
@@ -56,11 +58,11 @@ generic view payload 使用 `{ path, operation_id }`，animation session 又把 
 - 已完成：scoped `rustfmt --edition 2021` 与 `git diff --check`；generic/animation 生产范围扫描中旧
   `serializable_payload["path"]`、`get("path")`、`json!({ "path" ... })`、`operation_id` payload 为零命中。
 - core GREEN：独立 harness 直接编译当前 route 与 operation 源码，最新 3/3 通过；这不是字符串模拟测试。
-- 已闭合本 route RED：invalid `open_operation = "Invalid Operation"` 现由 route wire decoder 显式调用
-  `EditorOperationPath::parse` 后拒绝。canonical type 自身的派生 Deserialize 绕过 parse 仍已交接 Editor08，
-  本切片不跨 owner 修改全局类型。
-- 治理复验：failure validator 为 83 artifacts / 0 errors；plan-output audit 仍仅报告既有 6 项
-  Editor01、EditorUI01/10/11/index 与 Plugins05 归档问题，本记录没有新增违规，既有项继续由各自
+- 已闭合本 route RED：invalid `open_operation = "Invalid Operation"` 由 typed
+  `EditorOperationPath::deserialize` 调用唯一 `parse` 后拒绝；Editor08 fixed lifecycle 已回传，route
+  删除局部 decoder，不保留两套长期验证。
+- 治理复验：failure validator 为 118 artifacts / 0 errors；plan-output audit 仍仅报告既有 5 项
+  EditorUI01/10/11/index 与 Plugins05 归档问题，本记录没有新增违规，既有项继续由各自
   failure handoff 处理。
 - Cargo GREEN：受管 Windows 当前 binary 中 route 3/3 与 indexed-open/suffix-rejection 2/2 通过；
   `zircon_editor` 完整 package 聚合运行仍由既有 full-harness 资源生命周期 handoff 管理，本记录不把
@@ -71,5 +73,7 @@ generic view payload 使用 `{ path, operation_id }`，animation session 又把 
 ### 失败归属
 
 - 共享 artifact lock 已通过 coordinator-managed testing stage 取得并释放；没有创建伪功能 handoff。
+- Editor08 canonical operation-id serde failure 已修复并回传到本目录的
+  [fixed artifact](fixed-2026-07-15-editor-operation-path-deserialize-validation-bypass.md)。
 - Editor07 既有 [animation asset-open/index fixture failure](../07/failure-2026-07-13-animation-asset-open-index-fixture-cutover.md)
   继续保持 open。其修复必须消费本切片 typed route，不由 Editor09 跨 owner 改写全部 animation 行为测试。

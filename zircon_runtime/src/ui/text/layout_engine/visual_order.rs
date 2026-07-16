@@ -1,4 +1,4 @@
-use crate::graphics::text::shaping::{analyze_bidi_line, mirrored_bidi_char};
+use crate::text::shaping::{analyze_bidi_line, mirrored_bidi_char};
 use zircon_runtime_interface::ui::surface::{
     UiResolvedTextRun, UiTextDirection, UiTextRange, UiTextRunKind,
 };
@@ -62,9 +62,14 @@ fn apply_visual_order_inner(
     let clusters = logical_text_clusters(&line.runs);
     let ranges = clusters
         .iter()
-        .map(|cluster| cluster.logical_range)
+        .map(|cluster| cluster.logical_range.into())
         .collect::<Vec<_>>();
-    let order = analyze_bidi_line(paragraph_text, base_direction, line.source_range, &ranges);
+    let order = analyze_bidi_line(
+        paragraph_text,
+        base_direction.into(),
+        line.source_range.into(),
+        &ranges,
+    );
     if order.visual_indices.len() != clusters.len() || order.logical_levels.len() != clusters.len()
     {
         return;

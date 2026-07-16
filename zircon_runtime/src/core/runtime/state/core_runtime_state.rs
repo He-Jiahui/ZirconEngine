@@ -1,5 +1,8 @@
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
+use std::collections::{HashMap, HashSet};
+#[cfg(test)]
+use std::sync::Barrier;
+use std::sync::{Arc, Condvar, Mutex};
+use std::thread::ThreadId;
 
 use crate::core::diagnostics::{
     DiagnosticStore, RuntimeDevtoolsPluginCatalogEntry, RuntimeDevtoolsSceneHookSnapshot,
@@ -18,6 +21,11 @@ use super::{ModuleEntry, ServiceEntry};
 pub(crate) struct CoreRuntimeInner {
     pub(crate) modules: Mutex<HashMap<String, ModuleEntry>>,
     pub(crate) services: Mutex<HashMap<RegistryName, ServiceEntry>>,
+    pub(crate) service_resolution_changed: Condvar,
+    pub(crate) service_resolution_waits: Mutex<HashMap<ThreadId, ThreadId>>,
+    pub(crate) service_activation_reentries: Mutex<HashSet<(ThreadId, RegistryName)>>,
+    #[cfg(test)]
+    pub(crate) service_resolution_claim_barrier: Mutex<Option<(usize, Arc<Barrier>)>>,
     pub(crate) event_bus: EventBus,
     pub(crate) config_store: ConfigStore,
     pub(crate) scheduler: JobScheduler,

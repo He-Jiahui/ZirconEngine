@@ -135,7 +135,7 @@ fn attach_environment_ibl_runtime_cache_writeback(
     let Some(request) = request else {
         return Ok(());
     };
-    let Some(store) = streamer.asset_manager().ibl_bake_artifact_cache_store() else {
+    let Some(store) = streamer.asset_manager()?.ibl_bake_artifact_cache_store() else {
         return Ok(());
     };
     let dispatch =
@@ -424,6 +424,7 @@ impl UserColorLutReadbackReference {
             .flatten()?;
         let texture = streamer
             .asset_manager()
+            .ok()?
             .load_texture_asset(texture_id)
             .ok()?;
         let descriptor = texture.render_image_descriptor();

@@ -590,7 +590,10 @@ fn selection_binding_dispatches_and_applies_scene_node_selection() {
         SelectionHostEvent::SelectSceneNode { node_id: cube }
     );
     assert!(apply_selection_binding(&mut state, &binding).unwrap());
-    assert_eq!(state.viewport_controller.selected_node(), Some(cube));
+    assert_eq!(
+        state.viewport_controller.selection().active_primary(),
+        Some(cube)
+    );
 }
 
 #[test]

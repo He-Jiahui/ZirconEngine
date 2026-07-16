@@ -24,12 +24,11 @@ impl ResourceStreamer {
         {
             return Ok(());
         }
-        let model = self
-            .asset_manager
+        let asset_manager = self.asset_manager()?;
+        let model = asset_manager
             .load_model_asset(id)
             .map_err(|error| GraphicsError::Asset(error.to_string()))?;
         let asset = Arc::<ModelAsset>::new(model);
-        let asset_manager = self.asset_manager.clone();
         let resource = Arc::new(GpuModelResource::from_asset_with_mesh_assets(
             device,
             id,

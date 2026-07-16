@@ -1,8 +1,8 @@
 use crate::core::editor_event::{EditorEvent, EditorEventTransient};
 
 use super::{
-    CommandEvalCtx, EditorCommandDescriptor, EditorCommandRegistry, MenuBarModel, MenuItemModel,
-    MenuModel,
+    CommandEvalCtx, EditorCommandDescriptor, EditorCommandMenuProjection, EditorCommandRegistry,
+    MenuBarModel, MenuItemModel, MenuModel,
 };
 
 pub(super) fn menu_bar_model(
@@ -54,6 +54,9 @@ fn command_menu_item(
             EditorEventTransient::OpenCommandPalette
         ))
     ) {
+        return None;
+    }
+    if descriptor.menu_projection() != EditorCommandMenuProjection::CommandRegistry {
         return None;
     }
     let menu_path = descriptor.menu_path()?;

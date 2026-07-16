@@ -345,7 +345,11 @@ pub(super) fn push_include_chunk(
 ) {
     let kind = include_segment_kind(&include.token);
     let module_id = include.token.clone();
-    let chunk = format!("// include: {}\n{}", include.token, include.source);
+    let chunk = format!(
+        "// include: {}\n{}",
+        include.token,
+        strip_wgsl_include_directives(&include.source)
+    );
     if registry.push(include) {
         builder.push(module_id, kind, chunk, 1);
     }
@@ -439,6 +443,10 @@ pub(super) fn format_defines_header(
         format!(
             "const ZR_FEATURE_PBR_TRANSMISSION: bool = {};",
             features.contains(ShaderFeatureBits::PBR_TRANSMISSION)
+        ),
+        format!(
+            "const ZR_FEATURE_VOLUMETRIC_FOG: bool = {};",
+            features.contains(ShaderFeatureBits::VOLUMETRIC_FOG)
         ),
     ];
     for define in &geometry_source.shader_defines {

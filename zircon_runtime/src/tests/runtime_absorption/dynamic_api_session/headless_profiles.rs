@@ -14,7 +14,7 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
         "../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
     );
     let runtime_index_output = include_str!(
-        "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
 
     for required_source_anchor in ["render_bridge: Option<RuntimeRenderBridge>"] {

@@ -1,4 +1,16 @@
+use std::sync::{Arc, Mutex};
 use zircon_runtime::core::framework::navigation::{NavAgentTickReport, NavigationAgentDebugState};
+
+use zircon_editor::core::runtime_event_consumer::{
+    EditorRuntimeEventConsumerManifest, EditorRuntimeEventConsumerRegistration,
+    EditorRuntimeEventConsumerState,
+};
+
+use crate::NAVIGATION_GIZMOS_CAPABILITY;
+
+pub const NAVIGATION_TICK_CONSUMER_ID: &str = "navigation.editor.agent_tick";
+pub const NAVIGATION_TICK_EVENT_ID: &str = "navigation.events.agent_tick_completed";
+pub const NAVIGATION_TICK_PAYLOAD_SCHEMA: &str = "navigation.events.nav_agent_tick_report.v1";
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct NavigationPieFrame {
@@ -21,6 +33,14 @@ impl NavigationPieFrame {
 pub enum NavigationPieMirrorApply {
     Applied,
     WrongSession,
+    Stale,
+}
+
+#[derive(Clone, Copy, Debug, thiserror::Error, PartialEq, Eq)]
+pub enum NavigationPieMirrorError {
+    #[error("navigation PIE mirror received a delivery for the wrong play session")]
+    WrongSession,
+    #[error("navigation PIE mirror received a stale delivery sequence")]
     Stale,
 }
 
@@ -98,4 +118,43 @@ impl NavigationPieMirror {
             .unwrap_or_default()
             .iter()
     }
+}
+
+impl EditorRuntimeEventConsumerState for NavigationPieMirror {
+    type Payload = NavAgentTickReport;
+    type Error = NavigationPieMirrorError;
+
+    fn begin_session(&mut self, play_session_id: u64) {
+        NavigationPieMirror::begin_session(self, play_session_id);
+    }
+
+    fn consume(
+        &mut self,
+        play_session_id: u64,
+        sequence: u64,
+        payload: Self::Payload,
+    ) -> Result<(), Self::Error> {
+        match self.apply_tick_report(play_session_id, sequence, payload) {
+            NavigationPieMirrorApply::Applied => Ok(()),
+            NavigationPieMirrorApply::WrongSession => Err(NavigationPieMirrorError::WrongSession),
+            NavigationPieMirrorApply::Stale => Err(NavigationPieMirrorError::Stale),
+        }
+    }
+
+    fn end_session(&mut self, play_session_id: u64) {
+        let _ = NavigationPieMirror::end_session(self, play_session_id);
+    }
+}
+
+pub fn navigation_runtime_event_consumers() -> Vec<EditorRuntimeEventConsumerRegistration> {
+    let manifest = EditorRuntimeEventConsumerManifest::new(
+        NAVIGATION_TICK_CONSUMER_ID,
+        NAVIGATION_TICK_EVENT_ID,
+        NAVIGATION_TICK_PAYLOAD_SCHEMA,
+    )
+    .with_required_capability(NAVIGATION_GIZMOS_CAPABILITY);
+    vec![EditorRuntimeEventConsumerRegistration::typed(
+        manifest,
+        Arc::new(Mutex::new(NavigationPieMirror::default())),
+    )]
 }

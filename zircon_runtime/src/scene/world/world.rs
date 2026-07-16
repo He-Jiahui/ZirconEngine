@@ -14,6 +14,7 @@ use crate::scene::ecs::{
     DeferredCommandError, EcsFramePerformanceDiagnostics, EntityRegistry, EventStore, MessageStore,
     ObserverStore, RemovedComponentEvents, ResourceRegistry, ResourceStore, Schedule,
 };
+use crate::scene::event_mirror::RuntimeEventMirrorRegistry;
 use crate::scene::reflect::TypeRegistry;
 use crate::scene::EntityId;
 
@@ -122,6 +123,8 @@ pub struct World {
     pub(super) resources: ResourceStore,
     #[serde(skip, default)]
     pub(super) events: EventStore,
+    #[serde(skip, default)]
+    pub(super) event_mirrors: RuntimeEventMirrorRegistry,
     #[serde(skip, default)]
     pub(super) messages: MessageStore,
     #[serde(skip, default)]
@@ -251,6 +254,7 @@ impl<'de> Deserialize<'de> for World {
             resource_registry: Default::default(),
             resources: Default::default(),
             events: Default::default(),
+            event_mirrors: Default::default(),
             messages: Default::default(),
             observers: Default::default(),
             command_queue: Default::default(),

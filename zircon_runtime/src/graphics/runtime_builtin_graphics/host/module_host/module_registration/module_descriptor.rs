@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
-use crate::core::framework::render::{GeometrySourceDescriptor, ShadingModelDescriptor};
-use crate::core::manager::{RenderFrameworkHandle, RenderingManagerHandle};
+use crate::core::framework::render::{
+    GeometrySourceDescriptor, RenderFramework, RenderingManager, ShadingModelDescriptor,
+    GRAPHICS_MODULE_NAME,
+};
+use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::ServiceObject;
 use crate::core::{
     DriverDescriptor, InitLevel, ManagerDescriptor, ModuleDependencySpec, ModuleDescriptor,
@@ -22,7 +25,7 @@ use super::super::create::create_render_framework_with_render_features;
 use super::super::driver::WgpuDriver;
 use super::super::rendering_manager::WgpuRenderingManager;
 use super::graphics_core_error::graphics_core_error;
-use super::service_names::{GRAPHICS_MODULE_NAME, RENDER_FRAMEWORK_NAME};
+use super::service_names::RENDER_FRAMEWORK_NAME;
 
 pub fn module_descriptor() -> ModuleDescriptor {
     module_descriptor_with_render_features(
@@ -113,7 +116,11 @@ pub fn module_descriptor_with_render_features(
                     virtual_geometry_runtime_providers.to_vec(),
                 )
                 .map_err(|error| graphics_core_error(RENDER_FRAMEWORK_NAME, error))?;
-                Ok(Arc::new(RenderFrameworkHandle::new(render_framework)) as ServiceObject)
+                Ok(
+                    Arc::new(RegisteredManagerService::<dyn RenderFramework>::new(
+                        render_framework,
+                    )) as ServiceObject,
+                )
             }
         }),
     ))
@@ -127,7 +134,11 @@ pub fn module_descriptor_with_render_features(
         Vec::new(),
         factory(|_| {
             let manager = Arc::new(WgpuRenderingManager);
-            Ok(Arc::new(RenderingManagerHandle::new(manager)) as ServiceObject)
+            Ok(
+                Arc::new(RegisteredManagerService::<dyn RenderingManager>::new(
+                    manager,
+                )) as ServiceObject,
+            )
         }),
     ))
 }

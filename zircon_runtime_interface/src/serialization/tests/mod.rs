@@ -1,3 +1,5 @@
+mod binary_contract;
+mod binary_malformed_contract;
 mod legacy_detection;
 mod load_contract;
 mod malformed_contract;

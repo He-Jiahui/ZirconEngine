@@ -52,7 +52,7 @@ fn runtime_10_ui_contract_types_have_single_definition_across_interface_and_runt
 
     for relative_doc in [
         "docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md",
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
         "docs/engine-architecture/runtime-interface-convergence.md",
         "docs/engine-architecture/runtime-architecture-review-m0.md",
     ] {

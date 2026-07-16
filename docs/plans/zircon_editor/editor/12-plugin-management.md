@@ -178,9 +178,10 @@ Faulted → (用户重试/升级) Validated
 
 ## 产出记录与时间
 
-- 当前失败交接（`open / 待修复`）：[`12/failure-2026-07-12-plugin-extension-validation-regressions.md`](12/failure-2026-07-12-plugin-extension-validation-regressions.md)
+- fixed 已修复：[plugin-extension-validation-regressions](08/fixed-2026-07-15-plugin-extension-validation-regressions.md)
 - fixed 已修复：[native-plugin-runtime-target-mode-test-path](09/fixed-2026-07-13-native-plugin-runtime-target-mode-test-path.md)
+- fixed 已修复：[plan-output-audit-counts-lifecycle-links](12/fixed-2026-07-15-plan-output-audit-counts-lifecycle-links.md)
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 完成项目与证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
-| M1/M2 | 插件贡献注册、capability gate 与失败原子性 | `未通过-已归档到本功能计划` | 2026-07-12 | Editor03/08 统一受管 job `520d85713df249afae31661a7697ad07` 复现无效 operation schema、plugin registration report capability gate、duplicate extension view 三项失败；同一 binary 的 Editor08 command registry hard-cut 用例通过，因此本组由 Editor12 贡献物化/校验 owner 处理。精确用例与验收见 [`failure-2026-07-12-plugin-extension-validation-regressions.md`](12/failure-2026-07-12-plugin-extension-validation-regressions.md)，禁止恢复旧 operation registry。 |
+| M1/M2 | 插件贡献注册、capability gate 与失败原子性 | `未通过-已归档到本功能计划` | 2026-07-12 | Editor03/08 统一受管 job `520d85713df249afae31661a7697ad07` 复现无效 operation schema、plugin registration report capability gate、duplicate extension view 三项失败；同一 binary 的 Editor08 command registry hard-cut 用例通过，因此本组由 Editor12 贡献物化/校验 owner 处理。精确用例与验收见本计划顶层 `plugin-extension-validation-regressions` Failure 链接，禁止恢复旧 operation registry。 |

@@ -35,6 +35,7 @@ pub enum TrayVisualState {
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct MenuEnablement {
     pub open_console: bool,
+    pub refresh: bool,
     pub start: bool,
     pub drain: bool,
     pub resume: bool,
@@ -82,18 +83,16 @@ impl TrayVisualState {
         let online = !matches!(self, Self::Offline | Self::IdentityMismatch);
         MenuEnablement {
             open_console: online && identity_verified,
+            refresh: true,
             start: matches!(self, Self::Offline) && identity_verified,
-            drain: matches!(self, Self::Healthy | Self::Busy | Self::Degraded) && identity_verified,
-            resume: matches!(self, Self::Draining) && identity_verified,
-            stop: matches!(
-                self,
-                Self::Healthy | Self::Busy | Self::Degraded | Self::Draining
-            ) && identity_verified,
-            restart: matches!(
-                self,
-                Self::Healthy | Self::Busy | Self::Degraded | Self::Draining
-            ) && identity_verified,
-            force_stop: matches!(self, Self::Degraded | Self::Draining) && identity_verified,
+            // The local coordinator always admits work. Do not advertise
+            // lifecycle commands that would be rejected to preserve that
+            // invariant or leave an operator with a stale pending action.
+            drain: false,
+            resume: false,
+            stop: false,
+            restart: false,
+            force_stop: false,
             diagnostics: true,
             exit_tray: true,
         }
@@ -155,15 +154,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn invalid_operations_are_disabled_by_state_and_identity() {
+    fn global_lifecycle_is_not_enabled_in_the_always_admitting_tray() {
         let healthy = TrayVisualState::Healthy.menu(true);
-        assert!(healthy.drain);
-        assert!(healthy.stop);
+        assert!(healthy.refresh);
+        assert!(!healthy.drain);
+        assert!(!healthy.stop);
+        assert!(!healthy.restart);
         assert!(!healthy.start);
         assert!(!healthy.resume);
 
         let draining = TrayVisualState::Draining.menu(true);
-        assert!(draining.resume);
+        assert!(draining.refresh);
+        assert!(!draining.resume);
         assert!(!draining.drain);
 
         let mismatch = TrayVisualState::IdentityMismatch.menu(false);

@@ -2,8 +2,8 @@ use crate::core::framework::render::{ShaderFeatureBits, ShaderPassType};
 
 use super::module_registry::{
     environment_include, irradiance_volume_include, light_cookie_include, light_grid_include,
-    lightmap_include, pbr_extras_include, shadow_include, volumetric_include,
-    ShaderTemplateInclude,
+    lightmap_include, pbr_extras_include, shadow_include, volumetric_disabled_include,
+    volumetric_include, ShaderTemplateInclude,
 };
 
 pub(crate) const MATERIAL_SHADER_TEMPLATE_REVISION: &str = "zr-material-template-v1";
@@ -42,6 +42,11 @@ pub(crate) fn pass_template_for(
     features: ShaderFeatureBits,
 ) -> ShaderPassTemplate {
     let alpha_test = features.contains(ShaderFeatureBits::ALPHA_TEST);
+    let volumetric = if features.contains(ShaderFeatureBits::VOLUMETRIC_FOG) {
+        volumetric_include()
+    } else {
+        volumetric_disabled_include()
+    };
     match pass_type {
         ShaderPassType::Forward => ShaderPassTemplate {
             include: ShaderTemplateInclude::new(FORWARD_TEMPLATE_TOKEN, FORWARD_TEMPLATE),
@@ -52,7 +57,7 @@ pub(crate) fn pass_template_for(
                 lightmap_include(),
                 light_grid_include(),
                 shadow_include(),
-                volumetric_include(),
+                volumetric,
                 pbr_extras_include(),
             ],
             requires_material_surface: true,

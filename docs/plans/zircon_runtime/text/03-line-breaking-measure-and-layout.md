@@ -16,25 +16,25 @@ related_code:
   - zircon_runtime/src/ui/text/hit_test.rs
   - zircon_runtime/src/ui/text/geometry.rs
   - zircon_runtime/src/ui/text/resolved_layout.rs
-  - zircon_runtime/src/graphics/text/mod.rs
-  - zircon_runtime/src/graphics/text/layout/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/mod.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/tests.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glue.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/glyph_fallback.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/smart.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/soft_hyphen.rs
-  - zircon_runtime/src/graphics/text/layout/line_break/wrap_space.rs
-  - zircon_runtime/src/graphics/text/layout/kinsoku.rs
-  - zircon_runtime/src/graphics/text/layout/kinsoku/tests.rs
-  - zircon_runtime/src/graphics/text/layout/align.rs
-  - zircon_runtime/src/graphics/text/layout/overflow.rs
-  - zircon_runtime/src/graphics/text/layout/tab.rs
-  - zircon_runtime/src/graphics/text/layout/measure.rs
+  - zircon_runtime/src/text/mod.rs
+  - zircon_runtime/src/text/layout/mod.rs
+  - zircon_runtime/src/text/layout/line_break/mod.rs
+  - zircon_runtime/src/text/layout/line_break/tests.rs
+  - zircon_runtime/src/text/layout/line_break/glue.rs
+  - zircon_runtime/src/text/layout/line_break/glyph_fallback.rs
+  - zircon_runtime/src/text/layout/line_break/smart.rs
+  - zircon_runtime/src/text/layout/line_break/soft_hyphen.rs
+  - zircon_runtime/src/text/layout/line_break/wrap_space.rs
+  - zircon_runtime/src/text/layout/kinsoku.rs
+  - zircon_runtime/src/text/layout/kinsoku/tests.rs
+  - zircon_runtime/src/text/layout/align.rs
+  - zircon_runtime/src/text/layout/overflow.rs
+  - zircon_runtime/src/text/layout/tab.rs
+  - zircon_runtime/src/text/layout/measure.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text_pixel_snap.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_advances.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_char_run.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_text/draw/layout/metrics.rs
@@ -99,6 +99,10 @@ status: in_progress
 
 # 03 换行规则 / 文本长度计算 / 布局 / 对齐
 
+```zircon-workflow
+{"schema":1,"workflow_id":"runtime-text-line-breaking-layout","goal":"收敛共享文本换行、度量、段落对齐与 VerticalRl 布局，并以真实 framebuffer 证据验收。","milestones":[{"id":"M1","title":"真实度量（度量等于绘制）","depends_on":[]},{"id":"M2","title":"换行与禁则","depends_on":["M1"]},{"id":"M3","title":"对齐、两端对齐与溢出","depends_on":["M2"]},{"id":"M4","title":"VerticalRl 竖排布局","depends_on":["M3"]}]}
+```
+
 > 本计划在 `02` 的 `ShapedGlyphRun` 之上做**行切分、度量、对齐、竖排布局**。它是 `editor_layout/17 G1`(测量=绘制)与 G3(默认多行换行)的运行时实现,根治"等宽近似 → 错位/溢出/`Sce` 截断"。
 
 ## 1. 目标
@@ -113,7 +117,7 @@ status: in_progress
 
 - `layout_engine.rs`:`layout_text`/`wrap_source_runs`/`append_word_wrapped_segment`/`ellipsize_line`/`aligned_x` 全部建立在 `text_advance(font_size)=font_size*0.5` 等宽近似上 → `editor_layout/17 G1` 根因;`baseline: font_size*0.8` 硬编码 → 垂直错位。
 - 换行:有 `UiTextWrap::{None,Word,Glyph}`,但 word 仅按空格(不识 CJK 无空格断点、不走 UAX#14)、无禁则、无连字符。
-- `measure_cache.rs`:宽度桶缓存在,但喂启发式宽度;`graphics/text/layout/measure.rs` 已有 owner-local source byte 子范围度量首段并喂回 `measured_grapheme_widths(...)`;2026-07-03 已通过 `ui::surface::measure_text_source_range_width(...)` 暴露 include-kerning=true 的 public source-range measure 入口;2026-07-04 `ui/text/geometry.rs` 的 IME/caret 简单 LTR source-isomorphic 路径已直接消费 source-range shaped width,并通过 `ui/surface/text_geometry.rs` 暴露 public cursor/range geometry surface;同日 `TextShapeRequest.include_kerning` 已接到 cosmic-text `kern=0` feature,`measure_text_source_range_width_with_kerning(...)` 在请求 unkerned 时重新走同一后端 shaping；同日晚间 `UiSurface` 渲染提取已成为 `UiTextMeasureCache` 的真实生产 consumer,owner text 与 TextField 统一走 `resolve_text_layout_with_cache(...)`;随后 IME update 路径在请求 cursor/composition rect 前刷新当前树的 render extract,并直接消费 `UiRenderCommand.text_layout`,不再单独重跑 direct layout resolve。2026-07-06 `UiTextMeasureCache` 已接入 generic measure/layout cache 与同帧 frame dedup,重复 natural-size/full-layout 请求同帧先命中 dedup；随后 shared shaped-run provider routing 已接通,measure miss 与 full layout miss 共享 `ShapedRunCache`,`layout_engine/line_box.rs` 对不含 tab 的小字号 label 直接采用 provider grapheme advances,只有真实包含 `\t` 时才额外测量空格宽度做 tab stop。`render_perf_text_measure_then_layout_shapes_once` 已关闭单 label shape-count evidence:稳定 `"Hg"` line metrics 预热后,`editor base.zui` 的 measure+layout 只对真实 source label miss/insert 一次 shaped run；2026-07-07 `render_perf_text_scroll_list_reuses_cache` 已关闭 scroll-list shape/layout 首段:滚动 3 行后只为新进入视口 row 增加 shaped miss/insert,重叠 row 命中 shaped cache。2026-07-08 `UiTextShapePrewarmRequest` / `UiTextMeasureCache::prewarm_horizontal_paragraphs(...)` 已把 PF-M2 parallel shape pool 接到 UI cache 显式预热入口,可见 editor row 先批量进入同一个 `ShapedRunCache`,后续 layout 只增加 shaped hits;随后 `ui/surface/render/text_prewarm.rs` 在 render extract 前自动收集可见 owner text 并预热同一 cache,组件 painter 生成的 `Text` command 与 rich/vertical prewarm 也已由阶段 09 PF-M2 follow-up 接到同一 cache。本轮没有保留“用真实字符串行高替换 metrics sample”的实验方案,避免改变既有换行容量。复杂 BIDI/竖排 source-range 几何、完整 backend cluster reverse lookup、scroll raster/upload counters 与窗口级 QA 仍等待。
+- `measure_cache.rs`:宽度桶缓存在,但喂启发式宽度;`text/layout/measure.rs` 已有 owner-local source byte 子范围度量首段并喂回 `measured_grapheme_widths(...)`;2026-07-03 已通过 `ui::surface::measure_text_source_range_width(...)` 暴露 include-kerning=true 的 public source-range measure 入口;2026-07-04 `ui/text/geometry.rs` 的 IME/caret 简单 LTR source-isomorphic 路径已直接消费 source-range shaped width,并通过 `ui/surface/text_geometry.rs` 暴露 public cursor/range geometry surface;同日 `TextShapeRequest.include_kerning` 已接到 cosmic-text `kern=0` feature,`measure_text_source_range_width_with_kerning(...)` 在请求 unkerned 时重新走同一后端 shaping；同日晚间 `UiSurface` 渲染提取已成为 `UiTextMeasureCache` 的真实生产 consumer,owner text 与 TextField 统一走 `resolve_text_layout_with_cache(...)`;随后 IME update 路径在请求 cursor/composition rect 前刷新当前树的 render extract,并直接消费 `UiRenderCommand.text_layout`,不再单独重跑 direct layout resolve。2026-07-06 `UiTextMeasureCache` 已接入 generic measure/layout cache 与同帧 frame dedup,重复 natural-size/full-layout 请求同帧先命中 dedup；随后 shared shaped-run provider routing 已接通,measure miss 与 full layout miss 共享 `ShapedRunCache`,`layout_engine/line_box.rs` 对不含 tab 的小字号 label 直接采用 provider grapheme advances,只有真实包含 `\t` 时才额外测量空格宽度做 tab stop。`render_perf_text_measure_then_layout_shapes_once` 已关闭单 label shape-count evidence:稳定 `"Hg"` line metrics 预热后,`editor base.zui` 的 measure+layout 只对真实 source label miss/insert 一次 shaped run；2026-07-07 `render_perf_text_scroll_list_reuses_cache` 已关闭 scroll-list shape/layout 首段:滚动 3 行后只为新进入视口 row 增加 shaped miss/insert,重叠 row 命中 shaped cache。2026-07-08 `UiTextShapePrewarmRequest` / `UiTextMeasureCache::prewarm_horizontal_paragraphs(...)` 已把 PF-M2 parallel shape pool 接到 UI cache 显式预热入口,可见 editor row 先批量进入同一个 `ShapedRunCache`,后续 layout 只增加 shaped hits;随后 `ui/surface/render/text_prewarm.rs` 在 render extract 前自动收集可见 owner text 并预热同一 cache,组件 painter 生成的 `Text` command 与 rich/vertical prewarm 也已由阶段 09 PF-M2 follow-up 接到同一 cache。本轮没有保留“用真实字符串行高替换 metrics sample”的实验方案,避免改变既有换行容量。复杂 BIDI/竖排 source-range 几何、完整 backend cluster reverse lookup、scroll raster/upload counters 与窗口级 QA 仍等待。
 - `hit_test.rs`:已优先消费 `UiResolvedTextLine.glyph_advances` 做视觉 grapheme midpoint 反查,tab/justify/kashida 等 layout-stage advance 结果不再被默认样式重测量覆盖；post-wrap visual-order adapter 已硬切到 02 `bidi.rs` 的 UAX#9 level/isolate/L1/L2 owner，旧 ASCII/RTL-block 猜测已删除。2026-07-10 `hit_test/visual_source.rs` 已把 visual cluster source range + direction 贯穿 midpoint hit，RTL cluster leading/trailing edge 分别回到 logical end/start 并返回 Downstream/Upstream affinity；caret/range geometry 与完整 backend `ShapedGlyph.source_range` map 仍需同样硬切。
 - Justify、shrink-to-fit、clamp font size、tab stop 已有首段；kashida 已有 advance-based 首段但尚未插入真实 tatweel glyph；2026-07-03 已补 SDF char-run 对 resolved grapheme advances 的投影与 mixed overlay whole-grapheme fallback 首段,并补 `sdf_char_run.rs` 对 ZWJ/zero-width/Bidi format/variation selector 等 invisible format controls 的零槽位/零 advance 规则,避免 `glyph_advances` 契约在组合字符/emoji cluster 或 format-control scalar 上被字符数校验/错误 fallback advance 打断；同日 `text_pixel_snap.rs` 把 native glyphon `TextArea` 与 SDF draw planning 的文本 frame 原点贴像素规则合并到单一 owner,避免布局 frame 小数原点在 native/SDF 上屏阶段重新制造左右落点漂移；后续又把 horizontal/vertical SDF glyph bitmap frame 的 x/y 原点经 `text_glyph_device_frame(...)` 同步吸附,保留 layout advances 与 bitmap extent 但消除小字号 glyph bitmap 左右小数落点；editor retained-host 已把 runtime/host advance 与 shaped-origin 接受路径改成 fail-closed,并在 2026-07-04 将每 grapheme/shaped-origin advance 可接受窗固定为 `0.0625px`,让 `editor base.zui` 这类小字号 label 的 0.125px 局部借位直接回退 host natural spacing；同日又新增 retained 1/8px phase-bin 接受门,即使 `folder-open.svg` 这类 label 只有 +0.05px shaped-origin delta,只要会把 glyph 推到另一个最终 raster phase 也会回退 host natural spacing；仍缺复杂 overflow/shrink/clamp/tab 交互、完整 native/SDF paragraph parity、真实 shaping cluster backend 数据与竖排布局。
 
@@ -170,9 +174,9 @@ status: in_progress
 
 - `zircon_editor` retained-host same-style shaped cluster line guard:2026-07-05 继续收束最新 editor crop 中 `folder-op...line.svg` 类文件名标签的左右间距问题。此前 runless shaped text 为了保留 cluster paint style,会把同一行的 `folder-op`、省略号和 `line.svg` 拆成多条 retained-host text command；同样式片段因此各自重新 layout/raster,在小字号下可能制造片段边界的左右落点不连续。本轮在 `render_command_conversion/text/commands/shaped.rs::push_shaped_text_commands(...)` 前置 `uniform_cluster_text_style(...)`,同样式多 cluster 直接输出整行命令,混合 style cluster 仍按 cluster split。验证图/日志: `docs/tests/runtime/text/runtime_text_editor_retained_same_style_cluster_line_preview_20260705.png` / `runtime_text_editor_retained_same_style_cluster_line_validation_20260705.log`。
 
-- `zircon_runtime` graphics text shaping glyph-offset px projection:2026-07-04 继续处理同一 editor crop 中“等线已生效但字符左右间距/渲染位置仍偏左或偏右”的底层 shaping 单位问题。`graphics/text/shaping/cosmic.rs` 现在把 glyphon/cosmic `LayoutGlyph.x_offset/y_offset` 通过 `glyph.font_size` 投影到像素空间后再写入 `ShapedGlyph.offset_x/y`,避免 retained-host 后续按像素使用一个仍是 em-relative 的偏移值,导致小字号 glyph pen origin 欠投影。该切片不改变 retained-host painter、ZUI 字体、runtime FontDatabase、glyph atlas 或 layout line-break 策略。
+- `zircon_runtime` graphics text shaping glyph-offset px projection:2026-07-04 继续处理同一 editor crop 中“等线已生效但字符左右间距/渲染位置仍偏左或偏右”的底层 shaping 单位问题。`text/shaping/cosmic.rs` 现在把 glyphon/cosmic `LayoutGlyph.x_offset/y_offset` 通过 `glyph.font_size` 投影到像素空间后再写入 `ShapedGlyph.offset_x/y`,避免 retained-host 后续按像素使用一个仍是 em-relative 的偏移值,导致小字号 glyph pen origin 欠投影。该切片不改变 retained-host painter、ZUI 字体、runtime FontDatabase、glyph atlas 或 layout line-break 策略。
 
-- `zircon_runtime` source-range unkerned measure backend request:2026-07-04 继续收束同一截图问题背后的字距语义分叉。`TextShapeRequest` 与 `ShapedGlyphRun` 现在携带 `include_kerning`,默认序列化保持 true；`graphics/text/shaping/mod.rs` 暴露 owner-local `shape_horizontal_line_with_kerning(...)`,`cosmic.rs` 在 false 时向 glyphon/cosmic attrs 写入 OpenType `kern=0`；`graphics/text/layout/measure.rs::measure_text_source_range_width_with_kerning(...)` 不再在既有 kerned run 上假装去 kerning,而是按请求重新 shape 后再测量 source range。该切片不改变默认绘制路径、ZUI 字体、retained-host painter、runtime FontDatabase 或 glyph atlas。
+- `zircon_runtime` source-range unkerned measure backend request:2026-07-04 继续收束同一截图问题背后的字距语义分叉。`TextShapeRequest` 与 `ShapedGlyphRun` 现在携带 `include_kerning`,默认序列化保持 true；`text/shaping/mod.rs` 暴露 owner-local `shape_horizontal_line_with_kerning(...)`,`cosmic.rs` 在 false 时向 glyphon/cosmic attrs 写入 OpenType `kern=0`；`text/layout/measure.rs::measure_text_source_range_width_with_kerning(...)` 不再在既有 kerned run 上假装去 kerning,而是按请求重新 shape 后再测量 source range。该切片不改变默认绘制路径、ZUI 字体、retained-host painter、runtime FontDatabase 或 glyph atlas。
 
 - `zircon_runtime` source-prefix absolute range geometry:2026-07-04 继续处理同一 editor crop 中字符左右定位不稳的 source geometry 分叉。`ui/text/geometry.rs::measured_source_prefix_width(...)` 现在从 `line.source_range` 派生绝对 `UiTextRange`,并把原始 `measure_context.text` 交给 backend source-range measure,不再用 `line.text.as_str()` 当作 0-based 临时字符串重测。该路径仍只覆盖 simple LTR、source-isomorphic、无 tab/ellipsis/justify 的保守可测行；复杂 BIDI/竖排、完整 cluster reverse lookup 与 live editor window QA 仍等待。
 
@@ -244,7 +248,7 @@ ShapedGlyphRun(02, 无宽度约束 + 断点机会) + LayoutConstraints { wrap_wi
 ### LB-M1 真实度量(度量=绘制)
 
 实施切片:
-1. `graphics/text/layout/measure.rs`:基于 `ShapedGlyphRun` 的 `measure_text_size`、子范围度量 `measured_width(run, byte_start, byte_end, include_kerning)`(UE `GetMeasuredWidth` 对齐);ascent/descent/line_height 取真实 face metrics。
+1. `text/layout/measure.rs`:基于 `ShapedGlyphRun` 的 `measure_text_size`、子范围度量 `measured_width(run, byte_start, byte_end, include_kerning)`(UE `GetMeasuredWidth` 对齐);ascent/descent/line_height 取真实 face metrics。
 2. 替换 `ui/text` 启发式 measure:`text_measure.rs`、`measure_cache.rs` 改喂真实度量(`render/14` 硬切换 #7);baseline 取真实 ascent。
 
 测试:`text_measure_width_matches_shaped_advance_sum`、`text_measure_subrange_matches_ue_semantics`、`text_measure_cjk_fullwidth_advance`。
@@ -279,13 +283,13 @@ ShapedGlyphRun(02, 无宽度约束 + 断点机会) + LayoutConstraints { wrap_wi
 
 测试:`vertical_rl_wraps_columns_on_frame_height`、`text_vertical_kinsoku_applies_to_column_break`、`render_extract_parses_vertical_rl_writing_mode_layout`、`ui_text_writing_mode_vertical_rl_serializes_as_contract_value`、`ui_shaped_text_contract_derives_vertical_rl_glyph_bounds`、`text_hit_test_vertical_rl_uses_column_x_and_vertical_advances`、`source_geometry_uses_vertical_writing_mode_advances`、`text_input_ime_cursor_rect_uses_vertical_rl_geometry`、`ui_text_decorations_use_vertical_rl_geometry`、`sdf_draw_plan_vertical_rl_advances_glyphs_on_y_axis`。
 
-(2026-07-02 评审收口)LB-M4 收束条件补充:`ui/text/layout_engine/vertical.rs` 首段实现需在本里程碑收尾时语义迁移到 `graphics/text/layout/vertical_layout.rs`,UI 层仅保留投影消费;迁移条目已列入 §6 硬切换表。
+(2026-07-02 评审收口)LB-M4 收束条件补充:`ui/text/layout_engine/vertical.rs` 首段实现需在本里程碑收尾时语义迁移到 `text/layout/vertical_layout.rs`,UI 层仅保留投影消费;迁移条目已列入 §6 硬切换表。
 
 ## 6. 工程落地细化(实施权威)
 
 ### 模块与文件落点
 
-实现层 `zircon_runtime/src/graphics/text/layout/`:
+实现层 `zircon_runtime/src/text/layout/`:
 
 | 文件 | 内容 |
 |------|------|
@@ -396,11 +400,11 @@ pub fn measure_text_size(run: &ShapedGlyphRun, c: &LayoutConstraints) -> Vec2;
 
 | 现有 | 切换 |
 |------|------|
-| `layout_engine.rs` 全体(等宽 wrap/align/ellipsize/baseline) | 删除;语义迁 `graphics/text/layout/*`(真实度量重写) |
+| `layout_engine.rs` 全体(等宽 wrap/align/ellipsize/baseline) | 删除;语义迁 `text/layout/*`(真实度量重写) |
 | `layout_engine/tests.rs` 期望值 | 按真实字形度量重标定 |
 | `hit_test.rs::hit_test_text_layout` | 改基于 `ShapedGlyph.source_range` 反查;签名/返回类型不变 |
-| `text_measure.rs::measure_text_size` | 改调 `graphics/text/layout::measure`(taffy measure 闭包,走 shaped cache) |
-| `ui/text/layout_engine/vertical.rs`(竖排首段) | 列容量、右到左 frame、axis extents 已硬切 `graphics/text/layout/vertical_layout.rs`;UI 层保留 CandidateLine/rich/ellipsis DTO 投影，完整 `LaidOutText` hard cut 仍后续 |
+| `text_measure.rs::measure_text_size` | 改调 `text/layout::measure`(taffy measure 闭包,走 shaped cache) |
+| `ui/text/layout_engine/vertical.rs`(竖排首段) | 列容量、右到左 frame、axis extents 已硬切 `text/layout/vertical_layout.rs`;UI 层保留 CandidateLine/rich/ellipsis DTO 投影，完整 `LaidOutText` hard cut 仍后续 |
 
 ### 测试与验收清单
 
@@ -448,6 +452,11 @@ pub fn measure_text_size(run: &ShapedGlyphRun, c: &LayoutConstraints) -> Vec2;
 | `text_line_height_mixed_face_uses_max_metrics` | (2026-07-02 评审收口,D7)混 face 行:行高 = max(ascent)+max(descent)+主 face line_gap,baseline = max_ascent |
 | `text_caret_affinity_soft_wrap_boundary` | (2026-07-02 评审收口)软换行点同一 offset:Upstream 返回上一行行尾 caret 矩形,Downstream 返回下一行行首 caret 矩形 |
 | `vertical_rl_wraps_columns_on_frame_height` | 竖排按高度断列,列序右到左,`UiResolvedTextLayout.writing_mode` 保持 `VerticalRl` |
+| `bbcode_inline_image_vertical_rl_composes_first_column_indent_and_continuation_height` | 富内联对象参与 first/continuation 可用高度断列；首列段落 indent 映射到 y，续列回到 frame top，U+FFFC 保持 object-height 主轴 advance |
+| `bbcode_inline_image_vertical_rl_composes_center_and_right_paragraph_alignment` | 含内联对象的 VerticalRl 段落继续消费 Center/Right physical-y 对齐，居中保留对称上下空间，末端对齐抵达 frame bottom |
+| `bbcode_inline_image_vertical_rl_after_empty_paragraph_uses_its_own_alignment` | 空 physical paragraph 只匹配其精确 source offset，不得吞掉后续含内联对象段落的 align/height override |
+| `bbcode_inline_image_vertical_rl_word_modes_fallback_against_paragraph_heights` | Word/WordSmart oversized chunk 的 glyph fallback 逐列消费首列/续列可用高度，并保留内联对象 advance |
+| `bbcode_inline_image_vertical_rl_ellipsis_uses_paragraph_height_and_alignment` | paragraph-aware ellipsis、overflow 与最终 bottom alignment 消费同一 usable height，且保留可见 U+FFFC 对象 |
 | `text_vertical_kinsoku_applies_to_column_break` | 竖排列断点复用 CJK 行尾/行首禁则,开标点不留在上一列末 |
 | `render_extract_parses_vertical_rl_writing_mode_layout` | surface render extract 可解析 `writing_mode = "vertical-rl"` 并产出竖排 resolved layout |
 | `ui_text_writing_mode_vertical_rl_serializes_as_contract_value` | public interface writing-mode contract 序列化为 `vertical_rl` |
@@ -468,7 +477,10 @@ pub fn measure_text_size(run: &ShapedGlyphRun, c: &LayoutConstraints) -> Vec2;
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前概述（2026-07-13）：LB-M4 的共享 `layout_text` 已在产品 proof 中把 CJK 文本断成右到左 VerticalRl columns，并关闭 soft-wrap affinity。LB-M5 的中立 `paragraph_layout` owner 现已把同一 first/continuation inset、nested/list prefix 与 paragraph align 约束投影到 VerticalRl y/height：首列 indent、continuation、Center 与 Right/End 不再被 `vertical.rs` 绕过；parser/interface/renderer 未新增 writing-mode 分支。当前源 Windows binary 的 VerticalRl contracts 为 3/3，完整 rich-block filter 为 10/10；exact formatting、scoped diff 与结构预算通过。真实 SDF/WGPU CJK paragraph proof 与 pre-render layout gates 已写入，但 exporter 在 UI render 前被并发 renderer 的 forward layout binding 25 冲突阻断，未接受 PNG；VerticalRl rich-inline object 与 paragraph constraint 的组合也保持显式 open。
+当前概述（2026-07-15）：LB-M4 的共享 `layout_text` 已在产品 proof 中把 CJK 文本断成右到左 VerticalRl columns，并关闭 soft-wrap affinity。LB-M5 的中立 `paragraph_layout` owner 现已把同一 first/continuation inset、nested/list prefix 与 paragraph align 约束投影到 VerticalRl y/height；S2 又把这组 physical-paragraph constraints 送入 `text/layout/rich_vertical.rs` 的真实 Glyph/Word/WordSmart 断列，使内联对象 height 在首列/续列可用高度内参与 wrap，并让 plain/rich-inline vertical 路径复用同一 y alignment owner。parser/interface/renderer 未新增 writing-mode 分支，也未采用 UI post-move 或 renderer reconstruction。当前源码的五条 focused regressions 已 5/5，通过 exact ignored WGPU exporter 1/1 完成真实 SDF atlas、WGPU submit 与 framebuffer readback；含 imported checker texture 的 node 120 截图已归档到 `docs/tests/runtime/text/runtime_text_vertical_rich_inline_paragraph_product_framebuffer_20260715.png`（1080×1840，SHA256 `A5B38D81F8ACA85BE826AC87E441E73A120437CAE12E7D769559FDABC681E77E`），原图目检、像素断言与 target/cargo-target 排除均通过。跨计划 operation sibling visibility Failure 已验证回传为 fixed。当前状态为 `LB-M5 VerticalRl paragraph rich-inline product acceptance passed`；全量 native/SDF paragraph parity、复杂 vertical source-range geometry 与平台实机输入仍按本计划后续项继续推进。
+
+- fixed 已修复：[runtime-operation-ffi-sibling-visibility](03/fixed-2026-07-15-runtime-operation-ffi-sibling-visibility.md)
+- fixed 已修复：[text-physical-owner-hard-cut-compile-break](03/fixed-2026-07-15-text-physical-owner-hard-cut-compile-break.md)
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

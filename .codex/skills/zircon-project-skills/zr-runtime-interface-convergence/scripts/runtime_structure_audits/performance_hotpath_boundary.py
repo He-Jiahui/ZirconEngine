@@ -67,7 +67,7 @@ def performance_hotpath_boundary_audit(
     root: Path,
     large_file_gate: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    session = root / "zircon_runtime/src/dynamic_api/session.rs"
+    session = root / "zircon_runtime/src/dynamic_api/session/state.rs"
     session_extract = root / "zircon_runtime/src/dynamic_api/session/extract.rs"
     session_extract_cache = (
         root / "zircon_runtime/src/dynamic_api/session/extract_cache.rs"

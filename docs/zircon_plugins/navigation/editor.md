@@ -38,6 +38,12 @@ doc_type: module-detail
 
 The Navigation editor package owns optional authoring and diagnostics UI. Runtime navigation state remains authoritative in `zircon_plugin_navigation_runtime`; the editor submits typed bake intents, consumes progress/debug mirror frames, and projects those frames into retained `.zui` views and the shared scene-gizmo overlay contract.
 
+## PIE event consumer
+
+`navigation_runtime_event_consumers` declares `navigation.editor.agent_tick` as the typed consumer of `navigation.events.agent_tick_completed` with schema `navigation.events.nav_agent_tick_report.v1`. The declaration is projected into `navigation.editor` in the package manifest and retains the shared `NavigationPieMirror` state.
+
+The editor host subscribes only while PIE is active and `editor.extension.navigation_gizmos` is enabled. Cross-session deliveries, wrong schemas, foreign handles, and stale sequences are rejected before the mirror changes. Exiting PIE unsubscribes and clears the report and agent snapshots.
+
 ## Module Boundaries
 
 - `plugin.rs` is the `zircon_plugin_sdk::authoring_plugin!` declaration and package adapter only; descriptor, manifest, and capabilities have one source.

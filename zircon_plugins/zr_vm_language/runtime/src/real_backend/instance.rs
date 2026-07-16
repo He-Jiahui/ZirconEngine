@@ -1,52 +1,44 @@
 use zircon_runtime::core::framework::script::ScriptHostValue;
 use zircon_runtime::script::{
-    VmError, VmPluginHostContext, VmPluginInstance, VmPluginManifest, VmStateBlob, VmStateSchema,
+    VmError, VmGcBudget, VmGcStepOutcome, VmPluginHostContext, VmPluginInstance, VmPluginManifest,
+    VmStateBlob, VmStateSchema,
 };
 use zr_vm_rust_binding as zrvm;
 
 use super::errors::{is_optional_export_missing, map_zr_error};
 use super::lock::acquire_zr_vm_lock;
+use super::runtime_owner::ZrVmRuntimeOwner;
 use super::values::{from_zr_return_value_for_export, to_zr_value};
-use super::ZrVmRegistration;
 
 pub(super) struct ZrVmPluginInstance {
     manifest: VmPluginManifest,
-    session: zrvm::ProjectSession,
-    _registrations: Vec<ZrVmRegistration>,
-    runtime: zrvm::Runtime,
+    runtime_owner: ZrVmRuntimeOwner,
     entry_module: String,
 }
-
-unsafe impl Send for ZrVmPluginInstance {}
-unsafe impl Sync for ZrVmPluginInstance {}
 
 impl ZrVmPluginInstance {
     pub(super) fn new(
         manifest: VmPluginManifest,
-        session: zrvm::ProjectSession,
-        registrations: Vec<ZrVmRegistration>,
-        runtime: zrvm::Runtime,
+        runtime_owner: ZrVmRuntimeOwner,
         entry_module: String,
     ) -> Self {
         Self {
             manifest,
-            session,
-            _registrations: registrations,
-            runtime,
+            runtime_owner,
             entry_module,
         }
     }
 
     fn call_optional_export(
         &mut self,
+        guard: &std::sync::MutexGuard<'static, ()>,
         module_name: &str,
         export_name: &str,
         arguments: &[zrvm::Value],
     ) -> Result<Option<zrvm::Value>, VmError> {
-        let _keep_runtime_alive = &self.runtime;
         match self
-            .session
-            .call_module_export(module_name, export_name, arguments)
+            .runtime_owner
+            .call_module_export(guard, module_name, export_name, arguments)
         {
             Ok(value) => Ok(Some(value)),
             Err(error) if is_optional_export_missing(&error) => Ok(None),
@@ -56,11 +48,12 @@ impl ZrVmPluginInstance {
 
     fn call_entry_lifecycle_export(
         &mut self,
+        guard: &std::sync::MutexGuard<'static, ()>,
         export_name: &str,
         arguments: &[zrvm::Value],
     ) -> Result<Option<zrvm::Value>, VmError> {
         let entry_module = self.entry_module.clone();
-        self.call_optional_export(&entry_module, export_name, arguments)
+        self.call_optional_export(guard, &entry_module, export_name, arguments)
     }
 }
 
@@ -70,20 +63,20 @@ impl VmPluginInstance for ZrVmPluginInstance {
     }
 
     fn activate(&mut self, _host: &VmPluginHostContext) -> Result<(), VmError> {
-        let _guard = acquire_zr_vm_lock();
-        self.call_entry_lifecycle_export("activate", &[])
+        let guard = acquire_zr_vm_lock();
+        self.call_entry_lifecycle_export(&guard, "activate", &[])
             .map(|_| ())
     }
 
     fn deactivate(&mut self) -> Result<(), VmError> {
-        let _guard = acquire_zr_vm_lock();
-        self.call_entry_lifecycle_export("deactivate", &[])
+        let guard = acquire_zr_vm_lock();
+        self.call_entry_lifecycle_export(&guard, "deactivate", &[])
             .map(|_| ())
     }
 
     fn save_state(&mut self) -> Result<VmStateBlob, VmError> {
-        let _guard = acquire_zr_vm_lock();
-        let value = match self.call_entry_lifecycle_export("saveState", &[])? {
+        let guard = acquire_zr_vm_lock();
+        let value = match self.call_entry_lifecycle_export(&guard, "saveState", &[])? {
             Some(value) => value,
             None => return Ok(VmStateBlob::default()),
         };
@@ -100,16 +93,16 @@ impl VmPluginInstance for ZrVmPluginInstance {
     }
 
     fn restore_state(&mut self, state: &VmStateBlob) -> Result<(), VmError> {
-        let _guard = acquire_zr_vm_lock();
+        let guard = acquire_zr_vm_lock();
         let state = state.to_json()?;
         let argument = zrvm::Value::new_string(&state).map_err(map_zr_error)?;
-        self.call_entry_lifecycle_export("restoreState", &[argument])
+        self.call_entry_lifecycle_export(&guard, "restoreState", &[argument])
             .map(|_| ())
     }
 
     fn state_schema(&mut self) -> Result<Option<VmStateSchema>, VmError> {
-        let _guard = acquire_zr_vm_lock();
-        let value = match self.call_entry_lifecycle_export("stateSchema", &[])? {
+        let guard = acquire_zr_vm_lock();
+        let value = match self.call_entry_lifecycle_export(&guard, "stateSchema", &[])? {
             Some(value) => value,
             None => return Ok(None),
         };
@@ -127,13 +120,26 @@ impl VmPluginInstance for ZrVmPluginInstance {
         }
     }
 
+    fn gc_step(&mut self, budget: VmGcBudget) -> Result<VmGcStepOutcome, VmError> {
+        let guard = acquire_zr_vm_lock();
+        let outcome = self
+            .runtime_owner
+            .gc_step(&guard, budget.max_micros_per_frame)
+            .map_err(map_zr_error)?;
+        Ok(VmGcStepOutcome {
+            pause_micros: outcome.pause_micros,
+            root_count: outcome.root_count,
+            cross_boundary_reference_count: outcome.cross_boundary_reference_count,
+        })
+    }
+
     fn call_export(
         &mut self,
         module_name: &str,
         export_name: &str,
         arguments: &[ScriptHostValue],
     ) -> Result<Option<ScriptHostValue>, VmError> {
-        let _guard = acquire_zr_vm_lock();
+        let guard = acquire_zr_vm_lock();
         let export_label = format!("{module_name}.{export_name}");
         let arguments = arguments
             .iter()
@@ -141,7 +147,9 @@ impl VmPluginInstance for ZrVmPluginInstance {
             .map(to_zr_value)
             .collect::<Result<Vec<_>, _>>()
             .map_err(map_zr_error)?;
-        let Some(value) = self.call_optional_export(module_name, export_name, &arguments)? else {
+        let Some(value) =
+            self.call_optional_export(&guard, module_name, export_name, &arguments)?
+        else {
             return Ok(None);
         };
         from_zr_return_value_for_export(&value, &export_label)

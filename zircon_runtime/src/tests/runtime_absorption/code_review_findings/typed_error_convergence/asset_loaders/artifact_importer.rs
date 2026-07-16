@@ -10,7 +10,7 @@ fn review_f7_asset_artifact_errors_use_asset_import_error_sources() {
         include_str!("../../../../../asset/tests/assets/importer/registry_errors.rs");
     let review_findings = concat!(
         include_str!("../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+        include_str!("../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
     );
     let runtime_04_plan = include_str!(
         "../../../../../../../docs/plans/zircon_runtime/runtime/04-asset-pipeline-alignment.md"

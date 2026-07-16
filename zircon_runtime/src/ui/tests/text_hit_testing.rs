@@ -1,4 +1,5 @@
-use crate::graphics::text::layout::measured_grapheme_widths;
+use crate::text::layout::measured_grapheme_widths;
+use crate::ui::text::text_style;
 use crate::ui::text::{hit_test_text_layout, layout_text, measure_text_size};
 use zircon_runtime_interface::ui::{
     layout::{UiFrame, UiPoint},
@@ -11,7 +12,7 @@ fn text_hit_test_uses_grapheme_midpoints() {
     let text = "a\u{0301}b";
     let layout = layout_text(text, &style, UiFrame::new(10.0, 0.0, 80.0, 20.0), None);
     let line = &layout.lines[0];
-    let widths = measured_grapheme_widths(&line.text, &style);
+    let widths = measured_grapheme_widths(&line.text, &text_style(&style));
 
     let before = hit_test_text_layout(&layout, UiPoint::new(line.frame.x + widths[0] * 0.25, 4.0));
     let after_cluster =

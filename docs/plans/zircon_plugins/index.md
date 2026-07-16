@@ -64,7 +64,7 @@
 
 ## 4. 全局验收
 
-每波次收口必须全绿：
+测试调度遵循 [`milestone-validation-policy.md`](../milestone-validation-policy.md)。每个里程碑只运行受影响插件及其契约的合并批次；以下全量命令只在依赖完整的波次收口、根 manifest/lockfile 变更或发布候选时运行：
 
 ```bash
 cargo build --workspace --locked

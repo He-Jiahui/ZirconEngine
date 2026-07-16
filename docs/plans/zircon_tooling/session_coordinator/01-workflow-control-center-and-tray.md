@@ -1,5 +1,15 @@
 # Zircon Workflow Control Center and Windows Tray Implementation Plan
 
+## Cross-Plan Failure Status
+
+- Open: [Cargo PID reuse identity guard](01/failure-2026-07-14-cargo-pid-reuse-identity-guard.md) is the current failure-priority repair for Editor Layout 15 managed screenshot validation. It must preserve live Cargo descendant protection while rejecting a reused root PID with a different creation identity.
+- fixed 已修复：[failure-return-plan-table-row-corruption](../../zircon_editor/editor/07/fixed-2026-07-15-failure-return-plan-table-row-corruption.md)
+- fixed 已修复：[plan-output-audit-counts-lifecycle-links](../../zircon_editor/editor/12/fixed-2026-07-15-plan-output-audit-counts-lifecycle-links.md)
+- Open: [Goal closeout counts terminal failed commit intents](01/failure-2026-07-15-goal-closeout-counts-terminal-failed-intents.md) must keep terminal failed attempts as immutable history without blocking an otherwise accepted Goal closeout.
+- fixed 已修复：[stale-session-pending-cpu-reservation-starvation](../../zircon_editor/editor/07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)
+- fixed 已修复：[milestone-finalize-session-relative-owned-scope](../../zircon_runtime/text/01/fixed-2026-07-15-milestone-finalize-session-relative-owned-scope.md)
+- fixed 已修复：[milestone-finalize-per-path-blob-verification-stall](../../zircon_runtime/frameworks/05/fixed-2026-07-15-milestone-finalize-per-path-blob-verification-stall.md)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Deliver a local Jenkins-style workflow console and a Windows tray supervisor that visualize the authoritative Session Coordinator and expose only typed, permissioned, previewed, confirmed, and audited operations.
@@ -442,6 +452,7 @@ Expected: Rust tests/build pass; real tray shows correct state; tray exit leaves
 - [ ] **M6.5 Package startup and operator workflows.** Update installer scripts for coordinator/tray install/query/remove/dry-run; build production web and tray bundles; verify absolute current-user startup paths, upgrade behavior, uninstall behavior, secret absence, and multi-repository path-hash isolation.
 - [ ] **M6.6 Run and accept the 24-hour soak.** `tools/tests/workflow-control-center-soak.ps1` records minute health/SSE/resource samples, scheduled maintenance, injected browser disconnects, one controlled daemon restart, tray recovery, event continuity, memory/handle growth, and final audit. It writes outside Git during the run, then copies only the sanitized summary and metrics artifact into the authorized numbered output directory.
 - [ ] **M6.7 Complete docs, independent review, and Goal closeout.** Update the operator guide, failure/recovery guide, module docs, acceptance matrix, and numbered records; run independent Critical/Important review; resolve applicable `failure-*.md`; then execute the service-owned final milestone commit and Goal closeout.
+- [x] **M6.8 Harden managed CPU reservation lifecycle.** Require executable owner Sessions for reserve/acquire/renew; atomically expire only pending no-job reservations on stale transitions; preserve absolute pending expiry across restart; terminalize reservations with orphaned jobs; persist canonical compatibility payloads in schema 41; prove payload, stale cleanup, orphan handoff, and FIFO progression against the production daemon.
 
 ### Testing stage M6-T
 
@@ -481,8 +492,19 @@ At each accepted milestone:
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| M6 | M6.8 managed CPU reservation lifecycle | `accepted / commit_pending` | 2026-07-16 | schema 41 production daemon `5421e008fda84be6b42480cc0c602cec`; fresh Python `70/70 + 15/15 + 37/37`; production payload reservation `0bbc781e...`, orphan-bound reservation `c692e731...`, following FIFO job `2853a1a8...`; handoff audit `161/0`; independent review `P0/P1/P2=0/0/0`; fixed-return immutable-manifest selector regression `8/8` preserves applicable Failure priority while excluding unrelated fixing-plan failures only for completed return slices; exact evidence in `01/2026-07-16-m6-8-cpu-reservation-lifecycle-hardening.md` |
 
-- open 待修复：mutation command queue 曾同时阻塞 Cargo finish、lease、heartbeat/register，并将实际 exit 0 的 job 回收为 orphaned；见 [`failure-2026-07-14-mutation-queue-finish-lease-stall.md`](01/failure-2026-07-14-mutation-queue-finish-lease-stall.md)。
+- fixed 已修复：[mutation-queue-finish-lease-stall](../../zircon_editor/editor/02/fixed-2026-07-14-mutation-queue-finish-lease-stall.md)
+- fixed 已修复：[mutation-queue-offline-recurrence](../../zircon_editor/editor/02/fixed-2026-07-14-mutation-queue-offline-recurrence.md)
+- fixed 已修复：[milestone-validation-copy-template-scope](../../zircon_plugins/08/fixed-2026-07-14-milestone-validation-copy-template-scope.md)
+- fixed 已修复：[cargo-release-retains-live-child-process-lock](../../zircon_editor/editor/02/fixed-2026-07-14-cargo-release-retains-live-child-process-lock.md)
+- fixed 已修复：[milestone-session-relative-line-ending-drift](../../zircon_runtime/text/01/fixed-2026-07-15-milestone-session-relative-line-ending-drift.md)
+- fixed 已修复：[support-slice-exact-finalize-plan-output-conflict](../../zircon_editor/editor/02/fixed-2026-07-16-support-slice-exact-finalize-plan-output-conflict.md)
+- open / Plugins12 重复里程碑编号错误选择历史切片 manifest：[repeated-milestone-slice-manifest-selection-conflict](01/failure-2026-07-15-repeated-milestone-slice-manifest-selection-conflict.md)
+- open / 活跃受管 ephemeral target 被误判为 unmanaged：[live-ephemeral-target-misclassified-unmanaged](01/failure-2026-07-15-live-ephemeral-target-misclassified-unmanaged.md)
+- open / 原生 slice closeout checker 仍依赖共享暂存区：[native-slice-closeout-checker-staged-index-contract-drift](01/failure-2026-07-16-native-slice-closeout-checker-staged-index-contract-drift.md)
+- open / lifecycle orphan recovery 被 maintenance hold 完整性约束阻断，服务无法启动：[lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock](01/failure-2026-07-16-lifecycle-orphan-recovery-maintenance-hold-integrity-deadlock.md)
+- fixed 已修复：[stale-session-pending-cpu-reservation-starvation](../../zircon_editor/editor/07/fixed-2026-07-16-stale-session-pending-cpu-reservation-starvation.md)
 
 ## 7. Completion Audit
 

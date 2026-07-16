@@ -62,19 +62,10 @@ fn skybox_normalize_or_fallback(value: vec3<f32>, fallback: vec3<f32>) -> vec3<f
     return value / value_length;
 }
 
-fn skybox_fix_cube_lookup(direction: vec3<f32>, lod: f32) -> vec3<f32> {
-    var adjusted = direction;
-    let face_size = max(scene.environment_sample_params.y, 1.0);
-    let scale = clamp(1.0 - exp2(max(lod, 0.0)) / face_size, 0.0, 1.0);
-    let axis = abs(adjusted);
-    if (axis.x > axis.y && axis.x > axis.z) {
-        adjusted = vec3<f32>(adjusted.x, adjusted.y * scale, adjusted.z * scale);
-    } else if (axis.y > axis.z) {
-        adjusted = vec3<f32>(adjusted.x * scale, adjusted.y, adjusted.z * scale);
-    } else {
-        adjusted = vec3<f32>(adjusted.x * scale, adjusted.y * scale, adjusted.z);
-    }
-    return adjusted;
+fn skybox_fix_cube_lookup(direction: vec3<f32>, _lod: f32) -> vec3<f32> {
+    // WGPU cube sampling filters across face edges natively. Do not apply the
+    // legacy cmft/OpenGL edge warp to a direction before lookup.
+    return direction;
 }
 
 fn skybox_world_direction_from_ndc(ndc: vec2<f32>) -> vec3<f32> {

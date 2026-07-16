@@ -22,12 +22,16 @@
 | Zircon Hub | [zircon_hub/index.md](zircon_hub/index.md) | Hub action、payload、layout、visual standard 与相关计划入口。 |
 | 插件生态 | [zircon_plugins/index.md](zircon_plugins/index.md) | 插件架构、能力插件、导出发布、Editor 集成、bridge 与结构框架入口。 |
 
+## 验证执行政策
+
+[`milestone-validation-policy.md`](milestone-validation-policy.md) 是所有计划集的测试调度权威：实现切片只做静态检查，Cargo 编译与测试按里程碑批量执行，工作区级回归按依赖波次收口。该政策优化验证频率，不删除回归测试或降低接受标准。
+
 ## 使用规则
 
 1. 进入某个子系统前，先读上表对应的 `index.md`。
 2. 计划正文已细化和来源审计冲突时，以计划正文为准，但执行前必须按该计划的检查清单重核 live worktree。
 3. 来源审计只能作为继续细化输入，不能直接替代源码事实核验。
-4. substantial work 继续按里程碑推进：实现切片与测试阶段分离，里程碑末在子计划记录构建、测试、修复和接受证据。
+4. substantial work 必须遵循 [`milestone-validation-policy.md`](milestone-validation-policy.md)：实现切片与测试阶段分离，里程碑末批量记录构建、测试、修复和接受证据。
 5. 旧路径不打算保留时，执行计划必须硬切换：迁移调用方并删除旧路径，不留 re-export、alias、shim 或双轨兼容。
 
 ## 引擎级结构规范

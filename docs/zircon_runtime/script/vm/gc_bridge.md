@@ -17,6 +17,8 @@ related_code:
   - zircon_runtime/src/script/mod.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
   - zircon_plugins/zr_vm_language/runtime/src/lib.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs
 implementation_files:
   - zircon_runtime/src/script/vm/gc_bridge/mod.rs
   - zircon_runtime/src/script/vm/gc_bridge/host_handle.rs
@@ -30,8 +32,11 @@ implementation_files:
   - zircon_runtime/src/script/vm/runtime/hot_reload_coordinator/tests/gc.rs
   - zircon_runtime/src/script/vm/runtime/vm_plugin_manager.rs
   - zircon_plugins/zr_vm_language/runtime/src/plugin.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/instance.rs
+  - zircon_plugins/zr_vm_language/runtime/src/real_backend/runtime_owner.rs
 plan_sources:
   - user: 2026-07-13 Plugins 08 ZrVM M3 GC contract
+  - docs/plans/zircon_plugins/08-zr-vm.md
 tests:
   - zircon_runtime/src/script/vm/gc_bridge/host_handle.rs
   - zircon_runtime/src/script/vm/gc_bridge/vm_object_ref.rs
@@ -42,6 +47,7 @@ tests:
   - zircon_runtime/src/script/vm/tests/host_exports.rs
   - zircon_runtime/src/script/vm/tests/module_surface.rs
   - zircon_plugins/zr_vm_language/runtime/src/tests/registration.rs
+  - zircon_plugins/zr_vm_language/runtime/src/tests/real_backend.rs
   - zircon_plugins/zr_vm_language/runtime/src/real_backend/tests.rs
   - milestone M3 Cargo and unit validation deferred to the controller testing stage
 doc_type: module-detail
@@ -51,7 +57,7 @@ doc_type: module-detail
 
 ## Purpose
 
-The GC bridge defines the ownership and scheduling contracts that may cross between Zircon's Rust host and a managed VM. M3 establishes stable host identities, RAII VM roots, budgeted cooperative collection, and bounded diagnostics without exposing a host or VM pointer. Real ZrVM collector integration remains an M4 backend responsibility.
+The GC bridge defines the ownership and scheduling contracts that may cross between Zircon's Rust host and a managed VM. M3 establishes stable host identities, RAII VM roots, budgeted cooperative collection, and bounded diagnostics without exposing a host or VM pointer. M4 connects those contracts to the real ZrVM collector.
 
 ## Host Handle Model
 
@@ -83,4 +89,4 @@ The ZrVM language runtime registers default `VmGcBudget` and `VmGcDiagnostics` w
 
 Unit tests cover raw generation roundtrip, dead/stale/vacant/generation-exhaustion registry boundaries, poisoned-lock recovery, exact-once root release, shared clone leases, failed root registration, backend lifetime bounds, default constants, rolling history eviction, real overrun reporting, policy/interval selection, deterministic ordering, and remaining-budget propagation. Plugin registration tests cover both resources, the Last-stage system, its ordering constraint, descriptor anchor, and conservative world access. The feature-gated ZrVM value test covers a packed handle whose signed transport is negative.
 
-Windows M3 validation passed 81/81 `script::vm` runtime tests with `core-min,script,net-contracts` and 11/11 default ZrVM plugin tests under the fixed `1.94.1-x86_64-pc-windows-msvc` toolchain, `--locked --offline --jobs 1`. The real `backend-zr-vm` test remains an M4 boundary because `E:/Git/zr_vm/build` is currently absent. M4 must implement the real ZrVM root registry and cooperative collector step behind these contracts without widening them to raw pointers.
+Windows M3 validation passed 81/81 `script::vm` runtime tests with `core-min,script,net-contracts` and 11/11 default ZrVM plugin tests under the fixed `1.94.1-x86_64-pc-windows-msvc` toolchain. M4 uses the current `E:/Git/zr_vm/build/{lib,bin}` artifacts: the plugin forwards the remaining budget into `ProjectSession::gc_step`, consumes the binding's root and cross-boundary counters, and keeps all raw-pointer-backed owners behind `real_backend/runtime_owner.rs`. The managed feature job `dc27faba132341b4ad8f98e84caa1377` passed the complete `real_backend` filter, 15/15. It includes one manager-scheduled cooperative slot with a 1000-microsecond budget and verifies that a returned ZrVM string lowered into the neutral adapter leaves zero cross-boundary references on the next collector step.

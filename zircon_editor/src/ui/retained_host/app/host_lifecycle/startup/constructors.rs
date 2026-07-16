@@ -4,7 +4,7 @@ use crate::core::gui_startup_request::EditorGuiStartupRequest;
 impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn new(
         core: CoreHandle,
-        runtime_client: SharedEditorRuntimeClient,
+        runtime_gateway: SharedEditorRuntimeGateway,
         ui: UiHostWindow,
         startup_request: Option<EditorGuiStartupRequest>,
     ) -> Result<Self, Box<dyn Error>> {
@@ -13,7 +13,7 @@ impl RetainedEditorHost {
             zircon_runtime::profile_scope!("editor", "retained_host", "new_viewport_controller");
             RetainedViewportController::new(core.clone())?
         };
-        Self::new_with_viewport(core, runtime_client, ui, viewport, startup_request)
+        Self::new_with_viewport(core, runtime_gateway, ui, viewport, startup_request)
     }
 
     #[cfg(test)]
@@ -23,7 +23,7 @@ impl RetainedEditorHost {
     ) -> Result<Self, Box<dyn Error>> {
         Self::new_with_viewport(
             core,
-            Arc::new(crate::ui::host::DetachedEditorRuntimeClient),
+            Arc::new(crate::core::gateway::DetachedEditorRuntimeGateway),
             ui,
             RetainedViewportController::new_test_stub(),
             None,

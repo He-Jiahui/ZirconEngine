@@ -1,10 +1,10 @@
 use std::fmt;
 
-use serde::{Deserialize, Serialize};
+use serde::{de, Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 /// Stable identifier shared by editor commands and operation-control DTOs.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct EditorOperationPath(String);
 
 impl EditorOperationPath {
@@ -37,6 +37,16 @@ impl fmt::Display for EditorOperationPath {
     }
 }
 
+impl<'de> Deserialize<'de> for EditorOperationPath {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let value = String::deserialize(deserializer)?;
+        Self::parse(value).map_err(de::Error::custom)
+    }
+}
+
 const MIN_OPERATION_PATH_SEGMENTS: usize = 3;
 
 fn operation_path_char(value: char) -> bool {
@@ -59,24 +69,6 @@ impl fmt::Display for EditorOperationPathError {
 }
 
 impl std::error::Error for EditorOperationPathError {}
-
-/// Metadata retained until Editor 03 M3.2 installs the edit-command factory.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct UndoableEditorOperation {
-    display_name: String,
-}
-
-impl UndoableEditorOperation {
-    pub fn new(display_name: impl Into<String>) -> Self {
-        Self {
-            display_name: display_name.into(),
-        }
-    }
-
-    pub fn display_name(&self) -> &str {
-        &self.display_name
-    }
-}
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EditorOperationInvocation {
@@ -131,8 +123,6 @@ pub struct EditorOperationControlResponse {
     pub operation_id: Option<String>,
     pub value: Option<Value>,
     pub error: Option<String>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub error_kind: Option<EditorOperationControlErrorKind>,
 }
 
 impl EditorOperationControlResponse {
@@ -141,7 +131,6 @@ impl EditorOperationControlResponse {
             operation_id: Some(operation_id.into()),
             value,
             error: None,
-            error_kind: None,
         }
     }
 
@@ -150,25 +139,6 @@ impl EditorOperationControlResponse {
             operation_id: Some(operation_id.into()),
             value: None,
             error: Some(error.into()),
-            error_kind: None,
         }
     }
-
-    pub fn typed_failure(
-        operation_id: impl Into<String>,
-        error_kind: EditorOperationControlErrorKind,
-        error: impl Into<String>,
-    ) -> Self {
-        Self {
-            operation_id: Some(operation_id.into()),
-            value: None,
-            error: Some(error.into()),
-            error_kind: Some(error_kind),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum EditorOperationControlErrorKind {
-    OperationHistoryPendingFactory,
 }

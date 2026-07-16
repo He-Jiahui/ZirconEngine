@@ -81,6 +81,10 @@ pub(super) fn material_texture_set(
             streamer,
             material.and_then(|material| material.emissive_texture),
         ),
+        material_normal_texture_binding(
+            streamer,
+            material.and_then(|material| material.clearcoat_normal_texture),
+        ),
     )
 }
 

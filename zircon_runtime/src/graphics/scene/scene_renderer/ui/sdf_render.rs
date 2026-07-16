@@ -2,16 +2,15 @@ use wgpu::util::DeviceExt;
 
 use crate::asset::ProjectAssetManager;
 use crate::core::math::UVec2;
-use crate::graphics::text::font::FontDatabase;
-use crate::graphics::text::sdf::SdfGlyphGenerationError;
+use crate::text::sdf::{
+    SdfAtlasBakeReport, SdfAtlasGlyphKey, SdfGlyphGenerationError, SdfShapedGlyphIdentity,
+    SdfTextRun,
+};
+use crate::text::TextRenderState;
 
 use super::render::ScreenSpaceUiTextBatch;
 use super::sdf_advances::resolved_layout_advances_for_sdf_glyphs;
-use super::sdf_atlas::{
-    SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasGlyphKey, SdfAtlasPlan,
-};
-use super::sdf_char_run::sdf_scalar_is_invisible_format;
-use super::sdf_font_bake::{SdfAtlasBakeReport, SdfFontBakeCache};
+use super::sdf_atlas::{SdfAtlasAllocationFailureReason, SdfAtlasCacheReport, SdfAtlasPlan};
 use super::sdf_upload::{sdf_atlas_upload_report, SdfAtlasUploadReport};
 
 mod atlas_resources;
@@ -27,7 +26,6 @@ use self::vertices::{build_sdf_vertex_plan, ScreenSpaceUiSdfVertex};
 const SDF_TEXT_SHADER: &str = include_str!("shaders/zr_text_sdf.wgsl");
 
 pub(super) struct ScreenSpaceUiSdfRenderer {
-    font_bake: SdfFontBakeCache,
     pipeline: wgpu::RenderPipeline,
     bind_group_layout: wgpu::BindGroupLayout,
     sampler: wgpu::Sampler,
@@ -61,6 +59,57 @@ pub(super) struct ScreenSpaceUiSdfPrepareReport {
     pub(super) outline_batch_count: usize,
     pub(super) shadow_batch_count: usize,
     pub(super) glow_batch_count: usize,
+}
+
+impl SdfTextRun for ScreenSpaceUiTextBatch {
+    fn font(&self) -> Option<&str> {
+        self.font.as_deref()
+    }
+
+    fn font_family(&self) -> Option<&str> {
+        self.font_family.as_deref()
+    }
+
+    fn language(&self) -> Option<&str> {
+        self.language.as_deref()
+    }
+
+    fn font_weight(&self) -> u16 {
+        self.font_weight
+    }
+
+    fn font_size(&self) -> f32 {
+        self.font_size
+    }
+
+    fn render_scalars(&self) -> Vec<char> {
+        if self.shaped_glyphs.is_empty() {
+            self.text.chars().collect()
+        } else {
+            self.shaped_glyphs
+                .iter()
+                .map(|glyph| glyph.source_scalar)
+                .collect()
+        }
+    }
+
+    fn resolved_glyph_advances(&self) -> Option<Vec<f32>> {
+        resolved_layout_advances_for_sdf_glyphs(
+            self.text.as_str(),
+            self.glyph_advances.as_slice(),
+            self.render_scalars().len(),
+        )
+    }
+
+    fn shaped_glyph(&self, glyph_index: usize) -> Option<SdfShapedGlyphIdentity> {
+        self.shaped_glyphs
+            .get(glyph_index)
+            .map(|glyph| SdfShapedGlyphIdentity {
+                glyph_id: glyph.glyph_id,
+                font_id: glyph.font_id,
+                font_instance_id: glyph.font_instance_id,
+            })
+    }
 }
 
 impl ScreenSpaceUiSdfRenderer {
@@ -165,7 +214,6 @@ impl ScreenSpaceUiSdfRenderer {
         );
 
         Self {
-            font_bake: SdfFontBakeCache::new(),
             pipeline,
             bind_group_layout,
             sampler,
@@ -187,7 +235,7 @@ impl ScreenSpaceUiSdfRenderer {
         native_decoration_texts: &[ScreenSpaceUiTextBatch],
         atlas_plan: &SdfAtlasPlan,
         atlas_cache: SdfAtlasCacheReport,
-        font_database: &mut FontDatabase,
+        text_state: &mut TextRenderState,
         asset_manager: &ProjectAssetManager,
     ) {
         let (atlas_page_count, msdf_atlas_page_count) =
@@ -208,9 +256,8 @@ impl ScreenSpaceUiSdfRenderer {
             );
         }
 
-        let atlas_bake = self
-            .font_bake
-            .build_atlas(atlas_plan, font_database, asset_manager);
+        let atlas_bake =
+            text_state.build_sdf_atlas(atlas_plan.atlas_size, &atlas_plan.slots, asset_manager);
         let atlas_upload = sdf_atlas_upload_report(
             atlas_plan,
             atlas_cache,
@@ -221,30 +268,22 @@ impl ScreenSpaceUiSdfRenderer {
         self.atlas
             .write(queue, atlas_plan, &atlas_bake.pixels, &atlas_upload);
 
+        let native_cpu_runs =
+            text_state.prepare_sdf_runs_cpu(native_decoration_texts, asset_manager);
+        let sdf_cpu_runs = text_state.prepare_sdf_runs_cpu(texts, asset_manager);
         let mut vertices = build_text_decoration_vertices(
             native_decoration_texts,
-            &mut self.font_bake,
-            font_database,
-            asset_manager,
+            &native_cpu_runs,
             viewport_size,
         );
         vertices.extend(build_text_decoration_vertices(
             texts,
-            &mut self.font_bake,
-            font_database,
-            asset_manager,
+            &sdf_cpu_runs,
             viewport_size,
         ));
         let decoration_vertex_count = vertices.len() as u32;
-        let glyph_plan = build_sdf_vertex_plan(
-            texts,
-            atlas_plan,
-            &atlas_bake,
-            &mut self.font_bake,
-            font_database,
-            asset_manager,
-            viewport_size,
-        );
+        let glyph_plan =
+            build_sdf_vertex_plan(texts, atlas_plan, &atlas_bake, &sdf_cpu_runs, viewport_size);
         self.draw_plan = SdfTextMaterialDrawPlan::from_ranges(
             texts,
             atlas_plan.atlas_size,
@@ -279,11 +318,10 @@ impl ScreenSpaceUiSdfRenderer {
     pub(super) fn generation_failures_for_plan(
         &mut self,
         atlas_plan: &SdfAtlasPlan,
-        font_database: &mut FontDatabase,
+        text_state: &mut TextRenderState,
         asset_manager: &ProjectAssetManager,
     ) -> std::collections::HashMap<SdfAtlasGlyphKey, SdfGlyphGenerationError> {
-        self.font_bake
-            .generation_failures_for_plan(atlas_plan, font_database, asset_manager)
+        text_state.sdf_generation_failures(&atlas_plan.slots, asset_manager)
     }
 
     pub(super) fn prepare_report(&self) -> ScreenSpaceUiSdfPrepareReport {
@@ -293,40 +331,13 @@ impl ScreenSpaceUiSdfRenderer {
     pub(super) fn measure_text_glyph_advances_for_fallbacks(
         &mut self,
         texts: &[ScreenSpaceUiTextBatch],
-        font_database: &mut FontDatabase,
+        text_state: &mut TextRenderState,
         asset_manager: &ProjectAssetManager,
     ) -> Vec<Vec<f32>> {
-        texts
-            .iter()
-            .map(|text| {
-                if let Some(advances) = resolved_layout_advances_for_sdf_glyphs(
-                    text.text.as_str(),
-                    text.glyph_advances.as_slice(),
-                    text.text.chars().count(),
-                ) {
-                    return advances;
-                }
-                text.text
-                    .chars()
-                    .map(|glyph| {
-                        if sdf_scalar_is_invisible_format(glyph) {
-                            return 0.0;
-                        }
-                        self.font_bake
-                            .measure_glyph(
-                                glyph,
-                                text.font.as_deref(),
-                                text.font_family.as_deref(),
-                                text.language.as_deref(),
-                                text.font_weight,
-                                text.font_size,
-                                font_database,
-                                asset_manager,
-                            )
-                            .advance
-                    })
-                    .collect()
-            })
+        text_state
+            .prepare_sdf_runs_cpu(texts, asset_manager)
+            .into_iter()
+            .map(|run| run.glyph_advances)
             .collect()
     }
 
