@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-16
 summary_slug: deferred-graph-mesh-pipeline-fixture-resources
 origin_plan: docs/plans/zircon_runtime/render/05-lighting-shadows.md
@@ -14,7 +14,9 @@ related_code:
   - zircon_runtime/src/graphics/tests/render_product_shadow_captures/directional.rs
 tests:
   - cargo test -p zircon_runtime shadow --locked
+resolved_at: 2026-07-17
 ---
+
 
 # Render01: deferred graph mesh-pipeline fixture resources
 
@@ -64,4 +66,7 @@ The fixture path that submits a `deferred-lighting` graph does not provide the m
 
 ## 修复结果与回传
 
-Open state: `待修复`; Render05 cannot treat its broad shadow gate as green while these two fixtures fail.
+- 根因：Graph-pass assembly installed mesh pipeline resources only when the optional ResourceStreamer was also present. Deferred supplied a streamer, but the Lighting stage intentionally supplied None, so its valid MeshPipelineCache and draw lists were discarded and deferred-lighting failed before Render05 image metrics.
+- 架构修复：Make execute_deferred_graph_stage require &mut MeshPipelineCache and pass the owned cache from both Deferred and Lighting callers. Install mesh pipelines plus draw lists independently in with_mesh_renderer, while keeping the ResourceStreamer as a separate optional stage resource. This preserves normal runtime ownership and adds no compatibility or test-only fallback.
+- 验证：Focused lower job c753b96194c54b32b4bd8d3ae15b0f6b / run b4f9d6cdc8ff41f9854f839d1f2ec7ef executed the target exactly once and passed (1 passed, 8178 filtered). Many-point parity job 28cb7f882ce941fabde99689ca44cad7 / run d02771a7a3464eb1872dfdd1e1f1c145 executed its target exactly once and passed. Canonical lib-only directional job d57cb5f09ee24b9685c36e63fd445457 / run 02a1348e8b124e83aad8605ca43848e3 used cargo test -p zircon_runtime --lib render_product_directional_shadow_atlas_forward_deferred_darkening_parity --locked --jobs 1 -- --test-threads=1; raw stdout contains the target exactly once and reports 1 passed, 0 failed, 8178 filtered. Exact broad job 1eca3d1ab532400e95428876edaa8328 / run 136024091c254c5b85c3fb6ba9afff37 used cargo test -p zircon_runtime shadow --locked; both affected parity tests executed exactly once and passed. Broad terminal was exit 101 with 113 passed, 3 failed, 1 ignored, 8062 filtered; the remaining failures are post-submit Render05 visual/PCF assertions (multi-spot darkening, mixed-atlas frame delta, spot-PCF edge profile), not mesh-pipeline resource errors. rustfmt --check and git diff --check passed; independent review reported critical 0, important 0.
+- 回传：Render01 lower mesh-pipeline propagation is fixed: both originally blocked forward/deferred parity fixtures now reach their comparisons and pass exactly once. Render05 broad shadow remains red only on three downstream visual/PCF assertions and must continue there; no Render05 sampler, threshold, receiver, or shader source was changed by this repair.

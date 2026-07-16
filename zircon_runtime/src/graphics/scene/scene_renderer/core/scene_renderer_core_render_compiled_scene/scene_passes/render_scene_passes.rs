@@ -43,7 +43,7 @@ impl SceneRendererCore {
         if runtime_features.deferred_lighting_enabled {
             execute_deferred_graph_stage(
                 &self.deferred,
-                Some(&mut self.mesh_pipelines),
+                &mut self.mesh_pipelines,
                 &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
@@ -235,7 +235,7 @@ impl SceneRendererCore {
             );
             let deferred_lighting_result = execute_deferred_graph_stage(
                 &self.deferred,
-                None,
+                &mut self.mesh_pipelines,
                 &mut self.ibl_bake_pipeline_cache,
                 mesh_draw_lists,
                 device,
@@ -395,7 +395,7 @@ fn execute_mesh_graph_stage(
 #[allow(clippy::too_many_arguments)]
 fn execute_deferred_graph_stage(
     deferred: &DeferredSceneResources,
-    mesh_pipelines: Option<&mut MeshPipelineCache>,
+    mesh_pipelines: &mut MeshPipelineCache,
     ibl_bake_pipeline_cache: &mut IblBakeWgpuPipelineCache,
     mesh_draw_lists: RenderPassMeshCommandLists<'_>,
     device: &wgpu::Device,
@@ -441,7 +441,7 @@ fn execute_deferred_graph_stage(
         None,
         None,
         streamer,
-        mesh_pipelines,
+        Some(mesh_pipelines),
         Some(ibl_bake_pipeline_cache),
         Some(mesh_draw_lists),
         hzb_occlusion_culler,

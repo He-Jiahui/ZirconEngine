@@ -338,11 +338,9 @@ impl<'a> RenderPassGpuExecutionContext<'a> {
     pub(in crate::graphics::scene::scene_renderer) fn with_mesh_renderer(
         mut self,
         mesh_pipelines: &'a mut MeshPipelineCache,
-        streamer: &'a ResourceStreamer,
         mesh_draw_lists: RenderPassMeshCommandLists<'a>,
     ) -> Self {
         self.mesh_pipelines = Some(mesh_pipelines);
-        self.streamer = Some(streamer);
         self.mesh_draw_lists = Some(mesh_draw_lists);
         self
     }

@@ -173,6 +173,33 @@ mod tests {
         );
         assert!(record.executed_passes().is_empty());
     }
+
+    #[test]
+    fn deferred_mesh_pipeline_context_is_required_independently_from_streamer() {
+        let (_, source) = include_str!("execute_graph_stage.rs")
+            .rsplit_once("fn execute_graph_pass")
+            .expect("graph-stage source should contain the pass assembly function");
+        let scene_passes = include_str!("../scene_passes/render_scene_passes.rs");
+
+        assert!(source.contains(
+            "if let (Some(mesh_pipelines), Some(mesh_draw_lists)) = (mesh_pipelines, mesh_draw_lists)"
+        ));
+        assert!(!source.contains(
+            "if let (Some(mesh_pipelines), Some(streamer), Some(mesh_draw_lists)) =\n        (mesh_pipelines, streamer, mesh_draw_lists)"
+        ));
+        assert!(scene_passes.contains(
+            "execute_deferred_graph_stage(\n                &self.deferred,\n                &mut self.mesh_pipelines,"
+        ));
+        assert!(scene_passes.contains(
+            "let deferred_lighting_result = execute_deferred_graph_stage(\n                &self.deferred,\n                &mut self.mesh_pipelines,"
+        ));
+        assert!(
+            scene_passes.contains("RenderPassStage::Deferred,\n                Some(streamer),")
+        );
+        assert!(scene_passes.contains("RenderPassStage::Lighting,\n                None,"));
+        assert!(scene_passes.contains("mesh_pipelines: &mut MeshPipelineCache,"));
+        assert!(!scene_passes.contains("mesh_pipelines: Option<&mut MeshPipelineCache>,"));
+    }
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -279,10 +306,8 @@ fn execute_graph_pass(
     if let Some(particle_renderer) = particle_renderer {
         gpu = gpu.with_particle_renderer(particle_renderer);
     }
-    if let (Some(mesh_pipelines), Some(streamer), Some(mesh_draw_lists)) =
-        (mesh_pipelines, streamer, mesh_draw_lists)
-    {
-        gpu = gpu.with_mesh_renderer(mesh_pipelines, streamer, mesh_draw_lists);
+    if let (Some(mesh_pipelines), Some(mesh_draw_lists)) = (mesh_pipelines, mesh_draw_lists) {
+        gpu = gpu.with_mesh_renderer(mesh_pipelines, mesh_draw_lists);
     }
     if let Some(ibl_bake_pipeline_cache) = ibl_bake_pipeline_cache {
         gpu = gpu.with_ibl_bake_pipeline_cache(ibl_bake_pipeline_cache);
