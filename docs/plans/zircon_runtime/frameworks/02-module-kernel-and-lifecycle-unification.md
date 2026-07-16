@@ -23,6 +23,7 @@ implementation_files:
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/row_data/rt15_m3_groups/owner_paths/production_guard_row_owner_paths/core_and_evidence.rs
 plan_sources:
   - docs/plans/zircon_runtime/frameworks/index.md
+  - docs/plans/milestone-validation-policy.md
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/06-plugin-surface-and-lifecycle.md
   - .codex/plans/全系统重构方案.md
@@ -121,6 +122,19 @@ Frameworks 02 显式子路径锚：`code_review_findings/plugin_importer_dx/d1_c
 
 把"引擎里所有会被注册的东西"（内建模块、Driver、Manager、System、RuntimePlugin、native 插件、editor 模块）收敛到**一套**内核语义：描述符单源、统一四阶段生命周期、显式初始化层级、声明式依赖自动排序。让"写一个新模块"成为一页纸能讲完的事，也让计划 01/03/04 有稳定的挂点。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-module-kernel-lifecycle-unification",
+  "goal": "统一模块内核、内建 profile 组装与 RuntimePlugin 生命周期",
+  "milestones": [
+    {"id": "M1", "title": "内核语义落地（InitLevel + 四阶段 + 描述符扩展）", "depends_on": []},
+    {"id": "M2", "title": "内建模块与 profile 组装切换", "depends_on": ["M1"]},
+    {"id": "M3", "title": "RuntimePlugin 生命周期并轨", "depends_on": ["M2"]}
+  ]
+}
+```
+
 ## 2. 现状与差距
 
 - 五态生命周期（Init→PreActivation→Active→PreDeactivation→Inactive，`core/runtime/lifecycle.rs`）与 Driver/Manager 依赖规则已固定，健康。
@@ -177,10 +191,10 @@ pub enum InitLevel {
 - `CoreError` 类型化；`CoreRuntime` 推进循环支持 ready 轮询、超时预算与失败 rollback；
 - 既有内建模块签名批量适配（行为不变：全部默认 ready=true 时序等价于现状）。
 
-测试阶段：
+测试阶段（policy §3 最小批次）：
 - 编译门：`cargo check -p zircon_runtime --lib --locked`
-- 测试门：`cargo test -p zircon_runtime --lib --locked`（新增内核单测：层级推进顺序、依赖环报错、ready 超时、finish 全序）
-- 验收证据：新单测通过；现有 runtime 测试零回归。
+- 测试门：focused 过滤词批 `cargo test -p zircon_runtime --lib --locked lifecycle`、`cargo test -p zircon_runtime --lib --locked init_level`、`cargo test -p zircon_runtime --lib --locked module_descriptor`、`cargo test -p zircon_runtime --lib --locked core_error`（新增内核单测：层级推进顺序、依赖环报错、ready 超时、finish 全序）；波次收口保留全量 `cargo test -p zircon_runtime --lib --locked`（policy §4）。
+- 验收证据：新增单测与既有 focused 相关回归通过；全量 runtime lib 零回归由波次收口证据确认。
 - 文档更新：`docs/zircon_runtime/core/runtime/`（源路径镜像）新增 lifecycle/init-level 文档。
 
 ### M2 内建模块与 profile 组装切换
@@ -189,8 +203,9 @@ pub enum InitLevel {
 - `builtin/runtime_modules/core_modules.rs` 手工顺序列表 → 声明 init_level + 依赖后由排序器输出；profile 过滤逻辑保持（勾稽 `docs/runtime-plugins/profile-selection.md` 六 profile）；
 - `zircon_app/src/plugins/groups.rs` 的 Minimal/Default/Dev/Headless 组改为纯 feature/描述符集合声明。
 
-测试阶段：
-- `cargo test -p zircon_runtime --lib --locked`、`cargo test -p zircon_app --locked`
+测试阶段（policy §3 最小批次）：
+- 编译门：`cargo check -p zircon_runtime --lib --locked`、`cargo check -p zircon_app --locked`。
+- focused 过滤词批：`cargo test -p zircon_runtime --lib --locked runtime_modules`、`cargo test -p zircon_runtime --lib --locked profile`、`cargo test -p zircon_runtime --lib --locked module_order`、`cargo test -p zircon_app --locked plugins`、`cargo test -p zircon_app --locked groups`；波次收口保留全量 `cargo test -p zircon_runtime --lib --locked` 与 `cargo test -p zircon_app --locked`（policy §4）。
 - 运行门：editor 与 runtime_preview 双启动冒烟（`cargo run -p zircon_app --no-default-features --features target-editor-host --bin zircon_editor` / `--features target-client --bin zircon_runtime`）
 - 验收证据：组装输出与切换前模块序对比快照（允许等价重排，需人工确认差异表）；Minimal profile 模块集与 profile-selection.md 一致的断言测试。
 
@@ -201,9 +216,10 @@ pub enum InitLevel {
 - `zircon_plugins/plugin_sdk` 的注册宏适配（对插件作者签名尽量不破坏，破坏处在计划 04 脚手架模板同步）；
 - native 插件（ABI v3）入口报告映射到统一描述符。
 
-测试阶段：
-- `cargo test -p zircon_runtime --lib --locked`
-- 插件工作区门：`cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked` + `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked`
+测试阶段（policy §3 最小批次）：
+- 编译门：`cargo check -p zircon_runtime --lib --locked`。
+- focused 过滤词批：`cargo test -p zircon_runtime --lib --locked plugin`、`cargo test -p zircon_runtime --lib --locked descriptor`、`cargo test -p zircon_runtime --lib --locked registration`；波次收口保留全量 `cargo test -p zircon_runtime --lib --locked`（policy §4）。
+- 插件工作区门：`cargo build --manifest-path zircon_plugins/Cargo.toml --workspace --locked` + focused `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked plugin`、`cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked lifecycle`；波次收口保留插件工作区全量 `cargo test --manifest-path zircon_plugins/Cargo.toml --workspace --locked`（policy §4）。
 - 验收证据：first_party 插件全量注册顺序快照；native_dynamic_fixture 加载冒烟（`python tools/zircon_build.py --targets plugins --plugins native_dynamic_fixture ...` 产物加载）。
 - 文档更新：`docs/zircon_app/plugins.md`、`docs/runtime-plugins/profile-selection.md` 同步 InitLevel 语义。
 
