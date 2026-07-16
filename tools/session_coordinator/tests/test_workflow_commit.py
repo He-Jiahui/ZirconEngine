@@ -4,6 +4,7 @@ import subprocess
 import tempfile
 import unittest
 import json
+from types import SimpleNamespace
 from unittest import mock
 from pathlib import Path
 
@@ -35,9 +36,13 @@ class WorkflowCommitTests(unittest.TestCase):
         plan.write_text(
             "```zircon-workflow\n"
             '{"schema":1,"workflow_id":"runtime-control","goal":"Runtime",'
-            '"milestones":[{"id":"M1","title":"Base","depends_on":[]}]}\n'
+            '"milestones":[{"id":"M1","title":"Base","depends_on":[]},'
+            '{"id":"M2","title":"Feature","depends_on":["M1"]}]}\n'
             "```\n\n## Milestone M1: Base\n\n"
-            "- [ ] **M1.1 Add storage.** details\n",
+            "- [ ] **M1.1 Add storage.** details\n\n"
+            "## Milestone M2: Feature\n\n"
+            "- [ ] **M2.1 Add feature storage.** details\n"
+            "- [ ] **M2.2 Add feature projection.** details\n",
             encoding="utf-8",
         )
         subprocess.run(["git", "add", "--", "docs/plans/runtime/01-control.md"], cwd=self.repo, check=True)
@@ -76,7 +81,9 @@ class WorkflowCommitTests(unittest.TestCase):
     def tearDown(self) -> None:
         self.temporary.cleanup()
 
-    def _service(self, returncode: int = 0) -> MilestoneWorkflowService:
+    def _service(
+        self, returncode: int = 0, *, failures=None
+    ) -> MilestoneWorkflowService:
         def runner(command: list[str]) -> subprocess.CompletedProcess[str]:
             self.notification_messages.append(command[command.index("-Message") + 1])
             return subprocess.CompletedProcess(
@@ -97,7 +104,48 @@ class WorkflowCommitTests(unittest.TestCase):
             notifications,
             sessions=self.sessions,
             leases=self.leases,
+            failures=failures,
         )
+
+    def test_failure_node_keys_are_exact_for_slice_and_aggregate_for_parent(self) -> None:
+        service = self._service()
+
+        self.assertEqual(("M1.1",), service._failure_node_keys(self.run_id, "M1.1"))
+        self.assertEqual(("M1", "M1.1"), service._failure_node_keys(self.run_id, "M1"))
+        self.assertEqual(
+            ("M2", "M2.1", "M2.2"),
+            service._failure_node_keys(self.run_id, "M2"),
+        )
+
+    def test_prepare_context_rejects_invalid_failure_scope(self) -> None:
+        service = self._service()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            service.prepare_context(
+                self.run_id,
+                ["src/runtime.py"],
+                failure_workflow_node_keys=("M1.0",),
+            )
+
+        self.assertEqual(
+            "milestone_failure_scope_invalid",
+            rejected.exception.code,
+        )
+
+    def test_bound_manifest_failure_scope_is_reused_by_context_and_gate_refresh(self) -> None:
+        failures = mock.Mock()
+        failures.open_for_manifest.return_value = []
+        service = self._service(failures=failures)
+
+        paths = self._prepare_change_and_gates(service)
+
+        expected = (
+            "docs/plans/runtime/01-control.md",
+            ("M1", "M1.1"),
+            tuple(sorted(paths, key=str.casefold)),
+        )
+        self.assertGreaterEqual(failures.open_for_manifest.call_count, 2)
+        self.assertIn(mock.call(*expected), failures.open_for_manifest.call_args_list)
 
     def _prepare_change_and_gates(self, service: MilestoneWorkflowService) -> list[str]:
         paths = ["src/runtime.py", "tests/test_runtime.py"]
@@ -124,7 +172,13 @@ class WorkflowCommitTests(unittest.TestCase):
             session_id="session-a", run_id=self.run_id, milestone_key="M1",
             actor="session-a", action_id="bind-a",
         )
-        context = service.prepare_context(self.run_id, paths)
+        context = service.prepare_context(
+            self.run_id,
+            paths,
+            failure_workflow_node_keys=service._failure_node_keys(
+                self.run_id, "M1"
+            ),
+        )
         evaluator = MilestoneGateEvaluator(self.database)
         fingerprint = evaluator.input_fingerprint(self.run_id, "M1", context)
         evidence = GateEvidenceStore(self.database)
@@ -166,7 +220,7 @@ class WorkflowCommitTests(unittest.TestCase):
             run_id=self.run_id,
             milestone_key="M1",
             paths=paths,
-            message="feat(workflow): complete M1 milestone",
+            summary="add managed runtime validation coverage",
             actor="session-a",
         )
 
@@ -185,10 +239,14 @@ class WorkflowCommitTests(unittest.TestCase):
             capture_output=True,
             text=True,
         ).stdout.strip()
-        self.assertEqual("feat(workflow): complete M1 milestone", subject)
+        self.assertEqual("feat(runtime): add managed runtime validation coverage", subject)
         self.assertEqual(1, len(self.notification_messages))
         self.assertTrue(
             self.notification_messages[0].startswith("核心内容摘要：【runtime】")
+        )
+        self.assertIn(
+            "M1 · Base：add managed runtime validation coverage",
+            self.notification_messages[0],
         )
         self.assertIn(
             f"\n提交的commit内容：{result.finalize.commit_sha} {subject}",
@@ -197,6 +255,231 @@ class WorkflowCommitTests(unittest.TestCase):
         self.assertTrue(result.gate.allowed)
         self.assertEqual("succeeded", result.notification.status)
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
+
+    def test_commit_reuses_one_immutable_failure_scope(self) -> None:
+        service = self._service()
+        paths = self._prepare_change_and_gates(service)
+
+        with (
+            mock.patch.object(
+                service,
+                "_failure_node_keys",
+                wraps=service._failure_node_keys,
+            ) as resolve_scope,
+            mock.patch.object(
+                self.finalize,
+                "commit_milestone",
+                wraps=self.finalize.commit_milestone,
+            ) as finalize,
+        ):
+            service.commit(
+                session_id="session-a",
+                run_id=self.run_id,
+                milestone_key="M1",
+                paths=paths,
+                summary="reuse one failure scope through finalization",
+                actor="session-a",
+            )
+
+        resolve_scope.assert_called_once_with(self.run_id, "M1")
+        self.assertEqual(
+            ("M1", "M1.1"),
+            finalize.call_args.kwargs["failure_workflow_node_keys"],
+        )
+
+    def test_manifest_derivation_uses_current_attributed_record_when_history_exists(self) -> None:
+        service = self._service()
+        source = "src/runtime.py"
+        (self.repo / source).parent.mkdir(parents=True, exist_ok=True)
+        (self.repo / source).write_text("current source attestation\n", encoding="utf-8")
+        historical = "docs/plans/runtime/01/2026-07-14-m1-historical-acceptance.md"
+        current = "docs/plans/runtime/01/2026-07-15-m1-current-source-attestation.md"
+        for record, files in ((historical, ["src/historical.py"]), (current, [source])):
+            output = self.repo / record
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(
+                "# M1 evidence\n\n"
+                "Plan: docs/plans/runtime/01-control.md\n"
+                "Milestone: M1\n"
+                "Status: completed\n"
+                f"Files: {json.dumps(files)}\n",
+                encoding="utf-8",
+            )
+        current_paths = [source, current]
+        self.assertTrue(self.leases.acquire("session-a", current_paths).acquired)
+        self.baselines.attribute("session-a", current_paths)
+
+        self.assertEqual(
+            tuple(sorted(current_paths, key=str.casefold)),
+            service._derive_milestone_paths("session-a", self.run_id, "M1"),
+        )
+
+    def test_slice_commit_succeeds_without_accepting_parent_milestone(self) -> None:
+        service = self._service()
+        with self.database.connect() as connection:
+            slice_node = connection.execute(
+                "SELECT node_id FROM workflow_nodes WHERE run_id=? AND node_key='M2.1'",
+                (self.run_id,),
+            ).fetchone()[0]
+            attempts_before = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM workflow_attempts WHERE node_id=?",
+                    (slice_node,),
+                ).fetchone()[0]
+            )
+
+        paths = ["src/storage_slice.py"]
+        target = self.repo / paths[0]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("storage slice\n", encoding="utf-8")
+        record = "docs/plans/runtime/01/2026-07-12-m1-1-storage-slice.md"
+        output = self.repo / record
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            "# M2.1 output\n\nPlan: docs/plans/runtime/01-control.md\n"
+            "Milestone: M2.1\nStatus: completed\n"
+            f"Files: {json.dumps(paths)}\n\n"
+            "## Scope delivered\n\nDone.\n\n"
+            "## Fresh testing evidence\n\nPassed.\n\n"
+            "## Review\n\nAccepted.\n",
+            encoding="utf-8",
+        )
+        paths.append(record)
+        self.assertTrue(self.leases.acquire("session-a", paths).acquired)
+        self.baselines.attribute("session-a", paths)
+        subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
+
+        service.bind_manifest(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M2.1",
+            actor="session-a",
+            action_id="bind-slice",
+        )
+        context = service.prepare_context(
+            self.run_id,
+            paths,
+            failure_workflow_node_keys=service._failure_node_keys(
+                self.run_id, "M2.1"
+            ),
+        )
+        evaluator = MilestoneGateEvaluator(self.database)
+        fingerprint = evaluator.input_fingerprint(self.run_id, "M2.1", context)
+        evidence = GateEvidenceStore(self.database)
+        evidence.record_review(
+            run_id=self.run_id,
+            topology_version_id=self.topology_version_id,
+            reviewer="reviewer-b",
+            executor="session-a",
+            critical_count=0,
+            important_count=0,
+            summary="slice clean",
+            input_fingerprint=fingerprint,
+            node_id=slice_node,
+        )
+        evidence.record_gate(
+            run_id=self.run_id,
+            topology_version_id=self.topology_version_id,
+            gate_kind="validation",
+            decision="accepted",
+            decision_code="managed_validation_succeeded",
+            input_fingerprint=fingerprint,
+            actor="reviewer-b",
+            node_id=slice_node,
+        )
+        refreshed = service.refresh_gates(
+            session_id="session-a",
+            run_id=self.run_id,
+            actor="reviewer-b",
+            action_id="refresh-slice",
+        )
+        self.assertEqual(
+            {
+                "commit_manifest": "accepted",
+                "failure_audit": "accepted",
+                "plan_output": "accepted",
+                "review": "accepted",
+            },
+            refreshed["milestones"]["M2.1"],
+        )
+
+        result = service.commit(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M2.1",
+            paths=paths,
+            summary="add managed storage slice",
+            actor="session-a",
+        )
+
+        committed = subprocess.run(
+            ["git", "show", "--pretty=", "--name-only", result.finalize.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(sorted(paths), sorted(item for item in committed if item))
+        with self.database.connect() as connection:
+            states = {
+                row["node_key"]: row["state"]
+                for row in connection.execute(
+                    "SELECT node_key, state FROM workflow_nodes WHERE run_id=? AND node_key IN ('M1', 'M2', 'M2.1', 'M2.2')",
+                    (self.run_id,),
+                )
+            }
+            attempts_after = int(
+                connection.execute(
+                    "SELECT COUNT(*) FROM workflow_attempts WHERE node_id=?",
+                    (slice_node,),
+                ).fetchone()[0]
+            )
+        self.assertEqual("succeeded", states["M2.1"])
+        self.assertEqual("pending", states["M2.2"])
+        self.assertEqual("pending", states["M2"])
+        parent_gate = service.gates.evaluate(
+            self.run_id,
+            "M2",
+            service.prepare_context(
+                self.run_id,
+                paths,
+                failure_workflow_node_keys=service._failure_node_keys(
+                    self.run_id, "M2"
+                ),
+            ),
+        )
+        self.assertFalse(parent_gate.allowed)
+        self.assertEqual("milestone_gate_nodes_incomplete", parent_gate.code)
+        with self.database.connect() as connection:
+            blocking_keys = {
+                row["node_key"]
+                for row in connection.execute(
+                    "SELECT node_key FROM workflow_nodes WHERE node_id IN (?, ?)",
+                    parent_gate.blocking_node_ids,
+                )
+            }
+        self.assertEqual({"M1", "M2.2"}, blocking_keys)
+        self.assertEqual(attempts_before + 1, attempts_after)
+
+    def test_commit_subject_rejects_generic_slice_completion_summary(self) -> None:
+        with self.assertRaises(CoordinatorError) as rejected:
+            MilestoneWorkflowService._commit_subject(
+                "runtime",
+                ["src/runtime.py"],
+                "complete M2.1 slice",
+            )
+
+        self.assertEqual("milestone_commit_summary_invalid", rejected.exception.code)
+
+    def test_commit_subject_preserves_explicit_conventional_subject(self) -> None:
+        self.assertEqual(
+            "test(shader): verify material redirect persistence contract",
+            MilestoneWorkflowService._commit_subject(
+                "shader",
+                ["zircon_runtime/tests/material_redirect.rs"],
+                "test(shader): verify material redirect persistence contract",
+            ),
+        )
 
     def test_notification_failure_does_not_rollback_commit(self) -> None:
         self.notification_messages = []
@@ -208,7 +491,7 @@ class WorkflowCommitTests(unittest.TestCase):
             run_id=self.run_id,
             milestone_key="M1",
             paths=paths,
-            message="feat(workflow): complete M1 milestone",
+            summary="record notification failure without rolling back commit",
             actor="session-a",
         )
 
@@ -217,6 +500,22 @@ class WorkflowCommitTests(unittest.TestCase):
         ).stdout.strip()
         self.assertEqual(result.finalize.commit_sha, head)
         self.assertEqual("failed", result.notification.status)
+
+    def test_commit_rejects_a_generic_milestone_completion_summary(self) -> None:
+        service = self._service()
+        paths = self._prepare_change_and_gates(service)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            service.commit(
+                session_id="session-a",
+                run_id=self.run_id,
+                milestone_key="M1",
+                paths=paths,
+                summary="complete M1 milestone",
+                actor="session-a",
+            )
+
+        self.assertEqual("milestone_commit_summary_invalid", rejected.exception.code)
 
     def test_post_cas_baseline_failure_is_reconciled_before_workflow_success(self) -> None:
         service = self._service()
@@ -237,7 +536,7 @@ class WorkflowCommitTests(unittest.TestCase):
                 run_id=self.run_id,
                 milestone_key="M1",
                 paths=paths,
-                message="feat(workflow): complete M1 milestone",
+                summary="reconcile the post-CAS baseline update",
                 actor="session-a",
             )
 
@@ -266,7 +565,7 @@ class WorkflowCommitTests(unittest.TestCase):
             run_id=self.run_id,
             milestone_key="M1",
             paths=paths,
-            message="feat(workflow): complete M1 milestone",
+            summary="preserve foreign staged files during scoped commit",
             actor="session-a",
         )
 
@@ -296,10 +595,19 @@ class WorkflowCommitTests(unittest.TestCase):
         original = service.prepare_context
         calls = 0
 
-        def changed_context(run_id: str, manifest: list[str] | tuple[str, ...]):
+        def changed_context(
+            run_id: str,
+            manifest: list[str] | tuple[str, ...],
+            *,
+            failure_workflow_node_keys: tuple[str, ...],
+        ):
             nonlocal calls
             calls += 1
-            value = original(run_id, manifest)
+            value = original(
+                run_id,
+                manifest,
+                failure_workflow_node_keys=failure_workflow_node_keys,
+            )
             if calls >= 2:
                 return value.__class__(
                     value.topology_version_id,
@@ -318,7 +626,7 @@ class WorkflowCommitTests(unittest.TestCase):
                     run_id=self.run_id,
                     milestone_key="M1",
                     paths=paths,
-                    message="feat(workflow): complete M1 milestone",
+                    summary="reject stale gate evidence under the Git mutex",
                     actor="session-a",
                 )
         self.assertEqual("milestone_gate_stale_evidence", rejected.exception.code)
@@ -339,12 +647,101 @@ class WorkflowCommitTests(unittest.TestCase):
             run_id=self.run_id,
             milestone_key="M1",
             paths=paths,
-            message="feat(workflow): complete M1 milestone",
+            summary="close the accepted runtime workflow goal",
             actor="session-a",
+        )
+        nodes = {item.node_key: item for item in WorkflowStore(self.database).nodes(self.run_id)}
+        WorkflowStore(self.database).append_attempt(
+            nodes["M2"].node_id,
+            WorkflowNodeState.SUCCEEDED,
+            {"exit": 0},
         )
         result = service.close_goal("session-a", self.run_id)
         self.assertEqual("completed", result["session"]["status"])
         self.assertEqual(0, len(self.leases.owned_paths("session-a")))
+
+    def test_goal_closeout_ignores_terminal_failed_commit_intents(self) -> None:
+        service = self._service()
+        paths = self._prepare_change_and_gates(service)
+        service.commit(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M1",
+            paths=paths,
+            summary="preserve failed commit intent audit history",
+            actor="session-a",
+        )
+        nodes = {item.node_key: item for item in WorkflowStore(self.database).nodes(self.run_id)}
+        WorkflowStore(self.database).append_attempt(
+            nodes["M2"].node_id,
+            WorkflowNodeState.SUCCEEDED,
+            {"exit": 0},
+        )
+        with self.database.connect() as connection:
+            node_id = connection.execute(
+                "SELECT node_id FROM workflow_nodes WHERE run_id=? AND node_key='M1'",
+                (self.run_id,),
+            ).fetchone()[0]
+        now = "2026-07-15T00:00:00Z"
+        with self.database.transaction() as connection:
+            for intent_id in ("failed-intent-a", "failed-intent-b"):
+                connection.execute(
+                    """INSERT INTO workflow_commit_intents(
+                           intent_id, run_id, topology_version_id, node_id,
+                           session_id, action_id, actor, gate_fingerprint,
+                           paths_json, message, status, commit_sha, error_text,
+                           created_at, updated_at
+                       ) VALUES (?, ?, ?, ?, 'session-a', NULL, 'session-a',
+                                 'failed-gate', '[]', 'historical failed finalize',
+                                 'failed', NULL, 'finalize failed before ref update', ?, ?)""",
+                    (intent_id, self.run_id, self.topology_version_id, node_id, now, now),
+                )
+
+        result = service.close_goal("session-a", self.run_id)
+
+        self.assertEqual("completed", result["session"]["status"])
+        with self.database.connect() as connection:
+            failed_count = connection.execute(
+                """SELECT COUNT(*) FROM workflow_commit_intents
+                   WHERE run_id=? AND status='failed' AND commit_sha IS NULL""",
+                (self.run_id,),
+            ).fetchone()[0]
+        self.assertEqual(2, failed_count)
+
+    def test_goal_closeout_keeps_prepared_commit_intent_pending(self) -> None:
+        service = self._service()
+        paths = self._prepare_change_and_gates(service)
+        service.commit(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M1",
+            paths=paths,
+            summary="retain pending commit reconciliation guard",
+            actor="session-a",
+        )
+        with self.database.connect() as connection:
+            node_id = connection.execute(
+                "SELECT node_id FROM workflow_nodes WHERE run_id=? AND node_key='M1'",
+                (self.run_id,),
+            ).fetchone()[0]
+        now = "2026-07-15T00:00:00Z"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_commit_intents(
+                       intent_id, run_id, topology_version_id, node_id,
+                       session_id, action_id, actor, gate_fingerprint,
+                       paths_json, message, status, created_at, updated_at
+                   ) VALUES ('prepared-intent', ?, ?, ?, 'session-a', NULL,
+                             'session-a', 'pending-gate', '[]', 'pending finalize',
+                             'prepared', ?, ?)""",
+                (self.run_id, self.topology_version_id, node_id, now, now),
+            )
+
+        with self.assertRaises(CoordinatorError) as pending:
+            service.close_goal("session-a", self.run_id)
+
+        self.assertEqual("workflow_goal_commit_reconciliation_pending", pending.exception.code)
+        self.assertEqual(1, pending.exception.details["count"])
 
     def test_plan_text_change_invalidates_active_topology_before_commit(self) -> None:
         service = self._service()
@@ -358,7 +755,7 @@ class WorkflowCommitTests(unittest.TestCase):
                 run_id=self.run_id,
                 milestone_key="M1",
                 paths=paths,
-                message="feat(workflow): complete M1 milestone",
+                summary="reject changed plan topology before commit",
                 actor="session-a",
             )
 
@@ -410,7 +807,13 @@ class WorkflowCommitTests(unittest.TestCase):
             validation_run_id="validation-a",
             job_id="job-a",
             template="coordinator-actions",
-            source_manifest_hash=service.prepare_context(self.run_id, paths).manifest_hash,
+            source_manifest_hash=service.prepare_context(
+                self.run_id,
+                paths,
+                failure_workflow_node_keys=service._failure_node_keys(
+                    self.run_id, "M1"
+                ),
+            ).manifest_hash,
             actor="operator-a",
             action_id="action-a",
         )
@@ -474,7 +877,13 @@ class WorkflowCommitTests(unittest.TestCase):
             session_id="session-a", run_id=self.run_id, milestone_key="M1",
             validation_run_id="validation-mutated", job_id="job-mutated",
             template="coordinator-actions",
-            source_manifest_hash=service.prepare_context(self.run_id, paths).manifest_hash,
+            source_manifest_hash=service.prepare_context(
+                self.run_id,
+                paths,
+                failure_workflow_node_keys=service._failure_node_keys(
+                    self.run_id, "M1"
+                ),
+            ).manifest_hash,
             actor="operator-a", action_id="action-mutated",
         )
         (source / paths[0]).write_text("tampered after binding\n", encoding="utf-8")
@@ -562,6 +971,275 @@ class WorkflowCommitTests(unittest.TestCase):
                 actor="session-a", action_id="rebind",
             )
         self.assertEqual("milestone_manifest_already_bound", immutable.exception.code)
+
+    def test_reconcile_accepted_milestone_copies_immutable_evidence_between_equal_topologies(self) -> None:
+        service = self._service()
+        service.failures = SimpleNamespace(
+            import_repository=mock.Mock(),
+            open_related_to_plan=mock.Mock(
+                return_value=[SimpleNamespace(artifact_path="docs/plans/runtime/01/failure-m3.md")]
+            ),
+        )
+        plan_path = "docs/plans/runtime/01-control.md"
+        self.sessions.register(session_id="session-b", plan_path=plan_path)
+        self.sessions.set_status("session-b", SessionStatus.ACTIVE)
+        target = TopologyImporter(self.database, self.repo).import_plan("session-b", plan_path)
+        WorkflowStore(self.database).synchronize_session(self.sessions.get("session-b"))
+
+        historical_path = "src/historical.py"
+        (self.repo / historical_path).parent.mkdir(parents=True, exist_ok=True)
+        (self.repo / historical_path).write_text("accepted historical content\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", historical_path], cwd=self.repo, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "test: add historical evidence"], cwd=self.repo, check=True)
+        commit_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.repo, check=True, capture_output=True, text=True
+        ).stdout.strip()
+        paths = (historical_path,)
+        manifest_hash = service._manifest_hash_from_commit(commit_sha, paths)
+        source_node_id = f"{self.run_id}:M1"
+        now = "2026-07-15T00:00:00+00:00"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_milestone_manifests(
+                       manifest_id, run_id, topology_version_id, node_id, session_id,
+                       paths_json, manifest_hash, actor, action_id, created_at
+                   ) VALUES ('source-manifest', ?, ?, ?, 'session-a', ?, ?, 'source', 'bind', ?)""",
+                (self.run_id, self.topology_version_id, source_node_id, json.dumps(paths), manifest_hash, now),
+            )
+            connection.execute(
+                """INSERT INTO workflow_commit_intents(
+                       intent_id, run_id, topology_version_id, node_id, session_id,
+                       action_id, actor, gate_fingerprint, paths_json, message, status,
+                       commit_sha, created_at, updated_at
+                   ) VALUES ('source-intent', ?, ?, ?, 'session-a', 'source-action',
+                             'source', 'gate', ?, 'test(runtime): accept historical evidence',
+                             'reconciled', ?, ?, ?)""",
+                (self.run_id, self.topology_version_id, source_node_id, json.dumps(paths), commit_sha, now, now),
+            )
+            connection.execute(
+                """INSERT INTO workflow_attempts(
+                       attempt_id, run_id, node_id, attempt_number, state, accepted,
+                       evidence_json, started_at, completed_at
+                   ) VALUES ('source-attempt', ?, ?, 1, 'succeeded', 1, ?, ?, ?)""",
+                (
+                    self.run_id,
+                    source_node_id,
+                    json.dumps({"commitSha": commit_sha, "intentId": "source-intent"}),
+                    now,
+                    now,
+                ),
+            )
+            connection.execute(
+                "UPDATE workflow_nodes SET state='succeeded', attempt_count=1 WHERE node_id=?",
+                (source_node_id,),
+            )
+            source_version = connection.execute(
+                "SELECT * FROM workflow_topology_versions WHERE topology_version_id=?",
+                (self.topology_version_id,),
+            ).fetchone()
+            refreshed_topology = json.loads(source_version["topology_json"])
+            refreshed_topology["content_hash"] = "refreshed-plan-content"
+            connection.execute(
+                """INSERT INTO workflow_topology_versions(
+                       topology_version_id, run_id, version_number, plan_path, plan_id,
+                       schema_version, source_kind, content_hash, topology_hash, topology_json,
+                       supersedes_id, created_at
+                   ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (
+                    "source-refreshed-topology",
+                    self.run_id,
+                    int(source_version["version_number"]) + 1,
+                    source_version["plan_path"],
+                    source_version["plan_id"],
+                    source_version["schema_version"],
+                    source_version["source_kind"],
+                    "refreshed-plan-content",
+                    source_version["topology_hash"],
+                    json.dumps(refreshed_topology, sort_keys=True, separators=(",", ":")),
+                    self.topology_version_id,
+                    now,
+                ),
+            )
+            connection.execute(
+                "UPDATE workflow_runs SET current_topology_version_id=? WHERE run_id=?",
+                ("source-refreshed-topology", self.run_id),
+            )
+            connection.execute(
+                "UPDATE workflow_runs SET state='stale' WHERE run_id=?",
+                (target.run_id,),
+            )
+
+        result = service.reconcile_accepted_milestones(
+            source_run_id=self.run_id,
+            target_run_id=target.run_id,
+            milestone_keys=("M1",),
+            actor="maintainer",
+            action_id="reconcile-action",
+        )
+
+        self.assertEqual(["M1"], [item["milestoneId"] for item in result["nodes"]])
+        self.assertEqual(
+            ["docs/plans/runtime/01/failure-m3.md"], result["openFailurePaths"]
+        )
+        with self.database.connect() as connection:
+            target_node = connection.execute(
+                "SELECT state, attempt_count FROM workflow_nodes WHERE node_id=?",
+                (f"{target.run_id}:M1",),
+            ).fetchone()
+            target_manifest = connection.execute(
+                """SELECT manifest_hash, paths_json, action_id
+                   FROM workflow_milestone_manifests
+                   WHERE run_id=? AND node_id=?""",
+                (target.run_id, f"{target.run_id}:M1"),
+            ).fetchone()
+            target_intent = connection.execute(
+                """SELECT intent_id, status, commit_sha, action_id
+                   FROM workflow_commit_intents WHERE run_id=? AND node_id=?""",
+                (target.run_id, f"{target.run_id}:M1"),
+            ).fetchone()
+            target_attempt = connection.execute(
+                "SELECT accepted, evidence_json FROM workflow_attempts WHERE run_id=? AND node_id=?",
+                (target.run_id, f"{target.run_id}:M1"),
+            ).fetchone()
+
+        self.assertEqual(("succeeded", 1), tuple(target_node))
+        self.assertEqual((manifest_hash, json.dumps(paths), "reconcile-action"), tuple(target_manifest))
+        self.assertEqual(("reconciled", commit_sha, "reconcile-action"), tuple(target_intent[1:]))
+        self.assertEqual(1, target_attempt["accepted"])
+        evidence = json.loads(target_attempt["evidence_json"])
+        self.assertEqual(self.run_id, evidence["reconciledFromRunId"])
+        self.assertEqual(target_intent["intent_id"], evidence["intentId"])
+        self.assertEqual("source-intent", evidence["sourceIntentId"])
+
+    def test_reconcile_accepted_milestone_recovers_legacy_second_hop_intent_reference(self) -> None:
+        service = self._service()
+        plan_path = "docs/plans/runtime/01-control.md"
+        self.sessions.register(session_id="session-b", plan_path=plan_path)
+        self.sessions.set_status("session-b", SessionStatus.ACTIVE)
+        target = TopologyImporter(self.database, self.repo).import_plan("session-b", plan_path)
+        WorkflowStore(self.database).synchronize_session(self.sessions.get("session-b"))
+
+        historical_path = "src/legacy_second_hop.py"
+        (self.repo / historical_path).parent.mkdir(parents=True, exist_ok=True)
+        (self.repo / historical_path).write_text("accepted historical content\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", historical_path], cwd=self.repo, check=True)
+        subprocess.run(["git", "commit", "-q", "-m", "test: add legacy reconciliation evidence"], cwd=self.repo, check=True)
+        commit_sha = subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=self.repo, check=True, capture_output=True, text=True
+        ).stdout.strip()
+        paths = (historical_path,)
+        manifest_hash = service._manifest_hash_from_commit(commit_sha, paths)
+        source_node_id = f"{self.run_id}:M1"
+        now = "2026-07-15T00:00:00+00:00"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO workflow_milestone_manifests(
+                       manifest_id, run_id, topology_version_id, node_id, session_id,
+                       paths_json, manifest_hash, actor, action_id, created_at
+                   ) VALUES ('legacy-source-manifest', ?, ?, ?, 'session-a', ?, ?, 'source', 'bind', ?)""",
+                (self.run_id, self.topology_version_id, source_node_id, json.dumps(paths), manifest_hash, now),
+            )
+            connection.execute(
+                """INSERT INTO workflow_commit_intents(
+                       intent_id, run_id, topology_version_id, node_id, session_id,
+                       action_id, actor, gate_fingerprint, paths_json, message, status,
+                       commit_sha, created_at, updated_at
+                   ) VALUES ('legacy-local-reconciled-intent', ?, ?, ?, 'session-a', 'source-action',
+                             'source', 'gate', ?, 'test(runtime): accept legacy evidence',
+                             'reconciled', ?, ?, ?)""",
+                (self.run_id, self.topology_version_id, source_node_id, json.dumps(paths), commit_sha, now, now),
+            )
+            connection.execute(
+                """INSERT INTO workflow_attempts(
+                       attempt_id, run_id, node_id, attempt_number, state, accepted,
+                       evidence_json, started_at, completed_at
+                   ) VALUES ('legacy-source-attempt', ?, ?, 1, 'succeeded', 1, ?, ?, ?)""",
+                (
+                    self.run_id,
+                    source_node_id,
+                    json.dumps(
+                        {
+                            "commitSha": commit_sha,
+                            "intentId": "legacy-source-intent",
+                            "sourceIntentId": "legacy-source-intent",
+                            "reconciledFromRunId": "older-run",
+                        }
+                    ),
+                    now,
+                    now,
+                ),
+            )
+            connection.execute(
+                "UPDATE workflow_nodes SET state='succeeded', attempt_count=1 WHERE node_id=?",
+                (source_node_id,),
+            )
+
+        result = service.reconcile_accepted_milestones(
+            source_run_id=self.run_id,
+            target_run_id=target.run_id,
+            milestone_keys=("M1",),
+            actor="maintainer",
+            action_id="second-hop",
+        )
+
+        self.assertEqual(["M1"], [item["milestoneId"] for item in result["nodes"]])
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT evidence_json FROM workflow_attempts WHERE run_id=? AND node_id=?",
+                (target.run_id, f"{target.run_id}:M1"),
+            ).fetchone()
+        evidence = json.loads(row["evidence_json"])
+        self.assertEqual(result["nodes"][0]["intentId"], evidence["intentId"])
+        self.assertEqual("legacy-local-reconciled-intent", evidence["sourceIntentId"])
+        self.assertEqual("legacy-source-intent", evidence["legacyEvidenceIntentId"])
+
+    def test_reconcile_rejects_terminal_target_run(self) -> None:
+        service = self._service()
+        plan_path = "docs/plans/runtime/01-control.md"
+        self.sessions.register(session_id="session-terminal", plan_path=plan_path)
+        self.sessions.set_status("session-terminal", SessionStatus.ACTIVE)
+        target = TopologyImporter(self.database, self.repo).import_plan(
+            "session-terminal", plan_path
+        )
+        WorkflowStore(self.database).synchronize_session(
+            self.sessions.get("session-terminal")
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE workflow_runs SET state='succeeded' WHERE run_id=?",
+                (target.run_id,),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            service.reconcile_accepted_milestones(
+                source_run_id=self.run_id,
+                target_run_id=target.run_id,
+                milestone_keys=("M1",),
+                actor="maintainer",
+                action_id="terminal-target",
+            )
+
+        self.assertEqual("workflow_reconcile_target_terminal", rejected.exception.code)
+
+    def test_reconciliation_does_not_skip_unaccepted_dependencies(self) -> None:
+        records = [
+            {
+                "milestone_key": "M2",
+                "dependencies": ("M1",),
+            }
+        ]
+
+        unresolved = MilestoneWorkflowService._reconciliation_unaccepted_dependencies(
+            records, set()
+        )
+
+        self.assertEqual({"M2": ["M1"]}, unresolved)
+        self.assertEqual(
+            {},
+            MilestoneWorkflowService._reconciliation_unaccepted_dependencies(
+                records, {"M1"}
+            ),
+        )
 
 
 if __name__ == "__main__":

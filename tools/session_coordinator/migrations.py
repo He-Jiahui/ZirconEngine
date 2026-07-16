@@ -13,7 +13,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 28
+LATEST_SCHEMA_VERSION = 41
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1465,6 +1465,388 @@ def _migration_28(connection: Connection) -> None:
     )
 
 
+def _migration_29(connection: Connection) -> None:
+    """Persist an in-progress copy marker without rewriting validation history."""
+    connection.execute(
+        "ALTER TABLE validation_copies ADD COLUMN materialization_started_at TEXT"
+    )
+
+
+def _migration_30(connection: Connection) -> None:
+    """Persist every Cargo process-tree exit observation before pool reuse."""
+    connection.executescript(
+        """
+        ALTER TABLE cargo_jobs ADD COLUMN process_tree_observed_at TEXT;
+        ALTER TABLE cargo_jobs ADD COLUMN process_tree_live_pids_json TEXT NOT NULL DEFAULT '[]';
+        ALTER TABLE cargo_jobs ADD COLUMN process_tree_exited_at TEXT;
+        """
+    )
+
+
+def _migration_31(connection: Connection) -> None:
+    """Persist the Cargo root creation identity for PID-reuse-safe observation."""
+    connection.execute("ALTER TABLE cargo_jobs ADD COLUMN root_process_creation_time TEXT")
+
+
+def _migration_32(connection: Connection) -> None:
+    """Distinguish actual Cargo roots from wrapper processes that supervise Cargo."""
+    connection.execute(
+        "ALTER TABLE cargo_jobs ADD COLUMN root_process_kind TEXT NOT NULL DEFAULT 'cargo'"
+    )
+
+
+def _migration_33(connection: Connection) -> None:
+    """Add the audited immutable-evidence reconciliation action kind."""
+    action_kinds = """
+        'session.heartbeat', 'session.activate', 'lease.claim_own_scope',
+        'lease.release_own', 'patch.process_own', 'validation.start',
+        'validation.cancel', 'failure.refresh', 'topology.refresh',
+        'service.drain_preview', 'service.drain', 'service.resume',
+        'service.stop', 'service.restart', 'service.force_stop',
+        'milestone.commit', 'milestone.reconcile_accepted', 'session.complete',
+        'maintenance.cleanup', 'codex.sessions.reconcile'
+    """
+    connection.executescript(
+        f"""
+        DROP TRIGGER action_requests_kind_insert;
+        DROP TRIGGER action_requests_kind_update;
+        DROP TRIGGER action_approvals_no_update;
+        DROP TRIGGER action_approvals_no_delete;
+        DROP TRIGGER service_supervision_events_no_update;
+        DROP TRIGGER service_supervision_events_no_delete;
+        DROP INDEX action_requests_actor_created;
+        DROP INDEX action_requests_status_expiry;
+        DROP INDEX action_approvals_action;
+        DROP INDEX service_supervision_events_repository_created;
+        DROP INDEX service_lifecycle_intents_repository_status;
+        DROP INDEX service_lifecycle_one_active_reversible;
+
+        ALTER TABLE action_approvals RENAME TO action_approvals_v32;
+        ALTER TABLE service_supervision_events RENAME TO service_supervision_events_v32;
+        ALTER TABLE service_lifecycle_intents RENAME TO service_lifecycle_intents_v32;
+        ALTER TABLE action_requests RENAME TO action_requests_v32;
+
+        CREATE TABLE action_requests (
+            action_id TEXT PRIMARY KEY,
+            action_kind TEXT NOT NULL CHECK (action_kind IN ({action_kinds})),
+            risk TEXT NOT NULL CHECK (risk IN ('green', 'yellow', 'red')),
+            required_role TEXT NOT NULL CHECK (required_role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            actor TEXT NOT NULL,
+            web_session_id TEXT,
+            bound_session_id TEXT,
+            daemon_instance_id TEXT NOT NULL,
+            parameters_json TEXT NOT NULL,
+            impact_json TEXT NOT NULL,
+            warnings_json TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            confirmation_phrase_hash TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'previewed', 'executing', 'succeeded', 'failed', 'cancelled',
+                'expired', 'state_changed', 'denied'
+            )),
+            reason TEXT,
+            result_json TEXT,
+            error_code TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            confirmed_at TEXT,
+            completed_at TEXT
+        );
+        CREATE TABLE action_approvals (
+            approval_id TEXT PRIMARY KEY,
+            action_id TEXT NOT NULL REFERENCES action_requests(action_id),
+            actor TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            reason TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE service_supervision_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            repository_key TEXT NOT NULL,
+            sequence INTEGER NOT NULL CHECK (sequence > 0),
+            from_state TEXT CHECK (from_state IS NULL OR from_state IN (
+                'starting', 'healthy', 'degraded', 'draining', 'stopping', 'offline',
+                'recovering', 'read_only', 'identity_mismatch', 'fatal_integrity_error'
+            )),
+            to_state TEXT NOT NULL CHECK (to_state IN (
+                'starting', 'healthy', 'degraded', 'draining', 'stopping', 'offline',
+                'recovering', 'read_only', 'identity_mismatch', 'fatal_integrity_error'
+            )),
+            daemon_instance_id TEXT,
+            process_id INTEGER CHECK (process_id IS NULL OR process_id > 0),
+            process_creation_time TEXT,
+            reason_code TEXT NOT NULL,
+            actor TEXT,
+            action_id TEXT REFERENCES action_requests(action_id),
+            payload_json TEXT NOT NULL DEFAULT '{{}}',
+            created_at TEXT NOT NULL,
+            UNIQUE(repository_key, sequence)
+        );
+        CREATE TABLE service_lifecycle_intents (
+            intent_id TEXT PRIMARY KEY,
+            repository_key TEXT NOT NULL,
+            action_id TEXT UNIQUE REFERENCES action_requests(action_id),
+            kind TEXT NOT NULL CHECK (kind IN (
+                'service.drain', 'service.resume', 'service.stop',
+                'service.restart', 'service.force_stop'
+            )),
+            status TEXT NOT NULL CHECK (status IN (
+                'accepted', 'draining', 'ready', 'stopping', 'awaiting_restart',
+                'succeeded', 'failed', 'cancelled'
+            )),
+            requested_by TEXT NOT NULL,
+            source_daemon_instance_id TEXT NOT NULL,
+            successor_daemon_instance_id TEXT,
+            deadline_at TEXT,
+            error_code TEXT,
+            result_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT
+        );
+
+        INSERT INTO action_requests SELECT * FROM action_requests_v32;
+        INSERT INTO action_approvals SELECT * FROM action_approvals_v32;
+        INSERT INTO service_supervision_events SELECT * FROM service_supervision_events_v32;
+        INSERT INTO service_lifecycle_intents SELECT * FROM service_lifecycle_intents_v32;
+        DROP TABLE action_approvals_v32;
+        DROP TABLE service_supervision_events_v32;
+        DROP TABLE service_lifecycle_intents_v32;
+        DROP TABLE action_requests_v32;
+
+        CREATE INDEX action_requests_actor_created ON action_requests(actor, created_at);
+        CREATE INDEX action_requests_status_expiry ON action_requests(status, expires_at);
+        CREATE INDEX action_approvals_action ON action_approvals(action_id);
+        CREATE INDEX service_supervision_events_repository_created
+            ON service_supervision_events(repository_key, created_at);
+        CREATE INDEX service_lifecycle_intents_repository_status
+            ON service_lifecycle_intents(repository_key, status, updated_at);
+        CREATE UNIQUE INDEX service_lifecycle_one_active_reversible
+            ON service_lifecycle_intents(repository_key)
+            WHERE kind IN ('service.stop', 'service.restart', 'service.force_stop')
+              AND status IN ('accepted', 'draining');
+
+        CREATE TRIGGER action_requests_kind_insert
+        BEFORE INSERT ON action_requests
+        WHEN NEW.action_kind NOT IN ({action_kinds})
+        BEGIN SELECT RAISE(ABORT, 'invalid controlled action kind'); END;
+        CREATE TRIGGER action_requests_kind_update
+        BEFORE UPDATE OF action_kind ON action_requests
+        WHEN NEW.action_kind NOT IN ({action_kinds})
+        BEGIN SELECT RAISE(ABORT, 'invalid controlled action kind'); END;
+        CREATE TRIGGER action_approvals_no_update BEFORE UPDATE ON action_approvals
+        BEGIN SELECT RAISE(ABORT, 'action approvals are immutable'); END;
+        CREATE TRIGGER action_approvals_no_delete BEFORE DELETE ON action_approvals
+        BEGIN SELECT RAISE(ABORT, 'action approvals are immutable'); END;
+        CREATE TRIGGER service_supervision_events_no_update
+        BEFORE UPDATE ON service_supervision_events
+        BEGIN SELECT RAISE(ABORT, 'service supervision events are immutable'); END;
+        CREATE TRIGGER service_supervision_events_no_delete
+        BEFORE DELETE ON service_supervision_events
+        BEGIN SELECT RAISE(ABORT, 'service supervision events are immutable'); END;
+        """
+    )
+
+
+def _migration_34(connection: Connection) -> None:
+    """Persist the optional source workflow node for Failure gate scoping."""
+    connection.executescript(
+        """
+        ALTER TABLE failure_nodes ADD COLUMN origin_workflow_node TEXT;
+        CREATE INDEX failure_nodes_origin_workflow_status
+            ON failure_nodes(
+                origin_plan, origin_workflow_node, status, priority, created_at
+            );
+        """
+    )
+
+
+def _migration_35(connection: Connection) -> None:
+    """Keep bounded, sanitized external Codex evidence separate from rollouts."""
+    connection.executescript(
+        """
+        CREATE TABLE codex_evidence_sources (
+            source_id TEXT PRIMARY KEY,
+            thread_id TEXT NOT NULL,
+            rollout_name TEXT NOT NULL,
+            source_mtime_ns INTEGER NOT NULL,
+            source_size INTEGER NOT NULL,
+            indexed_at TEXT NOT NULL
+        );
+
+        CREATE TABLE codex_evidence_records (
+            evidence_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_id TEXT NOT NULL REFERENCES codex_evidence_sources(source_id),
+            thread_id TEXT NOT NULL,
+            rollout_name TEXT NOT NULL,
+            event_key_hash TEXT NOT NULL,
+            kind TEXT NOT NULL CHECK (kind IN (
+                'validation', 'commit', 'failure', 'cleanup', 'task'
+            )),
+            outcome TEXT NOT NULL CHECK (outcome IN (
+                'succeeded', 'failed', 'aborted', 'unknown'
+            )),
+            exit_code INTEGER,
+            event_at TEXT NOT NULL,
+            recorded_at TEXT NOT NULL,
+            UNIQUE(source_id, event_key_hash)
+        );
+
+        CREATE INDEX codex_evidence_records_recent
+            ON codex_evidence_records(event_at DESC, evidence_id DESC);
+        CREATE INDEX codex_evidence_records_thread_recent
+            ON codex_evidence_records(thread_id, event_at DESC, evidence_id DESC);
+        """
+    )
+
+
+def _migration_36(connection: Connection) -> None:
+    """Persist structured AI effort without retaining Codex conversation content."""
+    connection.executescript(
+        """
+        CREATE TABLE ai_effort_baselines (
+            baseline_id TEXT PRIMARY KEY,
+            payload_json TEXT NOT NULL,
+            recorded_at TEXT NOT NULL
+        );
+
+        CREATE TABLE ai_effort_milestones (
+            ledger_id TEXT PRIMARY KEY,
+            plan_id TEXT NOT NULL CHECK (length(trim(plan_id)) > 0),
+            active_ai_hours REAL NOT NULL CHECK (active_ai_hours >= 0),
+            outcome TEXT NOT NULL CHECK (outcome IN ('accepted', 'failed', 'superseded')),
+            blocked_by_json TEXT NOT NULL,
+            cost_class TEXT NOT NULL CHECK (
+                cost_class IN ('delivery_design', 'repair_validation')
+            ),
+            source_session_id TEXT,
+            recorded_at TEXT NOT NULL
+        );
+
+        CREATE INDEX ai_effort_milestones_plan_recorded
+            ON ai_effort_milestones(plan_id, recorded_at, ledger_id);
+        CREATE INDEX ai_effort_milestones_outcome_recorded
+            ON ai_effort_milestones(outcome, recorded_at, ledger_id);
+
+        CREATE TABLE ai_effort_forecast_scenarios (
+            scenario_id TEXT PRIMARY KEY,
+            effective_parallelism_min REAL NOT NULL CHECK (effective_parallelism_min > 0),
+            effective_parallelism_max REAL NOT NULL CHECK (
+                effective_parallelism_max >= effective_parallelism_min
+            ),
+            calendar_weeks_min REAL NOT NULL CHECK (calendar_weeks_min >= 0),
+            calendar_weeks_max REAL NOT NULL CHECK (
+                calendar_weeks_max >= calendar_weeks_min
+            ),
+            recorded_at TEXT NOT NULL
+        );
+        """
+    )
+
+
+def _migration_37(connection: Connection) -> None:
+    """Persist CPU-lane reservations and coordinator-owned run evidence."""
+    connection.executescript(
+        """
+        CREATE TABLE cargo_lane_reservations (
+            reservation_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            lane_scope TEXT NOT NULL CHECK (lane_scope IN ('cpu')),
+            compatibility_key TEXT NOT NULL,
+            command_fingerprint TEXT NOT NULL,
+            job_id TEXT REFERENCES cargo_jobs(job_id),
+            status TEXT NOT NULL CHECK (status IN (
+                'pending', 'leased', 'running', 'finished', 'released', 'expired'
+            )),
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            started_at TEXT,
+            completed_at TEXT
+        );
+
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_active_cpu
+            ON cargo_lane_reservations(lane_scope)
+            WHERE lane_scope='cpu' AND status IN ('pending', 'leased', 'running');
+        CREATE INDEX cargo_lane_reservations_session_status
+            ON cargo_lane_reservations(session_id, status, created_at);
+        CREATE INDEX cargo_lane_reservations_job
+            ON cargo_lane_reservations(job_id);
+
+        CREATE TABLE cargo_job_runs (
+            run_id TEXT PRIMARY KEY,
+            job_id TEXT NOT NULL UNIQUE REFERENCES cargo_jobs(job_id),
+            session_id TEXT NOT NULL REFERENCES sessions(session_id),
+            command_json TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'running', 'completed', 'finish_blocked', 'launch_failed'
+            )),
+            exit_code INTEGER,
+            stdout_path TEXT NOT NULL,
+            stderr_path TEXT NOT NULL,
+            stdout_tail TEXT NOT NULL DEFAULT '',
+            stderr_tail TEXT NOT NULL DEFAULT '',
+            error_code TEXT,
+            started_at TEXT NOT NULL,
+            completed_at TEXT
+        );
+        CREATE INDEX cargo_job_runs_session_started
+            ON cargo_job_runs(session_id, started_at DESC);
+        """
+    )
+
+
+def _migration_38(connection: Connection) -> None:
+    """Keep a completed CPU reservation until its owner explicitly hands it off."""
+    connection.executescript(
+        """
+        DROP INDEX cargo_lane_reservations_one_active_cpu;
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_active_cpu
+            ON cargo_lane_reservations(lane_scope)
+            WHERE lane_scope='cpu' AND status IN ('pending', 'leased', 'running', 'finished');
+        """
+    )
+
+
+def _migration_39(connection: Connection) -> None:
+    """Persist the small allowlisted environment used by a managed Cargo run."""
+    connection.execute(
+        "ALTER TABLE cargo_job_runs ADD COLUMN environment_json TEXT NOT NULL DEFAULT '{}'"
+    )
+
+
+def _migration_40(connection: Connection) -> None:
+    """Track resumable, privacy-safe progress for large Codex rollout sources."""
+    connection.executescript(
+        """
+        ALTER TABLE codex_evidence_sources
+            ADD COLUMN scan_offset INTEGER NOT NULL DEFAULT 0;
+        ALTER TABLE codex_evidence_sources
+            ADD COLUMN prefix_hash TEXT NOT NULL DEFAULT '';
+        ALTER TABLE codex_evidence_sources
+            ADD COLUMN pending_calls_json TEXT NOT NULL DEFAULT '{}';
+        ALTER TABLE codex_evidence_sources
+            ADD COLUMN scan_complete INTEGER NOT NULL DEFAULT 0
+                CHECK (scan_complete IN (0, 1));
+        ALTER TABLE codex_evidence_sources
+            ADD COLUMN scan_revision INTEGER NOT NULL DEFAULT 1;
+        CREATE INDEX codex_evidence_sources_incomplete
+            ON codex_evidence_sources(scan_complete, indexed_at, source_id);
+        """
+    )
+
+
+def _migration_41(connection: Connection) -> None:
+    """Persist the canonical compatibility payload for new CPU reservations."""
+    connection.execute(
+        "ALTER TABLE cargo_lane_reservations ADD COLUMN compatibility_json TEXT"
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1494,6 +1876,19 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     26: _migration_26,
     27: _migration_27,
     28: _migration_28,
+    29: _migration_29,
+    30: _migration_30,
+    31: _migration_31,
+    32: _migration_32,
+    33: _migration_33,
+    34: _migration_34,
+    35: _migration_35,
+    36: _migration_36,
+    37: _migration_37,
+    38: _migration_38,
+    39: _migration_39,
+    40: _migration_40,
+    41: _migration_41,
 }
 
 

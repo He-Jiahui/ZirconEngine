@@ -36,6 +36,50 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual("wal", journal_mode.lower())
             self.assertTrue({"sessions", "events", "baseline_epochs", "leases", "patches"} <= tables)
 
+    def test_latest_schema_persists_optional_failure_workflow_node(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+
+            migrate(database)
+
+            with database.connect() as connection:
+                columns = {
+                    row[1] for row in connection.execute("PRAGMA table_info(failure_nodes)")
+                }
+                version = connection.execute(
+                    "SELECT MAX(version) FROM schema_version"
+                ).fetchone()[0]
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, version)
+            self.assertIn("origin_workflow_node", columns)
+
+    def test_schema_41_preserves_evidence_progress_and_adds_reservation_payload(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+
+            migrate(database)
+
+            with database.connect() as connection:
+                evidence_columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(codex_evidence_sources)"
+                    )
+                }
+                reservation_columns = {
+                    row[1]
+                    for row in connection.execute(
+                        "PRAGMA table_info(cargo_lane_reservations)"
+                    )
+                }
+                version = connection.execute(
+                    "SELECT MAX(version) FROM schema_version"
+                ).fetchone()[0]
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, version)
+            self.assertIn("scan_offset", evidence_columns)
+            self.assertIn("compatibility_json", reservation_columns)
+
     def test_transaction_rolls_back_on_error(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")
@@ -544,6 +588,108 @@ class DatabaseTests(unittest.TestCase):
                         )
                         """
                     )
+
+    def test_schema_32_adds_cargo_root_identity_without_rewriting_history(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with database.transaction() as connection:
+                connection.execute(
+                    "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+                )
+                for version in range(1, 31):
+                    MIGRATIONS[version](connection)
+                    connection.execute(
+                        "INSERT INTO schema_version(version, applied_at) VALUES (?, 'now')",
+                        (version,),
+                    )
+                connection.execute(
+                    "INSERT INTO sessions(session_id, status, created_at, updated_at, last_heartbeat_at) "
+                    "VALUES ('session-a', 'registered', 'now', 'now', 'now')"
+                )
+                connection.execute(
+                    """
+                    INSERT INTO cargo_jobs(
+                        job_id, session_id, lane_kind, target_dir, target_key,
+                        status, dry_run, pid, created_at, last_heartbeat_at,
+                        process_tree_live_pids_json
+                    ) VALUES (
+                        'legacy-terminal', 'session-a', 'test', 'D:\\cargo-targets\\legacy',
+                        'd:\\cargo-targets\\legacy', 'released', 0, 4242, 'now', 'now', '[4242]'
+                    )
+                    """
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                columns = {
+                    row[1] for row in connection.execute("PRAGMA table_info(cargo_jobs)")
+                }
+                row = connection.execute(
+                    "SELECT root_process_creation_time, root_process_kind, "
+                    "process_tree_live_pids_json FROM cargo_jobs WHERE job_id='legacy-terminal'"
+                ).fetchone()
+            self.assertTrue(
+                {"root_process_creation_time", "root_process_kind"} <= columns
+            )
+            self.assertEqual((None, "cargo", "[4242]"), tuple(row))
+
+    def test_schema_34_preserves_v33_failure_rows_and_adds_scope_index(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            with database.transaction() as connection:
+                connection.execute(
+                    "CREATE TABLE schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
+                )
+                for version in range(1, 34):
+                    MIGRATIONS[version](connection)
+                    connection.execute(
+                        "INSERT INTO schema_version(version, applied_at) VALUES (?, 'now')",
+                        (version,),
+                    )
+                connection.execute(
+                    """
+                    INSERT INTO failure_nodes(
+                        lifecycle_key, artifact_path, kind, status, created_at,
+                        resolved_at, summary_slug, origin_plan, fixing_plan,
+                        origin_child_dir, fixing_child_dir, priority, imported_at
+                    ) VALUES (
+                        'origin|fixer|legacy',
+                        'docs/plans/fixer/01/failure-legacy.md',
+                        'failure', 'open', '2026-07-15', NULL, 'legacy',
+                        'docs/plans/origin/01-origin.md',
+                        'docs/plans/fixer/01-fixer.md',
+                        'docs/plans/origin/01', 'docs/plans/fixer/01', 7, 'now'
+                    )
+                    """
+                )
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                row = connection.execute(
+                    """SELECT lifecycle_key, artifact_path, status, priority,
+                              origin_workflow_node
+                       FROM failure_nodes WHERE summary_slug='legacy'"""
+                ).fetchone()
+                index = connection.execute(
+                    """SELECT name, sql FROM sqlite_master
+                       WHERE type='index'
+                         AND name='failure_nodes_origin_workflow_status'"""
+                ).fetchone()
+            self.assertEqual(
+                (
+                    "origin|fixer|legacy",
+                    "docs/plans/fixer/01/failure-legacy.md",
+                    "open",
+                    7,
+                    None,
+                ),
+                tuple(row),
+            )
+            self.assertEqual("failure_nodes_origin_workflow_status", index[0])
+            self.assertIn("origin_workflow_node", index[1])
 
 
 if __name__ == "__main__":

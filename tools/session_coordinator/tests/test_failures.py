@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from types import SimpleNamespace
@@ -42,6 +43,98 @@ class FailureGraphTests(unittest.TestCase):
         self.assertEqual(2, audit.node_count)
         self.assertEqual([], [item for item in audit.diagnostics if item.code != "duplicate_plan_edge"])
         self.assertEqual(["first", "second"], [node.summary_slug for node in open_nodes])
+
+    def test_workflow_node_filter_is_exact_for_origin_and_plan_wide_for_fixer(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/runtime/02-runtime.md")
+        legacy = self.fixture.add_handoff(origin, fixing, "legacy")
+        slice_one = self.fixture.add_handoff(origin, fixing, "slice-one")
+        slice_two = self.fixture.add_handoff(origin, fixing, "slice-two")
+        for artifact, node_key in ((slice_one, "M1.1"), (slice_two, "M1.2")):
+            artifact.write_text(
+                artifact.read_text(encoding="utf-8").replace(
+                    "summary_slug:", f"origin_workflow_node: {node_key}\nsummary_slug:"
+                ),
+                encoding="utf-8",
+            )
+
+        audit = self.service.import_repository()
+        slice_nodes = self.service.open_related_to_workflow_nodes(
+            origin.path, ("M1.2",)
+        )
+        parent_nodes = self.service.open_related_to_workflow_nodes(
+            origin.path, ("M1", "M1.1", "M1.2")
+        )
+        fixing_nodes = self.service.open_related_to_workflow_nodes(
+            fixing.path, ("M9.9",)
+        )
+
+        imported = {node.summary_slug: node.origin_workflow_node for node in audit.nodes}
+        self.assertEqual(
+            {"legacy": None, "slice-one": "M1.1", "slice-two": "M1.2"},
+            imported,
+        )
+        self.assertEqual(
+            ["legacy", "slice-two"], [node.summary_slug for node in slice_nodes]
+        )
+        self.assertEqual(
+            ["legacy", "slice-one", "slice-two"],
+            [node.summary_slug for node in parent_nodes],
+        )
+        self.assertEqual(
+            ["legacy", "slice-one", "slice-two"],
+            [node.summary_slug for node in fixing_nodes],
+        )
+
+    def test_fixed_return_manifest_excludes_unrelated_fixer_failures_but_keeps_origin_scope(self) -> None:
+        current = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        origin = self.fixture.add_plan("docs/plans/editor/02-editor.md")
+        other_fixer = self.fixture.add_plan("docs/plans/runtime/03-runtime.md")
+        completed_return = self.fixture.add_handoff(origin, current, "completed", kind="fixed")
+        unrelated = self.fixture.add_handoff(origin, current, "unrelated")
+        origin_scoped = self.fixture.add_handoff(current, other_fixer, "current-slice")
+        origin_scoped.write_text(
+            origin_scoped.read_text(encoding="utf-8").replace(
+                "summary_slug:", "origin_workflow_node: M1.1\nsummary_slug:"
+            ),
+            encoding="utf-8",
+        )
+        self.service.import_repository()
+
+        ordinary = self.service.open_for_manifest(
+            current.path,
+            ("M1.1",),
+            (),
+        )
+        fixed_return = self.service.open_for_manifest(
+            current.path,
+            ("M1.1",),
+            (completed_return.relative_to(self.root).as_posix(),),
+        )
+
+        self.assertEqual(
+            {"unrelated", "current-slice"},
+            {node.summary_slug for node in ordinary},
+        )
+        self.assertEqual(
+            ["current-slice"],
+            [node.summary_slug for node in fixed_return],
+        )
+
+    def test_artifact_snapshot_ignores_date_named_output_record_with_failure_summary(self) -> None:
+        record = (
+            self.root
+            / "docs/plans/zircon_tooling/session_coordinator/01"
+            / "2026-07-15-live-evidence-window-and-failure-chain.md"
+        )
+        record.parent.mkdir(parents=True, exist_ok=True)
+        record.write_text(
+            "---\nrecord_kind: implementation_slice\nstatus: implemented\n---\n\n"
+            "# 实时证据与 Failure 链\n",
+            encoding="utf-8",
+        )
+
+        self.assertEqual([], failure_artifact_snapshot(self.root))
 
     def test_import_rejects_failure_files_changed_after_action_preview(self) -> None:
         origin = self.fixture.add_plan("docs/plans/editor/01-editor.md")
@@ -97,6 +190,20 @@ class FailureGraphTests(unittest.TestCase):
         self.assertIn("cycle", codes)
         self.assertIn("self_edge", codes)
         self.assertIn("duplicate_lifecycle", codes)
+
+    def test_live_dependency_graph_ignores_fixed_handoff_history(self) -> None:
+        plan_a = self.fixture.add_plan("docs/plans/a/01-a.md")
+        plan_b = self.fixture.add_plan("docs/plans/b/02-b.md")
+        self.fixture.add_handoff(plan_a, plan_b, "live-a-to-b")
+        self.fixture.add_handoff(plan_b, plan_a, "fixed-b-to-a", kind="fixed")
+
+        audit = self.service.import_repository()
+
+        self.assertEqual(
+            [],
+            [diagnostic for diagnostic in audit.diagnostics if diagnostic.code == "cycle"],
+        )
+        self.assertEqual(2, audit.node_count)
 
     def test_excessive_dependency_depth_is_reported(self) -> None:
         plans = [
@@ -164,6 +271,63 @@ class FailureGraphTests(unittest.TestCase):
         self.assertIn("fixed 已修复", origin.path.read_text(encoding="utf-8"))
         self.assertIn("fixed 已修复", fixing.path.read_text(encoding="utf-8"))
         self.assertNotIn(str(self.root), fixing.path.read_text(encoding="utf-8"))
+        self.assertEqual([], self.service.validator_errors())
+
+    def test_return_rewrites_only_source_link_tokens_inside_table_rows(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/07-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        failure = self.fixture.add_handoff(origin, fixing, "table-row")
+        source_link = Path(os.path.relpath(failure, origin.path.parent)).as_posix()
+        table_row = (
+            "| M3 | preserve evidence | "
+            f"[first]({source_link}) | [second]({source_link}) | "
+            "[unrelated](../other/failure.md) |"
+        )
+        with origin.path.open("a", encoding="utf-8") as stream:
+            stream.write(f"\n{table_row}\n")
+        node = self.service.import_repository().nodes[0]
+
+        fixed = self.service.return_fixed(
+            node.lifecycle_key,
+            FailureResolution("root", "architecture", "validation", "return"),
+            resolved_at=date(2026, 7, 15),
+        )
+
+        destination_link = Path(os.path.relpath(fixed, origin.path.parent)).as_posix()
+        origin_text = origin.path.read_text(encoding="utf-8")
+        self.assertIn(f"- fixed 已修复：[table-row]({destination_link})", origin_text)
+        self.assertIn("| M3 | preserve evidence |", origin_text)
+        self.assertEqual(2, origin_text.count(f"[fixed 已修复：table-row]({destination_link})"))
+        self.assertIn("[unrelated](../other/failure.md)", origin_text)
+
+    def test_child_record_only_return_moves_fixed_artifact_without_writing_parent_plans(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/runtime/04-runtime.md")
+        fixing = self.fixture.add_plan("docs/plans/tooling/01-tooling.md")
+        failure = self.fixture.add_handoff(origin, fixing, "child-record-only")
+        failure.write_text(
+            failure.read_text(encoding="utf-8").replace(
+                "summary_slug:", "plan_link_mode: child_record_only\nsummary_slug:"
+            ),
+            encoding="utf-8",
+        )
+        original_origin = origin.path.read_text(encoding="utf-8")
+        original_fixing = fixing.path.read_text(encoding="utf-8")
+        node = self.service.import_repository().nodes[0]
+
+        fixed = self.service.return_fixed(
+            node.lifecycle_key,
+            FailureResolution("root", "architecture", "validation", "return"),
+            resolved_at=date(2026, 7, 16),
+        )
+
+        receipt = fixing.child / "2026-07-16-child-record-only-return.md"
+        self.assertEqual(origin.child / "fixed-2026-07-16-child-record-only.md", fixed)
+        self.assertFalse(failure.exists())
+        self.assertEqual(original_origin, origin.path.read_text(encoding="utf-8"))
+        self.assertEqual(original_fixing, fixing.path.read_text(encoding="utf-8"))
+        self.assertTrue(receipt.exists())
+        self.assertIn("status: fixed", receipt.read_text(encoding="utf-8"))
+        self.assertIn("fixed-2026-07-16-child-record-only.md", receipt.read_text(encoding="utf-8"))
         self.assertEqual([], self.service.validator_errors())
 
     def test_return_rolls_back_files_when_atomic_write_fails(self) -> None:

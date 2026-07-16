@@ -13,6 +13,7 @@ from typing import Callable, Iterator
 
 from .baselines import BaselineHealth, BaselineService, hash_file
 from .database import Database
+from .failures import WORKFLOW_NODE_ID
 from .models import CoordinatorError, SessionStatus, parse_utc, utc_now, utc_text
 from .plans import PlanRepository
 from .sessions import SessionService
@@ -28,6 +29,10 @@ FORBIDDEN_SECRET = re.compile(
     re.escape(_WECOM_ENDPOINT_MARKER) + r"|(?:WECOM|WECHAT).*WEBHOOK.*(?:URL|KEY)",
     re.IGNORECASE,
 )
+_FORCE_ADD_PREFIXES = (".codex/skills/", ".codex/hooks/")
+_FORCE_ADD_FILES = {".codex/hooks.json"}
+_GIT_PATHSPEC_CHUNK_CHARS = 24_000
+_GIT_FAILURE_STDERR_LIMIT = 2_048
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,15 +116,20 @@ class GitFinalizeService:
         self._require_plan_outputs(session, normalized, maintenance=maintenance)
         self._require_failure_acceptance(session, maintenance=maintenance)
         self._require_git_mutex_available()
-        self._require_index_scope(normalized)
-        unattributed = self.baselines.scan()
-        baseline = self.baselines.current()
-        if baseline.health is BaselineHealth.DEGRADED:
-            raise CoordinatorError(
-                "finalize_baseline_degraded",
-                "Workspace baseline is degraded",
-                details={"paths": [change.path for change in unattributed]},
-            )
+        if maintenance:
+            # Maintenance commits use an isolated index image built from HEAD,
+            # so unrelated staged or unattributed work cannot enter the tree.
+            baseline = self.baselines.current()
+        else:
+            self._require_index_scope(normalized)
+            unattributed = self.baselines.scan()
+            baseline = self.baselines.current()
+            if baseline.health is BaselineHealth.DEGRADED:
+                raise CoordinatorError(
+                    "finalize_baseline_degraded",
+                    "Workspace baseline is degraded",
+                    details={"paths": [change.path for change in unattributed]},
+                )
         if baseline.head_commit != self._git("rev-parse", "HEAD"):
             raise CoordinatorError(
                 "finalize_baseline_head_changed",
@@ -199,11 +209,11 @@ class GitFinalizeService:
                 self._require_finalize_guards_under_mutex(session, preview)
                 self._require_attribution(session_id, preview.paths, maintenance=maintenance)
                 self._require_owned_scope(session_id, preview.paths, maintenance=maintenance)
-                self._require_index_scope(preview.paths)
-                expected_blobs = self._expected_staged_blobs(
-                    preview.paths, maintenance=maintenance
-                )
-                self._git("add", "-A", "--", *preview.paths)
+                if maintenance:
+                    self._git("read-tree", self.baselines.current().head_commit)
+                else:
+                    self._require_index_scope(preview.paths)
+                self._git_add_paths(preview.paths)
                 staged = tuple(self._git_lines("diff", "--cached", "--name-only"))
                 if set(staged) != set(preview.paths):
                     raise CoordinatorError(
@@ -211,9 +221,14 @@ class GitFinalizeService:
                         "Staged paths do not exactly match the approved finalize set",
                         details={"approved": list(preview.paths), "staged": list(staged)},
                     )
-                self._require_staged_attribution(
-                    expected_blobs, maintenance=maintenance
+                self._require_post_stage_attribution(
+                    session_id, preview.paths, maintenance=maintenance
                 )
+                self._require_index_matches_worktree(preview.paths)
+                self._require_post_stage_attribution(
+                    session_id, preview.paths, maintenance=maintenance
+                )
+                expected_blobs = self._staged_blobs(preview.paths)
                 self._require_no_staged_secrets()
                 for command in validation_commands:
                     result = subprocess.run(command, cwd=self.repo_root, check=False)
@@ -225,7 +240,7 @@ class GitFinalizeService:
                         )
                 self._require_index_scope(preview.paths)
                 self._require_staged_attribution(
-                    expected_blobs, maintenance=maintenance
+                    expected_blobs, maintenance=False
                 )
                 self._require_no_staged_secrets()
                 session = self.sessions.get(session_id)
@@ -258,7 +273,7 @@ class GitFinalizeService:
                         (commit_sha, utc_text(), preview.request_id),
                     )
         except BaseException as error:
-            if not committed and index_path is not None:
+            if not committed and index_path is not None and not maintenance:
                 self._restore_index(index_path, index_existed, index_content)
             if not committed:
                 self._set_request_failed(preview.request_id, str(error))
@@ -273,6 +288,11 @@ class GitFinalizeService:
                     ),
                 )
             raise
+        finally:
+            if maintenance and index_path is not None:
+                self._restore_index(index_path, index_existed, index_content)
+                if committed:
+                    self._reset_index_paths(commit_sha, preview.paths)
         if not maintenance:
             self.sessions.set_status(
                 session_id, SessionStatus.COMPLETED, reason=f"finalized {commit_sha}"
@@ -291,6 +311,7 @@ class GitFinalizeService:
         *,
         paths: list[str] | tuple[str, ...],
         message: str,
+        failure_workflow_node_keys: tuple[str, ...],
         validation_commands: tuple[tuple[str, ...], ...] = (),
         precommit_guard: Callable[[], None] | None = None,
         request_id: str | None = None,
@@ -304,7 +325,20 @@ class GitFinalizeService:
         normalized = tuple(sorted({self._normalize(path) for path in paths}, key=str.casefold))
         if not normalized:
             raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
-        untracked_paths = tuple(path for path in normalized if not self._is_tracked_in_head(path))
+        if (
+            not isinstance(failure_workflow_node_keys, tuple)
+            or not failure_workflow_node_keys
+            or any(
+                not isinstance(node_key, str)
+                or WORKFLOW_NODE_ID.fullmatch(node_key) is None
+                for node_key in failure_workflow_node_keys
+            )
+        ):
+            raise CoordinatorError(
+                "milestone_failure_scope_invalid",
+                "Milestone commit requires explicit workflow node Failure scope",
+            )
+        untracked_paths: tuple[str, ...] = ()
         request_id = request_id or uuid.uuid4().hex
         session = self.sessions.get(session_id)
         formatted_message = self._format_message(message)
@@ -329,13 +363,29 @@ class GitFinalizeService:
                     "milestone_baseline_head_changed",
                     "HEAD changed after the coordinator baseline was captured",
                 )
+            head_tracked = self._head_tracked_paths(normalized)
+            untracked_paths = tuple(path for path in normalized if path not in head_tracked)
+            forbidden_ignored = tuple(
+                path
+                for path in self._ignored_paths(normalized)
+                if not self._is_force_add_eligible(path)
+            )
+            if forbidden_ignored:
+                raise CoordinatorError(
+                    "milestone_ignored_path_forbidden",
+                    "Only repository-owned Codex skills and hooks may be force-added",
+                    details={"paths": list(forbidden_ignored)},
+                )
             self._require_attribution(session_id, normalized, maintenance=False)
             self._require_owned_scope(session_id, normalized, maintenance=False)
             self._require_plan_outputs(session, normalized, maintenance=False)
-            self._require_failure_acceptance(session, maintenance=False)
+            self._require_milestone_failure_acceptance(
+                session,
+                failure_workflow_node_keys,
+                normalized,
+            )
             self._require_live_owned_leases(session_id, normalized)
             self._require_no_pending_patches(session_id)
-            expected_blobs = self._expected_staged_blobs(normalized, maintenance=False)
             with self.database.transaction() as connection:
                 connection.execute(
                     """
@@ -369,9 +419,34 @@ class GitFinalizeService:
                 # shared index is restored afterwards so another Session's
                 # staged work remains intact and cannot enter this commit.
                 self._git("read-tree", expected_head)
-                self._git("add", "-A", "--", *normalized)
+                untracked = tuple(path for path in normalized if path not in head_tracked)
+                ignored_set = self._ignored_paths(untracked)
+                ignored = tuple(path for path in untracked if path in ignored_set)
+                forbidden_ignored = tuple(
+                    path for path in ignored if not self._is_force_add_eligible(path)
+                )
+                if forbidden_ignored:
+                    raise CoordinatorError(
+                        "milestone_ignored_path_forbidden",
+                        "Only repository-owned Codex skills and hooks may be force-added",
+                        details={"paths": list(forbidden_ignored)},
+                )
+                ordinary = tuple(path for path in normalized if path not in ignored)
+                if ordinary:
+                    self._git_add_paths(ordinary)
+                if ignored:
+                    # These paths passed both the Session ownership gates and
+                    # the narrow repository-control allowlist above.
+                    self._git_add_paths(ignored, force=True)
                 self._require_index_scope(normalized)
-                self._require_staged_attribution(expected_blobs, maintenance=False)
+                self._require_post_stage_attribution(
+                    session_id, normalized, maintenance=False
+                )
+                self._require_index_matches_worktree(normalized)
+                self._require_post_stage_attribution(
+                    session_id, normalized, maintenance=False
+                )
+                expected_blobs = self._staged_blobs(normalized)
                 self._require_no_staged_secrets()
                 for command in validation_commands:
                     result = subprocess.run(command, cwd=self.repo_root, check=False)
@@ -385,7 +460,11 @@ class GitFinalizeService:
                 self._require_staged_attribution(expected_blobs, maintenance=False)
                 self._require_no_staged_secrets()
                 self._require_live_owned_leases(session_id, normalized)
-                self._require_failure_acceptance(session, maintenance=False)
+                self._require_milestone_failure_acceptance(
+                    session,
+                    failure_workflow_node_keys,
+                    normalized,
+                )
                 if precommit_guard is not None:
                     precommit_guard()
                 commit_sha = self._create_scoped_commit(
@@ -417,7 +496,7 @@ class GitFinalizeService:
             finally:
                 self._restore_index(index_path, index_existed, index_content)
                 if committed:
-                    self._git("reset", "--quiet", commit_sha, "--", *normalized)
+                    self._reset_index_paths(commit_sha, normalized)
         categories = self._categorize(normalized)
         return FinalizeResult(
             request_id,
@@ -447,6 +526,74 @@ class GitFinalizeService:
                     "DELETE FROM git_mutex WHERE lock_name = 'index' AND owner_id = ?",
                     (owner_id,),
                 )
+
+    def cleanup_shared_index(self, owner_id: str) -> dict[str, object]:
+        """Reset only stale shared-index staging to HEAD under the coordinator mutex."""
+        if not owner_id.strip():
+            raise ValueError("Index cleanup owner cannot be empty")
+        audit_id = uuid.uuid4().hex
+        with self.git_mutex(owner_id):
+            head = self._git("rev-parse", "HEAD")
+            paths = tuple(self._git_lines("diff", "--cached", "--name-only"))
+            classification = self._classify_staged_paths(paths)
+            if paths:
+                # `reset --mixed <HEAD>` changes the shared index only.  The
+                # working tree stays untouched, so Sessions retain every byte
+                # of their pending work while stale staging is cleared.
+                self._git("reset", "--mixed", "--quiet", head)
+            remaining = tuple(self._git_lines("diff", "--cached", "--name-only"))
+            if remaining:
+                raise CoordinatorError(
+                    "index_cleanup_incomplete",
+                    "Shared index still contains staged paths after cleanup",
+                    details={"paths": list(remaining)},
+                )
+            payload = {
+                "auditId": audit_id,
+                "head": head,
+                "stagedCount": len(paths),
+                "remainingStagedCount": 0,
+                "classification": classification,
+            }
+            with self.database.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                    ("git.index_cleanup", json.dumps(payload, sort_keys=True), utc_text()),
+                )
+        return {
+            "audit_id": audit_id,
+            "head": head,
+            "paths": list(paths),
+            "staged_count": len(paths),
+            "remaining_staged_count": 0,
+            "classification": classification,
+        }
+
+    def _classify_staged_paths(self, paths: tuple[str, ...]) -> dict[str, int]:
+        if not paths:
+            return {"unattributed": 0, "stale_owner": 0, "other_owner": 0}
+        keys = {path.casefold() for path in paths}
+        with self.database.connect() as connection:
+            attributions = {
+                row["display_path"].casefold(): row["session_id"]
+                for row in connection.execute(
+                    "SELECT display_path, session_id FROM attributions"
+                )
+            }
+            statuses = {
+                row["session_id"]: row["status"]
+                for row in connection.execute("SELECT session_id, status FROM sessions")
+            }
+        result = {"unattributed": 0, "stale_owner": 0, "other_owner": 0}
+        for key in keys:
+            session_id = attributions.get(key)
+            if session_id is None:
+                result["unattributed"] += 1
+            elif statuses.get(session_id) == SessionStatus.STALE.value:
+                result["stale_owner"] += 1
+            else:
+                result["other_owner"] += 1
+        return result
 
     def reconcile_request(self, request_id: str) -> FinalizeResult | None:
         """Finish every post-CAS obligation before workflow evidence may succeed."""
@@ -577,7 +724,10 @@ class GitFinalizeService:
     def _require_finalize_guards_under_mutex(
         self, session, preview: FinalizePreview
     ) -> None:
-        if self.baselines.current().health is BaselineHealth.DEGRADED:
+        if (
+            not preview.maintenance
+            and self.baselines.current().health is BaselineHealth.DEGRADED
+        ):
             raise CoordinatorError("finalize_baseline_degraded", "Workspace baseline is degraded")
         if self.baselines.current().head_commit != self._git("rev-parse", "HEAD"):
             raise CoordinatorError(
@@ -616,18 +766,36 @@ class GitFinalizeService:
     ) -> None:
         if maintenance:
             return
-        changes = {change.path: change.current_hash for change in self.baselines.diff()}
         with self.database.connect() as connection:
             rows = connection.execute(
                 "SELECT display_path, content_hash FROM attributions WHERE session_id = ?",
                 (session_id,),
             ).fetchall()
-        owned_dirty = {
-            row["display_path"]
-            for row in rows
-            if row["display_path"] in changes
-            and row["content_hash"] == changes[row["display_path"]]
+        ignored_local_session_state = {
+            path
+            for path in self._ignored_paths(
+                tuple(row["display_path"] for row in rows)
+            )
+            if self._is_local_session_state(path)
         }
+        attributed_rows = tuple(
+            row for row in rows if row["display_path"] not in ignored_local_session_state
+        )
+        # This gate runs under the shared Git mutex.  Never invoke
+        # ``baselines.diff()`` here: it rebuilds a full workspace manifest and
+        # makes an unrelated dirty tree stall every milestone commit.  The
+        # contract is session-relative, so compare only the Session's
+        # attributed paths with HEAD and confirm their attributed bytes.
+        differing_from_head = self._worktree_paths_differing_from_head(
+            tuple(row["display_path"] for row in attributed_rows)
+        )
+        owned_dirty: set[str] = set()
+        for row in attributed_rows:
+            path = row["display_path"]
+            if path in differing_from_head and row["content_hash"] == hash_file(
+                self.repo_root / path
+            ):
+                owned_dirty.add(path)
         omitted = sorted(owned_dirty - set(approved), key=str.casefold)
         if omitted:
             raise CoordinatorError(
@@ -635,7 +803,7 @@ class GitFinalizeService:
                 "Finalize manifest omits current Session-owned changes",
                 details={"paths": omitted},
             )
-        unchanged = sorted(set(approved) - set(changes), key=str.casefold)
+        unchanged = sorted(set(approved) - owned_dirty, key=str.casefold)
         if unchanged:
             raise CoordinatorError(
                 "finalize_path_unchanged",
@@ -656,16 +824,61 @@ class GitFinalizeService:
             decision = self.plans.authorize_write(
                 session.plan_path, path, maintenance=maintenance
             )
-            if not decision.allowed:
+            if not decision.allowed and not self._is_returned_fixed_handoff(
+                session.plan_path, path
+            ):
                 raise CoordinatorError(
                     "finalize_invalid_plan_output",
                     decision.message,
                     details={"path": path, "plan_code": decision.code},
                 )
 
+    def _is_returned_fixed_handoff(self, session_plan_path: str, path: str) -> bool:
+        normalized = path.replace("\\", "/")
+        if not Path(normalized).name.startswith("fixed-"):
+            return False
+        if self.failures is not None:
+            self.failures.import_repository()
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT kind, status, fixing_plan, origin_child_dir
+                FROM failure_nodes
+                WHERE artifact_path=? AND kind='fixed' AND status='fixed'
+                """,
+                (normalized,),
+            ).fetchone()
+        if row is None or row["fixing_plan"] != session_plan_path:
+            return False
+        origin_child = str(row["origin_child_dir"]).rstrip("/")
+        return normalized.startswith(origin_child + "/")
+
     def _require_failure_acceptance(self, session, *, maintenance: bool) -> None:
         if maintenance or self.failures is None or not session.plan_path:
             return
+        self._require_failure_graph_valid(session)
+        self._raise_open_failures(
+            self.failures.open_related_to_plan(session.plan_path)
+        )
+
+    def _require_milestone_failure_acceptance(
+        self,
+        session,
+        failure_workflow_node_keys: tuple[str, ...],
+        manifest_paths: tuple[str, ...],
+    ) -> None:
+        if self.failures is None or not session.plan_path:
+            return
+        self._require_failure_graph_valid(session)
+        self._raise_open_failures(
+            self.failures.open_for_manifest(
+                session.plan_path,
+                failure_workflow_node_keys,
+                manifest_paths,
+            )
+        )
+
+    def _require_failure_graph_valid(self, session) -> None:
         self.failures.import_repository()
         diagnostics = self.failures.validator_errors_for_plan(session.plan_path)
         if diagnostics:
@@ -674,7 +887,9 @@ class GitFinalizeService:
                 "Failure handoff graph has canonical Markdown diagnostics",
                 details={"diagnostics": diagnostics},
             )
-        open_failures = self.failures.open_related_to_plan(session.plan_path)
+
+    @staticmethod
+    def _raise_open_failures(open_failures) -> None:
         if open_failures:
             raise CoordinatorError(
                 "finalize_open_failure",
@@ -777,16 +992,10 @@ class GitFinalizeService:
     ) -> None:
         if maintenance:
             return
+        actual = self._staged_blobs(tuple(expected))
         mismatches: list[dict[str, str | None]] = []
         for path, expected_blob in expected.items():
-            result = subprocess.run(
-                ["git", "rev-parse", "--verify", f":{path}"],
-                cwd=self.repo_root,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            staged_blob = result.stdout.strip() if result.returncode == 0 else None
+            staged_blob = actual[path]
             if staged_blob != expected_blob:
                 mismatches.append(
                     {
@@ -802,31 +1011,119 @@ class GitFinalizeService:
                 details={"mismatches": mismatches},
             )
 
-    def _expected_staged_blobs(
-        self, paths: tuple[str, ...], *, maintenance: bool
-    ) -> dict[str, str | None]:
+    def _require_post_stage_attribution(
+        self,
+        session_id: str,
+        paths: tuple[str, ...],
+        *,
+        maintenance: bool,
+    ) -> None:
         if maintenance:
-            return {}
-        expected: dict[str, str | None] = {}
-        for path in paths:
-            source = self.repo_root / path
-            if not source.is_file():
-                expected[path] = None
-                continue
-            result = subprocess.run(
-                ["git", "hash-object", "--path", path, "--", path],
-                cwd=self.repo_root,
-                check=False,
-                capture_output=True,
-                text=True,
-            )
-            if result.returncode != 0:
-                raise CoordinatorError(
-                    "finalize_blob_hash_failed",
-                    f"Cannot calculate the staged blob identity for {path}",
+            return
+        try:
+            self._require_attribution(session_id, paths, maintenance=False)
+        except CoordinatorError as error:
+            raise CoordinatorError(
+                "finalize_staged_attribution_mismatch",
+                "Worktree content changed between attribution and scoped staging",
+                details={"cause": error.code, **error.details},
+            ) from error
+
+    def _require_index_matches_worktree(self, paths: tuple[str, ...]) -> None:
+        for chunk in self._pathspec_chunks(paths):
+            try:
+                result = subprocess.run(
+                    [
+                        "git",
+                        "--literal-pathspecs",
+                        "diff",
+                        "--quiet",
+                        "--no-ext-diff",
+                        "--",
+                        *chunk,
+                    ],
+                    cwd=self.repo_root,
+                    check=False,
+                    capture_output=True,
                 )
-            expected[path] = result.stdout.strip()
-        return expected
+            except OSError as error:
+                raise CoordinatorError(
+                    "finalize_index_worktree_scan_failed",
+                    "Cannot compare the scoped Git index with the worktree",
+                    details={"error": str(error)},
+                ) from error
+            if result.returncode == 0:
+                continue
+            if result.returncode == 1:
+                raise CoordinatorError(
+                    "finalize_staged_attribution_mismatch",
+                    "Scoped staged content does not match the attributed worktree",
+                    details={"paths": list(chunk)},
+                )
+            raise CoordinatorError(
+                "finalize_index_worktree_scan_failed",
+                "Git failed while comparing the scoped index with the worktree",
+                details={
+                    "return_code": result.returncode,
+                    "error": os.fsdecode(result.stderr),
+                },
+            )
+
+    def _staged_blobs(self, paths: tuple[str, ...]) -> dict[str, str | None]:
+        try:
+            return self._staged_blobs_unchecked(paths)
+        except (subprocess.CalledProcessError, OSError) as error:
+            raise CoordinatorError(
+                "finalize_index_blob_scan_failed",
+                "Cannot read staged blob identities from the Git index",
+                details={"error": str(error)},
+            ) from error
+
+    def _staged_blobs_unchecked(
+        self, paths: tuple[str, ...]
+    ) -> dict[str, str | None]:
+        requested_by_key = {path.casefold(): path for path in paths}
+        staged: dict[str, str | None] = {path: None for path in paths}
+        for chunk in self._pathspec_chunks(paths):
+            result = subprocess.run(
+                [
+                    "git",
+                    "--literal-pathspecs",
+                    "ls-files",
+                    "--stage",
+                    "-z",
+                    "--",
+                    *chunk,
+                ],
+                cwd=self.repo_root,
+                check=True,
+                capture_output=True,
+            )
+            for entry in result.stdout.split(b"\0"):
+                if not entry:
+                    continue
+                metadata, separator, raw_path = entry.partition(b"\t")
+                fields = metadata.split()
+                if not separator or len(fields) != 3 or fields[2] != b"0":
+                    raise CoordinatorError(
+                        "finalize_index_blob_scan_failed",
+                        "Git returned an invalid or unmerged staged index entry",
+                    )
+                display_path = os.fsdecode(raw_path)
+                requested = requested_by_key.get(display_path.casefold())
+                if requested is None:
+                    raise CoordinatorError(
+                        "finalize_index_blob_scan_failed",
+                        f"Git returned an out-of-scope staged path: {display_path}",
+                    )
+                try:
+                    staged[requested] = fields[1].decode("ascii")
+                except UnicodeDecodeError as error:
+                    raise CoordinatorError(
+                        "finalize_index_blob_scan_failed",
+                        "Git returned a non-ASCII staged blob identity",
+                    ) from error
+        return staged
 
     def _create_scoped_commit(self, message: str, *, expected_head: str) -> str:
         tree = self._git("write-tree")
@@ -850,7 +1147,7 @@ class GitFinalizeService:
             changed = set(
                 self._git_lines("diff-tree", "--no-commit-id", "--name-only", "-r", current_head)
             )
-        except subprocess.CalledProcessError:
+        except CoordinatorError:
             return False
         return parent == start_head and subject == message and changed == set(paths)
 
@@ -880,14 +1177,159 @@ class GitFinalizeService:
             check=False,
         ).returncode == 0
 
-    def _is_tracked_in_head(self, path: str) -> bool:
-        return subprocess.run(
-            ["git", "cat-file", "-e", f"HEAD:{path}"],
-            cwd=self.repo_root,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            check=False,
-        ).returncode == 0
+    def _ignored_paths(self, paths: tuple[str, ...]) -> set[str]:
+        if not paths:
+            return set()
+        payload = b"\0".join(os.fsencode(path) for path in paths) + b"\0"
+        try:
+            result = subprocess.run(
+                ["git", "check-ignore", "--stdin", "-z"],
+                cwd=self.repo_root,
+                check=False,
+                input=payload,
+                capture_output=True,
+            )
+        except OSError as error:
+            raise CoordinatorError(
+                "finalize_ignore_scan_failed",
+                "Cannot classify ignored milestone paths",
+                details={"error": str(error)},
+            ) from error
+        if result.returncode not in {0, 1}:
+            raise CoordinatorError(
+                "finalize_ignore_scan_failed",
+                "Git failed while classifying ignored milestone paths",
+                details={"return_code": result.returncode, "error": os.fsdecode(result.stderr)},
+            )
+        requested_by_key = {path.casefold(): path for path in paths}
+        ignored: set[str] = set()
+        for raw_path in result.stdout.split(b"\0"):
+            if not raw_path:
+                continue
+            display_path = os.fsdecode(raw_path)
+            requested = requested_by_key.get(display_path.casefold())
+            if requested is None:
+                raise CoordinatorError(
+                    "finalize_ignore_scan_failed",
+                    f"Git returned an out-of-scope ignored path: {display_path}",
+                )
+            ignored.add(requested)
+        return ignored
+
+    @staticmethod
+    def _is_force_add_eligible(path: str) -> bool:
+        normalized = path.casefold()
+        return normalized in _FORCE_ADD_FILES or normalized.startswith(_FORCE_ADD_PREFIXES)
+
+    @staticmethod
+    def _is_local_session_state(path: str) -> bool:
+        return path.replace("\\", "/").casefold().startswith(".codex/sessions/")
+
+    def _git_add_paths(self, paths: tuple[str, ...], *, force: bool = False) -> None:
+        for chunk in self._pathspec_chunks(paths):
+            arguments = ["add", "-A"]
+            if force:
+                arguments.append("-f")
+            self._git(*arguments, "--", *chunk)
+
+    def _reset_index_paths(self, commit_sha: str, paths: tuple[str, ...]) -> None:
+        for chunk in self._pathspec_chunks(paths):
+            self._git("reset", "--quiet", commit_sha, "--", *chunk)
+
+    def _head_tracked_paths(self, paths: tuple[str, ...]) -> set[str]:
+        tracked_keys: set[str] = set()
+        for chunk in self._pathspec_chunks(paths):
+            tracked_keys.update(
+                path.casefold()
+                for path in self._git_path_output(
+                    "--literal-pathspecs",
+                    "ls-tree",
+                    "-r",
+                    "-z",
+                    "--name-only",
+                    "HEAD",
+                    "--",
+                    *chunk,
+                )
+            )
+        return {path for path in paths if path.casefold() in tracked_keys}
+
+    def _worktree_paths_differing_from_head(
+        self, paths: list[str] | tuple[str, ...]
+    ) -> set[str]:
+        normalized = tuple(dict.fromkeys(paths))
+        tracked = self._head_tracked_paths(normalized)
+        dirty_keys: set[str] = set()
+        for chunk in self._pathspec_chunks(normalized):
+            dirty_keys.update(
+                path.casefold()
+                for path in self._git_path_output(
+                    "--literal-pathspecs",
+                    "diff",
+                    "--name-only",
+                    "-z",
+                    "--no-ext-diff",
+                    "--no-renames",
+                    "HEAD",
+                    "--",
+                    *chunk,
+                )
+            )
+        dirty = {path for path in normalized if path.casefold() in dirty_keys}
+        dirty.update(
+            path
+            for path in normalized
+            if path not in tracked and (self.repo_root / path).exists()
+        )
+        return dirty
+
+    def _git_path_output(self, *arguments: str) -> tuple[str, ...]:
+        try:
+            result = subprocess.run(
+                ["git", *arguments],
+                cwd=self.repo_root,
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except subprocess.CalledProcessError as error:
+            raise CoordinatorError(
+                "finalize_head_content_failed",
+                "Cannot compare the current workspace content with HEAD",
+                details={"stderr": (error.stderr or "").strip()},
+            ) from error
+        except OSError as error:
+            raise CoordinatorError(
+                "finalize_head_content_failed",
+                "Cannot start Git while comparing workspace content with HEAD",
+                details={"error": str(error)},
+            ) from error
+        return tuple(
+            path.replace("\\", "/") for path in result.stdout.split("\0") if path
+        )
+
+    @staticmethod
+    def _pathspec_chunks(paths: tuple[str, ...]) -> Iterator[tuple[str, ...]]:
+        chunk: list[str] = []
+        char_count = 0
+        for path in paths:
+            path_chars = len(path.encode("utf-16-le")) // 2 + 3
+            if path_chars > _GIT_PATHSPEC_CHUNK_CHARS:
+                raise CoordinatorError(
+                    "finalize_pathspec_too_long",
+                    "A finalize path exceeds the safe Windows Git command budget",
+                    details={"path": path, "utf16Units": path_chars - 3},
+                )
+            if chunk and char_count + path_chars > _GIT_PATHSPEC_CHUNK_CHARS:
+                yield tuple(chunk)
+                chunk = []
+                char_count = 0
+            chunk.append(path)
+            char_count += path_chars
+        if chunk:
+            yield tuple(chunk)
 
     def _normalize(self, value: str) -> str:
         candidate = (self.repo_root / value).resolve()
@@ -930,16 +1372,42 @@ class GitFinalizeService:
             path.unlink(missing_ok=True)
 
     def _git(self, *arguments: str) -> str:
-        result = subprocess.run(
-            ["git", *arguments],
-            cwd=self.repo_root,
-            check=True,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-        )
+        command = ["git", *arguments]
+        try:
+            result = subprocess.run(
+                command,
+                cwd=self.repo_root,
+                check=True,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+            )
+        except subprocess.CalledProcessError as error:
+            stderr = self._safe_git_stderr(error.stderr)
+            command_label = " ".join(command[:2])
+            message = f"{command_label} failed with exit code {error.returncode}"
+            if stderr:
+                message = f"{message}: {stderr}"
+            raise CoordinatorError(
+                "finalize_git_command_failed",
+                message,
+                details={
+                    "command": command_label,
+                    "exit_code": error.returncode,
+                    "stderr": stderr,
+                },
+            ) from error
         return result.stdout.strip()
+
+    @staticmethod
+    def _safe_git_stderr(value: str | bytes | None) -> str:
+        if isinstance(value, bytes):
+            text = value.decode("utf-8", errors="replace")
+        else:
+            text = value or ""
+        sanitized = FORBIDDEN_SECRET.sub("<redacted>", text.strip())
+        return sanitized[:_GIT_FAILURE_STDERR_LIMIT]
 
     def _git_lines(self, *arguments: str) -> list[str]:
         output = self._git(*arguments)

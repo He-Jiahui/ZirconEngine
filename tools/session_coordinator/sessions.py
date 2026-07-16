@@ -7,6 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 from sqlite3 import Connection, Row
 
+from .cargo_reservations import expire_unstarted_cpu_reservations_for_session
 from .database import Database
 from .models import (
     ALLOWED_STATUS_TRANSITIONS,
@@ -162,6 +163,10 @@ class SessionService:
                 """,
                 (status.value, reason, now, now, completed_at, archived_at, session_id),
             )
+            if status is SessionStatus.STALE:
+                expire_unstarted_cpu_reservations_for_session(
+                    connection, session_id, completed_at=now
+                )
             self._event(
                 connection,
                 session_id,
@@ -220,6 +225,9 @@ class SessionService:
                 )
                 if cursor.rowcount != 1:
                     continue
+                expire_unstarted_cpu_reservations_for_session(
+                    connection, session_id, completed_at=now
+                )
                 self._event(
                     connection,
                     session_id,
@@ -251,15 +259,20 @@ class SessionService:
                   AND NOT EXISTS (
                       SELECT 1 FROM leases WHERE leases.session_id = sessions.session_id
                   )
-                  AND NOT EXISTS (
-                      SELECT 1 FROM patches
-                      WHERE patches.session_id = sessions.session_id
-                        AND patches.status IN ('queued', 'applying', 'needs_rebase')
-                  )
-                  AND NOT EXISTS (
-                      SELECT 1 FROM failure_nodes
-                      WHERE failure_nodes.fixing_plan = sessions.plan_path
-                        AND failure_nodes.kind = 'failure'
+                   AND NOT EXISTS (
+                       SELECT 1 FROM patches
+                       WHERE patches.session_id = sessions.session_id
+                         AND patches.status IN ('queued', 'applying', 'needs_rebase')
+                   )
+                   AND NOT EXISTS (
+                       SELECT 1 FROM cargo_jobs
+                       WHERE cargo_jobs.session_id = sessions.session_id
+                         AND cargo_jobs.status IN ('leased', 'running')
+                   )
+                   AND NOT EXISTS (
+                       SELECT 1 FROM failure_nodes
+                       WHERE failure_nodes.fixing_plan = sessions.plan_path
+                         AND failure_nodes.kind = 'failure'
                         AND failure_nodes.status = 'open'
                   )
                 ORDER BY session_id

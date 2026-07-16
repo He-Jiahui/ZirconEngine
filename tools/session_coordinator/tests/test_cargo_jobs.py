@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import json
 import os
 import subprocess
 import tempfile
+import time
 import unittest
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from unittest.mock import patch
 
+from tools.session_coordinator.cargo_runner import CargoJobRunner
 from tools.session_coordinator.cargo_jobs import (
     CargoCompatibility,
     CargoJobService,
@@ -34,8 +37,9 @@ class CargoJobTests(unittest.TestCase):
         config = CoordinatorConfig.for_repo(self.repo, state_root=root / "state")
         self.database = Database(config.database_path)
         migrate(self.database)
-        SessionService(self.database, self.repo).register(session_id="session-a")
-        SessionService(self.database, self.repo).register(session_id="session-b")
+        self.sessions = SessionService(self.database, self.repo)
+        self.sessions.register(session_id="session-a")
+        self.sessions.register(session_id="session-b")
         self.policy = TargetPathPolicy([self.target_root])
         self.service = CargoJobService(
             self.database,
@@ -43,6 +47,10 @@ class CargoJobTests(unittest.TestCase):
             repo_root=self.repo,
             free_space=lambda _path: 200 * 1024**3,
             process_alive=lambda pid: pid == 4242,
+        )
+        self.process_creation_times: dict[int, str] = {}
+        self.service.process_creation_time = lambda pid: self.process_creation_times.get(
+            pid, f"stable:{pid}"
         )
 
     def tearDown(self) -> None:
@@ -92,6 +100,178 @@ class CargoJobTests(unittest.TestCase):
 
         self.assertEqual(CargoJobStatus.LEASED, first.status)
         self.assertEqual("cargo_lane_occupied", occupied.exception.code)
+
+    def test_gpu_reservation_keeps_fifo_until_nominated_job_reaches_terminal_state(self) -> None:
+        now = "2026-07-15T12:00:00+00:00"
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO action_requests(
+                    action_id, action_kind, risk, required_role, actor,
+                    daemon_instance_id, parameters_json, impact_json, warnings_json,
+                    state_fingerprint, confirmation_phrase_hash, status, created_at,
+                    expires_at, completed_at
+                ) VALUES (?, 'service.resume', 'yellow', 'operator', 'operator',
+                          'daemon', ?, '[]', '[]', 'fingerprint', 'phrase', 'succeeded',
+                          ?, ?, ?)
+                """,
+                (
+                    "gpu-resume",
+                    json.dumps({"timeoutSeconds": 30, "gpuReservationSessionId": "session-a"}),
+                    now,
+                    now,
+                    now,
+                ),
+            )
+
+        with self.assertRaises(CoordinatorError) as blocked:
+            self.service.acquire("session-b", CargoLaneKind.GPU)
+        self.assertEqual("cargo_gpu_lane_reserved", blocked.exception.code)
+
+        reserved = self.service.acquire("session-a", CargoLaneKind.GPU)
+        self.assertEqual(CargoJobStatus.LEASED, reserved.status)
+
+        with self.assertRaises(CoordinatorError) as still_reserved:
+            self.service.acquire("session-b", CargoLaneKind.GPU)
+        self.assertEqual("cargo_gpu_lane_reserved", still_reserved.exception.code)
+
+        self.service.start(
+            reserved.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["powershell", "run-render18-product.ps1"],
+            root_is_supervisor=True,
+        )
+
+        with self.assertRaises(CoordinatorError) as running_reserved:
+            self.service.acquire("session-b", CargoLaneKind.GPU)
+        self.assertEqual("cargo_gpu_lane_reserved", running_reserved.exception.code)
+
+        self.service.process_alive = lambda _pid: False
+        self.service.finish(reserved.job_id, session_id="session-a", exit_code=0)
+
+        following = self.service.acquire("session-b", CargoLaneKind.GPU)
+        self.assertEqual(CargoJobStatus.LEASED, following.status)
+
+    def test_coordinator_runner_persists_output_and_releases_after_process_exit(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "run-logs",
+        )
+
+        run = runner.start(
+            session_id="session-a",
+            job_id=job.job_id,
+            command=(
+                os.fspath(Path(os.sys.executable)),
+                "-c",
+                "import os, sys; print('runner-out'); print(os.environ['CARGO_TARGET_DIR']); "
+                "print('runner-err', file=sys.stderr); raise SystemExit(7)",
+            ),
+        )
+        deadline = datetime.now(UTC) + timedelta(seconds=5)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual("completed", state["status"])
+        self.assertEqual(7, state["exitCode"])
+        self.assertIn("runner-out", state["stdoutTail"])
+        self.assertIn(job.target_dir, state["stdoutTail"])
+        self.assertIn("runner-err", state["stderrTail"])
+        self.assertEqual(CargoJobStatus.RELEASED, self.service.get(job.job_id).status)
+
+    def test_coordinator_runner_records_allowed_environment(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "run-logs",
+        )
+
+        runner.start(
+            session_id="session-a",
+            job_id=job.job_id,
+            command=(
+                os.fspath(Path(os.sys.executable)),
+                "-c",
+                "import os; print(os.environ['RUSTFLAGS'])",
+            ),
+            environment={"RUSTFLAGS": "-C debuginfo=0 -C codegen-units=16"},
+        )
+        deadline = datetime.now(UTC) + timedelta(seconds=5)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual("completed", state["status"])
+        self.assertEqual(
+            {"RUSTFLAGS": "-C debuginfo=0 -C codegen-units=16"},
+            state["environment"],
+        )
+        self.assertIn("-C debuginfo=0 -C codegen-units=16", state["stdoutTail"])
+
+    def test_gpu_lane_is_global_across_distinct_targets(self) -> None:
+        first = self.service.acquire(
+            "session-a",
+            CargoLaneKind.GPU,
+            requested_target=self.target_root / "gpu-a",
+        )
+
+        with self.assertRaises(CoordinatorError) as blocked:
+            self.service.acquire(
+                "session-b",
+                CargoLaneKind.GPU,
+                requested_target=self.target_root / "gpu-b",
+            )
+
+        self.assertEqual("cargo_gpu_lane_occupied", blocked.exception.code)
+        self.assertEqual(first.job_id, blocked.exception.details["jobId"])
+
+    def test_gpu_startup_audit_reports_existing_leases(self) -> None:
+        first = self.service.acquire("session-a", CargoLaneKind.GPU)
+
+        audit = self.service.audit_active_gpu_jobs()
+
+        self.assertEqual((first.job_id,), tuple(job.job_id for job in audit))
+
+    def test_start_rejection_records_the_job_and_error_code(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.start(
+                job.job_id,
+                session_id="session-b",
+                pid=4242,
+                command=["cargo", "test"],
+            )
+
+        self.assertEqual("cargo_job_owner_mismatch", rejected.exception.code)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                """
+                SELECT session_id, event_type, payload_json FROM events
+                WHERE session_id=? ORDER BY event_id DESC LIMIT 1
+                """,
+                ("session-b",),
+            ).fetchone()
+        self.assertIsNotNone(row)
+        self.assertEqual("cargo.start_rejected", row["event_type"])
+        self.assertEqual(
+            {
+                "code": "cargo_job_owner_mismatch",
+                "jobId": job.job_id,
+                "pid": 4242,
+                "rootIsSupervisor": False,
+            },
+            json.loads(row["payload_json"]),
+        )
 
     def test_target_identity_is_case_and_separator_insensitive(self) -> None:
         self.assertEqual(
@@ -425,6 +605,7 @@ class CargoJobTests(unittest.TestCase):
         running = self.service.start(
             job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
         )
+        self.service.process_tree_pids = lambda _root_pid: ()
         finished = self.service.finish(job.job_id, session_id="session-a", exit_code=0)
         released = self.service.release(job.job_id, session_id="session-a")
 
@@ -433,6 +614,89 @@ class CargoJobTests(unittest.TestCase):
         self.assertEqual(CargoJobStatus.RELEASED, released.status)
         self.assertEqual(0, released.exit_code)
         self.assertEqual(("cargo", "test"), released.command)
+
+    def test_finish_rejects_live_process_and_keeps_compatible_target_owned(self) -> None:
+        compatibility = self.compatibility()
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finish(job.job_id, session_id="session-a", exit_code=130)
+
+        self.assertEqual("cargo_process_tree_alive", rejected.exception.code)
+        self.assertEqual(CargoJobStatus.RUNNING, self.service.get(job.job_id).status)
+        with self.assertRaises(CoordinatorError) as occupied:
+            self.service.acquire(
+                "session-b", CargoLaneKind.TEST, compatibility=compatibility
+            )
+        self.assertEqual("cargo_reuse_pool_busy", occupied.exception.code)
+
+    def test_finish_rejects_live_child_when_registered_parent_has_exited(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.process_tree_pids = lambda root_pid: (3300, 35876) if root_pid == 9999 else ()
+        self.service.start(
+            job.job_id, session_id="session-a", pid=9999, command=["cargo", "test"]
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finish(job.job_id, session_id="session-a", exit_code=130)
+
+        self.assertEqual("cargo_process_tree_alive", rejected.exception.code)
+        self.assertEqual(CargoJobStatus.RUNNING, self.service.get(job.job_id).status)
+        self.assertEqual([3300, 35876], rejected.exception.details["livePids"])
+
+    def test_release_rejects_late_live_descendant_and_blocks_reuse(self) -> None:
+        compatibility = self.compatibility()
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        live_pids: tuple[int, ...] = ()
+        self.service.process_tree_pids = lambda _root_pid: live_pids
+        self.service.start(
+            job.job_id, session_id="session-a", pid=9999, command=["cargo", "test"]
+        )
+        self.service.finish(job.job_id, session_id="session-a", exit_code=130)
+        live_pids = (3300, 35876)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.release(job.job_id, session_id="session-a")
+
+        self.assertEqual("cargo_process_tree_alive", rejected.exception.code)
+        self.assertEqual(CargoJobStatus.FAILED, self.service.get(job.job_id).status)
+        self.assertEqual((3300, 35876), self.service.get(job.job_id).live_process_pids)
+        with self.assertRaises(CoordinatorError) as occupied:
+            self.service.acquire(
+                "session-b", CargoLaneKind.TEST, compatibility=compatibility
+            )
+        self.assertEqual("cargo_process_tree_alive", occupied.exception.code)
+
+    def test_orphan_reconcile_keeps_live_descendant_of_exited_registered_parent(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.process_tree_pids = lambda root_pid: (3300,) if root_pid == 9999 else ()
+        self.service.start(
+            job.job_id, session_id="session-a", pid=9999, command=["cargo", "test"]
+        )
+
+        self.assertEqual((), self.service.reconcile_orphans())
+        observed = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.RUNNING, observed.status)
+        self.assertEqual((3300,), observed.live_process_pids)
+
+    def test_owner_finish_recovers_a_race_with_orphan_reconciliation(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.start(
+            job.job_id, session_id="session-a", pid=9999, command=["cargo", "test"]
+        )
+        self.assertEqual((job.job_id,), tuple(item.job_id for item in self.service.reconcile_orphans()))
+
+        finished = self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+
+        self.assertEqual(CargoJobStatus.SUCCEEDED, finished.status)
+        self.assertEqual(0, finished.exit_code)
 
     def test_dry_run_allocates_without_creating_target(self) -> None:
         job = self.service.acquire("session-a", CargoLaneKind.GPU, dry_run=True)
@@ -459,6 +723,108 @@ class CargoJobTests(unittest.TestCase):
 
         self.assertEqual((), self.service.reconcile_orphans())
         self.assertEqual(CargoJobStatus.RUNNING, self.service.get(job.job_id).status)
+
+    def test_supervisor_finish_ignores_its_own_root_after_children_exit(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.process_tree_pids = lambda root_pid: (4242,) if root_pid == 4242 else ()
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["powershell", "validate-matrix.ps1"],
+            root_is_supervisor=True,
+        )
+
+        finished = self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+
+        self.assertEqual(CargoJobStatus.SUCCEEDED, finished.status)
+        self.assertEqual((), finished.live_process_pids)
+
+    def test_supervisor_finish_ignores_a_non_cargo_control_descendant(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.process_tree_pids = (
+            lambda root_pid: (4242, 3300) if root_pid == 4242 else ()
+        )
+        self.service.supervisor_cargo_pids = lambda _root_pid: ()
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["powershell", "validate-matrix.ps1"],
+            root_is_supervisor=True,
+        )
+
+        finished = self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+
+        self.assertEqual(CargoJobStatus.SUCCEEDED, finished.status)
+        self.assertEqual((), finished.live_process_pids)
+
+    def test_supervisor_finish_rejects_a_live_descendant(self) -> None:
+        job = self.service.acquire("session-a", CargoLaneKind.TEST)
+        self.service.process_tree_pids = (
+            lambda root_pid: (4242, 3300) if root_pid == 4242 else ()
+        )
+        self.service.supervisor_cargo_pids = lambda root_pid: (3300,) if root_pid == 4242 else ()
+        self.service.start(
+            job.job_id,
+            session_id="session-a",
+            pid=4242,
+            command=["powershell", "validate-matrix.ps1"],
+            root_is_supervisor=True,
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+
+        self.assertEqual("cargo_process_tree_alive", rejected.exception.code)
+        self.assertEqual([3300], rejected.exception.details["livePids"])
+
+    def test_legacy_released_job_never_reclaims_a_reused_pid(self) -> None:
+        compatibility = self.compatibility()
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+        self.service.process_tree_pids = lambda _root_pid: ()
+        self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+        released = self.service.release(job.job_id, session_id="session-a")
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET root_process_creation_time=NULL WHERE job_id=?",
+                (released.job_id,),
+            )
+        self.service.process_tree_pids = lambda root_pid: (4242,) if root_pid == 4242 else ()
+
+        reused = self.service.acquire(
+            "session-b", CargoLaneKind.TEST, compatibility=compatibility
+        )
+
+        self.assertEqual(released.target_dir, reused.target_dir)
+
+    def test_pid_reuse_orphans_the_original_job_and_allows_target_reuse(self) -> None:
+        compatibility = self.compatibility()
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        self.process_creation_times[4242] = "cargo-root-v1"
+        self.service.start(
+            job.job_id, session_id="session-a", pid=4242, command=["cargo", "test"]
+        )
+        self.process_creation_times[4242] = "renderdoc-mcp-v2"
+
+        orphaned = self.service.reconcile_orphans()
+
+        self.assertEqual((job.job_id,), tuple(item.job_id for item in orphaned))
+        observed = self.service.get(job.job_id)
+        self.assertEqual(CargoJobStatus.ORPHANED, observed.status)
+        self.assertEqual((), observed.live_process_pids)
+        self.service.release(job.job_id, session_id="session-a")
+        reused = self.service.acquire(
+            "session-b", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        self.assertEqual(job.target_dir, reused.target_dir)
 
 
 if __name__ == "__main__":

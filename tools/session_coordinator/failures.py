@@ -19,7 +19,13 @@ from .models import CoordinatorError, utc_text
 
 
 MARKDOWN_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-DATE_FIRST_HANDOFF = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$", re.IGNORECASE)
+# Keep the immutable-action snapshot aligned with the validator: a dated output
+# record mentioning failure is not a Failure-graph artifact without this suffix.
+DATE_FIRST_HANDOFF = re.compile(
+    r"^\d{4}-\d{2}-\d{2}-(?:[a-z0-9]+-)*(?:failure|fixed)-handoff\.md$",
+    re.IGNORECASE,
+)
+WORKFLOW_NODE_ID = re.compile(r"M[1-9]\d*(?:\.[1-9]\d*)?")
 
 
 def _is_failure_artifact(path: Path) -> bool:
@@ -27,7 +33,7 @@ def _is_failure_artifact(path: Path) -> bool:
     return (
         name.startswith("failure-")
         or name.startswith("fixed-")
-        or (bool(DATE_FIRST_HANDOFF.match(path.name)) and "failure" in name)
+        or bool(DATE_FIRST_HANDOFF.match(path.name))
         or "failure-handoff" in name
     )
 
@@ -64,6 +70,7 @@ class FailureNode:
     resolved_at: str | None
     summary_slug: str
     origin_plan: str
+    origin_workflow_node: str | None
     fixing_plan: str
     origin_child_dir: str
     fixing_child_dir: str
@@ -144,19 +151,37 @@ class FailureGraphService:
 
         by_lifecycle: dict[str, list[Any]] = {}
         edges: dict[str, set[str]] = {}
+        origin_workflow_nodes: dict[str, str | None] = {}
         for record in records:
             by_lifecycle.setdefault(record.lifecycle_key, []).append(record)
-            origin = self._relative(record.origin_plan)
-            fixing = self._relative(record.fixing_plan)
-            edges.setdefault(origin, set()).add(fixing)
-            if origin.casefold() == fixing.casefold():
+            raw_workflow_node = record.metadata.get("origin_workflow_node", "").strip()
+            workflow_node = raw_workflow_node or None
+            if workflow_node is not None and not WORKFLOW_NODE_ID.fullmatch(workflow_node):
                 diagnostics.append(
                     GraphDiagnostic(
-                        "self_edge",
-                        f"Failure {record.summary_slug} routes a plan to itself",
+                        "invalid_origin_workflow_node",
+                        f"Failure {record.summary_slug} has an invalid origin workflow node",
                         (record.relative_path,),
                     )
                 )
+                workflow_node = None
+            origin_workflow_nodes[record.relative_path] = workflow_node
+            canonical_status = "open" if record.kind == "failure" else "fixed"
+            # Only unresolved handoffs express a live execution dependency.
+            # Fixed artifacts remain in the index for audit history, but their
+            # former routing must not manufacture a current SCC or depth block.
+            if canonical_status == "open":
+                origin = self._relative(record.origin_plan)
+                fixing = self._relative(record.fixing_plan)
+                edges.setdefault(origin, set()).add(fixing)
+                if origin.casefold() == fixing.casefold():
+                    diagnostics.append(
+                        GraphDiagnostic(
+                            "self_edge",
+                            f"Failure {record.summary_slug} routes a plan to itself",
+                            (record.relative_path,),
+                        )
+                    )
         for lifecycle_key, lifecycle_records in by_lifecycle.items():
             if len(lifecycle_records) > 1:
                 diagnostics.append(
@@ -178,9 +203,9 @@ class FailureGraphService:
                     """
                     INSERT INTO failure_nodes(
                         lifecycle_key, artifact_path, kind, status, created_at,
-                        resolved_at, summary_slug, origin_plan, fixing_plan,
+                        resolved_at, summary_slug, origin_plan, origin_workflow_node, fixing_plan,
                         origin_child_dir, fixing_child_dir, priority, imported_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.lifecycle_key,
@@ -191,6 +216,7 @@ class FailureGraphService:
                         record.resolved_at,
                         record.summary_slug,
                         self._relative(record.origin_plan),
+                        origin_workflow_nodes[record.relative_path],
                         self._relative(record.fixing_plan),
                         self._relative(record.origin_child_dir),
                         self._relative(record.fixing_child_dir),
@@ -299,6 +325,71 @@ class FailureGraphService:
             ).fetchall()
         return [self._node_from_row(row) for row in rows]
 
+    def open_related_to_workflow_nodes(
+        self, plan_path: str | Path, workflow_node_keys: tuple[str, ...]
+    ) -> list[FailureNode]:
+        """Return fixer-priority failures plus origin failures for exact workflow nodes."""
+        return self.open_for_manifest(plan_path, workflow_node_keys, ())
+
+    def open_for_manifest(
+        self,
+        plan_path: str | Path,
+        workflow_node_keys: tuple[str, ...],
+        manifest_paths: tuple[str, ...] | list[str],
+    ) -> list[FailureNode]:
+        """Select only node-applicable failures for a verified fixed-return manifest."""
+        relative = self._relative(self._resolve_repo_path(plan_path))
+        node_keys = tuple(sorted(set(workflow_node_keys), key=str.casefold))
+        if not node_keys:
+            raise CoordinatorError(
+                "workflow_failure_nodes_empty",
+                "Workflow Failure filtering requires at least one node key",
+            )
+        normalized_manifest = tuple(
+            sorted(
+                {
+                    self._relative(self._resolve_repo_path(path))
+                    for path in manifest_paths
+                },
+                key=str.casefold,
+            )
+        )
+        placeholders = ", ".join("?" for _ in node_keys)
+        fixed_return = False
+        with self.database.connect() as connection:
+            if normalized_manifest:
+                manifest_placeholders = ", ".join("?" for _ in normalized_manifest)
+                fixed_return = connection.execute(
+                    f"""SELECT 1 FROM failure_nodes
+                        WHERE kind='fixed' AND status='fixed' AND fixing_plan=?
+                          AND artifact_path IN ({manifest_placeholders})
+                        LIMIT 1""",
+                    (relative, *normalized_manifest),
+                ).fetchone() is not None
+            conditions = [
+                f"""(
+                    origin_plan = ?
+                    AND (
+                      origin_workflow_node IS NULL
+                      OR origin_workflow_node IN ({placeholders})
+                    )
+                )"""
+            ]
+            parameters: list[object] = [relative, *node_keys]
+            if not fixed_return:
+                conditions.insert(0, "fixing_plan = ?")
+                parameters.insert(0, relative)
+            rows = connection.execute(
+                f"""
+                SELECT * FROM failure_nodes
+                WHERE kind = 'failure' AND status = 'open'
+                  AND ({' OR '.join(conditions)})
+                ORDER BY priority, created_at, summary_slug, artifact_path
+                """,
+                tuple(parameters),
+            ).fetchall()
+        return [self._node_from_row(row) for row in rows]
+
     def validator_errors(self) -> list[str]:
         return list(self._validator_module().validate_repository(self.repo_root))
 
@@ -358,6 +449,15 @@ class FailureGraphService:
                 f"Fixed destination already exists: {self._relative(destination)}",
             )
         source_text = source.read_text(encoding="utf-8")
+        if self._is_child_record_only(source_text):
+            return self._return_child_record_only(
+                node,
+                source=source,
+                source_text=source_text,
+                destination=destination,
+                resolution=resolution,
+                resolved_at=resolved_at,
+            )
         origin_text = origin_plan.read_text(encoding="utf-8")
         fixing_text = fixing_plan.read_text(encoding="utf-8")
         fixed_text = self._fixed_content(source_text, resolution, resolved_at)
@@ -385,6 +485,62 @@ class FailureGraphService:
             self._restore_text(fixing_plan, fixing_text)
             if destination not in originals:
                 destination.unlink(missing_ok=True)
+            self.import_repository()
+            raise
+        return destination
+
+    def _return_child_record_only(
+        self,
+        node: FailureNode,
+        *,
+        source: Path,
+        source_text: str,
+        destination: Path,
+        resolution: FailureResolution,
+        resolved_at: date,
+    ) -> Path:
+        """Return a child-only handoff without turning parent plans into shared write hotspots."""
+        receipt = (
+            self.repo_root
+            / node.fixing_child_dir
+            / f"{resolved_at.isoformat()}-{node.summary_slug}-return.md"
+        )
+        if receipt.exists():
+            raise CoordinatorError(
+                "return_receipt_exists",
+                f"Child-record return receipt already exists: {self._relative(receipt)}",
+            )
+        fixed_text = self._fixed_content(source_text, resolution, resolved_at)
+        receipt_link = Path(os.path.relpath(destination, receipt.parent)).as_posix()
+        receipt_text = "\n".join(
+            (
+                "---",
+                "record_kind: failure_return_status",
+                "status: fixed",
+                f"resolved_at: {resolved_at.isoformat()}",
+                f"summary_slug: {node.summary_slug}",
+                f"origin_plan: {node.origin_plan}",
+                f"fixing_plan: {node.fixing_plan}",
+                "plan_link_mode: child_record_only",
+                "---",
+                "",
+                f"# {node.summary_slug} 回传摘要",
+                "",
+                "- 状态：`fixed`",
+                f"- 回传工件：[{destination.name}]({receipt_link})",
+                f"- 摘要：{resolution.return_summary}",
+                "",
+            )
+        )
+        try:
+            self._atomic_write(destination, fixed_text)
+            self._atomic_write(receipt, receipt_text)
+            source.unlink()
+            self.import_repository()
+        except BaseException:
+            self._restore_text(source, source_text)
+            destination.unlink(missing_ok=True)
+            receipt.unlink(missing_ok=True)
             self.import_repository()
             raise
         return destination
@@ -490,6 +646,23 @@ class FailureGraphService:
             + f"\n\n{heading}\n\n{result}\n"
         )
 
+    @staticmethod
+    def _is_child_record_only(content: str) -> bool:
+        lines = content.splitlines()
+        if not lines or lines[0].strip() != "---":
+            return False
+        end = next(
+            (index for index, line in enumerate(lines[1:], start=1) if line.strip() == "---"),
+            None,
+        )
+        if end is None:
+            return False
+        for line in lines[1:end]:
+            key, separator, value = line.partition(":")
+            if separator and key.strip() == "plan_link_mode":
+                return value.strip() == "child_record_only"
+        return False
+
     def _replace_handoff_link(
         self,
         content: str,
@@ -501,24 +674,35 @@ class FailureGraphService:
         replacement = (
             f"- fixed 已修复：[{slug}]({Path(os.path.relpath(destination, plan_path.parent)).as_posix()})"
         )
+        destination_link = Path(os.path.relpath(destination, plan_path.parent)).as_posix()
+        source_resolved = source.resolve()
         lines = content.splitlines()
         replaced = False
         output: list[str] = []
         for line in lines:
-            matches_source = False
-            for raw_target in MARKDOWN_LINK.findall(line):
+            def replace_link(match: re.Match[str]) -> str:
+                nonlocal replaced
+                raw_target = match.group(1)
                 target = raw_target.strip().strip("<>").split("#", 1)[0]
                 if not target:
-                    continue
+                    return match.group(0)
                 candidate = (plan_path.parent / Path(target)).resolve()
-                if candidate == source.resolve():
-                    matches_source = True
-                    break
-            if matches_source:
-                output.append(replacement)
+                if candidate != source_resolved:
+                    return match.group(0)
                 replaced = True
-            else:
+                return f"[fixed 已修复：{slug}]({destination_link})"
+
+            rewritten = MARKDOWN_LINK.sub(replace_link, line)
+            if rewritten == line:
                 output.append(line)
+            elif line.lstrip().startswith("|"):
+                # A plan table records evidence beyond its handoff link.  Keep
+                # every column and rewrite only the matching Markdown token.
+                output.append(rewritten)
+            else:
+                # Ordinary handoff bullets deliberately collapse to one concise
+                # fixed summary once the canonical artifact has moved.
+                output.append(replacement)
         if not replaced:
             raise CoordinatorError(
                 "handoff_link_missing",
@@ -563,6 +747,7 @@ class FailureGraphService:
             resolved_at=row["resolved_at"],
             summary_slug=row["summary_slug"],
             origin_plan=row["origin_plan"],
+            origin_workflow_node=row["origin_workflow_node"],
             fixing_plan=row["fixing_plan"],
             origin_child_dir=row["origin_child_dir"],
             fixing_child_dir=row["fixing_child_dir"],

@@ -1,18 +1,26 @@
 ---
 related_code:
   - tools/session_coordinator/workflows/__init__.py
+  - tools/session_coordinator/workflows/plan_import.py
   - tools/session_coordinator/workflows/models.py
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
+  - tools/session_coordinator/workflows/milestones.py
+  - tools/session_coordinator/failures.py
+  - tools/session_coordinator/git_finalize.py
   - tools/session_coordinator/models.py
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/sessions.py
 implementation_files:
   - tools/session_coordinator/workflows/__init__.py
+  - tools/session_coordinator/workflows/plan_import.py
   - tools/session_coordinator/workflows/models.py
   - tools/session_coordinator/workflows/store.py
   - tools/session_coordinator/workflows/projections.py
+  - tools/session_coordinator/workflows/milestones.py
+  - tools/session_coordinator/failures.py
+  - tools/session_coordinator/git_finalize.py
   - tools/session_coordinator/models.py
   - tools/session_coordinator/migrations.py
   - tools/session_coordinator/server.py
@@ -24,6 +32,10 @@ tests:
   - tools/session_coordinator/tests/test_workflow_schema.py
   - tools/session_coordinator/tests/test_workflow_store.py
   - tools/session_coordinator/tests/test_workflow_projections.py
+  - tools/session_coordinator/tests/test_workflow_topology.py
+  - tools/session_coordinator/tests/test_workflow_commit.py
+  - tools/session_coordinator/tests/test_failures.py
+  - tools/session_coordinator/tests/test_milestone_failure_scope.py
 doc_type: module-detail
 ---
 
@@ -72,10 +84,48 @@ The workflow model is a derived control-center view. It must not replace `Sessio
 
 Summary projections are bounded and suitable for the dashboard list. Detail projections add ordered nodes, edges and attempt history. The current attempt is selected only from accepted attempts; a newer rejected or incomplete attempt remains visible in history without becoming current.
 
+## Current-Source Attestation Selection
+
+An immutable historical milestone record and a fresh current-source attestation may
+legitimately declare the same plan and milestone. The coordinator must not ask an
+executor to rewrite, move, or falsify the historical record merely to make a new
+run selectable.
+
+When more than one child-plan record declares the requested milestone, manifest
+binding selects exactly one record whose path is both dirty relative to `HEAD` and
+attributed to the executing Session. Its declared files must satisfy the same
+attribution check. Zero or multiple such records remain a hard
+`milestone_manifest_record_ambiguous` rejection with the complete and attributed
+candidate lists. This keeps historical accepted evidence immutable while ensuring a
+new topology/run can bind only its executor-owned current-source proof.
+
+## Fixed-Return Manifest Failure Scope
+
+An already completed cross-plan return may need its own immutable manifest
+committed while the fixing plan is still responsible for unrelated open
+Failures. For that narrow case, the manifest must include a canonical `fixed-*`
+artifact whose `fixing_plan` is the executing plan and whose destination is in
+the origin child directory. The Failure selector then evaluates only the
+manifest's exact origin workflow-node keys, retaining legacy node-less origin
+Failures as plan-wide blockers.
+
+This is not a general fixing-plan waiver. A normal milestone manifest, a
+manifest with an unrelated fixed artifact, or an explicit/Goal finalize still
+includes every open Failure assigned to the fixing plan. The same selector is
+used when computing gate fingerprints, refreshing `failure_audit`, and twice
+inside the Git mutex before the scoped commit, so a newly opened applicable
+Failure invalidates the commit rather than being bypassed.
+
 ## Extension Constraints
 
 Future graph expansion must keep topology acyclic, preserve stable keys, use coordinator services for mutations and append evidence instead of overwriting it. Failure nodes must reference the canonical `failure-*` or moved `fixed-*` artifact governed by the numbered child plan; the workflow database is an index and status projection, not a second canonical Markdown copy.
 
+### Protected Plan Revisions
+
+`TopologyImporter` stores every numbered-plan source revision as an immutable topology version. A normal structural refresh is rejected once a run has attempts, reviews, manifests, validation bindings, commit intents, or artifacts: changing an accepted node, dependency, title, slice, workflow identity, or goal would make historic evidence ambiguous.
+
+There is one deliberately narrow continuation path for a plan that has already accepted earlier milestones: the new topology may append one or more previously unknown milestone IDs while preserving the entire existing milestone map, every old dependency, all slices, workflow identity, goal, plan identity, and source kind. No in-flight milestone attempt may exist. The importer then retains existing node IDs, evidence, accepted states and edges, inserts only the new pending nodes and their incoming dependency edges, and activates the candidate version. This permits a new delivery milestone such as M5 after M1/M2 have completed while leaving unresolved M3/M4 pending. It must never reconcile, re-label, or fabricate historical evidence.
+
 ## Verification
 
-Schema tests validate migration and enum constraints. Store tests validate stable run identity and append-only attempt behavior. Projection tests validate current-attempt selection and preserved history. Server/Session regressions verify automatic synchronization at register, heartbeat and status transitions.
+Schema tests validate migration and enum constraints. Store tests validate stable run identity and append-only attempt behavior. `test_workflow_topology.py` verifies that a progressed graph rejects arbitrary structural replacement, while an append-only milestone candidate preserves accepted nodes and leaves both earlier pending nodes and the new milestone pending. Projection tests validate current-attempt selection and preserved history. Server/Session regressions verify automatic synchronization at register, heartbeat and status transitions.

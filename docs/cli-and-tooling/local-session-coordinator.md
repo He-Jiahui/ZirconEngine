@@ -16,6 +16,7 @@ related_code:
   - tools/session_coordinator/watch.py
   - tools/session_coordinator/plans.py
   - tools/session_coordinator/failures.py
+  - tools/session_coordinator/cargo_reservations.py
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cleanup.py
   - tools/session_coordinator/legacy.py
@@ -23,6 +24,7 @@ related_code:
   - tools/session_coordinator/processes.py
   - tools/session_coordinator/supervision/
   - tools/session_coordinator/git_finalize.py
+  - tools/session_coordinator/git_guard.py
   - tools/session_coordinator/control_plane/auth.py
   - tools/session_coordinator/control_plane/contracts.py
   - tools/session_coordinator/control_plane/events.py
@@ -60,12 +62,14 @@ implementation_files:
   - tools/session_coordinator/watch.py
   - tools/session_coordinator/plans.py
   - tools/session_coordinator/failures.py
+  - tools/session_coordinator/cargo_reservations.py
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cleanup.py
   - tools/session_coordinator/legacy.py
   - tools/session_coordinator/audit.py
   - tools/session_coordinator/processes.py
   - tools/session_coordinator/git_finalize.py
+  - tools/session_coordinator/git_guard.py
   - tools/session_coordinator/control_plane/auth.py
   - tools/session_coordinator/control_plane/contracts.py
   - tools/session_coordinator/control_plane/events.py
@@ -92,6 +96,9 @@ plan_sources:
   - docs/superpowers/plans/2026-07-11-session-goal-milestone-closeout-skill.md
   - docs/superpowers/specs/2026-07-11-workflow-control-center-and-tray-design.md
   - docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
+  - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-15-milestone-finalize-session-relative-owned-scope.md
+  - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-15-support-slice-exact-finalize-plan-output-conflict.md
+  - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-16-stale-session-pending-cpu-reservation-starvation.md
 tests:
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_server.py
@@ -105,11 +112,13 @@ tests:
   - tools/session_coordinator/tests/test_plans.py
   - tools/session_coordinator/tests/test_failures.py
   - tools/session_coordinator/tests/test_cargo_jobs.py
+  - tools/session_coordinator/tests/test_cargo_reservations.py
   - tools/session_coordinator/tests/test_cleanup.py
   - tools/session_coordinator/tests/test_legacy_migration.py
   - tools/session_coordinator/tests/test_retention.py
   - tools/session_coordinator/tests/test_rollout_audit.py
   - tools/session_coordinator/tests/test_git_finalize.py
+  - tools/session_coordinator/tests/test_git_guard.py
   - tools/session_coordinator/tests/test_workflow_schema.py
   - tools/session_coordinator/tests/test_workflow_store.py
   - tools/session_coordinator/tests/test_workflow_projections.py
@@ -123,6 +132,8 @@ tests:
   - tools/session_coordinator/tests/test_action_fingerprint.py
   - tools/session_coordinator/tests/test_action_execution.py
   - tools/session_coordinator/tests/test_action_concurrency.py
+  - tools/session_coordinator/tests/test_milestone_cli.py
+  - .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1
   - tools/tests/session-coordinator-smoke.Tests.ps1
 doc_type: workflow-detail
 ---
@@ -133,7 +144,9 @@ doc_type: workflow-detail
 
 The local Session coordinator is the shared-`main` control plane for ZirconEngine development. It gives each Session a typed lifecycle, records a hash-based workspace baseline, stores intermediate file contents outside Git, serializes concrete file writes, governs plan/failure records, and owns isolated Cargo validation lanes.
 
-Business Session work remains service-managed between accepted milestones. Every accepted milestone is an explicit service-owned Git commit; arbitrary checkpoints and hidden intermediate commits remain forbidden. The service protects unrelated active Sessions and their dirty files without creating branches or worktrees.
+Business Session work remains service-managed between accepted milestones. Every accepted milestone is an explicit service-owned Git commit; arbitrary checkpoints and hidden intermediate commits remain forbidden. Direct `git commit`, generic completion of a numbered-plan Session, and legacy `finalize --milestone` are rejected so a business change cannot bypass its workflow attempt or WeCom result. The service protects unrelated active Sessions and their dirty files without creating branches or worktrees.
+
+On each writable daemon start, the coordinator installs local `.git/hooks/pre-commit` and `prepare-commit-msg` gates. They block direct Git commits, including `--no-verify`; one pre-existing user hook of either name is preserved with the `.zircon-user` suffix. The Codex pre-tool gate also rejects direct commit forms that override `core.hooksPath` and direct shared-index mutations (`git add`, `rm`, `mv`, `reset`, or `restore --staged`). Coordinator commits use the scoped `commit-tree` path after their gates pass. This is a workflow guardrail for the shared checkout, not a substitute for the service's attribution and milestone checks.
 
 ## Runtime and State
 
@@ -144,18 +157,18 @@ Run the Windows entrypoint from the repository root:
 .\tools\zircon-session.ps1 status -Json
 ```
 
-The wrapper starts Python in a hidden window only when the health endpoint is unavailable. The daemon always binds `127.0.0.1:65189` and writes its port, PID and instance metadata to `.codex/state/session-coordinator/runtime.json`. The control service is deliberately token-free: all requests from this loopback-only listener are local control requests, so a browser tab remains usable after a daemon restart.
+The wrapper starts Python in a hidden window only when the health endpoint is unavailable. A repository-scoped named mutex serializes automatic startup, and callers probe the fixed health endpoint while a successor is publishing `runtime.json`; this prevents a descriptor-publication gap during a controlled restart from spawning competing daemon wrappers. The shared coordinator binds the fixed loopback endpoint `127.0.0.1:6518` and writes the port, PID and instance metadata to `.codex/state/session-coordinator/runtime.json`; local clients still read that descriptor to reject stale instances. Isolated test coordinators explicitly request an OS-assigned port. The control service is deliberately token-free: all requests from this loopback-only listener are local control requests, so a browser tab remains usable after a daemon restart.
 
 Schema version 16 completes the permissioned controlled-action protocol on top of the read-only workflow facade. It closes `action_kind` at the database boundary and installs compatibility triggers for databases that already applied the early v15 action tables. The runtime descriptor also records the daemon `instance_id`, `started_at`, and supported `control_api_versions`, allowing local clients to reject credentials created by a previous daemon instance. Detailed operator guidance lives in [Workflow Control Center](workflow-control-center.md); module contracts live in [Control Plane](../tools/session_coordinator/control-plane.md) and [Workflow Read Model](../tools/session_coordinator/workflows.md).
 
 Open the local control surface or inspect the same coherent snapshot from the terminal:
 
 ```powershell
-Start-Process http://127.0.0.1:65189/ui/
+Start-Process "http://127.0.0.1:6518/"
 .\tools\zircon-session.ps1 control snapshot -Json
 ```
 
-The browser does not need a bearer token, bootstrap ticket, cookie, or CSRF value. The only supported exposure boundary is the exact IPv4 loopback listener; do not proxy or publish the control port to another host.
+The root URL redirects to `/ui/`. The browser does not need a bearer token, bootstrap ticket, cookie, or CSRF value. The only supported exposure boundary is the exact IPv4 loopback listener; do not proxy or publish the control port to another host.
 
 All mutable coordinator data remains under `.codex/state/session-coordinator/`:
 
@@ -174,11 +187,15 @@ Register the current Codex thread and activate it:
 .\tools\zircon-session.ps1 session register `
   --display-name "runtime plan 02" `
   --plan-path "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md" `
+  --write-scope "docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md" `
+  --write-scope "docs/plans/zircon_runtime/frameworks/02" `
   --write-scope "tools/session_coordinator"
 .\tools\zircon-session.ps1 session set-status active
 ```
 
 `CODEX_THREAD_ID` is used when `--session-id` is omitted. Manual shells receive a generated UUID if neither is available.
+
+The parent plan file and its numbered child-plan directory are separate write scopes. Register both before editing a plan table, a milestone output record, or a failure link; then claim an exact live lease and attribute the current hash. Attribution without the live lease is rejected. `session register --write-scope` replaces the stored scope rather than appending it, so correction commands must repeat all existing business paths plus the newly required plan paths. The milestone service rejects an immutable manifest that has lost current attribution rather than absorbing it into another Session's commit.
 
 The only persisted status values are `registered`, `active`, `waiting_lease`, `resolving_failure`, `waiting_validation`, `finalizing`, `completed`, `stale`, `archived`, and `cancelled`. The transition table lives in `models.py`; invalid transitions fail without changing the database. Explanatory text belongs in `status_reason` rather than inventing another status string.
 
@@ -194,16 +211,17 @@ Initialize and inspect the workspace baseline:
 
 An epoch records HEAD, the Git index tree, and SHA-256 hashes for tracked and non-ignored files. Coordinator state is excluded. `baseline scan` compares current content to the epoch. A change does not get reverted; the baseline becomes `degraded` and the path remains on disk.
 
-Attribute a known change, then reconcile the existing epoch without absorbing any dirty file:
+Claim before attributing a known change, then reconcile the existing epoch without absorbing any dirty file:
 
 ```powershell
+.\tools\zircon-session.ps1 lease claim README.md
 .\tools\zircon-session.ps1 baseline attribute README.md
 .\tools\zircon-session.ps1 baseline reconcile
 ```
 
 `baseline reconcile` recalculates every difference, requires exact current-hash attribution, clears only the degraded marker, and keeps the epoch manifest unchanged. It fails with the remaining paths if even one change is unattributed. `baseline accept --reason ...` is a separate operator override that captures a new full-worktree epoch; do not use it to clear degradation in a shared dirty workspace. Neither action creates a Git commit.
 
-The thirty-second observer does not repeatedly hash a large workspace while that same epoch is already `degraded` and HEAD is unchanged: it preserves the degraded state until an explicit reconcile or acceptance. A HEAD change still receives a fresh observation. This avoids background hashing starving ordinary Session registration, lease, and heartbeat writes without weakening the baseline gate.
+The thirty-second observer does not repeatedly hash a large workspace while that same epoch is already `degraded` and HEAD is unchanged: it preserves the degraded state until an explicit reconcile or acceptance. A HEAD change still receives a fresh observation, but derives its pinned committed manifest through one streaming `git archive` instead of spawning `git cat-file` once per tracked file; the archive output retains Git's checked-out content filters. Background observation, manual read-only `watch scan`, explicitly requested `baseline scan`, Cargo orphan reconciliation, validation-copy cleanup, and periodic retention work do not hold the foreground mutation mutex; their own SQLite transactions and epoch checks retain correctness. This avoids workspace scanning or background work starving Session registration, `cargo finish`, lease, and heartbeat writes without weakening the baseline gate.
 
 ## File Leases
 
@@ -296,9 +314,9 @@ The existing handoff validator now exports structured `HandoffRecord` values. `f
 .\tools\zircon-session.ps1 failure open docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
 ```
 
-Graph diagnostics cover schema errors, duplicate lifecycles, self-edges, cycles and excessive dependency depth. The filename prefix supplies the coordinator's canonical `open`/`fixed` state; a conflicting frontmatter status remains a validator diagnostic but cannot abort the graph transaction or unrelated Cargo/Session commands. Open failures sort before fixed records and then by creation date/slug. Registering a Session with a fixing plan imports current Markdown; applicable failures are returned in `open_failures` and the Session enters `resolving_failure` instead of an untyped blocked state.
+Graph diagnostics cover schema errors, duplicate lifecycles, self-edges, cycles and excessive dependency depth. The filename prefix supplies the coordinator's canonical `open`/`fixed` state; a conflicting frontmatter status remains a validator diagnostic but cannot abort the graph transaction or unrelated Cargo/Session commands. Only `failure-*` records participate in the live dependency graph: moved `fixed-*` artifacts stay indexed for audit but cannot manufacture a current cycle or depth block. Open failures sort before fixed records and then by creation date/slug. Registering a Session with a fixing plan imports current Markdown; applicable failures are returned in `open_failures` and the Session enters `resolving_failure` instead of an untyped blocked state.
 
-After architectural repair and upward validation, `failure return` requires the lifecycle key, accepted-fix date, root cause, architecture repair, validation and return summary. The service rewrites the artifact as `fixed-*`, moves it into the origin child directory, replaces both plan links with concise `fixed 已修复` relative summaries, reruns the validator, and rolls back all file changes if any write or import fails.
+After architectural repair and upward validation, `failure return` requires the lifecycle key, accepted-fix date, root cause, architecture repair, validation and return summary. The service rewrites the artifact as `fixed-*`, moves it into the origin child directory, replaces ordinary handoff bullets with concise `fixed 已修复` relative summaries, reruns the validator, and rolls back all file changes if any write or import fails. For a Markdown table row it rewrites only each matching link token, preserving all cells, non-link evidence, separators, and unrelated links; a plan table is never collapsed into a bullet.
 
 ## M3 Validation
 
@@ -308,7 +326,7 @@ The coordination context script now queries service health, indexed Session coun
 
 ## Managed Cargo Jobs
 
-Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plans; schema v22 adds reusable-cache identity and cleanup state and repairs databases whose historical v21 marker predated those columns. Jobs use `check`, `test`, `workspace`, and `gpu` lanes with `leased`, `running`, `succeeded`, `failed`, `released`, and `orphaned` states. Targets must remain below one of the nine drive-root trees named `cargo-targets`, `targets`, or `ZirconBuilds` on `D:`, `E:`, or `F:`. A case- and separator-normalized identity plus ancestor/descendant overlap checks prevent Windows path aliases or nested pools from becoming simultaneous writers. Repo-local targets, symlink/junction escapes and arbitrary paths fail with `cargo_target_not_managed`.
+Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plans; schema v22 adds reusable-cache identity and cleanup state and repairs databases whose historical v21 marker predated those columns. Schema v30 records every process-tree observation, schema v31 records the Cargo root PID's creation identity, schema v32 distinguishes a Cargo root from a wrapper that supervises sequential Cargo commands, and schema v41 persists each new CPU reservation's canonical compatibility payload without fabricating payloads for historical rows. Jobs use `check`, `test`, `workspace`, and `gpu` lanes with `leased`, `running`, `succeeded`, `failed`, `released`, and `orphaned` states. Targets must remain below one of the nine drive-root trees named `cargo-targets`, `targets`, or `ZirconBuilds` on `D:`, `E:`, or `F:`. A case- and separator-normalized identity plus ancestor/descendant overlap checks prevent Windows path aliases or nested pools from becoming simultaneous writers. Repo-local targets, symlink/junction escapes and arbitrary paths fail with `cargo_target_not_managed`.
 
 ```powershell
 .\tools\zircon-session.ps1 cargo acquire workspace --ephemeral
@@ -317,11 +335,26 @@ Schema v4-v7 records Cargo jobs, cleanup reservations and persisted cleanup plan
 .\tools\zircon-session.ps1 cargo list
 ```
 
+CPU FIFO reservations persist one exact compatibility payload and command fingerprint. A
+Session may create, renew, or acquire new managed Cargo work only while it is in a
+non-terminal executable state; `completed`, `stale`, `archived`, and `cancelled` owners
+fail with `cargo_session_not_executable`. Only an unconsumed `pending` reservation with
+`job_id=NULL` is governed by its absolute TTL. Both explicit
+`SessionService.set_status(..., STALE)` and maintenance-driven `mark_stale` terminalize
+that unconsumed claim in the same database transaction as the Session transition, while
+a reservation already bound to a leased or running job follows the nominated job
+lifecycle and is never expired by the pending TTL; abnormal orphan reconciliation
+expires the bound reservation in the same transaction so a dead job cannot retain FIFO.
+Recreating the service does not
+rewrite `expires_at`, and the next reserve/acquire transaction removes an expired or
+non-executable pending head before applying FIFO, so a stale zero-job owner cannot starve
+unrelated validation.
+
 Reusable acquisition requires a complete compatibility document containing platform (`windows` or `wsl`), Rust toolchain, target architecture, repository-relative workspace and canonical build configuration. The service adds normalized repository identity and hashes that document. Source and `Cargo.lock` changes deliberately do not split the pool because Cargo performs unit-level invalidation. Check/test lane labels also do not split it. Exactly one primary directory exists per compatibility key across Sessions and exactly one task may own it; concurrent compatible acquisition returns `cargo_reuse_pool_busy` instead of creating a fallback pool. Legacy duplicate retained directories are demoted to prompt deletion while the newest remains authoritative. Missing compatibility metadata fails closed to ephemeral by default, as does an explicit `--ephemeral` request; release commits ownership state and wakes a single worker that drains pending requests, reserves and revalidates each exact directory, then deletes outside the writer transaction. A locked deletion becomes `failed`; release-driven cleanup leaves it alone, and the daemon's default 30-second watch loop retries failed Cargo cleanup.
 
 The web control center separates the real-time Cargo baseline from the historical audit feed. Its four lifecycle counters and Cargo table use only the latest coordinator record for each target directory that still exists on disk. Consequently, a target deleted after an earlier lock failure is not shown as a current failure, and repeated jobs sharing one reusable directory count once. The history payload remains available to the service for audit, but it does not influence the live cards: `可复用池`, `用后即删`, `待清理`, and `清理失败` describe current directories only.
 
-`validate-matrix.ps1` performs the Windows lifecycle automatically: register the caller, derive the compatibility document, acquire the primary pool with the wrapper PID, immediately enter `try/finally`, record the process command line at start, run validation, record the exit code, and owner-checked release. WSL Cargo is permitted only through a coordinator-aware Windows host wrapper that acquires with `platform=wsl`, remains alive and heartbeats while its `wsl.exe` child runs, and translates only the granted path to its mounted equivalent; direct unleased WSL Cargo is forbidden. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy and cannot create an alternate primary directory. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned` and immediately retries pending ephemeral cleanup.
+`validate-matrix.ps1` performs the Windows lifecycle automatically: register the caller, derive the compatibility document, acquire the primary pool with the wrapper PID, immediately enter `try/finally`, record the process command line and root creation identity at start, run validation, record the exit code, and owner-checked release. It marks that PowerShell PID as a **supervisor**, so finish/release ignore the still-live wrapper itself after its sequential Cargo calls have returned but still reject any live Cargo/rustc descendant. Direct `cargo start` jobs remain Cargo-root jobs and retain their live root check. Every observation compares the current root creation identity before traversing descendants: a different identity means Windows has reused the PID, so that unrelated process and its descendants cannot retain the old Cargo target. A matching root—or a known descendant after the matching root exits—continues to protect the target. Pre-identity `orphaned` rows retain their historical terminal state rather than treating a later reused PID as Cargo. WSL Cargo is permitted only through a coordinator-aware Windows host wrapper that acquires with `platform=wsl`, remains alive and heartbeats while its `wsl.exe` child runs, and translates only the granted path to its mounted equivalent; direct unleased WSL Cargo is forbidden. Explicit `-TargetDir` and inherited `CARGO_TARGET_DIR` are normalized through the same policy and cannot create an alternate primary directory. Dry-run jobs are audited but their directories are not created. The daemon converts dead running jobs and dead/timed-out pre-start leases to `orphaned` and immediately retries pending ephemeral cleanup.
 
 ## Cleanup and Service-Owned Maintenance
 
@@ -335,7 +368,16 @@ Cleanup is deliberately two-phase:
 
 Reusable caches use the reviewed two-phase retention path. Planning persists an immutable, expiring `plan_id` with its candidate snapshot, retention and status. Apply accepts only that server-stored plan, can run once, and may shrink it after revalidating job history, managed-root realpath, overlapping live PID, active lease and positive retention. Under disk pressure, the daemon evicts idle reusable pools oldest-first until the free-space reserve is restored; active pools remain protected. Ephemeral lanes bypass only the age delay, never the path/identity/process/lease checks. A short SQLite transaction writes a cleanup reservation; deletion runs outside the global writer lock; a final short transaction records success/failure and clears the reservation. New Cargo acquisition observes the reservation, and daemon restart recovers abandoned reservations.
 
-The wrapper scans only direct child directories of the exact nine approved roots. It excludes every coordinator-known target and any ancestor containing a nested managed pool, skips reparse points, checks the stale cutoff, refreshes coordinator state immediately before deletion, and directly removes only stale unmanaged children. This is the intentional unmanaged exception: they have no service job history to retain, while managed paths remain service-owned.
+The coordinator also governs every physical directory beneath the nine approved D/E/F roots. A path is protected only when it belongs to a recorded Cargo job, validation-copy job, or workflow artifact. `artifact audit` reports every other directory; `artifact cleanup` removes one revalidated candidate per invocation and records `delete_started`, `deleted`, or `delete_failed` events. The daemon runs the same sweep on its 30-second loop. Before Cargo acquisition or validation-copy work starts, the service fails closed with `unmanaged_artifacts_detected` while any unknown directory remains. Therefore Sessions must register a Cargo lane or validation copy before it creates an output directory; raw Cargo targets, RenderDoc captures, or ad-hoc `ZirconBuilds` folders are not supported execution paths.
+
+The Codex `PreToolUse` Hook also rejects direct `mkdir`, `md`, `New-Item`, and `ni` creation below those roots when the target is explicit. Its audit line contains only the Session id, relative working directory, operation category, and denial reason—never the output path or full command. This catches ordinary Session mistakes before the filesystem changes; the daemon sweep and fail-closed acquisition remain the authoritative fallback for scripts or tools whose output path cannot be inferred safely by the Hook.
+
+```powershell
+.\tools\zircon-session.ps1 artifact audit -Json
+.\tools\zircon-session.ps1 artifact cleanup -Json
+```
+
+The PowerShell cleanup wrapper delegates unmanaged deletion to these coordinator commands; it no longer calls `Remove-Item` for unregistered artifacts itself.
 
 The user-level startup definition is idempotent and repository-specific. The preferred backend uses Task Scheduler; systems that deny task creation can use the current-user Run key while the daemon owns the 15-minute maintenance cadence internally:
 
@@ -376,14 +418,20 @@ An accepted milestone must use the workflow-aware local action path, which keeps
 .\tools\zircon-session.ps1 milestone validate --session-id <session-id> --run-id <run-id> --milestone M2 --template coordinator-actions
 # A distinct reviewer Session submits its accepted review after validation completes.
 .\tools\zircon-session.ps1 milestone review --session-id <reviewer-session> --executor-session-id <session-id> --run-id <run-id> --milestone M2 --critical-count 0 --important-count 0 --summary "accepted"
-.\tools\zircon-session.ps1 milestone commit --session-id <session-id> --run-id <run-id> --milestone M2
+.\tools\zircon-session.ps1 milestone commit --session-id <session-id> --run-id <run-id> --milestone M2 --summary "add variable shaping visibility diagnostics"
 ```
 
-`milestone commit` uses `MilestoneWorkflowService`: it rechecks live gate state under the Git mutex, commits the exact service-bound manifest, records the accepted node, and sends WeCom exactly once after the commit SHA exists. Git subjects remain plain Conventional Commits and never receive a full-width module prefix. For the example plan under `docs/plans/zircon_runtime/frameworks/`, the service uses `frameworks` only when it formats the WeCom first line as `核心内容摘要：【frameworks】...`; the committed subject and the notification's fourth line remain unprefixed. A notification failure is recorded but never rolls back the commit or auto-retries delivery.
+The local CLI treats `previewed` and `executing` controlled actions as non-terminal. After one preview and one confirmation, it polls `GET /control/v1/actions/{action_id}` until the same durable action reaches a terminal state, then returns that action's result to the milestone command. Materialization-heavy actions such as `validation.start` therefore keep one action and one validation copy: an initial `executing` response with `result: null` is not reported as `invalid_response` and never triggers a duplicate preview or validation job. Polling uses the command deadline; exceeding it reports `command_timeout` with the action identity so callers can inspect the existing action instead of retrying it blindly.
+
+`milestone commit` requires a concrete `--summary`. `MilestoneWorkflowService` combines it with the registered plan module and actual manifest class to build a specific plain Conventional Commit subject, such as `feat(frameworks): add render dependency diagnostics`; generic `workflow`, `milestone`, and `complete M2 milestone` summaries are rejected. It rechecks live gate state under the Git mutex, commits the exact service-bound manifest, records the accepted node, and sends WeCom exactly once after the commit SHA exists. For the example plan under `docs/plans/zircon_runtime/frameworks/`, the service uses `frameworks` on the WeCom first line as `核心内容摘要：【frameworks】M2 · <title>：<summary>`; the committed subject and the notification's fourth line remain unprefixed. A notification failure is recorded but never rolls back the commit or auto-retries delivery.
+
+`milestone close-goal` treats commit intent states by recovery semantics: `prepared` and `committed` remain blocking because their ref outcome may still need reconciliation; `reconciled` is accepted evidence; terminal `failed` with no commit SHA remains immutable audit history and does not block closeout. The service never rewrites or deletes failed attempts merely to complete a Goal.
 
 `finalize --milestone` is retained only as a compatibility command and is not valid for business Session closeout: it cannot identify a workflow milestone or invoke the workflow-managed WeCom notification.
 
 Milestone commit paths must have live leases owned by the Session and current-hash attribution. The service re-imports canonical Failure Markdown, rejects validator diagnostics or open Failure nodes where the Session plan is either origin or fixer, takes `git_mutex`, rechecks the exact index and staged blob identities, and advances `HEAD` with compare-and-swap. The Session remains active after success. The workflow-aware `milestone commit` command is the only business-Session milestone commit path; a plain `git commit` is outside the workflow.
+
+Owned-scope eligibility is Session-relative, not global-baseline-relative. Attribution proves that the requesting Session owns the exact current file bytes; the coordinator separately compares those bytes with the current `HEAD` checkout to prove that the manifest contains a real commit delta. A later global baseline capture may absorb a dirty hash for shared health tracking, but it cannot erase an already attributed tracked change that still differs from `HEAD`. The unchanged-path gate remains active for content that truly matches `HEAD`, and omitted-owned-path, live-lease, staged-blob, Failure and secret gates are unchanged.
 
 Every requested path must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
 
@@ -393,7 +441,7 @@ The service persists the pre-transaction HEAD and exact Git index bytes after ta
 
 Service restart restores a persisted pre-commit index when HEAD did not advance, returns an interrupted Session to `completed`, and marks the request failed. The `ref_updated_sha` intent closes the post-commit/pre-baseline window: if the exact expected scoped commit already advanced HEAD before a process interruption, startup reconciles its SHA and commit-derived partial baseline instead of reporting a false failure or capturing the full dirty worktree.
 
-Health probes keep a short three-second timeout. Mutating service commands use a separate five-minute client timeout so a busy shared disk, Git hook or configured validation command is not misreported as an offline daemon.
+Health probes keep a short three-second timeout. Mutating service commands use a separate five-minute client timeout. If that deadline is genuinely reached, the client reports typed `command_timeout` with the command and deadline rather than falsely reporting the daemon as offline; callers inspect the typed job/session status before retrying. `session heartbeat`, lease claim/release, and the complete Cargo acquire/start/heartbeat/finish/release lifecycle each use their own short SQLite transaction and never wait behind baseline observation or validation-copy work. Baseline observation and direct validation-copy materialize/run/cleanup keep their own durable status transitions and do not own that foreground lifecycle lane; shared-worktree patch, finalization and Failure mutations remain serialized.
 
 Workflow/skill maintenance uses the same transaction with explicit `--maintenance`; the daemon authorizes it with a separate local `ZIRCON_COORDINATOR_MAINTENANCE_TOKEN` capability that is never written to the runtime descriptor or Git. The ordinary shared service bearer and a client boolean are insufficient. Authorized maintenance bypasses business attribution/status checks but retains index scope, repository path, semantic-message and secret guards. Business intermediate versions continue to live in coordinator snapshots rather than Git history.
 
@@ -407,17 +455,19 @@ Validation copies provide a stable source view without a branch, worktree or rep
   --path zircon_runtime/Cargo.toml `
   --path zircon_runtime/src/lib.rs
 
+# `materialize` returns its job immediately. Poll until `status` is materialized.
+.\tools\zircon-session.ps1 validation-copy status <job-id>
 .\tools\zircon-session.ps1 validation-copy run <job-id> -- cargo check --workspace
 .\tools\zircon-session.ps1 validation-copy cleanup <job-root>
 ```
 
-The manifest is materialized under `{drive}:\targets\zircon-engine\verify\{job-id}\source`. Planning pins one HEAD SHA; every unowned tracked path is read from that exact commit, so concurrent finalization cannot create a mixed-version copy. Paths owned by the requesting Session are copied from the worktree only while their attribution hash still matches. Unowned untracked paths, `.git`, coordinator state and repository build output are rejected. The resolved `verify` root and job root are revalidated during plan, materialize, run and cleanup; junction/symlink escapes fail closed.
+`materialize` creates its durable job and returns before copying files. The detached worker performs filesystem I/O outside the foreground mutation mutex, so Session heartbeats, leases and Cargo `finish`/`release` requests cannot wait behind a large manifest. Its status is `materializing` until terminal `materialized` or `failed`; a materializing job cannot be run, cancelled or cleaned up. Planning pins one HEAD SHA. The worker extracts all unowned tracked files from that exact commit through one Git archive stream, then overlays only the requesting Session's current-hash-attributed paths from the worktree. This avoids per-file Git processes and prevents concurrent finalization from creating a mixed-version copy. Unowned untracked paths, `.git`, coordinator state and repository build output are rejected. The resolved `verify` root and job root are revalidated during plan, materialize, run and cleanup; junction/symlink escapes fail closed.
 
 Validation commands acquire the job's `running` state and run with `CARGO_TARGET_DIR` fixed to the adjacent `{job-root}\target`; a second run and cleanup are rejected until execution returns to `materialized`. Exit code and bounded stdout/stderr evidence are stored in SQLite. After terminal evidence is imported, the coordinator automatically reserves `cleanup_pending` and removes the single job tree. Artifact-producing raw Cargo commands are rejected by the repository `PreToolUse` Hook; the Hook writes only a sanitized local denial record and is a workflow guardrail rather than a credential boundary.
 
 Cleanup accepts only a job root already recorded by the service and only when its resolved path is a direct child of an allowlisted `verify` root. It removes that single job tree, including the adjacent target, then records the removal.
 
-Validation runs persist the real validation child PID. Startup releases only dead `running` reservations, while live processes remain protected. `cleanup_pending` is durable: both startup and the daemon's 30-second loop retry deletion of that exact recorded job root. A failed deletion stays visible as pending rather than being rewritten to `materialized`; its validation run evidence stays available for diagnosis.
+Validation runs persist the real validation child PID. Startup releases only dead `running` reservations and removes an interrupted `materializing` tree before a retry; live processes remain protected. `cleanup_pending` is durable: both startup and the daemon's 30-second loop retry deletion of that exact recorded job root. A failed deletion stays visible as pending rather than being rewritten to `materialized`; its validation run evidence stays available for diagnosis.
 
 ## M5 Validation
 

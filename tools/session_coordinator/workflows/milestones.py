@@ -10,6 +10,7 @@ from pathlib import Path
 
 from ..baselines import BaselineService
 from ..database import Database
+from ..failures import WORKFLOW_NODE_ID
 from ..git_finalize import FinalizeResult, GitFinalizeService
 from ..models import CoordinatorError, SessionStatus, WorkflowArtifactKind, WorkflowNodeState, utc_text
 from ..notifications import NotificationAttemptRecord, WeComNotificationService
@@ -101,7 +102,12 @@ class MilestoneWorkflowService:
                 actor=actor,
                 action_id=action_id,
             )
-        context = self.prepare_context(run_id, paths)
+        failure_node_keys = self._failure_node_keys(run_id, milestone_key)
+        context = self.prepare_context(
+            run_id,
+            paths,
+            failure_workflow_node_keys=failure_node_keys,
+        )
         if source_manifest_hash != context.manifest_hash:
             raise CoordinatorError(
                 "validation_copy_manifest_stale",
@@ -278,7 +284,12 @@ class MilestoneWorkflowService:
                 actor=reviewer_actor,
                 action_id=action_id,
             )
-        context = self.prepare_context(run_id, paths)
+        failure_node_keys = self._failure_node_keys(run_id, milestone_key)
+        context = self.prepare_context(
+            run_id,
+            paths,
+            failure_workflow_node_keys=failure_node_keys,
+        )
         milestone = self._milestone_node(run_id, milestone_key)
         fingerprint = self.gates.input_fingerprint(run_id, milestone_key, context)
         review = self.evidence.record_review(
@@ -336,11 +347,6 @@ class MilestoneWorkflowService:
             self.failures.import_repository()
         session = self.sessions.get(session_id) if self.sessions is not None else None
         plan_path = session.plan_path if session is not None else None
-        failures = (
-            self.failures.open_related_to_plan(plan_path)
-            if self.failures is not None and plan_path
-            else []
-        )
         owned = set(self.leases.owned_paths(session_id)) if self.leases is not None else set()
         owner = TopologyParser(self.repo_root).plans.resolve_owner(plan_path or "")
         child = self.repo_root / owner.child_dir
@@ -357,8 +363,8 @@ class MilestoneWorkflowService:
         refreshed: dict[str, dict[str, str]] = {}
         with self.database.connect() as connection:
             milestones = connection.execute(
-                """SELECT node_id, node_key FROM workflow_nodes
-                   WHERE run_id=? AND kind='milestone' ORDER BY node_key""",
+                """SELECT node_id, node_key, kind FROM workflow_nodes
+                   WHERE run_id=? AND kind IN ('milestone', 'slice') ORDER BY node_key""",
                 (run_id,),
             ).fetchall()
         for milestone in milestones:
@@ -371,7 +377,17 @@ class MilestoneWorkflowService:
                     "failure_audit": "rejected",
                 }
                 continue
-            context = self.prepare_context(run_id, paths)
+            failure_node_keys = self._failure_node_keys(run_id, milestone["node_key"])
+            failures = (
+                self.failures.open_for_manifest(plan_path, failure_node_keys, paths)
+                if self.failures is not None and plan_path
+                else []
+            )
+            context = self.prepare_context(
+                run_id,
+                paths,
+                failure_workflow_node_keys=failure_node_keys,
+            )
             fingerprint = self.gates.input_fingerprint(
                 run_id, milestone["node_key"], context
             )
@@ -441,11 +457,28 @@ class MilestoneWorkflowService:
         return {"refreshed": True, "milestones": refreshed}
 
     def prepare_context(
-        self, run_id: str, paths: list[str] | tuple[str, ...]
+        self,
+        run_id: str,
+        paths: list[str] | tuple[str, ...],
+        *,
+        failure_workflow_node_keys: tuple[str, ...],
     ) -> GateContext:
         normalized = tuple(sorted(set(paths), key=str.casefold))
         if not normalized:
             raise CoordinatorError("milestone_paths_empty", "Milestone commit requires paths")
+        if (
+            not isinstance(failure_workflow_node_keys, tuple)
+            or not failure_workflow_node_keys
+            or any(
+                not isinstance(node_key, str)
+                or WORKFLOW_NODE_ID.fullmatch(node_key) is None
+                for node_key in failure_workflow_node_keys
+            )
+        ):
+            raise CoordinatorError(
+                "milestone_failure_scope_invalid",
+                "Milestone context requires explicit workflow node Failure scope",
+            )
         with self.database.connect() as connection:
             run = connection.execute(
                 """SELECT workflow_runs.current_topology_version_id,
@@ -470,16 +503,45 @@ class MilestoneWorkflowService:
                         "currentContentHash": current_plan.content_hash,
                     },
                 )
+            plan_path = run["plan_path"]
+        if self.failures is not None:
             failure_rows = [
-                dict(row)
-                for row in connection.execute(
-                    """SELECT lifecycle_key, status, kind, artifact_path
-                       FROM failure_nodes
-                       WHERE origin_plan=? OR fixing_plan=?
-                       ORDER BY lifecycle_key, artifact_path""",
-                    (run["plan_path"], run["plan_path"]),
+                {
+                    "lifecycle_key": item.lifecycle_key,
+                    "status": item.status,
+                    "kind": item.kind,
+                    "artifact_path": item.artifact_path,
+                }
+                for item in self.failures.open_for_manifest(
+                    plan_path,
+                    failure_workflow_node_keys,
+                    normalized,
                 )
             ]
+        else:
+            placeholders = ", ".join("?" for _ in failure_workflow_node_keys)
+            with self.database.connect() as connection:
+                failure_rows = [
+                    dict(row)
+                    for row in connection.execute(
+                        f"""SELECT lifecycle_key, status, kind, artifact_path
+                            FROM failure_nodes
+                            WHERE fixing_plan=?
+                               OR (
+                                 origin_plan=?
+                                 AND (
+                                   origin_workflow_node IS NULL
+                                   OR origin_workflow_node IN ({placeholders})
+                                 )
+                               )
+                            ORDER BY lifecycle_key, artifact_path""",
+                        (
+                            plan_path,
+                            plan_path,
+                            *failure_workflow_node_keys,
+                        ),
+                    )
+                ]
         baseline = self.baselines.current()
         return GateContext(
             topology_version_id=run["current_topology_version_id"],
@@ -559,7 +621,12 @@ class MilestoneWorkflowService:
     ) -> tuple[str, ...]:
         self._require_run_owner(run_id, session_id)
         paths = self._derive_milestone_paths(session_id, run_id, milestone_key)
-        context = self.prepare_context(run_id, paths)
+        failure_node_keys = self._failure_node_keys(run_id, milestone_key)
+        context = self.prepare_context(
+            run_id,
+            paths,
+            failure_workflow_node_keys=failure_node_keys,
+        )
         milestone = self._milestone_node(run_id, milestone_key)
         self._record_manifest(
             session_id=session_id,
@@ -584,7 +651,12 @@ class MilestoneWorkflowService:
                 "independentReviewAccepted": False,
             }
         try:
-            context = self.prepare_context(run_id, paths)
+            failure_node_keys = self._failure_node_keys(run_id, milestone_key)
+            context = self.prepare_context(
+                run_id,
+                paths,
+                failure_workflow_node_keys=failure_node_keys,
+            )
             decision = self.gates.evaluate(run_id, milestone_key, context)
         except CoordinatorError as error:
             return {
@@ -611,24 +683,23 @@ class MilestoneWorkflowService:
         run_id: str,
         milestone_key: str,
         paths: list[str] | tuple[str, ...],
-        message: str,
+        summary: str,
         actor: str,
         action_id: str | None = None,
     ) -> MilestoneCommitResult:
         self._require_run_owner(run_id, session_id)
-        notification_module = None
-        if self.notifications is not None:
-            with self.database.connect() as connection:
-                run = connection.execute(
-                    "SELECT plan_path FROM workflow_runs WHERE run_id=?", (run_id,)
-                ).fetchone()
-            if run is None or not run["plan_path"]:
-                raise CoordinatorError(
-                    "notification_module_unavailable",
-                    "Milestone notification requires a workflow run bound to a plan module",
-                    details={"runId": run_id},
-                )
-            notification_module = plan_module_name(str(run["plan_path"]))
+        with self.database.connect() as connection:
+            run = connection.execute(
+                "SELECT plan_path FROM workflow_runs WHERE run_id=?", (run_id,)
+            ).fetchone()
+        if run is None or not run["plan_path"]:
+            raise CoordinatorError(
+                "milestone_commit_context_unavailable",
+                "Milestone commit requires a workflow run bound to a plan module",
+                details={"runId": run_id},
+            )
+        plan_path = str(run["plan_path"])
+        module = plan_module_name(plan_path)
         bound_paths = self.milestone_paths(run_id, milestone_key)
         if bound_paths:
             if tuple(sorted(paths, key=str.casefold)) != tuple(sorted(bound_paths, key=str.casefold)):
@@ -643,12 +714,20 @@ class MilestoneWorkflowService:
                 "milestone_manifest_missing",
                 "Milestone commit requires an explicit service-bound manifest",
             )
-        context = self.prepare_context(run_id, paths)
+        failure_workflow_node_keys = self._failure_node_keys(
+            run_id, milestone_key
+        )
+        context = self.prepare_context(
+            run_id,
+            paths,
+            failure_workflow_node_keys=failure_workflow_node_keys,
+        )
         initial = self.gates.evaluate(run_id, milestone_key, context)
         self._require_allowed(initial)
 
         latest: GateDecision = initial
         milestone = self._milestone_node(run_id, milestone_key)
+        message = self._commit_subject(module, paths, summary)
         intent_id = uuid.uuid4().hex
         now = utc_text()
         with self.database.transaction() as connection:
@@ -676,7 +755,11 @@ class MilestoneWorkflowService:
 
         def guard() -> None:
             nonlocal latest
-            refreshed_context = self.prepare_context(run_id, paths)
+            refreshed_context = self.prepare_context(
+                run_id,
+                paths,
+                failure_workflow_node_keys=failure_workflow_node_keys,
+            )
             latest = self.gates.evaluate(run_id, milestone_key, refreshed_context)
             self._require_allowed(latest)
 
@@ -685,6 +768,7 @@ class MilestoneWorkflowService:
                 session_id,
                 paths=paths,
                 message=message,
+                failure_workflow_node_keys=failure_workflow_node_keys,
                 precommit_guard=guard,
                 request_id=intent_id,
             )
@@ -710,12 +794,11 @@ class MilestoneWorkflowService:
 
         notification = None
         if self.notifications is not None:
-            assert notification_module is not None
             commit_time = self._git("show", "-s", "--format=%cI", result.commit_sha)
             commit_subject = self._git("show", "-s", "--format=%s", result.commit_sha)
             formatted = self.notifications.format_message(
-                module=notification_module,
-                summary=f"{milestone_key} 里程碑已通过全部门禁并完成提交",
+                module=module,
+                summary=f"{milestone_key} · {milestone['title']}：{summary}",
                 commit_time=commit_time,
                 shortstat=shortstat or "0 files changed",
                 commit_content=f"{result.commit_sha} {commit_subject}",
@@ -733,6 +816,61 @@ class MilestoneWorkflowService:
                 if error.code != "notification_already_attempted":
                     raise
         return MilestoneCommitResult(result, latest, notification, shortstat)
+
+    @staticmethod
+    def _commit_subject(module: str, paths: list[str] | tuple[str, ...], summary: str) -> str:
+        value = summary.strip()
+        conventional = re.fullmatch(
+            r"[a-z]+(?:\([^)]+\))?!?: (?P<description>.+)", value
+        )
+        description = conventional.group("description") if conventional else value
+        normalized = re.sub(r"\s+", " ", description).casefold().strip(".。")
+        generic = {
+            "workflow",
+            "milestone",
+            "complete milestone",
+            "completed milestone",
+            "finish milestone",
+            "done",
+            "完成里程碑",
+            "里程碑完成",
+        }
+        if (
+            not value
+            or len(value) > 120
+            or "\r" in value
+            or "\n" in value
+            or normalized in generic
+            or re.fullmatch(
+                r"(?:complete|completed|finish|finished) m[1-9]\d*(?:\.[1-9]\d*)? (?:milestone|slice)",
+                normalized,
+            )
+        ):
+            raise CoordinatorError(
+                "milestone_commit_summary_invalid",
+                "Milestone commit summary must describe the delivered change, not workflow completion",
+            )
+        if conventional:
+            return value
+        lowered = tuple(path.replace("\\", "/").casefold() for path in paths)
+        has_code = any(
+            not path.startswith("docs/")
+            and not path.startswith("tools/")
+            and "/tests/" not in path
+            and not path.startswith("tests/")
+            for path in lowered
+        )
+        has_tests = any("/tests/" in path or path.startswith("tests/") for path in lowered)
+        has_scripts = any(path.startswith("tools/") for path in lowered)
+        has_docs = any(path.startswith("docs/") for path in lowered)
+        kind = "feat" if has_code else "test" if has_tests else "chore" if has_scripts else "docs" if has_docs else "chore"
+        subject = f"{kind}({module}): {value}"
+        if len(subject) > 160:
+            raise CoordinatorError(
+                "milestone_commit_summary_invalid",
+                "Milestone commit subject exceeds 160 characters after contextual scope is added",
+            )
+        return subject
 
     def recover_pending_commits(self) -> tuple[str, ...]:
         with self.database.connect() as connection:
@@ -859,6 +997,597 @@ class MilestoneWorkflowService:
             )
         return result
 
+    def reconcile_accepted_milestones(
+        self,
+        *,
+        source_run_id: str,
+        target_run_id: str,
+        milestone_keys: tuple[str, ...],
+        actor: str,
+        action_id: str | None,
+    ) -> dict[str, object]:
+        """Import accepted immutable milestone evidence between equal plan topologies.
+
+        This is deliberately evidence-only: it never stages files or recreates a
+        historical commit.  The source manifest is reconstructed from the accepted
+        commit before its record is copied into the target run.
+        """
+        normalized_keys = tuple(dict.fromkeys(key.strip().upper() for key in milestone_keys))
+        if (
+            not normalized_keys
+            or any(not re.fullmatch(r"M[1-9]\d*", key) for key in normalized_keys)
+            or source_run_id == target_run_id
+        ):
+            raise CoordinatorError(
+                "workflow_reconcile_parameters_invalid",
+                "Reconciliation requires distinct runs and one or more milestone keys",
+            )
+        audit_id = action_id or uuid.uuid4().hex
+        with self.database.connect() as connection:
+            runs = {
+                row["run_id"]: row
+                for row in connection.execute(
+                    """SELECT run.run_id, run.session_id, run.plan_path, run.topology_hash,
+                              run.state, run.updated_at, run.current_topology_version_id,
+                              version.topology_json
+                       FROM workflow_runs run
+                       JOIN workflow_topology_versions version
+                         ON version.topology_version_id=run.current_topology_version_id
+                       WHERE run.run_id IN (?, ?)""",
+                    (source_run_id, target_run_id),
+                )
+            }
+            if len(runs) != 2:
+                raise CoordinatorError(
+                    "workflow_reconcile_run_not_found",
+                    "Both source and target workflow runs must have an active topology",
+                )
+            source_run = runs[source_run_id]
+            target_run = runs[target_run_id]
+            if (
+                str(source_run["plan_path"]).replace("\\", "/")
+                != str(target_run["plan_path"]).replace("\\", "/")
+                or not source_run["topology_hash"]
+                or source_run["topology_hash"] != target_run["topology_hash"]
+            ):
+                raise CoordinatorError(
+                    "workflow_reconcile_topology_mismatch",
+                    "Accepted evidence can only move between identical plan topology hashes",
+                )
+            if str(target_run["state"]) not in {"active", "stale"}:
+                raise CoordinatorError(
+                    "workflow_reconcile_target_terminal",
+                    "Accepted evidence can only be imported into an active or stale workflow run",
+                )
+            source_topology = json.loads(str(source_run["topology_json"]))
+            target_topology = json.loads(str(target_run["topology_json"]))
+            source_topology.pop("content_hash", None)
+            target_topology.pop("content_hash", None)
+            if source_topology != target_topology:
+                raise CoordinatorError(
+                    "workflow_reconcile_topology_content_mismatch",
+                    "Topology payloads differ despite matching topology hashes",
+                )
+            source_records = [
+                self._reconciliation_source_record(
+                    connection,
+                    source_run,
+                    target_run,
+                    milestone_key,
+                )
+                for milestone_key in normalized_keys
+            ]
+            accepted_target_milestones = {
+                str(row["node_key"])
+                for row in connection.execute(
+                    """SELECT node.node_key
+                       FROM workflow_nodes AS node
+                       WHERE node.run_id=?
+                         AND EXISTS (
+                             SELECT 1 FROM workflow_attempts AS attempt
+                             WHERE attempt.node_id=node.node_id AND attempt.accepted=1
+                         )""",
+                    (target_run_id,),
+                )
+            }
+            unresolved_dependencies = self._reconciliation_unaccepted_dependencies(
+                source_records, accepted_target_milestones
+            )
+            if unresolved_dependencies:
+                raise CoordinatorError(
+                    "workflow_reconcile_dependency_unaccepted",
+                    "Accepted evidence cannot skip an unaccepted milestone dependency",
+                    details={"dependencies": unresolved_dependencies},
+                )
+
+        open_failure_paths: tuple[str, ...] = ()
+        plan_path = str(source_run["plan_path"])
+        if self.failures is not None:
+            self.failures.import_repository()
+            open_failures = self.failures.open_related_to_plan(plan_path)
+            open_failure_paths = tuple(
+                sorted(
+                    {str(item.artifact_path) for item in open_failures},
+                    key=str.casefold,
+                )
+            )
+
+        head = self._git("rev-parse", "HEAD")
+        for record in source_records:
+            commit_sha = str(record["commit_sha"])
+            if self._git("rev-parse", f"{commit_sha}^{{commit}}") != commit_sha:
+                raise CoordinatorError(
+                    "workflow_reconcile_commit_invalid",
+                    "Accepted evidence references a non-canonical commit SHA",
+                    details={"milestone": record["milestone_key"], "commitSha": commit_sha},
+                )
+            ancestor = subprocess.run(
+                ["git", "merge-base", "--is-ancestor", commit_sha, head],
+                cwd=self.repo_root,
+                capture_output=True,
+            )
+            if ancestor.returncode != 0:
+                raise CoordinatorError(
+                    "workflow_reconcile_commit_not_ancestor",
+                    "Accepted evidence commit is not an ancestor of the current HEAD",
+                    details={"milestone": record["milestone_key"], "commitSha": commit_sha},
+                )
+            actual_manifest_hash = self._manifest_hash_from_commit(
+                commit_sha, tuple(record["paths"])
+            )
+            if actual_manifest_hash != record["manifest_hash"]:
+                raise CoordinatorError(
+                    "workflow_reconcile_manifest_content_mismatch",
+                    "Accepted manifest does not match the historical commit content",
+                    details={"milestone": record["milestone_key"]},
+                )
+
+        now = utc_text()
+        copied: list[dict[str, object]] = []
+        with self.database.transaction() as connection:
+            for record in source_records:
+                target_node = connection.execute(
+                    """SELECT * FROM workflow_nodes
+                       WHERE run_id=? AND node_key=? AND kind='milestone'""",
+                    (target_run_id, record["milestone_key"]),
+                ).fetchone()
+                if target_node is None:
+                    raise CoordinatorError(
+                        "workflow_reconcile_target_milestone_missing",
+                        "Target topology no longer contains the requested milestone",
+                        details={"milestone": record["milestone_key"]},
+                    )
+                if (
+                    str(target_node["title"]) != str(record["source_title"])
+                    or str(target_node["stage"]) != str(record["source_stage"])
+                ):
+                    raise CoordinatorError(
+                        "workflow_reconcile_milestone_identity_mismatch",
+                        "Source and target milestone identities differ",
+                        details={"milestone": record["milestone_key"]},
+                    )
+                accepted = connection.execute(
+                    """SELECT attempt_id FROM workflow_attempts
+                       WHERE node_id=? AND accepted=1 ORDER BY attempt_number DESC LIMIT 1""",
+                    (target_node["node_id"],),
+                ).fetchone()
+                if accepted is not None:
+                    raise CoordinatorError(
+                        "workflow_reconcile_target_already_accepted",
+                        "Target milestone already has accepted evidence",
+                        details={"milestone": record["milestone_key"]},
+                    )
+                existing_manifest = connection.execute(
+                    """SELECT manifest_hash, paths_json FROM workflow_milestone_manifests
+                       WHERE run_id=? AND topology_version_id=? AND node_id=?""",
+                    (
+                        target_run_id,
+                        target_run["current_topology_version_id"],
+                        target_node["node_id"],
+                    ),
+                ).fetchone()
+                if existing_manifest is not None and (
+                    str(existing_manifest["manifest_hash"]) != str(record["manifest_hash"])
+                    or str(existing_manifest["paths_json"]) != str(record["paths_json"])
+                ):
+                    raise CoordinatorError(
+                        "workflow_reconcile_target_manifest_mismatch",
+                        "Target already bound a different immutable manifest",
+                        details={"milestone": record["milestone_key"]},
+                    )
+                if existing_manifest is None:
+                    connection.execute(
+                        """INSERT INTO workflow_milestone_manifests(
+                               manifest_id, run_id, topology_version_id, node_id, session_id,
+                               paths_json, manifest_hash, actor, action_id, created_at
+                           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        (
+                            uuid.uuid4().hex,
+                            target_run_id,
+                            target_run["current_topology_version_id"],
+                            target_node["node_id"],
+                            target_run["session_id"],
+                            record["paths_json"],
+                            record["manifest_hash"],
+                            actor,
+                            audit_id,
+                            now,
+                        ),
+                    )
+                target_intent_id = uuid.uuid4().hex
+                connection.execute(
+                    """INSERT INTO workflow_commit_intents(
+                           intent_id, run_id, topology_version_id, node_id, session_id,
+                           action_id, actor, gate_fingerprint, paths_json, message, status,
+                           commit_sha, created_at, updated_at
+                       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'reconciled', ?, ?, ?)""",
+                    (
+                        target_intent_id,
+                        target_run_id,
+                        target_run["current_topology_version_id"],
+                        target_node["node_id"],
+                        target_run["session_id"],
+                        audit_id,
+                        actor,
+                        record["gate_fingerprint"],
+                        record["paths_json"],
+                        record["message"],
+                        record["commit_sha"],
+                        now,
+                        now,
+                    ),
+                )
+                attempt_number = int(
+                    connection.execute(
+                        "SELECT COALESCE(MAX(attempt_number), 0) + 1 FROM workflow_attempts WHERE node_id=?",
+                        (target_node["node_id"],),
+                    ).fetchone()[0]
+                )
+                target_attempt_id = uuid.uuid4().hex
+                evidence = dict(record["evidence"])
+                evidence.update(
+                    {
+                        # Future reconciliations resolve the intent inside this target run.
+                        "intentId": target_intent_id,
+                        "reconciledFromRunId": source_run_id,
+                        "sourceAttemptId": record["source_attempt_id"],
+                        "sourceIntentId": record["source_intent_id"],
+                        "sourceManifestHash": record["manifest_hash"],
+                        "reconciliationActionId": audit_id,
+                        "openFailurePathsAtReconciliation": list(open_failure_paths),
+                    }
+                )
+                if record["legacy_evidence_intent_id"] is not None:
+                    evidence["legacyEvidenceIntentId"] = record["legacy_evidence_intent_id"]
+                connection.execute(
+                    """INSERT INTO workflow_attempts(
+                           attempt_id, run_id, node_id, attempt_number, state, accepted,
+                           evidence_json, started_at, completed_at
+                       ) VALUES (?, ?, ?, ?, 'succeeded', 1, ?, ?, ?)""",
+                    (
+                        target_attempt_id,
+                        target_run_id,
+                        target_node["node_id"],
+                        attempt_number,
+                        json.dumps(evidence, sort_keys=True),
+                        now,
+                        now,
+                    ),
+                )
+                connection.execute(
+                    """UPDATE workflow_nodes SET state='succeeded', attempt_count=?, updated_at=?
+                       WHERE node_id=?""",
+                    (attempt_number, now, target_node["node_id"]),
+                )
+                shortstat = str(record["evidence"].get("shortstat") or self._git(
+                    "show", "--shortstat", "--format=", str(record["commit_sha"])
+                ).strip())
+                artifact_content = (str(record["message"]) + "\n" + shortstat).encode("utf-8")
+                connection.execute(
+                    """INSERT INTO workflow_artifacts(
+                           artifact_id, run_id, node_id, attempt_id, artifact_kind,
+                           display_name, content_hash, byte_count, metadata_json, created_at
+                       ) VALUES (?, ?, ?, ?, 'commit', ?, ?, ?, ?, ?)""",
+                    (
+                        uuid.uuid4().hex,
+                        target_run_id,
+                        target_node["node_id"],
+                        target_attempt_id,
+                        record["commit_sha"],
+                        hashlib.sha256(artifact_content).hexdigest(),
+                        len(artifact_content),
+                        json.dumps(
+                            {
+                                "commitSha": record["commit_sha"],
+                                "intentId": target_intent_id,
+                                "reconciledFromRunId": source_run_id,
+                                "sourceIntentId": record["source_intent_id"],
+                            },
+                            sort_keys=True,
+                        ),
+                        now,
+                    ),
+                )
+                copied.append(
+                    {
+                        "milestoneId": record["milestone_key"],
+                        "commitSha": record["commit_sha"],
+                        "manifestHash": record["manifest_hash"],
+                        "attemptId": target_attempt_id,
+                        "intentId": target_intent_id,
+                        "state": "succeeded",
+                    }
+                )
+            connection.execute(
+                "UPDATE workflow_runs SET updated_at=? WHERE run_id=?",
+                (now, target_run_id),
+            )
+            connection.execute(
+                """INSERT INTO events(session_id, event_type, payload_json, created_at)
+                   VALUES (?, 'workflow.milestones_reconciled', ?, ?)""",
+                (
+                    target_run["session_id"],
+                    json.dumps(
+                        {
+                            "actionId": audit_id,
+                            "sourceRunId": source_run_id,
+                            "targetRunId": target_run_id,
+                            "milestones": [item["milestoneId"] for item in copied],
+                            "openFailurePaths": list(open_failure_paths),
+                        },
+                        sort_keys=True,
+                    ),
+                    now,
+                ),
+            )
+        return {
+            "auditId": audit_id,
+            "sourceRunId": source_run_id,
+            "targetRunId": target_run_id,
+            "nodes": copied,
+            "openFailurePaths": list(open_failure_paths),
+        }
+
+    def _reconciliation_source_record(self, connection, source_run, target_run, milestone_key: str) -> dict[str, object]:
+        source_node = connection.execute(
+            """SELECT * FROM workflow_nodes
+               WHERE run_id=? AND node_key=? AND kind='milestone'""",
+            (source_run["run_id"], milestone_key),
+        ).fetchone()
+        target_node = connection.execute(
+            """SELECT node_id FROM workflow_nodes
+               WHERE run_id=? AND node_key=? AND kind='milestone'""",
+            (target_run["run_id"], milestone_key),
+        ).fetchone()
+        if source_node is None or target_node is None:
+            raise CoordinatorError(
+                "workflow_reconcile_milestone_missing",
+                "Both equal topologies must contain every requested milestone",
+                details={"milestone": milestone_key},
+            )
+        attempt = connection.execute(
+            """SELECT * FROM workflow_attempts
+               WHERE run_id=? AND node_id=? AND state='succeeded' AND accepted=1
+               ORDER BY attempt_number DESC LIMIT 1""",
+            (source_run["run_id"], source_node["node_id"]),
+        ).fetchone()
+        if attempt is None:
+            raise CoordinatorError(
+                "workflow_reconcile_source_evidence_missing",
+                "Source milestone requires accepted attempt and immutable manifest",
+                details={"milestone": milestone_key},
+            )
+        try:
+            evidence = json.loads(str(attempt["evidence_json"]))
+        except json.JSONDecodeError as error:
+            raise CoordinatorError(
+                "workflow_reconcile_source_evidence_invalid",
+                "Source accepted attempt evidence is not valid JSON",
+                details={"milestone": milestone_key},
+            ) from error
+        if not isinstance(evidence, dict):
+            raise CoordinatorError(
+                "workflow_reconcile_source_evidence_invalid",
+                "Source accepted attempt evidence must be an object",
+                details={"milestone": milestone_key},
+            )
+        evidence_intent_id = str(evidence.get("intentId") or "")
+        commit_sha = str(evidence.get("commitSha") or "")
+        intent = connection.execute(
+            """SELECT * FROM workflow_commit_intents
+               WHERE intent_id=? AND run_id=? AND node_id=? AND status='reconciled'""",
+            (evidence_intent_id, source_run["run_id"], source_node["node_id"]),
+        ).fetchone()
+        intent_id = evidence_intent_id
+        legacy_evidence_intent_id: str | None = None
+        is_legacy_reconciliation = bool(
+            evidence.get("reconciledFromRunId")
+            and evidence_intent_id
+            and evidence.get("sourceIntentId") == evidence_intent_id
+        )
+        if intent is None and is_legacy_reconciliation and commit_sha:
+            candidates = connection.execute(
+                """SELECT * FROM workflow_commit_intents
+                   WHERE run_id=? AND node_id=? AND status='reconciled' AND commit_sha=?
+                   ORDER BY created_at, intent_id""",
+                (source_run["run_id"], source_node["node_id"], commit_sha),
+            ).fetchall()
+            if len(candidates) > 1:
+                raise CoordinatorError(
+                    "workflow_reconcile_source_commit_ambiguous",
+                    "Legacy accepted evidence matches multiple reconciled local commit intents",
+                    details={
+                        "milestone": milestone_key,
+                        "candidateIntentIds": [str(item["intent_id"]) for item in candidates],
+                    },
+                )
+            if len(candidates) == 1:
+                intent = candidates[0]
+                intent_id = str(intent["intent_id"])
+                legacy_evidence_intent_id = evidence_intent_id
+        if intent is None or not commit_sha or str(intent["commit_sha"] or "") != commit_sha:
+            raise CoordinatorError(
+                "workflow_reconcile_source_commit_missing",
+                "Source accepted attempt is not backed by a reconciled commit intent",
+                details={"milestone": milestone_key},
+            )
+        manifest = connection.execute(
+            """SELECT * FROM workflow_milestone_manifests
+               WHERE run_id=? AND topology_version_id=? AND node_id=?
+               ORDER BY created_at DESC, manifest_id DESC LIMIT 1""",
+            (
+                source_run["run_id"],
+                intent["topology_version_id"],
+                source_node["node_id"],
+            ),
+        ).fetchone()
+        source_evidence_topology = connection.execute(
+            """SELECT topology_json FROM workflow_topology_versions
+               WHERE topology_version_id=? AND run_id=?""",
+            (intent["topology_version_id"], source_run["run_id"]),
+        ).fetchone()
+        if manifest is None or source_evidence_topology is None:
+            raise CoordinatorError(
+                "workflow_reconcile_source_evidence_missing",
+                "Source milestone requires accepted attempt and immutable manifest",
+                details={"milestone": milestone_key},
+            )
+        source_title, source_dependencies = self._reconciliation_milestone_identity(
+            source_evidence_topology["topology_json"], milestone_key
+        )
+        target_title, target_dependencies = self._reconciliation_milestone_identity(
+            target_run["topology_json"], milestone_key
+        )
+        if source_title != target_title or any(
+            dependency not in target_dependencies for dependency in source_dependencies
+        ):
+            raise CoordinatorError(
+                "workflow_reconcile_historical_milestone_identity_mismatch",
+                "Accepted milestone identity changed after its historical topology version",
+                details={"milestone": milestone_key},
+            )
+        paths = tuple(json.loads(str(manifest["paths_json"])))
+        normalized_paths = tuple(sorted(set(paths), key=str.casefold))
+        if not normalized_paths or tuple(paths) != normalized_paths or str(intent["paths_json"]) != str(manifest["paths_json"]):
+            raise CoordinatorError(
+                "workflow_reconcile_manifest_invalid",
+                "Source manifest paths are not canonical or do not match its commit intent",
+                details={"milestone": milestone_key},
+            )
+        return {
+            "milestone_key": milestone_key,
+            "source_title": source_title,
+            "source_stage": source_node["stage"],
+            "dependencies": source_dependencies,
+            "source_attempt_id": attempt["attempt_id"],
+            "source_intent_id": intent_id,
+            "legacy_evidence_intent_id": legacy_evidence_intent_id,
+            "commit_sha": commit_sha,
+            "manifest_hash": manifest["manifest_hash"],
+            "paths_json": manifest["paths_json"],
+            "paths": normalized_paths,
+            "gate_fingerprint": intent["gate_fingerprint"],
+            "message": intent["message"],
+            "evidence": evidence,
+        }
+
+    @staticmethod
+    def _reconciliation_milestone_identity(
+        topology_json: object, milestone_key: str
+    ) -> tuple[str, tuple[str, ...]]:
+        """Return the immutable identity of one milestone from a topology version."""
+        try:
+            topology = json.loads(str(topology_json))
+            milestones = topology["milestones"]
+        except (json.JSONDecodeError, KeyError, TypeError) as error:
+            raise CoordinatorError(
+                "workflow_reconcile_historical_topology_invalid",
+                "Historical topology evidence is not valid",
+                details={"milestone": milestone_key},
+            ) from error
+        if not isinstance(milestones, list):
+            raise CoordinatorError(
+                "workflow_reconcile_historical_topology_invalid",
+                "Historical topology milestones are not valid",
+                details={"milestone": milestone_key},
+            )
+        milestone = next(
+            (
+                item
+                for item in milestones
+                if isinstance(item, dict) and item.get("node_id") == milestone_key
+            ),
+            None,
+        )
+        if not isinstance(milestone, dict):
+            raise CoordinatorError(
+                "workflow_reconcile_historical_milestone_missing",
+                "Historical topology does not contain the requested milestone",
+                details={"milestone": milestone_key},
+            )
+        title = milestone.get("title")
+        dependencies = milestone.get("depends_on")
+        if (
+            not isinstance(title, str)
+            or not isinstance(dependencies, list)
+            or any(not isinstance(item, str) for item in dependencies)
+        ):
+            raise CoordinatorError(
+                "workflow_reconcile_historical_topology_invalid",
+                "Historical milestone identity is not valid",
+                details={"milestone": milestone_key},
+            )
+        return title, tuple(dependencies)
+
+    @staticmethod
+    def _reconciliation_unaccepted_dependencies(
+        source_records: list[dict[str, object]], accepted_target_milestones: set[str]
+    ) -> dict[str, list[str]]:
+        """Return dependencies that the requested import would otherwise skip."""
+        requested = {str(record["milestone_key"]) for record in source_records}
+        unresolved: dict[str, list[str]] = {}
+        for record in source_records:
+            missing = sorted(
+                (
+                    dependency
+                    for dependency in tuple(record["dependencies"])
+                    if dependency not in requested
+                    and dependency not in accepted_target_milestones
+                ),
+                key=str.casefold,
+            )
+            if missing:
+                unresolved[str(record["milestone_key"])] = missing
+        return unresolved
+
+    def _manifest_hash_from_commit(self, commit_sha: str, paths: tuple[str, ...]) -> str:
+        manifest: list[dict[str, object]] = []
+        for path in paths:
+            object_name = f"{commit_sha}:{path}"
+            result = subprocess.run(
+                ["git", "cat-file", "blob", object_name],
+                cwd=self.repo_root,
+                capture_output=True,
+            )
+            if result.returncode == 0:
+                manifest.append(
+                    {"path": path, "kind": "file", "blob": hashlib.sha256(result.stdout).hexdigest()}
+                )
+                continue
+            parent = subprocess.run(
+                ["git", "cat-file", "-e", f"{commit_sha}^:{path}"],
+                cwd=self.repo_root,
+                capture_output=True,
+            )
+            if parent.returncode != 0:
+                raise CoordinatorError(
+                    "workflow_reconcile_manifest_path_missing",
+                    "Manifest path is absent from both the accepted commit and its parent",
+                    details={"commitSha": commit_sha, "path": path},
+                )
+            manifest.append({"path": path, "kind": "deletion", "blob": None})
+        return _hash_json(manifest)
+
     def close_goal(self, session_id: str, run_id: str) -> dict[str, object]:
         if self.sessions is None or self.leases is None:
             raise CoordinatorError("action_unavailable", "Goal closeout services are unavailable")
@@ -929,7 +1658,7 @@ class MilestoneWorkflowService:
             unreconciled = int(
                 connection.execute(
                     """SELECT COUNT(*) FROM workflow_commit_intents
-                       WHERE run_id=? AND status <> 'reconciled'""",
+                       WHERE run_id=? AND status IN ('prepared', 'committed')""",
                     (run_id,),
                 ).fetchone()[0]
             )
@@ -1059,16 +1788,37 @@ class MilestoneWorkflowService:
                 },
             )
 
+    def _failure_node_keys(self, run_id: str, milestone_key: str) -> tuple[str, ...]:
+        """Return one slice key or a parent milestone plus its direct slice keys."""
+        milestone = self._milestone_node(run_id, milestone_key)
+        keys = {milestone_key}
+        if milestone["kind"] == "milestone":
+            with self.database.connect() as connection:
+                keys.update(
+                    row[0]
+                    for row in connection.execute(
+                        """SELECT source.node_key
+                           FROM workflow_edges edge
+                           JOIN workflow_nodes source
+                             ON source.node_id=edge.from_node_id
+                           WHERE edge.run_id=? AND edge.to_node_id=?
+                             AND source.kind='slice'""",
+                        (run_id, milestone["node_id"]),
+                    )
+                )
+        return tuple(sorted(keys, key=str.casefold))
+
     def _milestone_node(self, run_id: str, milestone_key: str):
         with self.database.connect() as connection:
             row = connection.execute(
                 """SELECT * FROM workflow_nodes
-                   WHERE run_id=? AND node_key=? AND kind='milestone'""",
+                   WHERE run_id=? AND node_key=? AND kind IN ('milestone', 'slice')""",
                 (run_id, milestone_key),
             ).fetchone()
         if row is None:
             raise CoordinatorError(
-                "workflow_milestone_not_found", f"Unknown milestone {milestone_key}"
+                "workflow_milestone_not_found",
+                f"Unknown milestone or slice {milestone_key}",
             )
         return row
 
@@ -1137,6 +1887,7 @@ class MilestoneWorkflowService:
         owner = TopologyParser(self.repo_root).plans.resolve_owner(session.plan_path)
         child = self.repo_root / owner.child_dir
         matches: list[tuple[str, tuple[str, ...]]] = []
+        dirty_attributed = set(self.attributed_changes(session_id))
         for record in sorted(child.glob("*.md"), key=lambda item: item.name.casefold()):
             if record.name.startswith(("failure-", "fixed-")):
                 continue
@@ -1144,13 +1895,20 @@ class MilestoneWorkflowService:
             if fields.get("Plan") == session.plan_path and fields.get("Milestone") == milestone_key:
                 relative = record.relative_to(self.repo_root).as_posix()
                 matches.append((relative, files))
-        if len(matches) != 1:
+        # A milestone can retain immutable historical evidence beside a fresh current-source
+        # attestation. Only a record changed and attributed by this executor may bind this run.
+        current_matches = [item for item in matches if item[0] in dirty_attributed]
+        selected = current_matches if len(matches) > 1 else matches
+        if len(selected) != 1:
             raise CoordinatorError(
                 "milestone_manifest_record_ambiguous",
-                "Exactly one child-plan record must declare this milestone manifest",
-                details={"records": [path for path, _ in matches]},
+                "Exactly one current attributed child-plan record must declare this milestone manifest",
+                details={
+                    "records": [path for path, _ in matches],
+                    "attributedRecords": [path for path, _ in current_matches],
+                },
             )
-        record_path, declared = matches[0]
+        record_path, declared = selected[0]
         normalized: set[str] = {record_path}
         for raw in declared:
             candidate = (self.repo_root / raw).resolve()
@@ -1159,7 +1917,6 @@ class MilestoneWorkflowService:
                     "milestone_manifest_path_invalid", "Declared milestone path escaped repository"
                 )
             normalized.add(candidate.relative_to(self.repo_root).as_posix())
-        dirty_attributed = set(self.attributed_changes(session_id))
         if not normalized <= dirty_attributed:
             raise CoordinatorError(
                 "milestone_manifest_not_attributed",
