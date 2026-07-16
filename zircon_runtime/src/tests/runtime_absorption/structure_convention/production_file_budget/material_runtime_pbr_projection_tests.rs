@@ -8,7 +8,7 @@ fn runtime_15_material_runtime_pbr_projection_tests_are_child_owner() {
         "graphics/scene/render_product_streamer_tests/material_runtime/pbr_projection.rs",
     );
 
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let plan_08 = read_repo("docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
     let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
     let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
     let render_framework_architecture =

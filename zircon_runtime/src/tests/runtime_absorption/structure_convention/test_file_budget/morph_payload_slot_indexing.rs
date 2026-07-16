@@ -30,7 +30,7 @@ fn runtime_15_morph_payload_slot_indexing_is_wired() {
     let virtual_geometry_wgsl =
         read_runtime_src("graphics/shader/wgsl/zr_geometry_virtual_geometry.wgsl");
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");

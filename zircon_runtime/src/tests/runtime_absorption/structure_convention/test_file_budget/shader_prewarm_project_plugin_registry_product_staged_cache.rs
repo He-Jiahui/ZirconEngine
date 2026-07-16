@@ -9,7 +9,7 @@ fn runtime_15_shader_prewarm_project_plugin_registry_product_staged_cache_is_wir
     );
     let parent_mod = read_repo("zircon_runtime/src/graphics/tests/render_product_mesh_cache.rs");
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");

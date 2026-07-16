@@ -27,7 +27,7 @@ fn runtime_15_virtual_geometry_page_cluster_shader_bindings_are_wired() {
         read_runtime_src("tests/plugin_extensions/package_manifest_declarations.rs");
     let build_tool_tests = read_repo("tools/tests/test_zircon_build_shader_prewarm.py");
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");

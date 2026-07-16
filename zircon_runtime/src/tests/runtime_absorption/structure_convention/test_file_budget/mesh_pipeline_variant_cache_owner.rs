@@ -37,7 +37,7 @@ fn runtime_15_non_base_mesh_variant_cache_owner_is_wired() {
         "graphics/scene/scene_renderer/temporal/velocity/execute_velocity_object.rs",
     );
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");

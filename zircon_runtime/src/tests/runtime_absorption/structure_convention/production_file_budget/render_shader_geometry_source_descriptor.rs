@@ -4,7 +4,7 @@ use super::{assert_contains_all, read_repo, read_runtime_src};
 fn runtime_15_render_shader_geometry_source_descriptor_contract_is_complete() {
     let geometry_source = read_runtime_src("core/framework/render/shader/geometry_source.rs");
     let shader_mod = read_runtime_src("core/framework/render/shader/mod.rs");
-    let plan_08 = read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
+    let plan_08 = read_repo("docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md");
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
     let shader_doc = read_repo("docs/zircon_runtime/core/framework/render/shader.md");

@@ -45,7 +45,7 @@ fn runtime_15_shader_prewarm_plugin_shading_model_descriptor_registration_is_wir
     let prewarm_run = read_runtime_src("bin/zircon_shader_prewarm/run.rs");
     let prewarm_errors = read_runtime_src("bin/zircon_shader_prewarm/error.rs");
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");

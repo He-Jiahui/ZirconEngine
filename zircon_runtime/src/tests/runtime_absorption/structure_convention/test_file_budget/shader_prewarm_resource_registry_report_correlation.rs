@@ -29,7 +29,7 @@ fn runtime_15_shader_prewarm_resource_registry_report_correlation_is_wired() {
         read_repo("tools/tests/test_zircon_build_shader_prewarm_resource_registry_contract.py");
     let registry_report_test_sources = format!("{acceptance_tests}\n{registry_tests}");
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");

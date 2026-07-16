@@ -23,7 +23,7 @@ fn runtime_15_virtual_geometry_resident_buffers_upload_is_wired() {
         "graphics/scene/scene_renderer/mesh/mesh_draw/virtual_geometry_submission_detail.rs",
     );
     let plan_08 = read_repo(
-        "docs/plans/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
+        "docs/plans/_archive/zircon_runtime/render/08/2026-07-09-material-shader-permutation-output-records.md",
     );
     let render_index =
         read_repo("docs/plans/zircon_runtime/render/08/2026-07-09-index-output-records.md");
