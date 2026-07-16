@@ -18,7 +18,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/core/framework/render/text/font/composite.rs
+  - zircon_runtime/src/text/model/font/composite.rs
   - zircon_runtime/src/text/font/asset_registration.rs
   - zircon_runtime/src/text/font/test_font_fixtures.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -39,8 +39,8 @@ implementation_files:
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/font/database/tests.rs
   - zircon_runtime/src/text/font/composite_resolve.rs
-  - zircon_runtime/src/core/framework/render/text/font/composite.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/model/font/composite.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/asset/tests/assets/font.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/font_asset.rs
   - zircon_runtime/src/text/font/asset_registration.rs
@@ -64,12 +64,12 @@ tests:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_variable_axes_roundtrip
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_woff2_decodes_to_sfnt
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/parse_sfnt/tests/mod.rs::text_font_malformed_woff2_preserves_decode_failure
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_database_decodes_woff2_once_for_native_and_sdf_consumers
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_ttc_nonzero_face_materializes_for_real_sdf_raster
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_variations_hash_normalizes_coordinate_order
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_composite_font_resolves_default_and_subfont_ranges
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_database_composite_activation_is_explicit_and_replaceable
-  - zircon_runtime/src/graphics/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
+  - zircon_runtime/src/text/font/database/tests.rs::text_font_database_decodes_woff2_once_for_native_and_sdf_consumers
+  - zircon_runtime/src/text/font/database/tests.rs::text_font_ttc_nonzero_face_materializes_for_real_sdf_raster
+  - zircon_runtime/src/text/font/database/tests.rs::text_font_variations_hash_normalizes_coordinate_order
+  - zircon_runtime/src/text/font/database/tests.rs::text_composite_font_resolves_default_and_subfont_ranges
+  - zircon_runtime/src/text/font/database/tests.rs::text_font_database_composite_activation_is_explicit_and_replaceable
+  - zircon_runtime/src/text/font/database/tests.rs::text_font_runtime_default_composite_selects_checked_in_zh_hans_face
   - tools/tests/test_text_01_composite_activation.py
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings/typed_error_convergence/asset_records.rs::review_f5_font_asset_uses_typed_error_source
   - "2026-06-25 static: scoped rustfmt/static scans/docs-status-session anchors passed; Cargo deferred due active cargo/rustc lanes"
@@ -94,7 +94,7 @@ doc_type: module-detail
 
 `asset/importer/ingest/import_font_asset/parse_sfnt.rs` is the metadata parser isolation leaf. It uses `ttf-parser` to extract sfnt/TTC face count, name-table family data, OS/2 weight and width class, style, `fvar` axes and named-instance coordinates, compact cmap coverage ranges, selected typographic line metrics, Windows clipping metrics, and underline/strikeout metrics. `ttf-parser` types do not leave this leaf; exported asset data remains the serde DTOs in `asset/assets/font.rs`. Its behavior tests and generated TTC/variable-font fixtures are folder-backed under `parse_sfnt/tests/`, keeping the production owner focused and below the structure budget.
 
-`graphics/text/font/database.rs` decodes a registered source through the same font-source owner before it reads selected-face family, weight, style, and stretch. `graphics/text/font/asset_registration.rs` projects `FontAsset.family_members` into logical face descriptors and builds the asset source key from path, face index, family, weight, style, stretch, and variation coordinates. `FontDatabase::register_font_asset` consumes those descriptors and `fallback_families`, extending the database fallback chain without collapsing multiple declared logical faces that share one physical source face. Variation instance IDs hash a canonical tag/value ordering, so equivalent coordinate maps do not fork shaping/atlas cache identities. Native glyphon and SDF bake manifest paths pass full `.font.toml` assets into this registration entry; direct font-file paths still use `register_font_file`. SDF requests call `standalone_face_bytes`, allowing a non-zero TTC face to produce real `fontsdf` pixels instead of silently falling back to face zero or the default font.
+`text/font/database.rs` decodes a registered source through the same font-source owner before it reads selected-face family, weight, style, and stretch. `text/font/asset_registration.rs` projects `FontAsset.family_members` into logical face descriptors and builds the asset source key from path, face index, family, weight, style, stretch, and variation coordinates. `FontDatabase::register_font_asset` consumes those descriptors and `fallback_families`, extending the database fallback chain without collapsing multiple declared logical faces that share one physical source face. Variation instance IDs hash a canonical tag/value ordering, so equivalent coordinate maps do not fork shaping/atlas cache identities. Native glyphon and SDF bake manifest paths pass full `.font.toml` assets into this registration entry; direct font-file paths still use `register_font_file`. SDF requests call `standalone_face_bytes`, allowing a non-zero TTC face to produce real `fontsdf` pixels instead of silently falling back to face zero or the default font.
 
 `FontAsset::effective_render_mode()` is the asset-level helper that resolves schema-v1 `render_mode`, `render_strategy.default_mode`, and `allow_native` / `allow_sdf` constraints. `graphics/scene/scene_renderer/ui/font_asset.rs` and `ui/text/font_registry.rs` both consume that helper instead of duplicating schema branching. The `schema_v1_render_mode` input remains the priority source for `.font.toml` schema-v1 manifests; strategy defaults only fill the absent case and are clamped before they leave the asset boundary.
 

@@ -1,10 +1,10 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/text/rich.rs
+  - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/render/text/rich.rs
+  - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
   - zircon_runtime/src/text/rich/bbcode_table/placement.rs
@@ -17,7 +17,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/graphics/text/rich/tests/table.rs
+  - zircon_runtime/src/text/rich/tests/table.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/rich_table.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_assertions.rs
@@ -56,11 +56,11 @@ doc_type: milestone-detail
 
 **Files:**
 
-- Modify: `zircon_runtime/src/core/framework/render/text/rich.rs`
-- Modify: `zircon_runtime/src/graphics/text/rich/bbcode_table.rs`
-- Create: `zircon_runtime/src/graphics/text/rich/bbcode_table/attributes.rs`
-- Create: `zircon_runtime/src/graphics/text/rich/bbcode_table/placement.rs`
-- Modify: `zircon_runtime/src/graphics/text/rich/tests/table.rs`
+- Modify: `zircon_runtime/src/text/model/rich.rs`
+- Modify: `zircon_runtime/src/text/rich/bbcode_table.rs`
+- Create: `zircon_runtime/src/text/rich/bbcode_table/attributes.rs`
+- Create: `zircon_runtime/src/text/rich/bbcode_table/placement.rs`
+- Modify: `zircon_runtime/src/text/rich/tests/table.rs`
 
 - [x] Add failing parser-level tests before production changes. Tests assert exact `(row_index, column_index, column_span, row_span)` values for:
 

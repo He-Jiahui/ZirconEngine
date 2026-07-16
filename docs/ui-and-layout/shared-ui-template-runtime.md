@@ -35,7 +35,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
 - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/ui/layout/constraints.rs
@@ -278,7 +278,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/editable_text.rs
   - zircon_runtime_interface/src/ui/surface/render/typography.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
 - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/ui/layout/constraints.rs
@@ -864,7 +864,7 @@ text_render_mode = "sdf"
 
 SDF 路径现在还有一个 renderer-local atlas/cache planning owner：[`sdf_atlas.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs)。shared template runtime 仍然只写 `text_render_mode = "sdf"`、`font`、`font_family` 和字号这些中性样式字段；进入 graphics 后，`ScreenSpaceUiSdfAtlas` 会把 resolved SDF text batches 收敛成 glyph slot plan。slot key 包含 glyph、font asset、font family 和字号，因此不同字体或字号的同一字符不会在后续专用 SDF atlas 中错误共用 cache entry；atlas rect 按 key 排序分配，空白字符只保留 advance，不会占用 atlas slot。
 
-SDF 可见输出也已经从 glyphon fallback 替换为 renderer-local GPU path：[`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 根据同一个 atlas plan 上传 `R8Unorm` SDF atlas texture，生成 screen-space glyph quads，并通过 [`zr_text_sdf.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl) 在 UI pass 内 alpha blend 输出。真实字体轮廓由 renderer-local [`sdf_font_bake.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 封装 `fontsdf` 完成：它通过既有 `.font.toml` manifest 解析字体源、为非空白 glyph bake 单通道 SDF alpha、为 whitespace 只保留 advance，并把 glyph metrics/advance/bearing 交回 quad planner。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；template runtime 仍然不暴露 GPU atlas、SDF crate 或 shader 细节。
+SDF 可见输出也已经从 glyphon fallback 替换为 renderer-local GPU path：[`sdf_render.rs`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 根据同一个 atlas plan 上传 `R8Unorm` SDF atlas texture，生成 screen-space glyph quads，并通过 [`zr_text_sdf.wgsl`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl) 在 UI pass 内 alpha blend 输出。真实字体轮廓由 Text-owned [`sdf_font_bake.rs`](../../zircon_runtime/src/text/sdf/font_bake.rs) 封装 `fontsdf` 完成：它通过既有 `.font.toml` manifest 解析字体源、为非空白 glyph bake 单通道 SDF alpha、为 whitespace 只保留 advance，并把 glyph metrics/advance/bearing 交回 quad planner。SDF quad planning 会同时受 text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；template runtime 仍然不暴露 GPU atlas、SDF crate 或 shader 细节。
 
 普通文本渲染兼容性由 `ResolvedScreenSpaceUiTextBatches` 负责守住。`Native` 批次和解析为 `Native` 的 `Auto` 批次只进入 normal glyphon backend；`Sdf` 批次和解析为 `Sdf` 的 `Auto` 批次进入 SDF atlas owner 与 GPU SDF renderer。这个 routing contract 让专用 SDF shader 不会误把普通文本迁到 SDF cache，也不会让 SDF atlas state 污染 native-only frame。
 

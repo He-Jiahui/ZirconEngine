@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/text/sdf/offline
-  - zircon_runtime/src/font_sdf_build_tool
+  - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
   - tools/zircon_build_font_sdf.py
 plan_sources:
   - docs/superpowers/specs/2026-07-13-runtime-zsdf-offline-bake-design.md
@@ -16,7 +16,7 @@ status: complete
 ## SM3-M1: deterministic shared artifact contract
 
 - [x] Add red tests for roundtrip byte identity, sorted glyph lookup, SDF/RGBA page extraction, stale identity rejection, corrupt length/rect rejection, and deterministic store path.
-- [x] Implement folder-backed `graphics/text/sdf/offline/{artifact,codec,error,identity,path}.rs`; keep the root declaration-only.
+- [x] Implement folder-backed `text/sdf/offline/{artifact,codec,error,identity,path}.rs`; keep the root declaration-only.
 - [x] Include format version, asset GUID, face index, variation hash, source hash, mode, bake parameters, page metadata, glyph metadata, and page bytes.
 - [x] Validate all arithmetic with checked operations and reject non-finite metrics, duplicate glyph ids, non-zero reserved bytes, trailing bytes, and checksum mismatch.
 - [x] Record one SM3-M1 output row and update module docs.

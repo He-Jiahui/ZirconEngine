@@ -61,7 +61,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
 - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
@@ -166,7 +166,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
 - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
@@ -497,7 +497,7 @@ The cache stores successful image pixels for the editor process. SVG cache keys 
 
 ## Typography Contract
 
-2026-07-11 的 Frameworks 03 独立 feature 矩阵把 typography 的编译所有权也固定为单向依赖。字体资产默认值与样式请求的 `UiTextRenderMode` 合并规则现在由 `zircon_runtime_interface::ui::surface::resolve_ui_text_render_mode(...)` 持有；Runtime UI shaper 与 Graphics 字体 owner 都消费这一中性合同，不再由 Graphics 反向调用 `crate::ui::text`。Graphics renderer 的 rich inline frame 直接复用 `graphics::text::rich` parser 与 `graphics::text::layout`，SDF bidi fallback 直接复用 Graphics shaping owner；只有把 `PublicRuntimeFrame` 转为 viewport frame 的实现文件在 `graphics/types/mod.rs` 声明处受 `ui` feature 门控制。旧 UI shaper bridge 已删除，没有保留 re-export、alias 或通过扩大 `graphics` feature 隐式启用 UI。fresh nightly locked/offline `core-min,graphics` 通过（2m39s），完整十二域 runner 12/12 通过（25m02.4s），静态分层守卫 20/20 通过（26.433s）。
+2026-07-11 的 Frameworks 03 独立 feature 矩阵把 typography 的编译所有权也固定为单向依赖。字体资产默认值与样式请求的 `UiTextRenderMode` 合并规则现在由 `zircon_runtime_interface::ui::surface::resolve_ui_text_render_mode(...)` 持有；Runtime UI shaper 与 Text 字体 owner 都消费这一中性合同，不再由 Graphics 反向调用 `crate::ui::text`。Graphics renderer 的 rich inline frame 直接复用 `text::rich` parser 与 `text::layout`，SDF bidi fallback 直接复用 Text shaping owner；只有把 `PublicRuntimeFrame` 转为 viewport frame 的实现文件在 `graphics/types/mod.rs` 声明处受 `ui` feature 门控制。旧 UI shaper bridge 已删除，没有保留 re-export、alias 或通过扩大 `graphics` feature 隐式启用 UI。fresh nightly locked/offline `core-min,graphics` 通过（2m39s），完整十二域 runner 12/12 通过（25m02.4s），静态分层守卫 20/20 通过（26.433s）。
 
 `zircon_runtime::ui::surface::render::UiResolvedStyle` 现在不再只有背景和边框字段，它已经补齐 runtime 文本底座要用到的最小 typography 合同：
 
@@ -612,7 +612,7 @@ M1 的完成线不是一次性做完整 SDF 文本系统，而是先把共存合
 
 2026-05-23 的 M7 cache 切片把 `ScreenSpaceUiSdfAtlas` 从“每帧非空输入替换整份 plan”推进到持久 slot cache：非空帧会保留上一帧仍有价值的 cached slots，新增 glyph 只追加新 slot，空 SDF 帧会释放 cache，超过 `SDF_ATLAS_MAX_CACHED_SLOT_COUNT` 时才淘汰最久未使用的 inactive slot。`SdfAtlasCacheReport` 同步记录 previous/current slot count、retained/stable/relocated/added/evicted slot count 和 atlas resize；其中 relocated 表示 glyph key 保留但 `SdfAtlasRect` 变了，后续 partial atlas writes 必须把这类槽也当作 dirty slot，而不能只看 key 是否命中。M7 quality-parameter slice 又把 atlas slot size、最小 grid side 和 cache 上限收进 `SdfAtlasQuality`，默认值保持 64px slot、8x8 起步 grid、256 cached slots；planner 内部会 normalize 这些参数，避免 0 值配置破坏 atlas 尺寸或 eviction。
 
-[`ScreenSpaceUiSdfRenderer`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 是当前 SDF 可见输出路径。`ScreenSpaceUiTextSystem::prepare` 会先把 `Auto` batch 解析到 native/sdf，再把 resolved SDF batches 同步交给 `ScreenSpaceUiSdfAtlas::prepare(...)`，随后由 SDF renderer 调用 renderer-local [`SdfFontBakeCache`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs) 生成字体轮廓 atlas、上传 `R8Unorm` atlas texture、生成 screen-space glyph quads，并在 UI render pass 中绑定 SDF pipeline 绘制。SDF quad planning 会同时受真实 glyph metrics、advance、bearing、text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；native glyphon backend 不再接收 SDF batch，因此替换 shader path 不会污染普通文本 atlas。
+[`ScreenSpaceUiSdfRenderer`](../../zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs) 是当前 SDF 可见输出路径。`ScreenSpaceUiTextSystem::prepare` 会先把 `Auto` batch 解析到 native/sdf，再把 resolved SDF batches 同步交给 `ScreenSpaceUiSdfAtlas::prepare(...)`，随后由 SDF renderer 调用 Text-owned [`SdfFontBakeCache`](../../zircon_runtime/src/text/sdf/font_bake.rs) 生成字体轮廓 atlas、上传 `R8Unorm` atlas texture、生成 screen-space glyph quads，并在 UI render pass 中绑定 SDF pipeline 绘制。SDF quad planning 会同时受真实 glyph metrics、advance、bearing、text batch frame、`text_align`、显式 `clip_frame` 和 viewport 约束；native glyphon backend 不再接收 SDF batch，因此替换 shader path 不会污染普通文本 atlas。
 
 真实字体 bake 被局部封装在 `scene_renderer::ui` 内：`SdfFontBakeCache` 通过既有 `.font.toml` manifest 解析字体源，缓存 `fontsdf::Font`，按 `SdfAtlasGlyphKey` 为非空白 glyph bake 单通道 SDF alpha，并把 bitmap 尺寸、bearing、ascent 与 advance 交回 draw planner。whitespace 不写 atlas slot，只通过字体 metrics 保留 advance；missing glyph 使用稳定空可见输出和保守 advance，避免把未知字符退回旧的整块占位 mask。2026-05-23 的 M7 bake-report slice 还让 `SdfAtlasBake` 携带 `SdfAtlasBakeReport`，记录 slot 数、可见/空 glyph 数、atlas byte 数、非零像素数和已加载字体数，后续 quality 参数、局部 atlas upload 和 debug 面板可以直接消费这份报告。这保持了 shared template metadata、`UiRenderExtract` DTO、RHI、render graph 和 render plugin 边界不变。
 
@@ -735,7 +735,7 @@ M1 这里再补了一条最小默认策略：
 - `cargo test -p zircon_runtime --lib sdf_atlas --locked --jobs 1`
   - 证明 SDF atlas/cache owner 会按 glyph + font asset + family + size 生成稳定 slot key，跨 batch 去重，空白只保留 advance 不分配 slot；2026-05-23 的 M7 cache-report/persistent-cache slices 进一步断言非空帧保留旧 slot、返回旧 glyph 时不 re-add、空 SDF 帧清理 cache、超过 cache 上限时只淘汰最久未使用 inactive slot，并记录 retained/stable/relocated/added/evicted slot 数和 atlas resize 标志；同日 quality-parameter slice 断言自定义 slot size/min grid 会改变 atlas size 和 slot rect，而默认 planner 行为保持原值
 - `cargo test -p zircon_runtime --lib sdf_font_bake --locked --jobs 1 --target-dir E:\cargo-targets\zircon-ui-sdf-font-bake --message-format short --color never`
-  - 2026-05-01 fresh focused SDF bake suite 通过 4 passed / 0 failed；证明 renderer-local `fontsdf` bake 会为 `A`、`I`、`O` 生成不同 alpha pattern，输出不等于旧 rounded-rect placeholder，whitespace 只保留 advance，不可见/missing glyph 策略稳定不 panic。2026-05-23 的 M7 bake-report slice 扩展同一测试面，断言 bake report 会记录 slot 数、可见/空 glyph 数、atlas byte 数、非零像素数和 loaded font 数，并覆盖 empty atlas plan 的零像素报告。
+- 2026-05-01 fresh focused SDF bake suite 通过 4 passed / 0 failed；证明 Text-owned `fontsdf` bake 会为 `A`、`I`、`O` 生成不同 alpha pattern，输出不等于旧 rounded-rect placeholder，whitespace 只保留 advance，不可见/missing glyph 策略稳定不 panic。2026-05-23 的 M7 bake-report slice 扩展同一测试面，断言 bake report 会记录 slot 数、可见/空 glyph 数、atlas byte 数、非零像素数和 loaded font 数，并覆盖 empty atlas plan 的零像素报告。
 - `cargo test -p zircon_runtime --lib sdf_draw_plan --locked --jobs 1 --target-dir D:\cargo-targets\zircon-render-plugin-final --color never -- --nocapture`
   - 2026-04-29 fresh focused SDF draw-plan suite 通过 5 passed / 0 failed；后续真实 bake slice 保持同一测试面通过，证明 GPU SDF renderer 会从 atlas plan 和真实 glyph metrics 生成每个可见 glyph 的 textured quad，上传 atlas alpha mask，并按 text frame、`text_align`、clip frame 和 viewport 计算 position/uv
 - `cargo test -p zircon_runtime --lib sdf_prepare_report --locked --jobs 1`

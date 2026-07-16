@@ -4,7 +4,7 @@ related_code:
   - zircon_runtime/src/text/font/decoration_metrics.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_decorations.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/rich_text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/decorations.rs
 implementation_files:
   - zircon_runtime/src/text/font/decoration_metrics.rs
@@ -15,7 +15,7 @@ plan_sources:
   - docs/superpowers/specs/2026-07-13-runtime-text-sdf-effects-decoration-design.md
   - docs/superpowers/plans/2026-07-13-runtime-text-sdf-effects-decoration.md
 tests:
-  - zircon_runtime/src/graphics/text/font/decoration_metrics/tests.rs
+  - zircon_runtime/src/text/font/decoration_metrics/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/tests/text_style_decorations.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/decoration_geometry.rs
 doc_type: module-detail
@@ -25,7 +25,7 @@ doc_type: module-detail
 
 ## Ownership
 
-`graphics/text/font/decoration_metrics.rs` is the single owner of display-pixel underline and strikeout metrics. It converts authoritative face units from the font asset metadata or directly from `ttf-parser`; render planning does not invent a second fixed-pixel policy.
+`text/font/decoration_metrics.rs` is the single owner of display-pixel underline and strikeout metrics. It converts authoritative face units from the font asset metadata or directly from `ttf-parser`; render planning does not invent a second fixed-pixel policy.
 
 The public `UiTextDecorations` contract remains a presentation style. `render/text_decorations.rs` resolves authored colors and the resolved line baseline, while `sdf_render/decorations.rs` converts those values into clipped solid quads. Selection, caret, composition underline and table decorations continue to use `UiTextPaintDecorationKind` and are not mixed into this path.
 

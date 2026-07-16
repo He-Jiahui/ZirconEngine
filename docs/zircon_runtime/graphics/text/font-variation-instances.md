@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/text/font/face.rs
-  - zircon_runtime/src/core/framework/render/text/font/database.rs
-  - zircon_runtime/src/core/framework/render/text/shaped_run.rs
+  - zircon_runtime/src/text/model/font/face.rs
+  - zircon_runtime/src/text/model/font/database.rs
+  - zircon_runtime/src/text/model/shaped_run.rs
   - zircon_runtime/src/text/font/instance.rs
   - zircon_runtime/src/text/font/database.rs
   - zircon_runtime/src/text/shaping/fallback_spans.rs
@@ -31,8 +31,8 @@ implementation_files:
   - zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/text/sdf/fdsm_gen.rs
   - zircon_runtime/src/text/sdf/offline/identity.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/distance_field.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
+  - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render/text_advances.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/font_assets.rs
@@ -73,7 +73,7 @@ status: complete
 
 ## Ownership and identity
 
-`core/framework/render/text/font/` defines neutral `VariationCoords` and `InstancedFaceId` contracts. `graphics/text/font/instance.rs` is the sole implementation owner for canonical coordinate ordering, duplicate-tag resolution, finite-value validation, face-axis clamp/default removal, OpenType normalized F2DOT14 quantization, deterministic BLAKE3 identity, collision detection, and reverse lookup from instance ID to `(FontFaceId, VariationCoords)`. `FontDatabase` creates one descriptor-default instance at face registration and owns all additional instances; shaping and raster leaves consume database records rather than reconstructing coordinates from opaque hashes. Coordinates that produce the same normalized OpenType bucket therefore share an instance and cannot split shaping/atlas caches without changing the rendered outline.
+`text/model/font/` defines neutral `VariationCoords` and `InstancedFaceId` contracts. `text/font/instance.rs` is the sole implementation owner for canonical coordinate ordering, duplicate-tag resolution, finite-value validation, face-axis clamp/default removal, OpenType normalized F2DOT14 quantization, deterministic BLAKE3 identity, collision detection, and reverse lookup from instance ID to `(FontFaceId, VariationCoords)`. `FontDatabase` creates one descriptor-default instance at face registration and owns all additional instances; shaping and raster leaves consume database records rather than reconstructing coordinates from opaque hashes. Coordinates that produce the same normalized OpenType bucket therefore share an instance and cannot split shaping/atlas caches without changing the rendered outline.
 
 The effective-coordinate projection reads the selected face's actual `fvar` axes. It applies `UiResolvedStyle.font_weight` only when `wght` exists, clamps values to axis bounds, removes default-valued coordinates, and drops tags that the face does not expose. Static fonts therefore retain an empty variation set, while equivalent default requests share the offline/cache identity instead of producing false variants.
 
@@ -81,7 +81,7 @@ The effective-coordinate projection reads the selected face's actual `fvar` axes
 
 Horizontal layout keeps cosmic-text as the paragraph, BiDi, fallback, and initial cluster owner. `fallback_text_spans.rs` resolves every grapheme through the authoritative Zircon `FontDatabase` and carries the selected logical family together with `FontFaceId` and `InstancedFaceId`; adjacent spans merge only when all three identities match. Cosmic/glyphon may still select a physical backend face for paragraph layout, but `cosmic.rs` projects each glyph back through the matching authoritative span before the horizontal RustyBuzz leaf runs. This prevents multiple logical variable members backed by one physical family from collapsing to glyphon's default face/instance.
 
-The folder-backed `graphics/text/shaping/horizontal/` leaf groups adjacent glyph clusters by actual face, instance, direction, and resolved ISO15924 script, then re-shapes segments whenever effective variation coordinates or a per-run language are present. Each strong script is explicitly set on the RustyBuzz buffer before `guess_segment_properties`; Common, Inherited, and Unknown tags deliberately retain the backend guess path. RustyBuzz therefore receives one script together with language, OpenType features, kerning policy, size, and effective coordinates, so `locl` and variable axes share one authoritative face/cluster projection without allowing an adjacent Latin cluster to suppress Cyrillic localization. It projects real glyph IDs, cluster ranges, advances, and offsets back into the shared `ShapedGlyphRun`. The leaf rejects vertical requests; vertical shaping applies the same coordinates, script, and language directly in the TTB/BTT backend.
+The folder-backed `text/shaping/horizontal/` leaf groups adjacent glyph clusters by actual face, instance, direction, and resolved ISO15924 script, then re-shapes segments whenever effective variation coordinates or a per-run language are present. Each strong script is explicitly set on the RustyBuzz buffer before `guess_segment_properties`; Common, Inherited, and Unknown tags deliberately retain the backend guess path. RustyBuzz therefore receives one script together with language, OpenType features, kerning policy, size, and effective coordinates, so `locl` and variable axes share one authoritative face/cluster projection without allowing an adjacent Latin cluster to suppress Cyrillic localization. It projects real glyph IDs, cluster ranges, advances, and offsets back into the shared `ShapedGlyphRun`. The leaf rejects vertical requests; vertical shaping applies the same coordinates, script, and language directly in the TTB/BTT backend.
 
 Screen-space preparation loads each distinct explicit auto/native/SDF font asset in `text/resolved_batches.rs` before atlas planning. `font_assets.rs` returns separate successful-load and actual face-count-change signals: a failed manifest is not inserted into the cache, so a later project import can retry instead of inheriting a permanent negative record; native atlas invalidation is driven by the authoritative database face delta rather than map length. A successful new asset refreshes batch glyphs through `render/text_advances.rs`, the existing shaping owner, so render-command extraction cannot leave stale default-font face/instance data in the atlas request.
 

@@ -1,15 +1,15 @@
 ---
 related_code:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/distance_field.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/text_keys.rs
   - zircon_runtime/assets/fonts/default.font.toml
 implementation_files:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/distance_field.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
+  - zircon_runtime/src/text/sdf/font_bake.rs
+  - zircon_runtime/src/text/sdf/font_bake/distance_field.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
 plan_sources:
   - user: 2026-07-15 complete and verify the runtime text and layout architecture
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
@@ -17,9 +17,9 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/tests/prepare_report.rs
-  - cargo test -p zircon_runtime --lib graphics::scene::scene_renderer::ui::sdf_font_bake::tests::sdf_font_bake_rasterizes_materialized_system_cjk_face --locked -- --exact --nocapture
+  - cargo test -p zircon_runtime --lib text::sdf::font_bake::tests::sdf_font_bake_rasterizes_materialized_system_cjk_face --locked -- --exact --nocapture
   - cargo test -p zircon_runtime --lib scene:: --locked
 status: accepted
 doc_type: module-detail

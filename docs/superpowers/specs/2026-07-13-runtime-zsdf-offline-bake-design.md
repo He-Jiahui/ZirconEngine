@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_runtime/src/text/sdf/offline
-  - zircon_runtime/src/font_sdf_build_tool
+  - zircon_runtime/src/text/font_sdf_build_tool
   - zircon_runtime/src/bin/zircon_font_sdf_bake
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_font_bake/offline_source.rs
+  - zircon_runtime/src/text/sdf/font_bake/offline_source.rs
   - tools/zircon_build_font_sdf.py
 plan_sources:
   - docs/plans/zircon_runtime/text/05-sdf-msdf-pipeline.md
@@ -16,15 +16,15 @@ status: accepted_for_implementation
 
 ## Outcome
 
-Text05 SM-M3 adds one deterministic offline distance-field asset path without creating a second glyph generator. Build tooling calls the renderer-neutral `graphics/text/sdf` fdsm owner, writes one `.zsdf` container, and runtime font bake checks that container before dynamic generation. A usable hit supplies exact metrics and glyph pixels to the existing unified atlas copy/upload path; a missing, stale, corrupt, or uncovered glyph keeps the existing dynamic SDF/MSDF/MTSDF fallback.
+Text05 SM-M3 adds one deterministic offline distance-field asset path without creating a second glyph generator. Build tooling calls the renderer-neutral `text/sdf` fdsm owner, writes one `.zsdf` container, and runtime font bake checks that container before dynamic generation. A usable hit supplies exact metrics and glyph pixels to the existing unified atlas copy/upload path; a missing, stale, corrupt, or uncovered glyph keeps the existing dynamic SDF/MSDF/MTSDF fallback.
 
 ## Ownership
 
-- `graphics/text/sdf/offline/` owns the versioned binary contract, strict decode validation, request/header matching, glyph lookup, deterministic path construction, and page/rect extraction. It does not know WGPU, UI batches, project managers, or filesystem policy.
+- `text/sdf/offline/` owns the versioned binary contract, strict decode validation, request/header matching, glyph lookup, deterministic path construction, and page/rect extraction. It does not know WGPU, UI batches, project managers, or filesystem policy.
 - `font_sdf_build_tool/` is a feature-gated tooling API inside `zircon_runtime`. It enumerates a requested codepoint subset or the font cmap, calls the existing shared generator, packs glyphs through the shared shelf allocator, and returns an offline artifact/report. No Python or binary-side generator is allowed.
 - `bin/zircon_font_sdf_bake/` owns CLI parsing and filesystem input/output only.
 - `tools/zircon_build_font_sdf.py` owns Python build orchestration and command validation. `tools/zircon_build.py` only exposes and dispatches the target; target-specific arguments and behavior stay in the child module so the 992-line root does not become a font tool owner.
-- `scene_renderer/ui/sdf_font_bake/offline_source.rs` owns project font identity discovery and the runtime lookup adapter. `sdf_font_bake.rs` retains only the precedence decision: memory cache → valid `.zsdf` glyph → dynamic generator → typed failure.
+- `text/sdf/font_bake/offline_source.rs` owns project font identity discovery and the runtime lookup adapter. `text/sdf/font_bake.rs` retains only the precedence decision: memory cache → valid `.zsdf` glyph → dynamic generator → typed failure.
 
 ## `.zsdf` version 1 contract
 

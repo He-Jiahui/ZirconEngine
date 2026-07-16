@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_runtime/src/core/framework/render/text/rich.rs
+  - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
   - zircon_runtime/src/text/rich/bbcode_table/placement.rs
@@ -8,7 +8,7 @@ related_code:
   - zircon_runtime/src/ui/text/layout_engine/rich_table/grid.rs
   - zircon_runtime/src/ui/text/layout_engine/rich_table/sizing.rs
 implementation_files:
-  - zircon_runtime/src/core/framework/render/text/rich.rs
+  - zircon_runtime/src/text/model/rich.rs
   - zircon_runtime/src/text/rich/bbcode_table.rs
   - zircon_runtime/src/text/rich/bbcode_table/attributes.rs
   - zircon_runtime/src/text/rich/bbcode_table/placement.rs
@@ -21,7 +21,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
-  - zircon_runtime/src/graphics/text/rich/tests/table.rs
+  - zircon_runtime/src/text/rich/tests/table.rs
   - zircon_runtime/src/ui/text/layout_engine/tests/rich_table.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer.rs
   - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/proof_assertions.rs
