@@ -36,11 +36,14 @@ plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
+  - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
   - zircon_runtime/src/tests/runtime_absorption/root_entries.rs
+  - zircon_runtime/src/tests/tasks.rs::isolated_runtime_fixtures_share_the_process_task_owner
+  - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs::project_asset_manager_uses_the_injected_runtime_io_pool
   - rustc --edition 2021 --test zircon_runtime/src/tests/runtime_absorption/root_entries.rs
   - cargo check -p zircon_runtime --lib --locked
 doc_type: module-detail
@@ -70,9 +73,11 @@ Callers that need the helper should import `core::runtime::tasks::spawn_named_th
 
 `TaskPool` implements the framework-neutral `ParallelSliceExecutor` contract through the same `parallel_for` implementation. This lets framework algorithms such as source cubemap mip generation use a caller-supplied runtime pool without importing `core::runtime` or touching Rayon directly. The runtime owner remains responsible for thread allocation and execution; the framework contract never creates a pool.
 
+`TaskPools::default()` is the process-wide execution owner. It initializes exactly one compute/async-compute/IO set through `OnceLock<TaskPools>` and returns cheap clones thereafter. `TaskPoolOptions::create_pools()` bypasses that default only when a caller explicitly requests an isolated owner. `TaskPool::shares_execution_owner_with(...)` makes this ownership contract testable without relying on OS thread counts. The crate-private current-worker query lets executor-owned resources avoid waiting on work queued behind their own single worker.
+
 Scheduler diagnostics are recorded under `tasks.scheduled`, `tasks.completed`, `tasks.dependency_wait_ms`, and `tasks.main_thread_wait_ms`. `JobHandle::wait()` and `JobScheduler::wait_all(...)` both contribute to the explicit main-thread wait counter. `JobScheduler::record_diagnostics(...)` publishes those counters into `DiagnosticStore` using `tasks` and `job_scheduler` tags.
 
-Current production consumers of `spawn_named_thread(...)` are asset event filtering and asset decode worker-pool startup. Both now reach the helper through the runtime owner path.
+Current production consumers of `spawn_named_thread(...)` include asset event filtering. Asset decode no longer uses this helper: `AssetWorkerPool` submits decode jobs to its injected runtime IO pool and tracks only request lifecycle state.
 
 ## Validation
 

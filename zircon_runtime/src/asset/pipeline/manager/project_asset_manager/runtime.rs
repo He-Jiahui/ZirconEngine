@@ -179,7 +179,7 @@ mod tests {
 
     #[test]
     fn project_asset_manager_runtime_accessors_recover_poisoned_locks() {
-        let manager = ProjectAssetManager::new(1);
+        let manager = ProjectAssetManager::default();
 
         assert!(catch_unwind(AssertUnwindSafe(|| {
             let _guard = manager.project.write().unwrap();

@@ -36,6 +36,7 @@ plan_sources:
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
   - dev/bevy/crates/bevy_tasks/src/task_pool.rs
   - dev/bevy/crates/bevy_tasks/src/usages.rs
+  - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
 tests:
   - zircon_runtime/src/core/framework/tests.rs
   - zircon_runtime/src/tests/tasks.rs
@@ -52,7 +53,7 @@ doc_type: module-detail
 
 `zircon_runtime::core::framework::tasks` is the neutral contract layer for Bevy-inspired task-pool vocabulary. It gives runtime modules, asset importers, render preparation, diagnostics, and future app profile wiring a shared way to describe compute, async-compute, and IO task ownership without making the framework layer own a concrete executor.
 
-This framework layer is intentionally contract-only. The concrete rayon-backed bridge lives in `zircon_runtime::core::runtime::tasks`, where `TaskPools` owns runtime-local compute, async-compute, and IO pools. `TasksModule` remains the built-in lifecycle descriptor.
+This framework layer is intentionally contract-only. The concrete rayon-backed bridge lives in `zircon_runtime::core::runtime::tasks`, where `TaskPools` owns compute, async-compute, and IO execution. Default runtimes share one process-wide task owner; explicitly constructed pools remain isolated. `TasksModule` remains the built-in lifecycle descriptor.
 
 ## Reference Evidence
 
@@ -61,7 +62,7 @@ Bevy is the primary reference for the split between task-pool categories and con
 - `dev/bevy/crates/bevy_tasks/src/usages.rs` defines separate compute, async-compute, and IO global pool wrappers.
 - `dev/bevy/crates/bevy_tasks/src/task_pool.rs` separates task pool construction, thread naming, scoped work, and main-thread polling details from subsystem code that consumes the pools.
 
-Zircon keeps the same product semantics but does not copy Bevy's global singleton model. The framework contract names the pool kinds and async task diagnostics while leaving runtime ownership with `CoreRuntime` and concrete manager modules.
+Zircon keeps the same product semantics without exposing Bevy-style global wrapper types to framework consumers. The framework contract names pool kinds and async task diagnostics; the concrete runtime layer owns the process-default `OnceLock<TaskPools>` and explicit isolated-owner construction.
 
 ## Ownership Boundary
 
@@ -94,7 +95,7 @@ Current behavior is limited to pure helpers and invariants:
 - poll counts use saturating addition,
 - terminal-state helpers classify completed, failed, and cancelled tasks,
 - poll budget helpers report remaining per-frame main-thread polls or unlimited polling.
-- `TaskPool` implements `ParallelSliceExecutor` in the runtime task owner, so framework algorithms execute on the caller-supplied runtime pool and never create or discover a process-global executor.
+- `TaskPool` implements `ParallelSliceExecutor` in the runtime task owner, so framework algorithms execute on the caller-supplied pool. The framework layer never creates or discovers the process-default owner itself.
 
 Framework contracts do not own task execution. Calling `ParallelSliceExecutor::parallel_for(...)` delegates execution to the supplied implementation; `TaskPools` consumes the remaining descriptors and kinds as its public description. Future async task managers should use the async task contracts as diagnostic payloads instead of exposing concrete rayon, async-executor, or platform thread-pool types.
 

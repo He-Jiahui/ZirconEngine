@@ -16,29 +16,23 @@ use crate::asset::{
     AssetId, AssetImportError, AssetImporter, AssetImporterCapabilityReport, AssetImporterHandler,
     AssetImporterRegistry, AssetUri, ShaderAsset,
 };
-use crate::core::runtime::tasks::TaskPoolOptions;
+use crate::core::runtime::tasks::{TaskPool, TaskPoolKind, TaskPools};
 
 impl Default for ProjectAssetManager {
     fn default() -> Self {
-        let default_worker_options = default_worker_options_for_system();
-        Self {
-            default_worker_count: default_worker_options.worker_count,
-            default_worker_budget_source: default_worker_options.thread_budget_source,
-            project: Arc::new(RwLock::new(None)),
-            asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
-            resource_manager: resource_manager_with_builtins(),
-            change_subscribers: Arc::new(Mutex::new(Vec::new())),
-            watch_error_subscribers: Arc::new(Mutex::new(Vec::new())),
-            watchers: Arc::new(Mutex::new(Vec::new())),
-        }
+        Self::new(TaskPools::default().io().clone())
     }
 }
 
 impl ProjectAssetManager {
-    pub fn new(default_worker_count: usize) -> Self {
+    pub fn new(worker_task_pool: TaskPool) -> Self {
+        assert_eq!(
+            worker_task_pool.kind(),
+            TaskPoolKind::Io,
+            "ProjectAssetManager requires the runtime IO task pool"
+        );
         Self {
-            default_worker_count: default_worker_count.max(1),
-            default_worker_budget_source: AssetWorkerThreadBudgetSource::Explicit,
+            worker_task_pool,
             project: Arc::new(RwLock::new(None)),
             asset_importers: Arc::new(RwLock::new(AssetImporterRegistry::default())),
             resource_manager: resource_manager_with_builtins(),
@@ -48,28 +42,30 @@ impl ProjectAssetManager {
         }
     }
 
-    pub fn spawn_worker_pool(&self) -> Result<AssetWorkerPool, crate::core::ZirconError> {
-        let (pool, _) = self.spawn_worker_pool_with_frame_sampler()?;
-        Ok(pool)
+    pub fn spawn_worker_pool(&self) -> AssetWorkerPool {
+        let (pool, _) = self.spawn_worker_pool_with_frame_sampler();
+        pool
     }
 
     pub fn spawn_worker_pool_with_frame_sampler(
         &self,
-    ) -> Result<(AssetWorkerPool, AssetWorkerPoolFrameSampler), crate::core::ZirconError> {
-        let pool = AssetWorkerPool::new(
-            AssetWorkerPoolOptions::new(self.default_worker_count)
-                .with_thread_budget_source(self.default_worker_budget_source),
-        )?;
+    ) -> (AssetWorkerPool, AssetWorkerPoolFrameSampler) {
+        let pool =
+            AssetWorkerPool::new(self.worker_task_pool.clone(), AssetWorkerPoolOptions::new());
         let sampler = AssetWorkerPoolFrameSampler::from_pool(&pool);
-        Ok((pool, sampler))
+        (pool, sampler)
+    }
+
+    pub fn worker_task_pool(&self) -> &TaskPool {
+        &self.worker_task_pool
     }
 
     pub fn default_worker_count(&self) -> usize {
-        self.default_worker_count
+        self.worker_task_pool.parallelism()
     }
 
     pub fn default_worker_budget_source(&self) -> AssetWorkerThreadBudgetSource {
-        self.default_worker_budget_source
+        AssetWorkerThreadBudgetSource::TaskPoolIo
     }
 
     pub fn resource_manager(&self) -> ResourceManager {
@@ -180,15 +176,4 @@ impl ProjectAssetManager {
         }
         registry
     }
-}
-
-fn default_worker_options_for_system() -> AssetWorkerPoolOptions {
-    AssetWorkerPoolOptions::from_task_pool_options(
-        &TaskPoolOptions::default(),
-        available_parallelism_for_system(),
-    )
-}
-
-fn available_parallelism_for_system() -> usize {
-    std::thread::available_parallelism().map_or(1, |value| value.get())
 }

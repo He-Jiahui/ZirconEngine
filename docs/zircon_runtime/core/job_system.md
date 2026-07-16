@@ -46,6 +46,7 @@ implementation_files:
 plan_sources:
   - user: 2026-06-13 implement runtime architecture plan code
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
+  - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
   - docs/plans/zircon_runtime/runtime/index.md
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Task.h
   - dev/UnrealEngine/Engine/Source/Runtime/Core/Public/Tasks/Pipe.h
@@ -60,6 +61,7 @@ tests:
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - zircon_runtime/src/tests/tasks.rs
   - zircon_runtime/src/asset/tests/pipeline/worker_pool.rs
+  - zircon_editor/src/tests/host/manager/runtime_lifecycle.rs::repeated_editor_runtime_fixtures_release_every_runtime_root
   - cargo test -p zircon_runtime --lib tasks --locked -- --nocapture
   - cargo test -p zircon_runtime --lib job --locked -- --nocapture
   - cargo test -p zircon_runtime --lib worker_pool --locked -- --nocapture
@@ -90,7 +92,7 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 |---|---|---|---|
 | ECS parallel batches | `zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs` | batch-local fork/join plus batch dependency chain | Runtime 11 M2.3 now submits batches through `schedule_after` handles and waits only on the tail batch; Runtime 11 M2.2 has also moved batch-local two-through-six joins and generic larger-batch fanout behind `JobScheduler::join(...)`, so the executor no longer imports Rayon directly. |
 | Graphics frustum culling | `zircon_runtime/src/graphics/visibility/culling/parallel_frustum.rs` | range or slice data parallelism with stable output order | Runtime 11 M2.1 routes large-scene frustum work through the render framework's `compute_task_pool` and `parallel_for(...)`; `parallel_frustum.rs` no longer imports Rayon directly. |
-| Asset decode worker | `zircon_runtime/src/asset/pipeline/worker_pool.rs` | IO-lane long work, completion notification, bounded queue semantics | Runtime 11 M2.4 uses explicit accounting: worker threads remain self-managed to preserve Runtime 04 queue/de-dup/completion semantics, while production defaults are derived from `TaskPoolOptions` IO thread counts and recorded through asset worker diagnostics. |
+| Asset decode worker | `zircon_runtime/src/asset/pipeline/worker_pool.rs` | IO-lane long work, completion notification, bounded queue semantics | Runtime 11 M2.4 submits unique decode requests directly to the injected runtime IO pool. Backpressure, de-duplication, completion fanout, panic terminalization, and Drop waiting remain asset-owned; thread creation does not. |
 | Runtime module families | animation/navigation/physics/plugin consumers | reusable scheduling handle without direct rayon | Expose `JobHandle` and `schedule_after`; do not add priority/cancellation until a concrete consumer needs it. |
 | Future physics fixed step | Runtime 01 physics decision | fixed-step internal parallelism and frame-end sync | Reserve `JobScheduler::wait_all(...)` and `JobHandle::wait` / combined handles as the frame synchronization points; backend-specific thread-pool integration is a later physics decision. |
 
@@ -110,11 +112,13 @@ The structural mirror is `job_system_boundary` under `runtime_structure_audits/`
 
 `TaskPoolOptions` remains the only runtime thread-budget owner. It declares total thread bounds and distributes workers across compute, async-compute, and IO pools. The plan for remaining bypasses is:
 
+- `TaskPools::default()` is the process-wide task owner backed by `OnceLock<TaskPools>`. Default `CoreRuntime` and `ProjectAssetManager` instances clone the same three pool handles; creating 128 isolated runtime states does not construct 128 worker sets. `TaskPoolOptions::create_pools()` is the explicit isolated-owner path.
+
 - Direct rayon use moves behind `core::runtime::tasks` primitives. `pool.rs` and `parallel_for.rs` are the allowed task-execution Rayon owners; `runtime_absorption::rayon_boundary` now enforces that boundary for production sources.
 - Source cubemap mip generation consumes the neutral framework `ParallelSliceExecutor` contract. The explicit-executor builders route large-face work through the caller's runtime-owned pool; synchronous builders stay serial because no runtime execution owner was supplied. Neither path creates a hidden pool or falls back to Rayon's process-global pool.
 - Graphics frustum culling consumed the Runtime 11 M2.1 render-owner window on 2026-06-16. `WgpuRenderFramework` now carries a `compute_task_pool`, runtime module construction supplies `core.task_pools().compute().clone()`, and `VisibilityContext::from_extract_with_history_static_index_and_task_pool(...)` passes that pool into `parallel_frustum.rs`. Current guard status is `runtime_11_m2_1_graphics_frustum_rayon_cutover_static_passed_cargo_pending`, with `direct_rayon_paths = 2`.
-- Asset worker threads use the explicit-accounting route from 11-M2.4. `ProjectAssetManager::default()` builds `AssetWorkerPoolOptions` from `TaskPoolOptions::default().resolve_thread_counts(...).io_threads`; explicit manager construction remains an override and diagnostics publish the resulting `asset.worker.budgeted_threads` path.
-- No global rayon pool is introduced. Runtime code should execute through per-runtime pools so `CoreRuntime` remains the execution owner.
+- Asset decoding uses the IO-pool execution route from 11-M2.4. `ProjectAssetManager::new(io_task_pool)` injects the owner explicitly, while `ProjectAssetManager::default()` uses the process owner. `AssetWorkerPool` has no `zircon-asset-*` thread, worker-count option, explicit budget source, or workerless test constructor.
+- Rayon's implicit process-global default pool is not used. Runtime work executes through the process-default `TaskPools` owner or a deliberately constructed isolated `TaskPool`; runtime state and scheduler diagnostics remain local to each `CoreRuntime`.
 
 ## API Contract
 
@@ -134,7 +138,7 @@ Handle-backed scheduled tasks are panic-safe at the synchronization boundary. If
 
 `JobScheduler::diagnostic_report()` exposes an in-memory `JobSchedulerReport`; `JobScheduler::record_diagnostics(store, frame)` publishes the same values into `DiagnosticStore` with `tasks` and `job_scheduler` tags.
 
-Asset worker budget accounting remains in the asset diagnostic namespace because the worker pool still owns its request/completion channels. `asset.worker.budgeted_threads` is the bridge metric that lets task-budget analysis count those self-managed IO workers alongside `TaskPoolOptions`.
+Asset request accounting remains in the asset diagnostic namespace because the orchestration layer still owns admission, de-duplication, completion fanout, and frame deltas. `asset.worker.budgeted_threads` mirrors the shared IO pool's parallelism for correlation; it must not be added to `TaskPoolOptions` totals as another allocation.
 
 ## Test Coverage
 
@@ -158,8 +162,13 @@ Asset worker budget accounting remains in the asset diagnostic namespace because
 - `schedule_parallel_executor_does_not_call_rayon_directly`
 - `rayon_is_only_reachable_through_core_task_primitives`
 - `rayon_render_exception_cutover_is_recorded_in_runtime_11_m2_1_status`
-- `worker_pool_options_can_derive_threads_from_runtime_io_budget`
-- `project_asset_manager_default_workers_use_runtime_io_budget_source`
+- `isolated_runtime_fixtures_share_the_process_task_owner`
+- `explicit_task_pool_options_create_an_isolated_task_owner`
+- `project_asset_manager_uses_the_injected_runtime_io_pool`
+- `project_asset_manager_defaults_share_the_process_io_pool`
+- `dropping_worker_pool_waits_for_its_runtime_io_jobs`
+- `dropping_worker_pool_on_its_io_worker_does_not_deadlock_pending_jobs`
+- `repeated_editor_runtime_fixtures_release_every_runtime_root`
 - `runtime_11_job_system_cargo_gate_stays_visible_until_job_system_filters_pass`
 
 Cargo execution reached package compilation but did not reach the task tests on 2026-06-13: `cargo test -p zircon_runtime --lib tasks --locked -- --nocapture` first hit a plugin native-loader test import error for `PluginInterfaceManifest`. The missing import has been fixed. A 2026-06-20 clean-window rerun of `cargo test -p zircon_runtime --lib tasks --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-11-validation-0620 --message-format short --color never -- --test-threads=1 --nocapture` stayed in `zircon_runtime` lib-test compilation for the 1200s tool window plus an additional 650s wait and produced no test binary or test result; the residual Cargo/rustc processes from that run were stopped. A narrower 2026-06-20 core-min rerun, `cargo test -p zircon_runtime --lib tasks --no-default-features --features core-min --locked --jobs 1 --target-dir E:\Git\ZirconEngine\target\codex-runtime11-coremin-0620 --message-format short --color never -- --test-threads=1 --nocapture`, also timed out after 1200s during `zircon_runtime` lib-test compilation, produced no `zircon_runtime*.exe` test binary in that target directory, and had matching residual Cargo/rustc command lines stopped. The required milestone commands remain recorded in Runtime 11, and these timeout records do not count as Cargo passes.

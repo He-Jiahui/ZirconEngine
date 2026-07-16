@@ -119,6 +119,49 @@ fn core_runtime_exposes_task_pools_and_keeps_job_scheduler_as_compute_facade() {
 }
 
 #[test]
+fn isolated_runtime_fixtures_share_the_process_task_owner() {
+    const RUNTIME_COUNT: usize = 128;
+    let runtimes = (0..RUNTIME_COUNT)
+        .map(|_| CoreRuntime::new())
+        .collect::<Vec<_>>();
+    let first = &runtimes[0];
+
+    for runtime in &runtimes[1..] {
+        for kind in [
+            TaskPoolKind::Compute,
+            TaskPoolKind::AsyncCompute,
+            TaskPoolKind::Io,
+        ] {
+            assert!(
+                first
+                    .task_pool(kind)
+                    .shares_execution_owner_with(runtime.task_pool(kind)),
+                "isolated runtime state should reuse the process {kind:?} pool"
+            );
+        }
+    }
+}
+
+#[test]
+fn explicit_task_pool_options_create_an_isolated_task_owner() {
+    let first = TaskPoolOptions::with_num_threads(3).create_pools();
+    let second = TaskPoolOptions::with_num_threads(3).create_pools();
+
+    for kind in [
+        TaskPoolKind::Compute,
+        TaskPoolKind::AsyncCompute,
+        TaskPoolKind::Io,
+    ] {
+        assert!(
+            !first
+                .get(kind)
+                .shares_execution_owner_with(second.get(kind)),
+            "explicit pool construction should remain isolated for {kind:?}"
+        );
+    }
+}
+
+#[test]
 fn job_handle_wait_blocks_until_task_completes() {
     let scheduler = single_worker_scheduler();
     let (release_tx, release_rx) = bounded::<()>(0);

@@ -20,14 +20,12 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
     let runtime_index = include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md");
 
     for required_source_anchor in [
-        "pub fn new(options: AssetWorkerPoolOptions) -> Result<Self, ZirconError>",
+        "pub fn new(task_pool: TaskPool, options: AssetWorkerPoolOptions) -> Self",
         "pub struct AssetWorkerPoolOptions",
         "pub queue_depth: Option<usize>",
-        "pub thread_budget_source: AssetWorkerThreadBudgetSource",
-        "pub fn from_task_pool_options(",
-        "bounded(queue_depth)",
-        "try_send(queued_request)",
-        "TrySendError::Full(request)",
+        "task_pool.spawn(move ||",
+        "pending_jobs: Mutex<usize>",
+        "pending_jobs_changed: Condvar",
         "in_flight: Arc<Mutex<HashMap<AssetRequest, usize>>>",
         "if let Some(waiter_count) = in_flight.get_mut(&request)",
         "for _ in 0..waiter_count",
@@ -47,7 +45,8 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
     for required_manager_anchor in [
         "pub fn spawn_worker_pool_with_frame_sampler(",
         "AssetWorkerPoolFrameSampler::from_pool(&pool)",
-        "self.spawn_worker_pool_with_frame_sampler()?",
+        "self.spawn_worker_pool_with_frame_sampler()",
+        "TaskPools::default().io().clone()",
     ] {
         assert!(
             project_asset_manager_construction.contains(required_manager_anchor),
@@ -61,26 +60,33 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         .expect("AssetWorkerPool implementation block should stay present");
     assert!(
         worker_pool_source.contains("impl AssetWorkerPoolOptions"),
-        "AssetWorkerPoolOptions should remain the worker-count configuration owner"
+        "AssetWorkerPoolOptions should remain the queue configuration owner"
     );
-    assert!(
-        !worker_pool_impl.contains("pub fn new(worker_count: usize)"),
-        "AssetWorkerPool::new(worker_count) should stay retired; use AssetWorkerPoolOptions"
-    );
-    assert!(
-        !worker_pool_source.contains("request_sender"),
-        "AssetWorkerPool::request_sender should stay retired; use request(...) so coalescing, backpressure, and diagnostics stay centralized"
-    );
+    for retired_anchor in [
+        "spawn_named_thread",
+        "zircon-asset-",
+        "new_without_workers_for_test",
+        "AssetWorkerPoolOptions::from_task_pool_options",
+        "AssetWorkerThreadBudgetSource::Explicit",
+        "request_sender",
+    ] {
+        assert!(
+            !worker_pool_impl.contains(retired_anchor)
+                && !worker_pool_source.contains(retired_anchor),
+            "asset worker pool should not retain retired anchor `{retired_anchor}`"
+        );
+    }
 
     for required_test_anchor in [
         "worker_pool_unbounded_mode_is_explicit_opt_in",
-        "worker_pool_options_can_derive_threads_from_runtime_io_budget",
-        "project_asset_manager_default_workers_use_runtime_io_budget_source",
+        "project_asset_manager_uses_the_injected_runtime_io_pool",
+        "project_asset_manager_defaults_share_the_process_io_pool",
         "worker_pool_bounded_queue_rejects_overflow_with_explicit_error",
         "concurrent_requests_for_same_asset_decode_once_and_notify_all",
         "worker_pool_diagnostics_track_in_flight_and_failure_counts",
         "worker_pool_frame_sampler_records_per_frame_completion_deltas",
-        "project_asset_manager_spawns_worker_pool_with_frame_sampler",
+        "dropping_worker_pool_waits_for_its_runtime_io_jobs",
+        "dropping_worker_pool_on_its_io_worker_does_not_deadlock_pending_jobs",
     ] {
         assert!(
             worker_pool_tests.contains(required_test_anchor),
@@ -99,6 +105,8 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "asset.worker.budgeted_threads",
         "asset.worker.frame_completed",
         "only public request entry",
+        "process-wide task owner",
+        "does not create dedicated threads",
     ] {
         assert!(
             worker_pool_doc.contains(required_doc_anchor),
@@ -112,8 +120,8 @@ fn asset_worker_pool_matches_runtime_04_and_11_decisions() {
         "Runtime 11 M2.4",
         "asset.worker.budgeted_threads",
         "asset.worker.frame_completed",
-        "worker_pool_options_can_derive_threads_from_runtime_io_budget",
-        "project_asset_manager_default_workers_use_runtime_io_budget_source",
+        "project_asset_manager_uses_the_injected_runtime_io_pool",
+        "project_asset_manager_defaults_share_the_process_io_pool",
     ] {
         assert!(
             runtime_04_plan.contains(required_plan_anchor)

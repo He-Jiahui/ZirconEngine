@@ -49,6 +49,14 @@ impl TaskPool {
         self.parallelism
     }
 
+    pub fn shares_execution_owner_with(&self, other: &Self) -> bool {
+        Arc::ptr_eq(&self.pool, &other.pool)
+    }
+
+    pub(crate) fn is_current_worker(&self) -> bool {
+        self.pool.current_thread_index().is_some()
+    }
+
     pub fn spawn(&self, task: impl FnOnce() + Send + 'static) {
         self.pool.spawn(task);
     }

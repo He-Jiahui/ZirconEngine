@@ -1,4 +1,5 @@
 use std::fmt;
+use std::sync::OnceLock;
 
 use super::{
     TaskPool, TaskPoolDescriptor, TaskPoolKind, TaskPoolOptions, TaskPoolReport,
@@ -21,7 +22,16 @@ pub struct TaskPools {
     thread_counts: TaskPoolThreadCounts,
 }
 
+static PROCESS_TASK_POOLS: OnceLock<TaskPools> = OnceLock::new();
+
 impl TaskPools {
+    /// Returns the process-wide default execution owner shared by default runtimes.
+    pub fn process_default() -> Self {
+        PROCESS_TASK_POOLS
+            .get_or_init(|| Self::from_options(TaskPoolOptions::default()))
+            .clone()
+    }
+
     pub fn from_options(options: TaskPoolOptions) -> Self {
         Self::from_options_with_available_parallelism(options, available_parallelism())
     }
@@ -84,7 +94,7 @@ impl TaskPools {
 
 impl Default for TaskPools {
     fn default() -> Self {
-        Self::from_options(TaskPoolOptions::default())
+        Self::process_default()
     }
 }
 

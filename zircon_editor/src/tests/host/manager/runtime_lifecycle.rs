@@ -93,7 +93,7 @@ fn project_open_panic_unwind_drops_temporary_editor_manager_owners() {
 #[test]
 fn repeated_editor_runtime_fixtures_release_every_runtime_root() {
     const FIXTURE_COUNT: usize = 128;
-    const WORKER_TEARDOWN_OBSERVATION_BUDGET: Duration = Duration::from_millis(500);
+    const FIXTURE_TEARDOWN_OBSERVATION_BUDGET: Duration = Duration::from_millis(500);
 
     let _guard = env_lock().lock().unwrap();
     let config_path = unique_temp_path("zircon_editor_repeated_runtime_lifecycle");
@@ -110,12 +110,13 @@ fn repeated_editor_runtime_fixtures_release_every_runtime_root() {
 
         assert!(
             weak.upgrade().is_none(),
-            "editor Runtime fixture {fixture_index} must release its root and task pools"
+            "editor Runtime fixture {fixture_index} must release its root while the process task owner stays shared"
         );
     }
 
-    // Keep the process alive briefly so the external acceptance monitor can observe worker teardown.
-    std::thread::sleep(WORKER_TEARDOWN_OBSERVATION_BUDGET);
+    // Keep the process alive briefly so the acceptance monitor can observe a stable process budget
+    // after every fixture-local Runtime root has been released.
+    std::thread::sleep(FIXTURE_TEARDOWN_OBSERVATION_BUDGET);
 
     std::env::remove_var("ZIRCON_CONFIG_PATH");
     let _ = fs::remove_file(config_path);

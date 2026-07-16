@@ -1,13 +1,14 @@
-//! Background worker pool for asset decoding.
+//! Runtime IO-pool orchestration for CPU-side asset decoding.
 
-use crossbeam_channel::{bounded, unbounded, TrySendError};
+use crossbeam_channel::unbounded;
 use std::collections::HashMap;
+use std::panic::{catch_unwind, AssertUnwindSafe};
+use std::sync::Condvar;
 use std::sync::{Arc, Mutex, MutexGuard};
-use std::thread::JoinHandle;
 
 use crate::core::diagnostics::DiagnosticStore;
 use crate::core::framework::channel::{ChannelReceiver, ChannelSender};
-use crate::core::runtime::tasks::{spawn_named_thread, TaskPoolOptions};
+use crate::core::runtime::tasks::{TaskPool, TaskPoolKind};
 use crate::core::ZirconError;
 
 use crate::asset::load::{mesh, texture};
@@ -23,38 +24,40 @@ pub const ASSET_WORKER_FRAME_FAILED_DIAGNOSTIC: &str = "asset.worker.frame_faile
 
 pub struct AssetWorkerPool {
     options: AssetWorkerPoolOptions,
-    request_tx: Option<ChannelSender<AssetRequest>>,
-    #[cfg(test)]
-    // Keeps the request channel connected while tests exercise bounded overflow without workers.
-    request_rx_guard: Option<ChannelReceiver<AssetRequest>>,
+    task_pool: TaskPool,
     in_flight: Arc<Mutex<HashMap<AssetRequest, usize>>>,
     diagnostics: Arc<Mutex<AssetWorkerPoolDiagnostics>>,
     completion_tx: ChannelSender<CpuAssetPayload>,
     completion_rx: ChannelReceiver<CpuAssetPayload>,
-    joins: Vec<JoinHandle<()>>,
+    lifecycle: Arc<AssetWorkerLifecycle>,
+}
+
+struct AssetWorkerLifecycle {
+    pending_jobs: Mutex<usize>,
+    pending_jobs_changed: Condvar,
+}
+
+struct PendingJobGuard {
+    lifecycle: Arc<AssetWorkerLifecycle>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum AssetWorkerThreadBudgetSource {
     #[default]
-    Explicit,
     TaskPoolIo,
 }
 
 impl AssetWorkerThreadBudgetSource {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Explicit => "explicit",
             Self::TaskPoolIo => "task_pool_io",
         }
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct AssetWorkerPoolOptions {
-    pub worker_count: usize,
     pub queue_depth: Option<usize>,
-    pub thread_budget_source: AssetWorkerThreadBudgetSource,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -83,61 +86,25 @@ pub struct AssetWorkerPoolFrameSampler {
 }
 
 impl AssetWorkerPoolOptions {
-    pub fn new(worker_count: usize) -> Self {
-        Self {
-            worker_count: worker_count.max(1),
-            queue_depth: None,
-            thread_budget_source: AssetWorkerThreadBudgetSource::Explicit,
-        }
-    }
-
-    pub fn from_task_pool_options(
-        task_pool_options: &TaskPoolOptions,
-        available_parallelism: usize,
-    ) -> Self {
-        let thread_counts = task_pool_options.resolve_thread_counts(available_parallelism);
-        Self::new(thread_counts.io_threads)
-            .with_thread_budget_source(AssetWorkerThreadBudgetSource::TaskPoolIo)
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn with_queue_depth(mut self, queue_depth: usize) -> Self {
         self.queue_depth = Some(queue_depth);
         self
     }
-
-    pub fn with_thread_budget_source(
-        mut self,
-        thread_budget_source: AssetWorkerThreadBudgetSource,
-    ) -> Self {
-        self.thread_budget_source = thread_budget_source;
-        self
-    }
-
-    fn normalized(mut self) -> Self {
-        self.worker_count = self.worker_count.max(1);
-        self
-    }
 }
 
-impl Default for AssetWorkerPoolDiagnostics {
-    fn default() -> Self {
+impl AssetWorkerPoolDiagnostics {
+    fn for_task_pool(task_pool: &TaskPool) -> Self {
         Self {
-            thread_budget_source: AssetWorkerThreadBudgetSource::Explicit,
-            budgeted_threads: 0,
+            thread_budget_source: AssetWorkerThreadBudgetSource::TaskPoolIo,
+            budgeted_threads: task_pool.parallelism(),
             in_flight: 0,
             completed: 0,
             failed: 0,
             queue_peak: 0,
-        }
-    }
-}
-
-impl AssetWorkerPoolDiagnostics {
-    fn for_options(options: &AssetWorkerPoolOptions) -> Self {
-        Self {
-            thread_budget_source: options.thread_budget_source,
-            budgeted_threads: options.worker_count,
-            ..Self::default()
         }
     }
 }
@@ -214,74 +181,37 @@ impl AssetWorkerPoolFrameSampler {
 }
 
 impl AssetWorkerPool {
-    pub fn new(options: AssetWorkerPoolOptions) -> Result<Self, ZirconError> {
-        let options = options.normalized();
-        let worker_count = options.worker_count;
-        let (request_tx, request_rx) = request_channel(options.queue_depth);
+    pub fn new(task_pool: TaskPool, options: AssetWorkerPoolOptions) -> Self {
+        assert_eq!(
+            task_pool.kind(),
+            TaskPoolKind::Io,
+            "AssetWorkerPool requires the runtime IO task pool"
+        );
         let (completion_tx, completion_rx) = unbounded();
-        let in_flight = Arc::new(Mutex::new(HashMap::new()));
-        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::for_options(
-            &options,
-        )));
-        let mut joins = Vec::with_capacity(worker_count);
-
-        for worker_index in 0..worker_count {
-            let request_rx = request_rx.clone();
-            let completion_tx = completion_tx.clone();
-            let in_flight = Arc::clone(&in_flight);
-            let diagnostics = Arc::clone(&diagnostics);
-            joins.push(spawn_named_thread(
-                format!("zircon-asset-{worker_index}"),
-                move || {
-                    while let Ok(request) = request_rx.recv() {
-                        let payload = process_request(request);
-                        publish_completion(&completion_tx, &in_flight, &diagnostics, payload);
-                    }
-                },
-            )?);
-        }
-
-        Ok(Self {
-            options,
-            request_tx: Some(request_tx),
-            #[cfg(test)]
-            request_rx_guard: None,
-            in_flight,
-            diagnostics,
-            completion_tx,
-            completion_rx,
-            joins,
-        })
-    }
-
-    #[cfg(test)]
-    pub(crate) fn new_without_workers_for_test(options: AssetWorkerPoolOptions) -> Self {
-        let options = options.normalized();
-        let (request_tx, request_rx) = request_channel(options.queue_depth);
-        let (_completion_tx, completion_rx) = unbounded();
-        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::for_options(
-            &options,
+        let diagnostics = Arc::new(Mutex::new(AssetWorkerPoolDiagnostics::for_task_pool(
+            &task_pool,
         )));
 
         Self {
             options,
-            request_tx: Some(request_tx),
-            request_rx_guard: Some(request_rx),
+            task_pool,
             in_flight: Arc::new(Mutex::new(HashMap::new())),
             diagnostics,
-            completion_tx: _completion_tx,
+            completion_tx,
             completion_rx,
-            joins: Vec::new(),
+            lifecycle: Arc::new(AssetWorkerLifecycle {
+                pending_jobs: Mutex::new(0),
+                pending_jobs_changed: Condvar::new(),
+            }),
         }
-    }
-
-    #[cfg(test)]
-    pub(crate) fn request_channel_guard_is_alive_for_test(&self) -> bool {
-        self.request_rx_guard.is_some()
     }
 
     pub fn options(&self) -> &AssetWorkerPoolOptions {
         &self.options
+    }
+
+    pub fn task_pool(&self) -> &TaskPool {
+        &self.task_pool
     }
 
     pub fn request(&self, request: AssetRequest) -> Result<(), ZirconError> {
@@ -292,28 +222,33 @@ impl AssetWorkerPool {
             return Ok(());
         }
 
-        // Register the in-flight key before publishing to the worker channel so
-        // a very fast worker cannot complete and remove the key before it exists.
-        let queued_request = request.clone();
-        in_flight.insert(request.clone(), 1);
-        if let Err(error) = self
-            .request_tx
-            .as_ref()
-            .expect("asset worker request sender alive")
-            .try_send(queued_request)
-        {
-            in_flight.remove(&request);
-            self.record_in_flight_locked(&in_flight);
-            return Err(match error {
-                TrySendError::Full(request) => {
-                    ZirconError::ChannelSend(format!("asset request queue full: {request:?}"))
-                }
-                TrySendError::Disconnected(request) => {
-                    ZirconError::ChannelSend(format!("asset request dropped: {request:?}"))
-                }
-            });
+        if self.unique_request_capacity_reached(in_flight.len()) {
+            return Err(ZirconError::ChannelSend(format!(
+                "asset request queue full: {request:?}"
+            )));
         }
+
+        in_flight.insert(request.clone(), 1);
         self.record_in_flight_locked(&in_flight);
+        drop(in_flight);
+
+        self.begin_pending_job();
+        let task_pool = self.task_pool.clone();
+        let completion_tx = self.completion_tx.clone();
+        let in_flight = Arc::clone(&self.in_flight);
+        let diagnostics = Arc::clone(&self.diagnostics);
+        let lifecycle = Arc::clone(&self.lifecycle);
+        task_pool.spawn(move || {
+            let _pending_job = PendingJobGuard { lifecycle };
+            let panic_request = request.clone();
+            let payload = catch_unwind(AssertUnwindSafe(|| process_request(request))).unwrap_or(
+                CpuAssetPayload::Failure {
+                    request: panic_request,
+                    message: "asset worker task panicked".to_string(),
+                },
+            );
+            publish_completion(&completion_tx, &in_flight, &diagnostics, payload);
+        });
         Ok(())
     }
 
@@ -364,14 +299,15 @@ impl AssetWorkerPool {
         );
     }
 
-    #[cfg(test)]
-    pub(crate) fn publish_completion_for_test(&self, payload: CpuAssetPayload) {
-        publish_completion(
-            &self.completion_tx,
-            &self.in_flight,
-            &self.diagnostics,
-            payload,
-        );
+    fn unique_request_capacity_reached(&self, unique_in_flight: usize) -> bool {
+        self.options.queue_depth.is_some_and(|queue_depth| {
+            let capacity = self.task_pool.parallelism().saturating_add(queue_depth);
+            unique_in_flight >= capacity
+        })
+    }
+
+    fn begin_pending_job(&self) {
+        *lock_pending_jobs(&self.lifecycle) += 1;
     }
 
     fn record_in_flight_locked(&self, in_flight: &HashMap<AssetRequest, usize>) {
@@ -388,24 +324,34 @@ impl AssetWorkerPool {
     fn lock_diagnostics(&self) -> MutexGuard<'_, AssetWorkerPoolDiagnostics> {
         lock_worker_diagnostics(&self.diagnostics)
     }
-}
 
-impl Drop for AssetWorkerPool {
-    fn drop(&mut self) {
-        self.request_tx.take();
-
-        for join in self.joins.drain(..) {
-            let _ = join.join();
+    fn wait_for_pending_jobs(&self) {
+        let mut pending_jobs = lock_pending_jobs(&self.lifecycle);
+        while *pending_jobs > 0 {
+            pending_jobs = self
+                .lifecycle
+                .pending_jobs_changed
+                .wait(pending_jobs)
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
         }
     }
 }
 
-fn request_channel(
-    queue_depth: Option<usize>,
-) -> (ChannelSender<AssetRequest>, ChannelReceiver<AssetRequest>) {
-    match queue_depth {
-        Some(queue_depth) => bounded(queue_depth),
-        None => unbounded(),
+impl Drop for AssetWorkerPool {
+    fn drop(&mut self) {
+        if !self.task_pool.is_current_worker() {
+            self.wait_for_pending_jobs();
+        }
+    }
+}
+
+impl Drop for PendingJobGuard {
+    fn drop(&mut self) {
+        let mut pending_jobs = lock_pending_jobs(&self.lifecycle);
+        *pending_jobs = pending_jobs.saturating_sub(1);
+        if *pending_jobs == 0 {
+            self.lifecycle.pending_jobs_changed.notify_all();
+        }
     }
 }
 
@@ -450,6 +396,13 @@ fn lock_worker_diagnostics(
         .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
+fn lock_pending_jobs(lifecycle: &AssetWorkerLifecycle) -> MutexGuard<'_, usize> {
+    lifecycle
+        .pending_jobs
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+}
+
 fn total_waiter_count(in_flight: &HashMap<AssetRequest, usize>) -> usize {
     in_flight.values().sum()
 }
@@ -483,18 +436,25 @@ fn process_request(request: AssetRequest) -> CpuAssetPayload {
 
 #[cfg(test)]
 mod tests {
+    use crossbeam_channel::TryRecvError;
     use std::panic::{catch_unwind, AssertUnwindSafe};
+    use std::time::Duration;
 
     use crate::asset::types::TextureSource;
+    use crate::core::runtime::tasks::TaskPoolDescriptor;
 
     use super::*;
 
     #[test]
     fn asset_worker_pool_accessors_recover_poisoned_locks() {
-        let pool = AssetWorkerPool::new_without_workers_for_test(
-            AssetWorkerPoolOptions::new(1).with_queue_depth(1),
+        let pool = AssetWorkerPool::new(
+            TaskPool::new(TaskPoolDescriptor::io().with_worker_threads(1)),
+            AssetWorkerPoolOptions::new(),
         );
-        let request = AssetRequest::Texture(TextureSource::BuiltinChecker);
+        let completions = pool.completion_receiver();
+        let request = AssetRequest::Texture(TextureSource::Path(
+            "missing-poison-recovery-texture.png".to_string(),
+        ));
 
         let _ = catch_unwind(AssertUnwindSafe(|| {
             let _guard = pool.in_flight.lock().unwrap();
@@ -505,17 +465,17 @@ mod tests {
             panic!("poison asset worker diagnostics lock");
         }));
 
-        pool.request(request.clone())
+        pool.request(request)
             .expect("request should recover poisoned locks");
-        assert_eq!(pool.diagnostics().in_flight, 1);
 
-        pool.publish_completion_for_test(CpuAssetPayload::Failure {
-            request,
-            message: "decode failed".to_string(),
-        });
+        assert!(matches!(
+            completions.recv_timeout(Duration::from_secs(2)),
+            Ok(CpuAssetPayload::Failure { .. })
+        ));
         let diagnostics = pool.diagnostics();
         assert_eq!(diagnostics.in_flight, 0);
         assert_eq!(diagnostics.completed, 1);
         assert_eq!(diagnostics.failed, 1);
+        assert!(matches!(completions.try_recv(), Err(TryRecvError::Empty)));
     }
 }
