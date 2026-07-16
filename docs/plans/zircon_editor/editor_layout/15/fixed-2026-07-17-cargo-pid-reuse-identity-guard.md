@@ -1,12 +1,13 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-14
 summary_slug: cargo-pid-reuse-identity-guard
 origin_plan: docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md
 fixing_plan: docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md
 origin_child_dir: docs/plans/zircon_editor/editor_layout/15
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
+plan_link_mode: child_record_only
 related_code:
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/cli.py
@@ -22,7 +23,9 @@ tests:
   - python -m unittest tools.session_coordinator.tests.test_server
   - Invoke-Pester -Script .codex/skills/zircon-dev/scripts/validate-matrix.Tests.ps1 -TestName 'Coordinator supervisor role'
   - .\\.codex\\skills\\zircon-dev\\scripts\\validate-matrix.ps1 -Package zircon_editor -VerboseOutput
+resolved_at: 2026-07-17
 ---
+
 
 # Tooling 01：Cargo PID 复用身份守卫
 
@@ -59,9 +62,7 @@ tests:
 
 ## 修复结果与回传
 
-源代码和低层验证已完成，handoff 仍为 open：
-
-- 已实现：schema 31 持久化 `root_process_creation_time`，schema 32 持久化 `root_process_kind`；terminal legacy rows没有 creation identity 时继续使用其已结束状态，不把后续复用 PID 重新认作 Cargo。
-- 已实现：`CargoJobService` 在 finish/release/target reuse 前验证创建身份；server 使用真实 process-tree 观察；CLI 与 `validate-matrix.ps1` 把包装器显式声明为 supervisor。
-- 已验证：Cargo lifecycle 38/38、database migration 12/12、server 23/23，及 validator supervisor Pester 1/1。
-- 待回传：当前 daemon 仍运行 schema 30；等待外部受管 Cargo 作业结束后，受控重载到 schema 32，并重跑来源 `zircon_editor` 矩阵、focused 合同和 ignored 截图。
+- 根因：CargoJobService formerly persisted and observed a raw root PID without a process-creation identity, so Windows PID reuse could make a terminal legacy job appear live and pin its target.
+- 架构修复：Coordinator schemas 31/32 added root_process_creation_time and root_process_kind; Cargo lifecycle observation now validates root identity, preserves live Cargo/rustc descendants, treats supervisor wrappers separately, and keeps terminal legacy rows terminal. The authoritative daemon is now schema 44.
+- 验证：Focused coordinator evidence: cargo lifecycle 38/38, database migration 12/12, server 23/23, validator supervisor Pester 1/1. Legacy b0821bf60f2644beaea1cd165ed9414d is terminal orphaned with live_process_pids=[] and no OS PID 48464; e9224849cae24daaa14a9606981f7a23 reused and released the same 841a target with live_process_pids=[] and no OS PID 23116. Fresh upward evidence: managed zircon_editor job 37b0965d5e7647bb8952c3adb523145d exit 0; current binary state_layer 11 passed/0 failed/1 ignored, selected+ripple 1/1, ignored capture 1/1, screenshot target scan 0.
+- 回传：The Layout15 current-source Material state-layer acceptance gate can resume; the historical PID-reuse target pin is cleared without modifying the active Layout15 exact manifest.
