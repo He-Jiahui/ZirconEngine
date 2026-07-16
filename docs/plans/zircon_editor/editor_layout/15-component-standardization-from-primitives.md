@@ -349,7 +349,8 @@ status: in_progress
   "workflow_id": "zircon-editor-layout-component-standardization",
   "goal": "按 Unreal Slate 度量与响应、Zircon 主题令牌和 Runtime Text 接口，自下而上完成编辑器原子、复合与领域布局组件的视觉标准化和自适应截图验收",
   "milestones": [
-    {"id": "M1", "title": "从原子控件到复合界面的连续视觉标准化", "depends_on": []}
+    {"id": "M1", "title": "从原子控件到复合界面的连续视觉标准化", "depends_on": []},
+    {"id": "M2", "title": "Material 状态层优先级与专用 Button 局部视觉验收", "depends_on": []}
   ]
 }
 ```
@@ -358,6 +359,8 @@ status: in_progress
 
 - [ ] **M1.1 TextField 与 Dialog 原子/复合视觉标准化.** 仅覆盖 closeout manifest 中的 21 个 TextField、Dialog、测试、模块文档与 `docs/tests/editor/` 截图文件；该 slice 独立验收，不把父 M1、S15.4 全项或 Layout15 计划标记为完成。
 - 测试阶段：Windows 受管 Cargo fresh compile；TextField focused guards 5/5、Dialog exact guards 8/8、ignored screenshot captures 2/2；三张验收图固定写入 `docs/tests/editor/`；独立复核 Critical/Important/Minor = 0/0/0。完整证据见 `15/2026-07-14-workbench-v2-bridge-boundary-profile.md`。
+- [x] **M2 Material 状态层优先级与专用 Button 局部视觉验收.** 仅覆盖 `15/2026-07-16-material-state-priority-convergence.md` 登记的 15 个代码、测试、模块文档、计划记录与 `docs/tests/editor/` 截图文件；该里程碑独立验收，不把父 M1、S15.4 全项或 Layout15 计划标记为完成。
+- 测试阶段：Windows 受管 current-source editor 编译；state-layer focused group 11 passed / 0 failed / 1 ignored、selected+ripple 1/1、ignored screenshot capture 1/1、runtime priority 1/1；900x360 验收图固定写入 `docs/tests/editor/` 且 target scan 为 0；独立复核 Critical/Important/Minor = 0/0/0。完整证据见 `15/2026-07-16-material-state-priority-convergence.md`。
 
 > 2026-07-11 S15.3d 完成:页面溢出选择列表已接入共享 popup keyboard target,Down/Up 首次选择与循环、文本前缀搜索、Enter 激活、Escape 关闭复用同一交互/页面回调 owner。真实 RED 0/2 定位为测试夹具遗漏 `UiHostContext` 权威状态,修正后 focused 2/2 passed;共享 dropdown/menu/Home-End 回归 3/3 passed;ignored capture 1/1 passed。验收图 `docs/tests/editor/editor-window-m3-host-page-overflow-keyboard-640x420.png`,8944 bytes,SHA256 `14EB302814E3CC48E3AD9BFF0C4385E38A07A9153B0B9DA5A327AEDF2A508681`;repo `target` 与 D/E/F cargo target 同名图均 0。该图只验收局部 overflow list 的键盘 hover,不声明大面积空背景或整窗视觉已达到参考图;S15.3 总项继续开放。
 
@@ -1148,6 +1151,7 @@ S15.1 在 retained host 引入**唯一**度量事实源(建议落点 `paint_them
 - [x] **S15.4oj/S15.6nk** retained Material/feedback primitives component route:新增 `material_feedback_visual_screenshot.rs`,用真实 Paper/Avatar/Badge/Divider/Skeleton/Linear Progress/Circular Progress/Backdrop painter 输出 `docs/tests/editor/editor-components-material-feedback-primitives-900x360.png`,31924 bytes,SHA256 `C8404659B5E9B411A704FFD301C659FDD854B8398D3DA7DBFB8A4BC63A8B269F`;focused component visual 测试与 ignored screenshot export 通过且 target 扫描无同名截图。
 - [x] **S15.4ok/S15.6nl** retained Property/axis component route:新增 `property_axis_visual_screenshot.rs`,用真实 property-row/axis-label/axis-value-field painter 输出 `docs/tests/editor/editor-components-property-axis-900x360.png`,46029 bytes,SHA256 `F7B228D8C9B8C354B00A0A194C8E0499FDCFBE73595988DC36B27B0BF45BECE8`;focused component visual 测试与 ignored screenshot export 通过且 repo/external target 扫描无同名截图。
 - [x] **S15.4ol/S15.6nm** retained Asset thumbnail component route:新增 `asset_thumbnail_visual_screenshot.rs`,用真实 asset-thumbnail-card/name-area/visual painter 输出 `docs/tests/editor/editor-components-asset-thumbnails-900x360.png`,32081 bytes,SHA256 `F05DFF34C66BF9FE04C3EEF1E0427608D4618BAA81BFB8564968744EFFEE917A`;direct compiled test binary component visual 测试与 ignored screenshot export 通过且 repo/external target 扫描无同名截图。
+- [x] **S15.4om/S15.6nn** retained Material state-layer priority convergence:私有 resolver 明确 `disabled > pressed > dragging > focused > hovered > default`,runtime Button boolean fallback 将 dragging 收束到 shared `Hover` 契约；真实 specialized Button 复用 shared state-layer/ripple 合成并保持 base→state→ripple→indicator→content。current-source editor `state_layer` 集合 11/0/1、selected+ripple 1/1、ignored capture 1/1，输出 `docs/tests/editor/editor-components-material-state-layer-900x360.png`,29106 bytes,SHA256 `3A4FDB2BE4DE90F7E096DCC428812967A15718AEDF80E7239B1E3D813387E468`,D/E/F/repo target 同名扫描 0；本项不标记父 M1 或完整 S15.4 完成。
 - [ ] **S15.5** 640/900/1260 三档断点自适应;三档截图无破版。(S15.5a `LayoutTier` + 640 右抽屉 rail 折叠已通过;S15.5b 主页签 Narrow/Wide 联动已通过;S15.5c 表格列 narrow tier 联动已通过;S15.5d breakpoint 默认 token、window minimum 与 Ultra 档已完成;S15.5e Asset Browser 短视口 utility/详情列折叠已通过;S15.5f Asset Browser 短视口来源栏折叠已通过;S15.5h 断点判定已改为 `physical_width / scale_factor` 后的逻辑宽度,宿主 scale factor 已接入且 focused Cargo/M3 截图通过;toolbar popup 相对 anchor 900/1260/1672 已完成;窗口级组合观感继续 open)
 
 ## 跨计划 Failure 状态
@@ -1259,3 +1263,4 @@ S15.1 在 retained host 引入**唯一**度量事实源(建议落点 `paint_them
 - fixed 已修复：[rustfmt-path-attributed-typed-canvas](../../zircon_runtime/frameworks/06/fixed-2026-07-13-rustfmt-path-attributed-typed-canvas.md)
 - fixed 已修复：[workbench-projection-file-budget-regression](../../zircon_runtime/frameworks/06/fixed-2026-07-13-workbench-projection-file-budget-regression.md)
 - fixed 已修复：[ui-text-distance-field-effects-type-resolution](15/fixed-2026-07-13-ui-text-distance-field-effects-type-resolution.md)
+- accepted 当前源验收：[material-state-priority-convergence](15/2026-07-16-material-state-priority-convergence.md)
