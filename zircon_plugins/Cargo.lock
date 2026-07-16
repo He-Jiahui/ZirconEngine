@@ -6265,6 +6265,7 @@ dependencies = [
  "fontdue",
  "gltf",
  "image",
+ "indexmap",
  "notify",
  "rectangle-pack",
  "resvg",
@@ -6627,6 +6628,7 @@ dependencies = [
  "zircon_plugin_navigation_recast",
  "zircon_plugin_sdk",
  "zircon_runtime",
+ "zircon_runtime_interface",
 ]
 
 [[package]]
