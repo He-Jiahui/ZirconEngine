@@ -102,8 +102,10 @@ fn dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_
         ZrStatusCode::Ok,
         "",
     );
-    let second_batch = host_request_batch_from_output(second_output);
-    assert!(second_batch.requests.is_empty());
+    assert!(
+        second_output.is_empty(),
+        "an empty host-request drain must not allocate or serialize an ABI payload"
+    );
 
     destroy_test_session(api, session);
 }

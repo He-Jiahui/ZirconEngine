@@ -4,7 +4,9 @@ related_code:
   - zircon_runtime/src/scene/level_system/physics_runtime_enabled.rs
   - zircon_runtime/src/scene/level_system/physics_runtime_disabled.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/scene/module/world_driver.rs
   - zircon_runtime/src/scene/level_system_render_extract.rs
   - zircon_runtime/src/scene/tests/mod.rs
@@ -13,7 +15,9 @@ implementation_files:
   - zircon_runtime/src/scene/level_system/physics_runtime_enabled.rs
   - zircon_runtime/src/scene/level_system/physics_runtime_disabled.rs
   - zircon_runtime/src/scene/module/default_level_manager.rs
+  - zircon_runtime/src/scene/module/mod.rs
   - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
   - zircon_runtime/src/scene/tests/mod.rs
 plan_sources:
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
@@ -23,6 +27,8 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
   - zircon_runtime/src/scene/tests/mod.rs
+  - zircon_runtime/src/dynamic_api/tests/session_profiles.rs
+  - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/open_project.rs
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs
   - tools/tests/test_frameworks_03_contract_feature_boundary.py
   - tests/acceptance/frameworks-03-physics-contract-feature-boundary.md
@@ -50,6 +56,14 @@ The hard cut replaced the inline Physics fields with `PhysicsRuntimeState`, gate
 Animation pose recording retains existing entity entries before applying a new frame. Stable entities copy through `AnimationPoseOutput::clone_from_reusing_storage`, preserving the final pose vector and bone-name capacities; disappeared entities are removed and new entities transfer their owned pose directly. This keeps the level snapshot API owned while eliminating the previous whole-map replacement and stable-rig handoff churn.
 
 `DefaultLevelManager` owns the level map. The lifecycle owner creates and resolves levels through `create_level`, `create_default_level`, and `level`.
+
+Runtime project startup loads its default level from the already activated Asset service project.
+`scene::load_level_asset` receives the abstract `AssetManager` service and uses
+`current_project_snapshot` to clone the authoritative, already scanned `ProjectManager` under a
+short read lock. The lock is released before `DefaultLevelManager` performs scene file I/O or level
+creation, preventing callback re-entry from deadlocking the Asset manager. The Scene owner does not
+reopen the project path, rescan assets, or downcast to `ProjectAssetManager`; the snapshot cost is
+explicit and preserves the activated manifest/registry revision.
 
 ## Poison Handling
 

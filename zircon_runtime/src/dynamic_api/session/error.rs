@@ -92,6 +92,11 @@ pub enum RuntimeProjectError {
         source: CoreError,
     },
     #[error(
+        "runtime project {} already transferred its prepared ProjectManager to AssetModule",
+        root.display()
+    )]
+    PreparedProjectManagerTransferred { root: PathBuf },
+    #[error(
         "failed to load default scene {scene} from project {}: {source}",
         root.display()
     )]

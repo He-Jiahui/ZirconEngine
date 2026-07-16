@@ -4,6 +4,7 @@ mod debug;
 mod handle;
 mod loading;
 mod management;
+mod open_project;
 mod project_asset_manager;
 mod runtime;
 

@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use zircon_runtime_interface::ZrByteSlice;
 
+use crate::asset::project::ProjectManifest;
 use crate::asset::project::{ProjectManager, ProjectScriptManifest};
 use crate::asset::{asset_manager_handle, project_asset_manager_handle};
 use crate::core::framework::navigation::NavMeshAsset;
@@ -47,33 +48,51 @@ impl RuntimeProjectConfig {
         self.root.to_string_lossy().into_owned()
     }
 
-    pub(super) fn load_manifest(&self) -> RuntimeProjectResult<RuntimeLoadedProjectManifest> {
+    pub(super) fn prepare(self) -> RuntimeProjectResult<RuntimePreparedProject> {
         let project = ProjectManager::open(&self.root).map_err(|source| {
             RuntimeProjectError::OpenProject {
                 root: self.root.clone(),
                 source,
             }
         })?;
-        Ok(RuntimeLoadedProjectManifest {
-            default_scene: project.manifest().default_scene.to_string(),
-            plugins: project.manifest().plugins.clone(),
-            scripts: project.manifest().scripts.clone(),
+        let manifest = RuntimeLoadedProjectManifest::from(project.manifest());
+        Ok(RuntimePreparedProject {
+            root: self.root,
+            manifest,
+            project: Some(project),
         })
     }
+}
 
-    pub(super) fn load_plugin_manifest(&self) -> RuntimeProjectResult<ProjectPluginManifest> {
-        self.load_manifest().map(|manifest| manifest.plugins)
+pub(super) struct RuntimePreparedProject {
+    root: PathBuf,
+    manifest: RuntimeLoadedProjectManifest,
+    project: Option<ProjectManager>,
+}
+
+impl RuntimePreparedProject {
+    pub(super) fn root_display(&self) -> String {
+        self.root.to_string_lossy().into_owned()
     }
 
-    pub(super) fn open_project_assets(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
+    pub(super) fn plugin_manifest(&self) -> &ProjectPluginManifest {
+        &self.manifest.plugins
+    }
+
+    pub(super) fn open_project_assets(&mut self, core: &CoreHandle) -> RuntimeProjectResult<()> {
         let asset_manager = asset_manager_handle(core)
             .and_then(|handle| resolve_manager_service(core, handle))
             .map_err(|source| RuntimeProjectError::ResolveAssetManager {
                 root: self.root.clone(),
                 source,
             })?;
+        let project = self.project.take().ok_or_else(|| {
+            RuntimeProjectError::PreparedProjectManagerTransferred {
+                root: self.root.clone(),
+            }
+        })?;
         asset_manager
-            .open_project(&self.root_display())
+            .open_prepared_project(project)
             .map(|_| ())
             .map_err(|source| RuntimeProjectError::OpenProjectAssets {
                 root: self.root.clone(),
@@ -85,13 +104,22 @@ impl RuntimeProjectConfig {
         &self,
         core: &CoreHandle,
     ) -> RuntimeProjectResult<LevelSystem> {
-        let manifest = self.load_manifest()?;
-        crate::scene::load_level_asset(core, &self.root_display(), manifest.default_scene.as_str())
-            .map_err(|source| RuntimeProjectError::LoadDefaultScene {
+        let asset_manager = asset_manager_handle(core)
+            .and_then(|handle| resolve_manager_service(core, handle))
+            .map_err(|source| RuntimeProjectError::ResolveAssetManager {
                 root: self.root.clone(),
-                scene: manifest.default_scene,
                 source,
-            })
+            })?;
+        crate::scene::load_level_asset(
+            core,
+            asset_manager.as_ref(),
+            self.manifest.default_scene.as_str(),
+        )
+        .map_err(|source| RuntimeProjectError::LoadDefaultScene {
+            root: self.root.clone(),
+            scene: self.manifest.default_scene.clone(),
+            source,
+        })
     }
 
     pub(super) fn scene_asset_reload_queue(
@@ -150,8 +178,7 @@ impl RuntimeProjectConfig {
     }
 
     pub(super) fn load_startup_scripts(&self, core: &CoreHandle) -> RuntimeProjectResult<()> {
-        let manifest = self.load_manifest()?;
-        if manifest.scripts.is_empty() {
+        if self.manifest.scripts.is_empty() {
             return Ok(());
         }
         let manager = core
@@ -161,7 +188,7 @@ impl RuntimeProjectConfig {
                 source,
             })?;
         let mut packages = Vec::new();
-        for root in manifest.script_package_roots(&self.root) {
+        for root in self.manifest.script_package_roots(&self.root) {
             write_log(
                 "runtime_session",
                 format!(
@@ -184,7 +211,7 @@ impl RuntimeProjectConfig {
                 ),
             );
         }
-        for package in manifest.filter_startup_packages(packages)? {
+        for package in self.manifest.filter_startup_packages(packages)? {
             write_log(
                 "runtime_session",
                 format!(
@@ -256,9 +283,24 @@ impl RuntimeLoadedProjectManifest {
     }
 }
 
+impl From<&ProjectManifest> for RuntimeLoadedProjectManifest {
+    fn from(manifest: &ProjectManifest) -> Self {
+        Self {
+            default_scene: manifest.default_scene.to_string(),
+            plugins: manifest.plugins.clone(),
+            scripts: manifest.scripts.clone(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    use crate::asset::project::ProjectManifest;
     use crate::asset::project::ProjectScriptManifest;
+    use crate::asset::AssetUri;
     use crate::core::framework::project::ProjectPluginManifest;
     use crate::script::{
         CapabilitySet, DiscoveredVmPluginPackage, VmPluginManagementPolicy, VmPluginManifest,
@@ -298,6 +340,47 @@ mod tests {
         .unwrap();
 
         assert_eq!(parsed.root_display(), "examples/vampire");
+    }
+
+    #[test]
+    fn project_startup_snapshot_survives_disk_manifest_rewrite_before_activation() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
+        let root = std::env::temp_dir().join(format!(
+            "zircon_runtime_prepared_project_{}_{}",
+            std::process::id(),
+            unique
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let manifest_path = root.join("zircon-project.toml");
+        ProjectManifest::new(
+            "Prepared Snapshot One",
+            AssetUri::parse("res://scenes/one.scene.toml").unwrap(),
+            1,
+        )
+        .save(&manifest_path)
+        .unwrap();
+
+        let prepared = RuntimeProjectConfig::from_root(&root).prepare().unwrap();
+
+        ProjectManifest::new(
+            "Prepared Snapshot Two",
+            AssetUri::parse("res://scenes/two.scene.toml").unwrap(),
+            2,
+        )
+        .save(&manifest_path)
+        .unwrap();
+
+        assert_eq!(
+            prepared.manifest.default_scene,
+            "res://scenes/one.scene.toml"
+        );
+        assert!(prepared.project.is_some());
+        assert_eq!(prepared.root_display(), root.to_string_lossy());
+
+        fs::remove_dir_all(root).unwrap();
     }
 
     #[test]

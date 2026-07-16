@@ -5,7 +5,6 @@ use crossbeam_channel::unbounded;
 use super::super::errors::asset_error;
 use super::super::project_asset_manager::ProjectAssetManager;
 use super::super::records::{build_project_info, build_status_record};
-use super::super::resource_sync::{clear_removed_project_resources, project_locators};
 use super::super::{
     AssetManager as AssetManagerContract, AssetPipelineInfo, AssetStatusRecord, ProjectInfo,
 };
@@ -45,35 +44,16 @@ impl AssetManagerContract for ProjectAssetManager {
     }
 
     fn open_project(&self, root_path: &str) -> Result<ProjectInfo, CoreError> {
-        let mut project = ProjectManager::open(root_path).map_err(asset_error)?;
-        let installed_importers = self.importer_registry_read().clone();
-        project
-            .register_asset_importers_from_registry(&installed_importers)
-            .map_err(asset_error)?;
-        let previous_locators = self
-            .project_read()
-            .as_ref()
-            .map(project_locators)
-            .unwrap_or_default();
-        let imported = project.scan_and_import().map_err(asset_error)?;
-        clear_removed_project_resources(&self.resource_manager(), &previous_locators, &project);
-        self.sync_project_resources(&project)?;
-        let info = build_project_info(&project);
-        *self.project_write() = Some(project);
-        self.restart_watcher()?;
-        self.broadcast(
-            imported
-                .into_iter()
-                .map(|metadata| {
-                    AssetChange::new(
-                        AssetChangeKind::Added,
-                        metadata.primary_locator().clone(),
-                        None,
-                    )
-                })
-                .collect(),
-        );
-        Ok(info)
+        let project = ProjectManager::open(root_path).map_err(asset_error)?;
+        self.open_prepared_project(project)
+    }
+
+    fn open_prepared_project(&self, project: ProjectManager) -> Result<ProjectInfo, CoreError> {
+        ProjectAssetManager::open_prepared_project(self, project)
+    }
+
+    fn current_project_snapshot(&self) -> Option<ProjectManager> {
+        self.project_read().as_ref().cloned()
     }
 
     fn current_project(&self) -> Option<ProjectInfo> {

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::asset::{project::ProjectManager, AssetUri, ASSET_MODULE_NAME};
+use crate::asset::{AssetManager, AssetUri, ASSET_MODULE_NAME};
 use crate::core::framework::scene::LevelManager;
 use crate::core::manager::RegisteredManagerService;
 use crate::core::runtime::modules::TIME_MODULE_NAME;
@@ -114,16 +114,14 @@ pub fn create_level(
 
 pub fn load_level_asset(
     core: &CoreHandle,
-    project_root: &str,
+    asset_manager: &dyn AssetManager,
     uri: &str,
 ) -> Result<crate::scene::LevelSystem, CoreError> {
     let manager = resolve_default_level_manager(core)?;
-    let mut project =
-        ProjectManager::open(project_root).map_err(|error| scene_core_error(error.to_string()))?;
-    project
-        .scan_and_import()
-        .map_err(|error| scene_core_error(error.to_string()))?;
     let uri = AssetUri::parse(uri).map_err(|error| scene_core_error(error.to_string()))?;
+    let project = asset_manager
+        .current_project_snapshot()
+        .ok_or_else(|| scene_core_error("AssetManager has no active project"))?;
     manager
         .load_level(&project, &uri)
         .map_err(|error| scene_core_error(error.to_string()))

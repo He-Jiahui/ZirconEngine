@@ -120,3 +120,61 @@ fn project_sessions_open_assets_before_loading_default_level() {
         "project assets must be synchronized before scripts or scene rendering use project resources"
     );
 }
+
+#[test]
+fn project_session_startup_reuses_one_prepared_project_manager_snapshot() {
+    let construction_source = include_str!("../session/construction.rs");
+    let project_source = include_str!("../session/project.rs");
+    let scene_source = include_str!("../../scene/module/mod.rs");
+    let asset_contract_source =
+        include_str!("../../asset/pipeline/manager/asset_manager/asset_manager.rs");
+    let asset_manager_source =
+        include_str!("../../asset/pipeline/manager/service_contracts/asset_manager_contract.rs");
+    let open_project_assets_source = project_source
+        .split("pub(super) fn open_project_assets")
+        .nth(1)
+        .and_then(|source| source.split("pub(super) fn load_default_level").next())
+        .expect("prepared project asset-open owner should remain explicit");
+
+    let prepare = construction_source
+        .find("RuntimeProjectConfig::prepare")
+        .expect("project startup should prepare one ProjectManager before module selection");
+    let linked_plugins = construction_source
+        .find("LinkedRuntimePluginPlan::prepare")
+        .expect("linked plugin selection should remain explicit");
+    assert!(
+        prepare < linked_plugins,
+        "the authoritative project manifest snapshot must exist before plugin selection"
+    );
+    assert_eq!(
+        construction_source
+            .matches("RuntimeProjectConfig::prepare")
+            .count(),
+        1,
+        "session construction must prepare the project exactly once"
+    );
+    assert!(project_source.contains("struct RuntimePreparedProject"));
+    assert!(project_source.contains(".open_prepared_project(project)"));
+    assert!(open_project_assets_source.contains("asset_manager_handle(core)"));
+    assert!(!open_project_assets_source.contains("project_asset_manager_handle(core)"));
+    assert!(
+        !construction_source.contains("RuntimeProjectConfig::load_plugin_manifest")
+            && !construction_source.contains(".load_manifest()"),
+        "startup consumers must reuse the prepared manifest instead of reopening it"
+    );
+    assert!(
+        asset_contract_source.contains("fn open_prepared_project(")
+            && asset_contract_source.contains("fn current_project_snapshot("),
+        "prepared activation and deadlock-safe current-project snapshots belong to the abstract AssetManager service"
+    );
+    assert!(
+        asset_manager_source.contains("open_prepared_project(project)"),
+        "the normal path-based AssetManager entry must delegate to the same prepared owner"
+    );
+    assert!(
+        scene_source.contains("current_project_snapshot()")
+            && !scene_source.contains("ProjectManager::open")
+            && !scene_source.contains("scan_and_import"),
+        "default-scene loading must snapshot the activated project without reopening or rescanning it"
+    );
+}

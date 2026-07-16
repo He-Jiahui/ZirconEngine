@@ -11,10 +11,11 @@ use crate::scene::components::NodeKind;
 
 use super::super::camera_controller::RuntimeCameraController;
 use super::super::runtime_loop::RuntimeRenderBridge;
+use super::project::{RuntimePreparedProject, RuntimeProjectConfig};
 use super::{
     event_mirror, install_builtin_scene_runtime_hooks, linked_plugins::LinkedRuntimePluginPlan,
     RuntimeDynamicSession, RuntimeDynamicSessionError, RuntimeDynamicSessionProfile,
-    RuntimeDynamicSessionResult, RuntimeProjectConfig,
+    RuntimeDynamicSessionResult,
 };
 
 pub(super) fn build(
@@ -34,17 +35,19 @@ pub(super) fn build(
                 .unwrap_or_else(|| "none".to_string())
         ),
     );
-    let project_plugin_manifest = project_config
-        .as_ref()
-        .map(RuntimeProjectConfig::load_plugin_manifest)
+    let mut prepared_project = project_config
+        .map(RuntimeProjectConfig::prepare)
         .transpose()
         .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
-            step: "load project plugin manifest",
+            step: "prepare runtime project",
             source,
         })?;
+    let project_plugin_manifest = prepared_project
+        .as_ref()
+        .map(RuntimePreparedProject::plugin_manifest);
     let linked_plugin_plan = LinkedRuntimePluginPlan::prepare(
         &linked_plugin_registrations,
-        project_plugin_manifest.as_ref(),
+        project_plugin_manifest,
         profile.target_mode(),
     )?;
     let has_linked_navigation = linked_plugin_plan.contains_package("navigation");
@@ -175,34 +178,34 @@ pub(super) fn build(
     };
     let level = {
         crate::profile_scope!("runtime", "dynamic_api", "runtime_session_level");
-        match &project_config {
-            Some(project_config) => {
+        match &mut prepared_project {
+            Some(project) => {
                 write_log("runtime_session", "runtime_project_open_assets_start");
-                project_config
-                    .open_project_assets(&core)
-                    .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                project.open_project_assets(&core).map_err(|source| {
+                    RuntimeDynamicSessionError::ProjectStep {
                         step: "open project assets",
                         source,
-                    })?;
+                    }
+                })?;
                 write_log("runtime_session", "runtime_project_open_assets_done");
                 write_log("runtime_session", "runtime_project_navigation_load_start");
-                project_config
-                    .load_default_navigation(&core)
-                    .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                project.load_default_navigation(&core).map_err(|source| {
+                    RuntimeDynamicSessionError::ProjectStep {
                         step: "load default project navigation",
                         source,
-                    })?;
+                    }
+                })?;
                 write_log("runtime_session", "runtime_project_navigation_load_done");
                 write_log("runtime_session", "runtime_project_scripts_load_start");
-                project_config
-                    .load_startup_scripts(&core)
-                    .map_err(|source| RuntimeDynamicSessionError::ProjectStep {
+                project.load_startup_scripts(&core).map_err(|source| {
+                    RuntimeDynamicSessionError::ProjectStep {
                         step: "load startup script packages",
                         source,
-                    })?;
+                    }
+                })?;
                 write_log("runtime_session", "runtime_project_scripts_load_done");
                 write_log("runtime_session", "runtime_project_level_load_start");
-                project_config.load_default_level(&core).map_err(|source| {
+                project.load_default_level(&core).map_err(|source| {
                     RuntimeDynamicSessionError::ProjectStep {
                         step: "load default level",
                         source,
@@ -226,13 +229,13 @@ pub(super) fn build(
             },
         )?;
     write_log("runtime_session", "runtime_dynamic_session_level_ready");
-    let scene_asset_reload_queue = match &project_config {
-        Some(project_config) => Some(project_config.scene_asset_reload_queue(&core).map_err(
-            |source| RuntimeDynamicSessionError::ProjectStep {
+    let scene_asset_reload_queue = match &prepared_project {
+        Some(project) => Some(project.scene_asset_reload_queue(&core).map_err(|source| {
+            RuntimeDynamicSessionError::ProjectStep {
                 step: "create scene asset reload queue",
                 source,
-            },
-        )?),
+            }
+        })?),
         None => None,
     };
     if scene_asset_reload_queue.is_some() {

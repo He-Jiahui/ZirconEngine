@@ -1,6 +1,8 @@
 #[test]
 fn review_f18_asset_manager_resolution_returns_registered_handle() {
     let handle = include_str!("../../../../asset/pipeline/manager/asset_manager/handle.rs");
+    let contract =
+        include_str!("../../../../asset/pipeline/manager/asset_manager/asset_manager.rs");
     let service = include_str!("../../../../core/manager/service.rs");
     let runtime = include_str!("../../../../core/runtime/runtime.rs");
     let runtime_handle = include_str!("../../../../core/runtime/handle/resolution.rs");
@@ -25,6 +27,11 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
         .lines()
         .find(|line| line.starts_with("| F18 |"))
         .expect("F18 review findings top row");
+    let open_project_assets = project_session
+        .split("pub(super) fn open_project_assets")
+        .nth(1)
+        .and_then(|source| source.split("pub(super) fn load_default_level").next())
+        .expect("dynamic project asset-open owner should remain explicit");
 
     assert!(
         f18_row.contains("asset manager resolution") && f18_row.ends_with("| Runtime 10 |"),
@@ -77,10 +84,16 @@ fn review_f18_asset_manager_resolution_returns_registered_handle() {
         "AssetManager should use the generic versioned manager service handle"
     );
     assert!(
-        project_session.contains("asset_manager_handle(core)")
-            && project_session.contains("resolve_manager_service(core, handle)")
-            && project_session.contains(".open_project(&self.root_display())"),
-        "dynamic project startup should resolve the versioned handle at its use point"
+        open_project_assets.contains("asset_manager_handle(core)")
+            && open_project_assets.contains("resolve_manager_service(core, handle)")
+            && open_project_assets.contains(".open_prepared_project(project)")
+            && !open_project_assets.contains("project_asset_manager_handle(core)"),
+        "dynamic project startup should resolve the abstract versioned handle and transfer its prepared owner at the use point"
+    );
+    assert!(
+        contract.contains("fn open_prepared_project(")
+            && contract.contains("fn current_project_snapshot("),
+        "prepared activation and deadlock-safe current-project snapshots should remain AssetManager service operations"
     );
 
     for doc_anchor in [

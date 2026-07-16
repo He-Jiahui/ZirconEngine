@@ -229,6 +229,9 @@ pub(in crate::dynamic_api) unsafe fn drain_host_requests(
     }
     with_session(handle, |session| {
         let batch = session.drain_host_requests();
+        if batch.requests.is_empty() {
+            return write_host_requests(out_requests, ZrOwnedByteBuffer::empty());
+        }
         match encode_host_request_batch(&batch) {
             Ok(buffer) => write_host_requests(out_requests, buffer),
             Err(error) => error_status(error),
