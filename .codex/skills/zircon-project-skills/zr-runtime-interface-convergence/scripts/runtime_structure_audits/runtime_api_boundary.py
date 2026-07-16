@@ -10,6 +10,8 @@ RUNTIME_API_MODULES = (
     "constants",
     "events",
     "host_requests",
+    "operation",
+    "plugin_event_mirror",
     "requests",
     "viewport",
 )

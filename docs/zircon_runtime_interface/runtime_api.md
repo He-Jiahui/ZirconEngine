@@ -38,6 +38,7 @@ plan_sources:
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
   - .codex/plans/全系统重构方案.md
 tests:
+  - python -m unittest tools.tests.test_runtime_api_boundary
   - cargo check -p zircon_runtime_interface --locked --jobs 1 --message-format short
   - cargo test -p zircon_runtime_interface function_table_structs_are_all_repr_c --locked --jobs 1 --message-format short
   - cargo test -p zircon_runtime_interface interface_public_signatures_stay_free_of_dynamic_object_exports --locked --jobs 1 --message-format short
@@ -95,4 +96,4 @@ Do not add new behavior back into `runtime_api.rs`. The interface boundary test 
 
 ## Validation
 
-The split is accepted only when `zircon_runtime_interface` compiles standalone and `runtime_api_boundary` reports all eight owner modules, a small facade, no missing re-exports, no direct ABI declarations in `runtime_api.rs`, and no oversized owner modules. Focused interface tests assert the exact V2 table size/order, required mirror/operation-tail placement, event constructors, host request and plugin-event serialization, and frame/accessibility capture DTO contracts.
+The split is accepted only when `zircon_runtime_interface` compiles standalone and `runtime_api_boundary` reports all eight owner modules, a small facade, no missing re-exports, no direct ABI declarations in `runtime_api.rs`, and no oversized owner modules. The focused Python regression test locks the exact eight-domain inventory so a new ABI owner cannot be silently accepted or rejected by stale audit configuration. Focused interface tests assert the exact V2 table size/order, required mirror/operation-tail placement, event constructors, host request and plugin-event serialization, and frame/accessibility capture DTO contracts.
