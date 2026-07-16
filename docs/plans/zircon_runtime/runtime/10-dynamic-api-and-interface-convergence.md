@@ -64,6 +64,22 @@ last_refined: 2026-07-16
 
 子计划 06 显式排除的"另一条收敛线"落成计划：cdylib 函数表 ABI、session 生命周期出口、interface 契约纯净性与 UI 镜像契约的漂移治理。**native 插件 ABI（NativePluginAbiV3 族）归 06，不在本计划**；editor 客户端实现归 editor 计划。既有口径承接 `docs/engine-architecture/runtime-interface-convergence.md` 与 `runtime-interface-cdylib-loader.md`（2026-06-12 实测存在），本计划不另起口径，只把其目标态落成切片。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-dynamic-api-interface-convergence",
+  "goal": "收敛动态 runtime session、版本化服务句柄、cdylib ABI 与 runtime_interface 契约边界。",
+  "milestones": [
+    {"id": "M1", "title": "ABI 面盘点（正文 M0）", "depends_on": []},
+    {"id": "M2", "title": "ABI-safe 结构守卫（正文 M1）", "depends_on": []},
+    {"id": "M3", "title": "UI 镜像契约漂移治理（正文 M2）", "depends_on": ["M2"]},
+    {"id": "M4", "title": "cdylib 重载路径收尾（正文 M3）", "depends_on": ["M3"]}
+  ]
+}
+```
+
+<!-- workflow schema 不接受 M0，因此机器节点 M1-M4 映射正文 M0-M3；正文 M0/M1 的实现与证据早于协调器节点，机器 M2 作为 late-adoption 独立可提交切片，正文任务顺序仍为权威。 -->
+
 ## 现状与证据（2026-06-12 实仓盘点）
 
 - **C 出口单点**：`dynamic_api/exports.rs` 仅 1 个 `#[no_mangle] pub unsafe extern "C" fn zircon_runtime_get_api_v1(`（:25-26）——出口面已极窄（健康项）。2026-06-13 M1.3 后，函数表实际指向 `exports.rs` 的 `_ffi` wrappers；`session.rs` owner 函数保持私有 Rust ABI `unsafe fn`，避免 panic 先跨 `extern "C"` 边界再被捕获。
@@ -213,3 +229,5 @@ last_refined: 2026-07-16
 
 - 迁入记录：[`10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md`](10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md)
 - fixed 已修复：[dynamic-runtime-v1-fallback-reintroduced](../../zircon_editor/editor/03/fixed-2026-07-16-dynamic-runtime-v1-fallback-reintroduced.md)
+- 2026-07-17 F0/F1 项目启动单 prepared owner：`RuntimeProjectConfig::prepare` 在插件选择前只打开一次 `ProjectManager`，`RuntimePreparedProject` 持有同一 manifest 快照并通过抽象 `AssetManager::open_prepared_project` 移交原 manager；具体激活仍归 Runtime04 `ProjectAssetManager`。Scene 通过 `AssetManager::current_project_snapshot` 在短读锁内取得已扫描快照，释放锁后加载默认场景，不再二次 `ProjectManager::open + scan_and_import`，也不在 manager 锁内执行外部 I/O；路径式 `AssetManager::open_project` 同样委托该激活 owner。强化源码合同已按“具体 resolver / 二次 open-scan / 锁内回调”真实 RED→GREEN。受管 production check job `cc5e2e75a7c447c092b6afe72954e42d` / run `f24239e0baf34216bea0ed95d955bf56` 执行 `cargo check -p zircon_runtime --lib --locked`，exit 0（5m17s）。受管 focused lib-test job `1c78ff96a67d44f4ad80f47704e720fc` / run `7878fa0242cd48b5a67eee0f0b6e62bb` 执行 `cargo test -p zircon_runtime --lib --locked project_startup_snapshot_survives_disk_manifest_rewrite -- --test-threads=1`，原始输出确认两个目标均 `ok`，`2 passed / 0 failed / 8185 filtered`，exit 0；独立规范复审 `ACCEPTED`，质量复审 `critical=0 / important=0`。父计划保持 `in_progress`，不得据此宣告 F0/F1 或 Runtime10 完成。
+- 2026-07-17 P0 空 host-request ABI fast-path：`drain_host_requests` 在请求集合为空时直接写出 canonical `ZrOwnedByteBuffer::empty()`，跳过 JSON 编码、分配和释放 owner；非空 batch 的 schema、owned-buffer 所有权和释放路径保持不变，既有 `zircon_app` consumer 在解码前已显式接受 empty buffer。受管 Windows lib-only job `b0ea82ad0943466794e3af3c5333816b` / run `4b9e4151d39f4cd9b95de28b2c0ee261` 执行 `cargo test -p zircon_runtime --lib --locked dynamic_session_drains_runtime_ime_cursor_area_and_surrounding_text_requests_once -- --test-threads=1`，原始输出为 `1 passed / 0 failed / 8190 filtered`、exit 0；Performance01 failure 已 canonical return 为 [`../../performance/01/fixed-2026-07-17-empty-host-request-batch.md`](../../performance/01/fixed-2026-07-17-empty-host-request-batch.md)，独立规范与质量复审均为 `critical=0 / important=0`。该项只证明 Runtime10 ABI 空批次契约，不宣告全 runtime 性能或 MVP 完成。
