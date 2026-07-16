@@ -41,15 +41,15 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry_error.rs
   - zircon_runtime/src/ui/component/catalog/mod.rs
   - zircon_runtime/src/ui/component/descriptor/mod.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/mod.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection_builder.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection_access.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_state.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/default_packaging.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/default_true.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_builder.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_access.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_state.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/default_packaging.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/default_true.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_generated_file.rs
@@ -934,15 +934,15 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
   - zircon_runtime/src/plugin/extension_registry_error.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/mod.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection_builder.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection_access.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_state.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/default_packaging.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/default_true.rs
-  - zircon_runtime/src/plugin/export_profile.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/mod.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_builder.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_access.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_state.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/default_packaging.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/default_true.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_generated_file.rs

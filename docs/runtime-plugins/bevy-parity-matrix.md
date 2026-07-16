@@ -14,10 +14,10 @@ related_code:
   - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/plugin/export_profile.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection_builder.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_builder.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
@@ -381,10 +381,10 @@ implementation_files:
   - zircon_runtime/src/core/runtime/modules/time.rs
   - zircon_runtime/src/plugin/runtime_profile.rs
   - zircon_runtime/src/builtin/runtime_modules.rs
-  - zircon_runtime/src/plugin/export_profile.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection.rs
-  - zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_selection_builder.rs
+  - zircon_runtime/src/core/framework/project/export_profile.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection.rs
+  - zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_selection_builder.rs
   - zircon_runtime/src/plugin/export_build_plan/export_build_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/export_materialize_report.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
@@ -1127,7 +1127,7 @@ M9 is an observability and productization milestone. Bevy core does not ship an 
 
 | Capability | Bevy source evidence | Zircon owner / current evidence | M9 completion gate |
 |---|---|---|---|
-| Selection vocabulary | Bevy names public feature collections in `dev/bevy/Cargo.toml:134`, `:137`, `:140`, `:143`, and `:153`; local feature docs describe default, 2D, 3D, dev, asset processor, remote, dynamic linking, and file watcher rows in `dev/bevy/docs/cargo_features.md:24`, `:25`, `:26`, `:39`, `:65`, `:94`, `:122`, and `:128`. | Zircon names runtime/export selection through `RuntimeProfileDescriptor` in `zircon_runtime/src/plugin/runtime_profile.rs:233`, `ExportProfile` in `zircon_runtime/src/plugin/export_profile.rs:116`, and `ProjectPluginManifest` / `ProjectPluginSelection` in `zircon_runtime/src/plugin/project_plugin_manifest/project_plugin_manifest.rs:6` and `project_plugin_selection.rs:10`. | UI and docs must use the same names for runtime profile, target mode, target platform, packaging strategy, maturity, and required/optional membership. No panel may invent a second vocabulary for the same state. |
+| Selection vocabulary | Bevy names public feature collections in `dev/bevy/Cargo.toml:134`, `:137`, `:140`, `:143`, and `:153`; local feature docs describe default, 2D, 3D, dev, asset processor, remote, dynamic linking, and file watcher rows in `dev/bevy/docs/cargo_features.md:24`, `:25`, `:26`, `:39`, `:65`, `:94`, `:122`, and `:128`. | Zircon names runtime/export selection through `RuntimeProfileDescriptor` in `zircon_runtime/src/plugin/runtime_profile.rs:233`, `ExportProfile` in `zircon_runtime/src/core/framework/project/export_profile.rs:138`, and `ProjectPluginManifest` / `ProjectPluginSelection` in `zircon_runtime/src/core/framework/project/project_plugin_manifest/project_plugin_manifest.rs:6` and `project_plugin_selection.rs:11`. | UI and docs must use the same names for runtime profile, target mode, target platform, packaging strategy, maturity, and required/optional membership. No panel may invent a second vocabulary for the same state. |
 | Default/minimal/dev disclosure | Bevy `DefaultPlugins` documents feature-controlled composition in `dev/bevy/crates/bevy_internal/src/default_plugins.rs:105`; `MinimalPlugins` is the bare-bones group in `:148` and `:156`; the `dev` feature warns it is for development and not published apps in `dev/bevy/Cargo.toml:153` and `dev/bevy/docs/cargo_features.md:39`. | Zircon app entry selects profiles through `EntryConfig::for_runtime_profile` / `with_runtime_profile` in `zircon_app/src/entry/entry_config.rs:40` and `:44`; app provider registration projects first-party runtime plugins in `zircon_app/src/entry/first_party_runtime_plugins.rs:12`; profile bootstrap tests check linked and optional provider reports in `zircon_app/src/entry/tests/profile_bootstrap.rs:143`, `:174`, `:199`, `:278`, and `:292`. | Hub/editor/export UX must distinguish `minimal`, `client_2d`, `client_3d`, `editor`, `dev`, and `server`; dev-only capabilities such as remote/debug/hot reload must be visible as dev/editor-only and must not silently enter published export profiles. |
 | Plugin group editing semantics | Bevy `PluginGroupBuilder` supports `set`, `try_set`, `add_before`, `add_after`, `enable`, and `disable` in `dev/bevy/crates/bevy_app/src/plugin_group.rs:313`, `:325`, `:388`, `:438`, `:488`, and `:502`; missing plugin anchors produce explicit errors in tests around `:663` and `:712`. | Zircon editor plugin status exposes packaging, runtime/editor capabilities, optional features, target modes, and diagnostics in `editor_plugin_status.rs:4`; built-in status computes blocked dependency maps in `status/builtin.rs:46` and `:340`; editor tests pin required built-in plugin disable blocking in `minimal_host_contract.rs:562` and target/packaging editing in `:619`. | Plugin Manager must show required vs optional, dependency gates, blocked reason, target support, packaging choices, and disabled/unload/hot-reload actions. Required built-ins remain non-disableable, and failed edit anchors must be reported as structured diagnostics. |
 | Export profile and packaging plan | Bevy uses features and examples for selection/cropping: `examples/app/empty.rs:6` creates an app without defaults, `empty_defaults.rs:6` uses `DefaultPlugins`, `no_renderer.rs:13` disables renderer backends for CI/headless scenarios, and `plugin_group.rs:29` shows group disabling/editing. | Zircon export planning starts from `ExportProfile` and `ExportPackagingStrategy` in `export_profile.rs:109` and `:116`; `from_project_manifest.rs:16` builds the plan, `:221` rejects unsupported native dynamic targets, and `:289` resolves runtime profile; `generated_files.rs:13` and `materialize.rs:11` materialize the output. | Export UI must read `ExportBuildPlan`, not bespoke status text. It must show profile, platform, target mode, strategies, generated files, linked runtime crates, native dynamic packages, and fatal diagnostics; fatal plan diagnostics block packaging. |
