@@ -144,6 +144,7 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_archive_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_abi_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_diagnostics_inventory.py
@@ -152,6 +153,7 @@ related_code:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_session_lifecycle_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_ui_contract_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_validation_inventory.py
+  - tools/tests/test_runtime_dynamic_api_boundary_archive_ownership.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/ui_architecture_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/entry_static_dependencies.py
@@ -290,6 +292,7 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/core_spine_root_generated_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_api_test_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_boundary.py
+  - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_archive_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_markdown.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_abi_inventory.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/dynamic_runtime_api_diagnostics_inventory.py
@@ -378,6 +381,7 @@ plan_sources:
 tests:
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py --json
+  - python -m unittest tools.tests.test_runtime_dynamic_api_boundary_archive_ownership -v
   - python -m py_compile .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface_markdown.py .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_runtime_structure.py
   - root_surface_audit M1 gate status and module decision group checks
   - generated_code_boundary M1 gate status, explicit count fields, behavior decision group, migration debt, and unclassified behavior checks
@@ -803,7 +807,7 @@ This paragraph supersedes the older Runtime 05 pending snapshots retained above 
 
 Runtime 10 M2 is intentionally still pending at the milestone level, but M2.1 and M2.2 are now statically landed and the interface package gate has real evidence. `runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending` records that `UiBindingCodec` and `UiAssetSchemaVersionPolicy` were removed from `zircon_runtime::ui` and kept as interface-owned contracts, with `ui_contract_duplicate_public_types = 0`. `runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending` records that `v2-replacement-mainline`, `UiComponentApiVersion`, and `ui_v2_contract_sync_anchors = 9/9` are mirrored across Runtime 09, Runtime 10, runtime UI, and interface UI docs. The 2026-06-17 `cargo test -p zircon_runtime_interface --locked --jobs 1 --target-dir E:\cargo-targets\zircon-runtime-10-interface-0617 --message-format short --color never` gate passed 168/168 with doc-test 0/0. `runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff` remains the broader Cargo gate until the runtime UI/editor validation lane finishes.
 
-Current output ownership refinement (2026-07-10): the Dynamic API audit resolves Runtime 09 v2 evidence, Runtime 10 M2 evidence, and runtime-index mirror evidence from their numbered archives while checking parent plans only as routes. `runtime_10_dynamic_api_ui_contract_archive_routing_static_passed` reports no missing pending/single-source/v2/doc anchors, no duplicate public UI types, mirror present, and `risks = []`; the broader UI/editor gate remains pending.
+Current output ownership refinement (2026-07-16): the Dynamic API audit resolves Runtime 09 v2 evidence, Runtime 10 M2 evidence, and Runtime 15 runtime-index mirror evidence from their numbered archives while checking parent plans only as routes. `dynamic_runtime_api_archive_inventory.py` is the single owner of the canonical Runtime 15 runtime-index archive path; the UI-contract and validation inventories import that owner and contain no active-child fallback. `test_runtime_dynamic_api_boundary_archive_ownership` rejects the retired active path and requires no missing pending/single-source/v2/doc anchors. `runtime_10_dynamic_api_ui_contract_archive_routing_static_passed` therefore reports no duplicate public UI types, mirror present, and `risks = []`; the broader UI/editor gate remains pending.
 
 This gate protects the current boundary in two directions: runtime-only UI behavior types must not be pushed into `zircon_runtime_interface`, and cross-boundary DTOs must not be silently duplicated in `zircon_runtime::ui`. The next validation slice is the runtime UI/editor lane; it must keep the declared `cargo test -p zircon_runtime --lib ui --locked` and `cargo check -p zircon_editor --lib --locked` gates visible until they have real evidence.
 

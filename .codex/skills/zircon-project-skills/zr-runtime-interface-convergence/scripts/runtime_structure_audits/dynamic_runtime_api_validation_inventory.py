@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
+)
+
 
 BEHAVIOR_TEST_ANCHORS = (
     (
@@ -123,11 +127,11 @@ DOC_ANCHORS = (
         "host_request_payload_anchors = 38/38",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "dynamic_runtime_api_boundary",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "host_request_payload_anchors = 38/38",
     ),
     ("docs/zircon_runtime/dynamic_api/session.md", "dynamic_runtime_api_boundary"),

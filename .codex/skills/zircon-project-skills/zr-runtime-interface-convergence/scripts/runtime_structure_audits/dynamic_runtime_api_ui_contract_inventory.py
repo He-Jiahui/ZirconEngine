@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from runtime_structure_audits.dynamic_runtime_api_archive_inventory import (
+    RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
+)
+
 
 UI_PENDING_GATE_ANCHORS = (
     (
@@ -7,7 +11,7 @@ UI_PENDING_GATE_ANCHORS = (
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
     ),
     (
@@ -51,7 +55,7 @@ UI_CONTRACT_SINGLE_SOURCE_ANCHORS = (
         "UiAssetSchemaVersionPolicy",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
     ),
     (
@@ -95,7 +99,7 @@ UI_V2_CONTRACT_SYNC_ANCHORS = (
         "v2-replacement-mainline",
     ),
     (
-        "docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+        RUNTIME_15_RUNTIME_INDEX_OUTPUT_ARCHIVE,
         "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
     ),
     (
