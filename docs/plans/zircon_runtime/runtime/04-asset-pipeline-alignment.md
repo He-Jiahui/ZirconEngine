@@ -41,6 +41,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/plan_status/cargo_gates/early/runtime_04.rs
   - zircon_runtime/src/tests/runtime_absorption/code_review_findings.rs
   - tools/tests/test_runtime_asset_pipeline_audit.py
+  - tools/tests/test_frameworks_02_core_error_single_source.py
   - tests/acceptance/runtime-asset-pipeline-audit-owner-sync.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_boundary.py
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/asset_pipeline_markdown.py
@@ -50,10 +51,12 @@ related_code:
   - dev/Fyrox/fyrox-resource/src
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
+  - docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-acceptance.md
   - .codex/plans/Bevy-Style Asset Stack Completion Plan.md
   - .codex/plans/资产 .zmeta 与 Shader Material 资产化计划.md
 status: in_progress
-last_refined: 2026-07-14
+last_refined: 2026-07-16
 ---
 
 # 04 资产管线对齐
@@ -166,7 +169,7 @@ last_refined: 2026-07-14
 
 - 目标文件：`asset/pipeline/worker_pool.rs`；并发参数 owner 收束进 config（与子计划 02 的 `config_store` 归属定稿衔接）。
 - 改动形态（签名草案，执行时定稿）：
-  - `AssetWorkerPool::new(options: AssetWorkerPoolOptions)`，`AssetWorkerPoolOptions { worker_count: usize, queue_depth: Option<usize> }`——`queue_depth: Some(n)` 时 request 通道改 `crossbeam_channel::bounded(n)`，满时行为定稿（候选：`request()` 返回 `ZirconError::Backpressure` 显式错误，不静默阻塞主线程）；`None` 保持 unbounded 并在文档声明理由。
+  - `AssetWorkerPool::new(options: AssetWorkerPoolOptions)`，`AssetWorkerPoolOptions { worker_count: usize, queue_depth: Option<usize> }`——`queue_depth: Some(n)` 时 request 通道改 `crossbeam_channel::bounded(n)`，满时由 `request()` 通过 `CoreResult` 返回显式 `CoreError`，不静默阻塞主线程；`None` 保持 unbounded 并在文档声明理由。错误合同只使用 `CoreError` / `CoreResult`，不恢复旧错误枚举或兼容别名。
   - 旧 `new(worker_count)` 签名同切片删除（硬切换），调用方改 options。
 - 调用方迁移（2026-06-12 二次细化实测，全列 2 处）：生产装配 `asset/pipeline/manager/project_asset_manager/construction.rs:42`（`AssetWorkerPool::new(self.default_worker_count)`——线程数 owner 即 `project_asset_manager` 构造器的 `default_worker_count` 字段，options 化时由此注入 config）；测试 `asset/tests/pipeline/worker_pool.rs:6`（`new(1)`）。
 - 验收：`worker_pool_bounded_queue_rejects_overflow_with_explicit_error`、`worker_pool_unbounded_mode_is_explicit_opt_in`（归属 worker_pool 同级测试位）。
@@ -234,3 +237,8 @@ last_refined: 2026-07-14
 - 迁入记录：[`04/2026-07-09-asset-pipeline-alignment-output-records.md`](04/2026-07-09-asset-pipeline-alignment-output-records.md)
 - fixed 已修复：[stale-subasset-reference-repair](../frameworks/02/fixed-2026-07-14-stale-subasset-reference-repair.md)
 - fixed 已修复：[zrpack-blake3-contract-drift](../../zircon_plugins/07/fixed-2026-07-14-zrpack-blake3-contract-drift.md)
+- fixed 已修复：[zr-vm-host-modules-runtime-test-owner-drift](04/fixed-2026-07-14-zr-vm-host-modules-runtime-test-owner-drift.md)
+- 2026-07-14 migration journal GREEN：受管 job `b337b21337c84d248905915d3ceaf875` 从当前源码通过 `minted_sidecar_commit_crash_is_whitelisted_and_next_apply_converges` 1/1；Plugins08 owner handoff 已 fixed 返回。core-min scene filter 为 595/596，唯一失败位于其他 owner 的 Scene reflection `JsonNumber` 类型漂移；broad `asset::` 仍未关闭，因此本计划继续 `in_progress`。
+- Editor03 完整 Runtime 回归门发现 Virtual Geometry debug snapshot integration fixture 仍调用退役的无 resolver TOML API：`待修复（open）`；[failure 交接](04/failure-2026-07-15-virtual-geometry-debug-snapshot-project-toml-consumer-drift.md)。修复必须迁移到 project resolver-aware 序列化合同，不得恢复 `to_toml_string()` 兼容入口。
+- fixed 已修复：[text-hard-cut-runtime-consumer-type-drift](04/fixed-2026-07-15-text-hard-cut-runtime-consumer-type-drift.md)
+- Frameworks05 library gate 转绿后，Runtime04 focused VG test 已真实执行，但根级 Virtual Geometry support fixture 缺少 Plugins13 已规定的 AsyncCompute workload：`待修复（open）`；[failure 交接](../../zircon_plugins/13/failure-2026-07-15-virtual-geometry-runtime-support-compute-workload-drift.md)。受管 job `1e7cdd7825024a08b236b2edd07c67b9` 为 `0 passed / 3 failed / 4 ignored`；三个失败均发生在 descriptor compile，不能计作 Runtime04 project-TOML 修复失败或通过。

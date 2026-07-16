@@ -104,6 +104,7 @@ related_code:
   - zircon_runtime/src/core/runtime/tests/registry_name.rs
   - zircon_runtime/src/core/runtime/tests/resolution/mod.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - zircon_runtime/src/engine_module/service_factory.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
@@ -230,6 +231,7 @@ implementation_files:
   - zircon_runtime/src/core/runtime/tests/registry_name.rs
   - zircon_runtime/src/core/runtime/tests/resolution/mod.rs
   - zircon_runtime/src/core/runtime/tests/resolution/behavior.rs
+  - zircon_runtime/src/core/runtime/tests/resolution/behavior/dependency_cycles.rs
   - zircon_runtime/src/core/runtime/tests/resolution/structure.rs
   - zircon_runtime/src/engine_module/service_factory.rs
   - zircon_runtime/src/foundation/runtime/config_manager.rs
@@ -249,7 +251,10 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/service_types/clip_assets.rs
   - zircon_plugins/sound/runtime/src/module.rs
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
 plan_sources:
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
+  - docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-acceptance.md
   - user: 2026-07-13 implement the approved runtime architecture and resolve priority code-structure findings
   - docs/plans/zircon_runtime/runtime/02/failure-2026-07-13-service-corehandle-retention-cycle.md
   - user: 2026-04-16 全部积极拆分并按模块边界持续重构所有脚本
@@ -258,6 +263,7 @@ plan_sources:
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
   - .codex/plans/收敛缺口修复 Spec 与 Implementation Plan.md
 tests:
+  - python tools/tests/test_frameworks_02_core_error_single_source.py
   - zircon_runtime/src/foundation/tests.rs::foundation_registry_services_do_not_retain_the_runtime_root
   - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs::failed_service_initialization_does_not_retain_the_runtime_root
   - zircon_runtime/src/tests/runtime_absorption/service_registry_lifecycle.rs::module_activation_rollback_drops_registry_owned_weak_services
@@ -272,7 +278,7 @@ tests:
   - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\activation.rs zircon_runtime\src\core\runtime\handle\activation\startup.rs zircon_runtime\src\core\runtime\handle\activation\unload_mutation.rs zircon_runtime\src\core\runtime\handle\activation\blocked_unload.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\mod.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\single.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\two_service.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\three_service.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\four_service.rs zircon_runtime\src\core\runtime\handle\activation\blocked_dependencies\five_service.rs zircon_runtime\src\core\runtime\tests\activation\mod.rs zircon_runtime\src\core\runtime\tests\activation\behavior.rs zircon_runtime\src\core\runtime\tests\activation\behavior\activation.rs zircon_runtime\src\core\runtime\tests\activation\behavior\deactivation.rs zircon_runtime\src\core\runtime\tests\activation\behavior\deactivation\blocked.rs zircon_runtime\src\core\runtime\tests\activation\behavior\deactivation\clean.rs zircon_runtime\src\core\runtime\tests\activation\structure\mod.rs zircon_runtime\src\core\runtime\tests\activation\structure\fixture.rs zircon_runtime\src\core\runtime\tests\activation\structure\root_contract.rs zircon_runtime\src\core\runtime\tests\activation\structure\service_lists.rs zircon_runtime\src\core\runtime\tests\activation\structure\startup.rs zircon_runtime\src\core\runtime\tests\activation\structure\blocked_dependencies.rs zircon_runtime\src\core\runtime\tests\activation\structure\blocked_unload.rs zircon_runtime\src\core\runtime\tests\activation\structure\unload_mutation.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\tests\registration\mod.rs zircon_runtime\src\core\runtime\tests\registration\behavior.rs zircon_runtime\src\core\runtime\tests\registration\behavior\validation.rs zircon_runtime\src\core\runtime\tests\registration\behavior\cache_lists.rs zircon_runtime\src\core\runtime\tests\registration\behavior\commit.rs zircon_runtime\src\core\runtime\tests\registration\behavior\canonical_keys.rs zircon_runtime\src\core\runtime\tests\registration\structure.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\registration\entry.rs zircon_runtime\src\core\runtime\handle\registration\validation.rs zircon_runtime\src\core\runtime\tests\registration\behavior\canonical_keys.rs zircon_runtime\src\core\runtime\tests\registration\behavior\validation.rs zircon_runtime\src\core\runtime\tests\registration\structure.rs
-  - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\resolution.rs zircon_runtime\src\core\runtime\tests\resolution\mod.rs zircon_runtime\src\core\runtime\tests\resolution\behavior.rs zircon_runtime\src\core\runtime\tests\resolution\structure.rs
+  - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\resolution.rs zircon_runtime\src\core\runtime\tests\resolution\mod.rs zircon_runtime\src\core\runtime\tests\resolution\behavior.rs zircon_runtime\src\core\runtime\tests\resolution\behavior\dependency_cycles.rs zircon_runtime\src\core\runtime\tests\resolution\structure.rs
   - rustfmt --edition 2021 --check zircon_runtime\src\core\runtime\handle\resolution.rs zircon_runtime\src\core\runtime\tests\resolution\structure.rs (2026-06-08 M5 borrowed service-key resolution: passed)
   - borrowed service-key resolution source guard for `resolve_existing_service_inner(&service_key, stack)` from named resolution, `resolve_existing_service_inner(service_key, stack)` from registered-key resolution, borrowed inner helper signature, `resolution_stack_contains(stack.as_slice(), service_key)`, `reset_initializing_service(service_key)`, no old registered-key `service_key.clone()` inner call, and no owned inner `service_key: RegistryName` parameter (2026-06-08 M5 borrowed service-key resolution: passed)
   - conflict-marker and trailing-whitespace scans over zircon_runtime/src/core/runtime/handle/resolution.rs, zircon_runtime/src/core/runtime/tests/resolution/structure.rs, docs/engine-architecture/core-runtime-service-registry.md, and .codex/sessions/20260604-1232-runtime-architecture-review.md (2026-06-08 M5 borrowed service-key resolution: passed)
@@ -336,7 +342,7 @@ doc_type: module-detail
 | `frame_clock.rs` (moved 2026-06-12) | `core::runtime::frame_clock` | curated facade still exposed through `core::runtime::FrameClock` and root `core::FrameClock` | Frame delta is driven by the runtime tick path. |
 | `channel_util.rs` | split: `core::framework::channel` and `core::runtime::tasks` | remove the three root helper exports | Channel wait helpers are neutral; named thread spawning belongs to runtime task execution. |
 | `types.rs` | split: `core::framework::channel` and `core::runtime::descriptors` | remove root `ServiceObject` export | Channel aliases are neutral contracts; service object storage is runtime registry internals. |
-| `error.rs` (moved 2026-06-12) | `core::framework::error` | keep `CoreError` / `ZirconError` facade through the curated `core` root | Errors cross framework traits, manager handles, and runtime services. |
+| `error.rs` (moved 2026-06-12) | `core::framework::error` | expose only `CoreError` / `CoreResult` through the curated `core` root | Errors cross framework traits, manager handles, and runtime services; the retired parallel error enum has no compatibility export. |
 | `event_bus.rs` + `event_bus/` (moved 2026-06-12) | split: `EngineEvent` to `core::framework::events`, `EventBus` implementation to `core::runtime::events` | keep `EngineEvent` / `EventBus` through root `core` facades, but remove the old `core::event_bus` namespace | Event DTOs are neutral; subscriber storage and delivery locks are runtime behavior. |
 | `time.rs` | `core::runtime::time` | keep `RuntimeTime*` and diagnostics constants facade | Runtime time advances the neutral real/virtual/fixed clock contracts. |
 | `job_scheduler.rs` | `core::runtime::tasks::job_scheduler` | keep `JobScheduler` through `core::runtime` and root `core` facades until the task slice settles | It is a compute facade over runtime task pools. |
@@ -436,6 +442,8 @@ devtools module snapshot 也读取同一份 `ModuleEntry.service_names` 缓存�
 2026-06-07 M5 后续把 service resolution 的 small-slice boundary 从 exact three 扩到 exact four。`resolve_dependency_services(...)` 现在在 cached dependency slice 长度为四时直接解析 first/second/third/fourth `RegistryName`，five-or-more dependency slice 才回到 generic iterator；`resolution_stack_contains(...)` 同样直接比较 four-frame recursion stack，five-or-more frame recursion 才回到 iterator scan。`resolve_exact_four_dependencies_initializes_cached_keys_directly` 和 `four_frame_resolution_cycle_reports_canonical_registry_key` 固定这两个行为边界。
 
 2026-06-07 M5 后续继续把 service resolution 的 small-slice boundary 从 exact four 扩到 exact five。`resolve_dependency_services(...)` 现在在 cached dependency slice 长度为五时直接解析 fifth `RegistryName`，six-or-more dependency slice 才回到 generic loop；`resolution_stack_contains(...)` 同样直接比较 five-frame recursion stack，six-or-more frame recursion 才回到 direct fallback loop。`resolve_exact_five_dependencies_initializes_cached_keys_directly` 和 `five_frame_resolution_cycle_reports_canonical_registry_key` 固定这两个行为边界。
+
+2026-07-14 Runtime15 结构收敛把 exact four/five frame cycle 回归整体迁入 `resolution/behavior/dependency_cycles.rs`。`behavior.rs` 继续承接 lazy resolve、并发 factory、registered identity、失败重试和 exact dependency 初始化行为，并通过结构性 `mod dependency_cycles;` 接入 child；child 只承接 canonical cycle-key 行为。测试名、依赖图、`CoreError::DependencyCycle` 断言和公开运行时路径均未改变，父测试 owner 从 821 行降到 709 行，child 为 115 行，未提高预算或增加豁免。拆分后的 current-source Runtime lib-test binary 明确列出 child 路径，四/五层 cycle 行为各 1/1 通过；fresh standalone `resolution/structure.rs` guard 编译并 1/1 通过，守卫同时锁定父路由、child 测试名、父级无重复，以及 Frameworks05 当前 single-flight/reentry/stable-identity source shape。完整 resolution 过滤为 11/13：本切片的两个 child 测试均通过，剩余 behavior 失败是 Frameworks05 reactivation 未恢复 `Unloaded` service，另一个旧 structure 失败已由 fresh standalone guard 取代；受管 Cargo 仍在 Runtime15 测试阶段执行，不以现有二进制冒充完整包通过。
 
 2026-06-07 M5 后续也把 registration-time dependency materialization 与 driver dependency validation 扩到 exact four。`dependency_names(...)` 对四项 `DependencySpec` 直接构造 `Arc<[RegistryName]>`，`validate_driver_dependencies(...)` 对第四项 driver dependency 直接校验 kind，five-or-more dependency descriptor slice 才进入 generic loop。`register_exact_four_dependencies_keeps_direct_dependency_name_cache` 和 `register_module_rejects_fourth_driver_dependency_on_manager` 固定这两个 registration 边界。
 

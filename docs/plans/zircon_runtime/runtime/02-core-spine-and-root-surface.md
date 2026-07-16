@@ -22,6 +22,7 @@ related_code:
   - zircon_runtime/src/tests/runtime_absorption/naming_boundary.rs
   - zircon_runtime/src/tests/runtime_absorption/generated_code_guard.rs
   - zircon_runtime/src/tests/runtime_absorption/core_spine_root_generated.rs
+  - tools/tests/test_frameworks_02_core_error_single_source.py
   - docs/zircon_runtime/core/root_surface.md
   - docs/engine-architecture/generated-code-boundary.md
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_root_surface.py
@@ -40,19 +41,21 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/platform_host_files/browser.rs
 plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
+  - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
+  - docs/plans/zircon_runtime/frameworks/02/2026-07-16-m1-current-source-acceptance.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 status: in_progress
-last_refined: 2026-07-14
+last_refined: 2026-07-16
 ---
 
 # 02 core spine 与 root surface 收束
 
 ## 现状与证据（2026-06-12 重核）
 
-- **散件形态矫正**：core 根散件不是裸公开模块，而是"私有 `mod` + `core/mod.rs` 根部精选 `pub use`"形态（`core/mod.rs:3-13` 全部 `mod xxx;` 私有声明，`:23-44` 逐件再导出）。调用方使用的是 `core::FrameClock`、`core::EventBus`、`core::ZirconError` 这类再导出名，而非 `core::frame_clock::` 全路径——迁移时改的是 `core/mod.rs` 的声明与 `pub use` 来源，调用方 `use` 行多数不变。
+- **散件形态矫正**：core 根散件不是裸公开模块，而是"私有 `mod` + `core/mod.rs` 根部精选 `pub use`"形态（`core/mod.rs:3-13` 全部 `mod xxx;` 私有声明，`:23-44` 逐件再导出）。调用方使用的是 `core::FrameClock`、`core::EventBus`、`core::CoreError` / `core::CoreResult` 这类再导出名，而非 `core::frame_clock::` 全路径——迁移时改的是 `core/mod.rs` 的声明与 `pub use` 来源，调用方 `use` 行多数不变。
 - **散件清单（core/ 根实测）**：私有文件 9 件——`channel_util.rs`、`config_store.rs`、`error.rs`、`event_bus.rs`(+`event_bus/` 子目录)、`frame_clock.rs`、`job_scheduler.rs`、`lifecycle.rs`、`time.rs`、`types.rs`；公开目录 4 件——`state/`、`tasks/`、`modules/`、`diagnostics/`。五件套 spine（`runtime/framework/manager/math/resource`）之外共 13 件待归属。
 - **双形态误判矫正**：`event_bus.rs` + `event_bus/` 不是迁移债——`event_bus.rs:3-6` 声明 `mod failure/prune/publish/subscribe`，是 file-as-directory-owner 惯例（仓内通行），迁移时整体 `git mv` 两者即可。
-- **调用面实测**（Grep 再导出名，zircon_runtime/src 内文件数）：`ConfigStore` 4、`FrameClock` 4、`recv_latest|spawn_named_thread|wait_for` 5（外部仅 `asset/facade/event.rs`、`asset/pipeline/worker_pool.rs`）、`ZirconError` 6、`RuntimeTimeClocks|RuntimeTimeAdvance` 7、`JobScheduler` 9、`EventBus|EngineEvent` ≥12、`TaskPool*` ≥12、`NextState|StateTransitionEvent` ≥12、`modules::` ≥12（builtin/runtime_modules 装配族）、`LifecycleState|StartupMode` ≥12（scene/script/navigation/animation 模块广用）、`core::diagnostics` ≥12（dynamic_api/diagnostic_log）。窄面（≤9）调用方集中在 `core/runtime/runtime.rs`、`core/runtime/state/core_runtime_state.rs`、`core/runtime/handle/*` 与 `prelude.rs`。
+- **调用面实测**：2026-07-16 current-source 扫描为 `CoreError` 108 个 Rust 文件、`CoreResult` 13 个 Rust 文件；core 根只精选导出这一组错误合同。`ConfigStore`、`FrameClock`、`recv_latest|spawn_named_thread|wait_for`、`RuntimeTimeClocks|RuntimeTimeAdvance`、`JobScheduler`、`EventBus|EngineEvent`、`TaskPool*`、`NextState|StateTransitionEvent` 与生命周期类型继续按各自 owner 收束。
 - **`FrameClock` 极小**（`frame_clock.rs` 25 行，仅 `tick() -> Duration`），固定步长扩展空间归子计划 03。
 - **foundation/ 边界澄清**：`foundation/mod.rs` 导出 `FoundationModule` + `ConfigDriver/DefaultConfigManager/EventDriver/DefaultEventManager`——是把 core 的 config/event 原语包装成可注册 runtime module 的装配壳（被 `builtin/runtime_modules/core_modules.rs` 消费），与 core 散件是"原语 vs 模块注册"分层而非重复实现。重叠风险点只在 `foundation/runtime/{config_manager,event_manager}.rs` 是否藏有应属 core 的行为。
 - **lib.rs 别名块**（`lib.rs:39-72`，`pub(crate) use` + `#[allow(unused_imports)]`）：约 70 个 graphics 类型 + 8 个 graphics 子模块名（`backend, extract, feature, material, pipeline, runtime, types, visibility`——其中 `runtime`/`types` 与 `core::runtime`/`core::types` 同名，crate 根语义被污染）。实测使用极少：抽查三组（SceneRenderer/GraphicsError/WgpuRenderFramework/ViewportFrame 4 文件、`crate::extract::` 等模块别名 3 文件、HybridGi/VG/Solari provider 1 文件）共 8 个调用文件，**全部位于 graphics 自身内部** + 1 个测试（`tests/plugin_extensions/extension_registry.rs`）。
@@ -119,7 +122,7 @@ last_refined: 2026-07-14
   | `event_bus.rs`+`event_bus/` | ≥12 | `core::framework` | 中性事件原语 |
   | `channel_util.rs` | 5 | `core::framework` | 通道原语（外部调用方仅 asset 两处） |
   | `types.rs` | — | `core::framework` | `ChannelSender/Receiver/ServiceObject` 共享原语 |
-  | `error.rs` | 6 | `core::framework` | `CoreError/ZirconError` 中性契约 |
+  | `error.rs` | current-source: `CoreError` 108 文件 / `CoreResult` 13 文件 | `core::framework` | 单一 `CoreError` / `CoreResult` 中性契约，不保留旧错误枚举兼容层 |
   | `config_store.rs` | 4 | `core::resource` 或 `core::manager` | 二选一并记录理由（配置即资源定位 vs 配置即受管服务） |
   | `diagnostics/` | ≥12 | `core::runtime::diagnostics` 或 spine 第六席 | 若留第六席必须同步修订收束计划文档 spine 口径 |
 
@@ -131,7 +134,7 @@ last_refined: 2026-07-14
   | `frame_clock.rs` | 6 文件 / 10 行 | `core::runtime::frame_clock` | 暂保留 curated facade，03 固定步接通后复核 | 帧 delta 原语由 runtime tick 驱动，03 计划会继续扩展。 |
   | `channel_util.rs` | 5 文件 / 12 行 | 拆分：`recv_latest`/`wait_for` -> `core::framework::channel`，`spawn_named_thread` -> `core::runtime::tasks` | 收回三函数根再导出 | 通道等待是中性 primitive；线程创建是 runtime task 执行基础设施。 |
   | `types.rs` | 51 文件 / 355 行 | 拆分：`ChannelSender/Receiver` -> `core::framework::channel`，`ServiceObject` -> `core::runtime::descriptors` | `Channel*` 可经 framework facade，`ServiceObject` 不再从根导出 | channel aliases 是中性 ABI/contract 辅助；`ServiceObject` 是 runtime registry 内部对象槽。 |
-  | `error.rs` | 65 文件 / 330 行 | `core::framework::error` | 保留 `CoreError`/`ZirconError` 根 facade | 错误类型穿过 framework trait、manager handle 与 runtime services，是共享契约而非具体行为。 |
+  | `error.rs` | current-source: `CoreError` 108 文件 / `CoreResult` 13 文件 | `core::framework::error` | 根 facade 只保留 `CoreError` / `CoreResult` | 错误类型穿过 framework trait、manager handle 与 runtime services，是共享契约而非具体行为；不得增加别名、shim 或兼容再导出。 |
   | `event_bus.rs` + `event_bus/` | 20 文件 / 127 行 | 拆分：`EngineEvent` -> `core::framework::events`，`EventBus` 实现 -> `core::runtime::events` | 保留 `EngineEvent`/`EventBus` 根 facade 到事件切片结束 | 事件 DTO 中性；订阅表、delivery lock、prune/publish 行为由 `CoreRuntime` 拥有。 |
   | `time.rs` | 8 文件 / 46 行 | `core::runtime::time` | 保留 `RuntimeTime*` 与诊断常量根 facade | `RuntimeTimeClocks` 消费 `framework::time::{Real,Virtual,Fixed}`，但外层 advance 语义属于 runtime tick。 |
   | `job_scheduler.rs` | 10 文件 / 26 行 | `core::runtime::tasks::job_scheduler` | 保留 `JobScheduler` 到 task 切片结束，随后复核 prelude | 它只是 `TaskPool` 的 compute facade，归 runtime task pool owner。 |
@@ -198,7 +201,7 @@ last_refined: 2026-07-14
   - `git mv zircon_runtime/src/core/time.rs zircon_runtime/src/core/runtime/time.rs`
   - `git mv zircon_runtime/src/core/job_scheduler.rs zircon_runtime/src/core/runtime/tasks/job_scheduler.rs`
   - 同切片更新 `core/mod.rs`（删 6 行 `mod`，按 M1 处置表改/删 `pub use`）与目标 owner 的 `mod.rs`。
-- 调用方迁移（实测，≤10 全列）：`prelude.rs`、`tests/prelude.rs`、`core/runtime/runtime.rs`、`core/runtime/state/core_runtime_state.rs`、`core/runtime/handle/core_handle.rs`、`core/runtime/handle/time.rs`、`asset/facade/event.rs`、`asset/pipeline/worker_pool.rs`、`asset/pipeline/manager/project_asset_manager/construction.rs`、`scene/ecs/schedule_parallel_executor.rs`。漏网枚举：Grep `core::(config_store|frame_clock|channel_util|error|time|job_scheduler)|ConfigStore|FrameClock|JobScheduler|ZirconError|recv_latest|spawn_named_thread|wait_for|RuntimeTimeClocks`。
+- 调用方迁移 owner：`prelude.rs`、`tests/prelude.rs`、`core/runtime/runtime.rs`、`core/runtime/state/core_runtime_state.rs`、`core/runtime/handle/core_handle.rs`、`core/runtime/handle/time.rs`、`asset/facade/event.rs`、`asset/pipeline/worker_pool.rs`、`asset/pipeline/manager/project_asset_manager/construction.rs`、`scene/ecs/schedule_parallel_executor.rs`。漏网扫描覆盖 `core::(config_store|frame_clock|channel_util|error|time|job_scheduler)|ConfigStore|FrameClock|JobScheduler|CoreError|CoreResult|recv_latest|spawn_named_thread|wait_for|RuntimeTimeClocks`；另由 `test_frameworks_02_core_error_single_source.py` 锁定生产 Rust 不再出现退役错误类型。
 - 改动形态：只移动 + 改 `use` 路径；不留任何旧位置 re-export；每移 2–3 件 `cargo check -p zircon_runtime --lib --locked` 轻量确认。
 - 验收：`core_root_keeps_only_spine_modules_after_narrow_item_migration`（归属 `zircon_runtime/src/tests/runtime_absorption/root_entries.rs`，该文件已存在）——断言 `core/mod.rs` 源文本不再含六件的根级 `mod` 声明。
 - DoD：六件物理位置在 owner 下且 `cargo check -p zircon_runtime --lib --locked` 通过。
@@ -289,3 +292,5 @@ last_refined: 2026-07-14
 - fixed 已修复：[font-sdf-build-tool-root-surface-drift](02/fixed-2026-07-14-font-sdf-build-tool-root-surface-drift.md)
 - fixed 已修复：[dynamic-scene-version-validation](02/fixed-2026-07-12-dynamic-scene-version-validation.md)
 - fixed 已修复：[core-filter-runtime-fixture-contracts](02/fixed-2026-07-12-core-filter-runtime-fixture-contracts.md)
+- fixed 已修复：[system-stage-owner-guard-drift](08/fixed-2026-07-14-system-stage-owner-guard-drift.md)
+- fixed 已修复：[level-manager-export-cutover-incomplete](02/fixed-2026-07-14-level-manager-export-cutover-incomplete.md)
