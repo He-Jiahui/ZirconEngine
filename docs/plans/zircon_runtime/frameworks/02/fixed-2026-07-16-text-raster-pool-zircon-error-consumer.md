@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-16
 summary_slug: text-raster-pool-zircon-error-consumer
 origin_plan: docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
@@ -15,7 +15,9 @@ related_code:
 tests:
   - python tools/tests/test_frameworks_02_core_error_single_source.py
   - cargo test -p zircon_runtime --lib --locked text_raster_worker_pool
+resolved_at: 2026-07-16
 ---
+
 
 # Frameworks 05: Text raster pool stale ZirconError consumer
 
@@ -54,4 +56,7 @@ stale_consumers = ['zircon_runtime/src/text/parallel/raster_pool.rs']
 
 ## 修复结果与回传
 
-Open state: `修复与受管 focused 验证已完成，Frameworks05 parent Text hard-cut commit 待完成`; no final return is claimed. `TextRasterWorkerPool::{new,request}` 已直接切到 `CoreResult`，channel 错误直接构造 `CoreError::ChannelSend`；scoped rustfmt、diff-check、`python tools/tests/test_frameworks_02_core_error_single_source.py` 1/1，以及 managed Text raster job `711bd7035e1f4e62a0def56214a6151b` 5/5 均已通过。`zircon_runtime/src/text/` 在 clean HEAD 中仍为整个未跟踪 parent batch（`mod.rs`、`parallel/mod.rs`、`parallel/tests.rs` 与本文件均未跟踪），因此 fixing session 不把 `raster_pool.rs` 单独提交成孤儿；仍需 parent Frameworks05 exact milestone commit、提交后独立证据复核和 `failure return`。
+- 根因：Frameworks05 TextRasterWorkerPool still consumed the retired ZirconError surface after Frameworks02 converged runtime errors to canonical CoreError/CoreResult.
+- 架构修复：Hard-cut TextRasterWorkerPool constructors and request paths to CoreResult and CoreError::ChannelSend; no alias, shim, compatibility re-export, or parallel error enum remains. The Text parent batch landed in ad2c6f989cfff927ff5679467ca0cc71e2e20c0e.
+- 验证：python tools/tests/test_frameworks_02_core_error_single_source.py: 1/1 passed on current HEAD; Windows managed job 711bd7035e1f4e62a0def56214a6151b: cargo test -p zircon_runtime --lib --locked text_raster_worker_pool, 5 passed / 0 failed / exit 0; current source is tracked in ad2c6f989cfff927ff5679467ca0cc71e2e20c0e.
+- 回传：Returned to Frameworks02 after the Frameworks05 parent Text hard-cut commit landed and current-source hard-cut evidence was rechecked.
