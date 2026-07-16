@@ -8,9 +8,8 @@ related_code:
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime/src/scene/reflect/reflect_component.rs
   - zircon_runtime/src/scene/reflect/dynamic_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/local_transform.rs
-  - zircon_runtime/src/scene/reflect/fixed/name.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime_interface/src/reflect/object_address.rs
   - zircon_runtime_interface/src/reflect/read_write.rs
   - zircon_runtime_interface/src/reflect/reflected_value.rs

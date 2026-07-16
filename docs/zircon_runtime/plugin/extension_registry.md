@@ -29,8 +29,8 @@ related_code:
   - zircon_runtime/src/plugin/bridge/table.rs
   - zircon_runtime/src/core/framework/bridge/strong.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
-  - zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs
-  - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - zircon_runtime/src/core/runtime/handle/runtime_extensions.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
@@ -97,8 +97,8 @@ implementation_files:
   - zircon_runtime/src/plugin/bridge/table.rs
   - zircon_runtime/src/core/framework/bridge/strong.rs
   - zircon_runtime/src/plugin/bridge/weak.rs
-  - zircon_runtime/src/core/runtime/state/world_runtime_extensions.rs
-  - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
+  - zircon_runtime/src/scene/module/world_driver.rs
+  - zircon_runtime/src/scene/module/level_manager_lifecycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/contributions/extension.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report.rs
@@ -154,7 +154,6 @@ tests:
   - tools/tests/test_plugin_extension_registry_finalize_coverage.py
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point/tests.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
-  - zircon_runtime/src/core/runtime/state/world_runtime_extensions/tests.rs
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_typed_points.rs

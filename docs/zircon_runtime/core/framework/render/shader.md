@@ -93,7 +93,6 @@ related_code:
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/mesh.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/deferred_geometry.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/compute_workload.rs
-  - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/fullscreen_pass.rs
   - zircon_runtime/src/graphics/feature/builtin_render_feature_descriptor/feature_descriptors/post_process.rs
   - zircon_runtime/src/graphics/feature/render_feature_pass_descriptor/construct.rs
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs

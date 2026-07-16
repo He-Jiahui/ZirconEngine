@@ -7,7 +7,6 @@ related_code:
   - zircon_runtime/src/asset/importer/ingest/import_font_asset/mod.rs
   - zircon_runtime/src/asset/importer/ingest/asset_importer.rs
   - zircon_plugins/ui_document_importer/runtime/src/lib.rs
-  - zircon_plugins/ui_document_importer/runtime/src/lib.rs
   - zircon_runtime/src/asset/assets/ui.rs
   - zircon_runtime/src/asset/importer/ingest/import_from_source.rs
   - zircon_runtime/src/asset/project/manager/collect_files.rs
@@ -43,7 +42,7 @@ related_code:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/paint.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
   - zircon_runtime_interface/src/ui/surface/render/batch.rs
   - zircon_runtime_interface/src/ui/surface/render/cache.rs
@@ -64,10 +63,9 @@ related_code:
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - zircon_runtime/src/graphics/types/mod.rs
@@ -123,7 +121,6 @@ related_code:
   - zircon_runtime/src/ui/tests/asset.rs
   - zircon_runtime/src/ui/tests/text_layout
   - zircon_runtime/src/tests/ui_boundary/mod.rs
-  - zircon_runtime/tests/font_asset_manifest_contract.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 implementation_files:
   - zircon_runtime/assets/fonts/default.font.toml
@@ -148,7 +145,7 @@ implementation_files:
   - zircon_runtime_interface/src/ui/surface/render/resolved_style.rs
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/paint.rs
-  - zircon_runtime_interface/src/ui/surface/render/text_geometry.rs
+  - zircon_runtime_interface/src/ui/surface/render/text_geometry/mod.rs
   - zircon_runtime_interface/src/ui/surface/render/brush.rs
   - zircon_runtime_interface/src/ui/surface/render/batch.rs
   - zircon_runtime_interface/src/ui/surface/render/cache.rs
@@ -169,10 +166,9 @@ implementation_files:
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload.rs
-- zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
+  - zircon_runtime/src/graphics/scene/scene_renderer/ui/shaders/zr_text_sdf.wgsl
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/screen_space_ui_renderer.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
-  - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/native_bitmap_atlas/source_cache.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text/sdf_fallback.rs
   - zircon_runtime/src/graphics/types/mod.rs
@@ -235,7 +231,6 @@ implementation_files:
   - zircon_editor/src/ui/asset_editor/session/lifecycle.rs
   - zircon_editor/src/ui/asset_editor/session/lifecycle/v2_projection.rs
   - zircon_editor/src/ui/asset_editor/preview/preview_host.rs
-  - zircon_runtime/tests/font_asset_manifest_contract.rs
   - zircon_runtime/tests/runtime_ui_text_render_contract.rs
 plan_sources:
   - user: 2026-04-20 要求加载入口不允许放入src

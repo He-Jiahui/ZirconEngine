@@ -26,11 +26,8 @@ related_code:
   - zircon_editor/src/tests/editing/editor_projection.rs
   - zircon_editor/src/tests/editing/reflected_command.rs
   - zircon_runtime/src/scene/inspection/field.rs
-  - zircon_runtime/src/scene/reflect/fixed/camera_component.rs
-  - zircon_runtime/src/scene/reflect/fixed/hierarchy.rs
-  - zircon_runtime/src/scene/reflect/fixed/lights.rs
-  - zircon_runtime/src/scene/reflect/fixed/mesh_renderer.rs
-  - zircon_runtime/src/scene/reflect/fixed/mobility.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/registration.rs
+  - zircon_runtime/src/scene/reflect/builtin_reflection/hierarchy.rs
   - zircon_runtime/src/scene/world/query.rs
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime_interface/src/reflect/read_write.rs
@@ -110,7 +107,7 @@ The projection also sanitizes stale editor selection. If the editor-selected ent
 
 The M10 consumer slice now takes inspector fields from `World::editor_projection(selected)` instead of rebuilding them from a hand-written `SceneNode` list in the editor crate. The runtime projection is reflection-backed and currently covers:
 
-- fixed scene components registered in `zircon_runtime::scene::reflect::fixed`, including name, hierarchy parent, local transform, active state, active-in-hierarchy, render layer mask, mobility, camera, mesh renderer, lights, and rigid body fields,
+- fixed scene components registered by the built-in reflection owner under `zircon_runtime/src/scene/reflect/builtin_reflection`, including name, hierarchy parent, local transform, active state, active-in-hierarchy, render layer mask, mobility, camera, mesh renderer, lights, and rigid body fields,
 - plugin-owned dynamic JSON components registered through `ComponentTypeDescriptor`,
 - reflected value metadata such as editability, serializability, component type path, display name, field name, value type, and plugin ownership.
 

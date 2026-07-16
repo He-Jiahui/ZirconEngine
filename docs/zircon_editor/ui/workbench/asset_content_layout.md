@@ -5,8 +5,8 @@ related_code:
   - zircon_editor/src/ui/workbench/asset_content_layout/profile.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/metrics.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/thumbnail_grid.rs
-  - zircon_editor/src/ui/workbench/asset_content_layout/labels.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/text.rs
+  - zircon_editor/src/core/asset/type_registry/builtin.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/tests.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
@@ -28,7 +28,6 @@ implementation_files:
   - zircon_editor/src/ui/workbench/asset_content_layout/profile.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/metrics.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/thumbnail_grid.rs
-  - zircon_editor/src/ui/workbench/asset_content_layout/labels.rs
   - zircon_editor/src/ui/workbench/asset_content_layout/text.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/layout.rs
   - zircon_editor/src/ui/retained_host/asset_pointer/content/bridge.rs
@@ -73,7 +72,7 @@ status: in_progress
 
 # Shared asset content layout
 
-`asset_content_layout` is the shared contract for asset rows that are both painted and pointer-addressable. Its navigational `mod.rs` delegates stable generated control ids to `controls.rs`, surface identity to `profile.rs`, geometry to `metrics.rs`, dense resource badges to `labels.rs`, and runtime-measured file-name compaction to `text.rs`. This directly addresses the repository structure findings instead of growing another mixed-responsibility root.
+`asset_content_layout` is the shared contract for asset rows that are both painted and pointer-addressable. Its navigational `mod.rs` delegates stable generated control ids to `controls.rs`, surface identity to `profile.rs`, geometry to `metrics.rs`, and runtime-measured file-name compaction to `text.rs`. Dense resource badge metadata now comes from the canonical asset-type presentation registry in `core/asset/type_registry/builtin.rs`; the deleted layout-local `labels.rs` owner is not retained as a facade or duplicate lookup. This directly addresses the repository structure findings instead of growing another mixed-responsibility root.
 
 The metrics owner derives padding, gaps, row heights, and the Asset Browser header offset from `EditorDensityTokens` and `EditorControlTokens`; retained pointer code and Assets Activity visual projection consume the resulting `AssetContentLayoutMetrics` instead of maintaining parallel constants.
 
