@@ -23,7 +23,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/index.md
   - .codex/plans/Zircon Runtime 架构渐进式 Review 与优化计划.md
 status: completed
-last_refined: 2026-07-12
+last_refined: 2026-07-16
 ---
 
 # 01 技术选型与依赖治理

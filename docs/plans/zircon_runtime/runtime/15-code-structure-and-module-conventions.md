@@ -456,7 +456,7 @@ tests:
   - cargo fmt --all --check
 doc_type: structure-plan
 status: in_progress
-last_refined: 2026-07-14
+last_refined: 2026-07-16
 ---
 
 # 15 · Runtime 代码结构与模块规范收束计划
