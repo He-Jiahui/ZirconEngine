@@ -213,7 +213,11 @@ class GitFinalizeService:
                     self._git("read-tree", self.baselines.current().head_commit)
                 else:
                     self._require_index_scope(preview.paths)
-                self._git_add_paths(preview.paths)
+                ordinary_paths, force_add_paths = self._partition_add_paths(
+                    preview.paths,
+                    error_code="finalize_ignored_path_forbidden",
+                )
+                self._git_add_partition(ordinary_paths, force_add_paths)
                 staged = self._staged_scope_paths()
                 if set(staged) != set(preview.paths):
                     raise CoordinatorError(
@@ -365,17 +369,10 @@ class GitFinalizeService:
                 )
             head_tracked = self._head_tracked_paths(normalized)
             untracked_paths = tuple(path for path in normalized if path not in head_tracked)
-            forbidden_ignored = tuple(
-                path
-                for path in self._ignored_paths(normalized)
-                if not self._is_force_add_eligible(path)
+            ordinary_paths, force_add_paths = self._partition_add_paths(
+                normalized,
+                error_code="milestone_ignored_path_forbidden",
             )
-            if forbidden_ignored:
-                raise CoordinatorError(
-                    "milestone_ignored_path_forbidden",
-                    "Only repository-owned Codex skills and hooks may be force-added",
-                    details={"paths": list(forbidden_ignored)},
-                )
             self._require_attribution(session_id, normalized, maintenance=False)
             self._require_owned_scope(session_id, normalized, maintenance=False)
             self._require_plan_outputs(session, normalized, maintenance=False)
@@ -419,25 +416,7 @@ class GitFinalizeService:
                 # shared index is restored afterwards so another Session's
                 # staged work remains intact and cannot enter this commit.
                 self._git("read-tree", expected_head)
-                untracked = tuple(path for path in normalized if path not in head_tracked)
-                ignored_set = self._ignored_paths(untracked)
-                ignored = tuple(path for path in untracked if path in ignored_set)
-                forbidden_ignored = tuple(
-                    path for path in ignored if not self._is_force_add_eligible(path)
-                )
-                if forbidden_ignored:
-                    raise CoordinatorError(
-                        "milestone_ignored_path_forbidden",
-                        "Only repository-owned Codex skills and hooks may be force-added",
-                        details={"paths": list(forbidden_ignored)},
-                )
-                ordinary = tuple(path for path in normalized if path not in ignored)
-                if ordinary:
-                    self._git_add_paths(ordinary)
-                if ignored:
-                    # These paths passed both the Session ownership gates and
-                    # the narrow repository-control allowlist above.
-                    self._git_add_paths(ignored, force=True)
+                self._git_add_partition(ordinary_paths, force_add_paths)
                 self._require_index_scope(normalized)
                 self._require_post_stage_attribution(
                     session_id, normalized, maintenance=False
@@ -1192,7 +1171,7 @@ class GitFinalizeService:
         payload = b"\0".join(os.fsencode(path) for path in paths) + b"\0"
         try:
             result = subprocess.run(
-                ["git", "check-ignore", "--stdin", "-z"],
+                ["git", "check-ignore", "--no-index", "--stdin", "-z"],
                 cwd=self.repo_root,
                 check=False,
                 input=payload,
@@ -1229,6 +1208,38 @@ class GitFinalizeService:
     def _is_force_add_eligible(path: str) -> bool:
         normalized = path.casefold()
         return normalized in _FORCE_ADD_FILES or normalized.startswith(_FORCE_ADD_PREFIXES)
+
+    def _partition_add_paths(
+        self,
+        paths: tuple[str, ...],
+        *,
+        error_code: str,
+    ) -> tuple[tuple[str, ...], tuple[str, ...]]:
+        ignored_set = self._ignored_paths(paths)
+        force_add_paths = tuple(path for path in paths if path in ignored_set)
+        forbidden_ignored = tuple(
+            path for path in force_add_paths if not self._is_force_add_eligible(path)
+        )
+        if forbidden_ignored:
+            raise CoordinatorError(
+                error_code,
+                "Only repository-owned Codex skills and hooks may be force-added",
+                details={"paths": list(forbidden_ignored)},
+            )
+        ordinary_paths = tuple(path for path in paths if path not in ignored_set)
+        return ordinary_paths, force_add_paths
+
+    def _git_add_partition(
+        self,
+        ordinary_paths: tuple[str, ...],
+        force_add_paths: tuple[str, ...],
+    ) -> None:
+        if ordinary_paths:
+            self._git_add_paths(ordinary_paths)
+        if force_add_paths:
+            # These paths passed both the Session ownership gates and the
+            # narrow repository-control allowlist before force-add.
+            self._git_add_paths(force_add_paths, force=True)
 
     @staticmethod
     def _is_local_session_state(path: str) -> bool:
@@ -1395,6 +1406,10 @@ class GitFinalizeService:
         except subprocess.CalledProcessError as error:
             stderr = self._safe_git_stderr(error.stderr)
             command_label = " ".join(command[:2])
+            path_chunk: list[str] = []
+            if "--" in arguments:
+                path_separator = arguments.index("--")
+                path_chunk = list(arguments[path_separator + 1 :])
             message = f"{command_label} failed with exit code {error.returncode}"
             if stderr:
                 message = f"{message}: {stderr}"
@@ -1404,6 +1419,7 @@ class GitFinalizeService:
                 details={
                     "command": command_label,
                     "exit_code": error.returncode,
+                    "path_chunk": path_chunk,
                     "stderr": stderr,
                 },
             ) from error
