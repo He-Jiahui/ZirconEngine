@@ -44,6 +44,7 @@ status: in_progress
 - fixed 已修复：[wsl-vhdx-sharing-violation](11/fixed-2026-07-11-wsl-vhdx-sharing-violation.md)
 - M2.2 产出：[DynamicScene 版本壳硬切换](11/2026-07-14-dynamic-scene-version-shell-hard-cut.md)
 - M2.2 当前源验收：[DynamicScene 当前源验收](11/2026-07-17-dynamic-scene-current-source-acceptance.md)
+- M3.1 当前源验收：[二进制 wire 当前源验收](11/2026-07-17-binary-wire-current-source-acceptance.md)
 - fixed 已修复：[binary-value-visibility-compilation](../editor_layout/15/fixed-2026-07-14-binary-value-visibility-compilation.md)
 
 ## 参照证据（dev/）
@@ -122,7 +123,7 @@ pub struct Loaded<T> { pub value: T, pub migrated_from: Option<u32> }   // 17 �
 
 ### M3 二进制格式与等价性
 
-- [ ] **M3.1 Binary 编码选型与文本等价合同.** Binary 编码选型实测 + 实现；文本↔二进制互转往返。
+- [x] **M3.1 Binary 编码选型与文本等价合同.** Binary 编码选型实测 + 实现；文本↔二进制互转往返。
 - [ ] **M3.2 CookAssets 二进制消费点接线.** 15 cook 消费点接线（CookAssets 阶段调用双格式转换）。
 - 测试阶段：Text→Binary→Text 恒等（逐 schema）；5k 实体夹具体积/耗时基线记状态节。
 
