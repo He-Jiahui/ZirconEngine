@@ -159,14 +159,11 @@ fn runtime_15_dynamic_api_session_shared_data_is_folder_backed() {
 
     for source in [
         include_str!("../../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-        include_str!("../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+        crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
+        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+        include_str!("../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        include_str!(
-            "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-        ),
     ] {
         assert_contains_all("dynamic API shared data status mirror", source, &[
             SLICE,

@@ -19,9 +19,6 @@ const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md");
-const SESSION_NOTE: &str = include_str!(
-    "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-);
 const STATUS_ROW_DATA: &str = include_str!(
     "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/foundation_guards/runtime_structure_tests/runtime_absorption_core_rows.rs"
 );
@@ -34,10 +31,10 @@ const DATE_MAP: &str = include_str!(
 #[rustfmt::skip]
 const NUMBERED_STATUS_RECORDS: &str = concat!(
     include_str!("../../../../../docs/plans/zircon_runtime/runtime/11/2026-07-09-job-system-task-model-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"),
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"),
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md")
 );
 
@@ -136,7 +133,6 @@ fn assert_docs_and_status_mirror_split() {
         ("review findings plan", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
         ("Frameworks 02 plan", FRAMEWORKS_02_PLAN),
-        ("session note", SESSION_NOTE),
         ("status row data", STATUS_ROW_DATA),
         ("status map", STATUS_MAP),
     ] {

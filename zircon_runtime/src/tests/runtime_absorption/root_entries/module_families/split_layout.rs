@@ -110,14 +110,12 @@ fn assert_status_docs_mirror_split() {
     for (label, source) in [
         (
             "Runtime 15 plan",
-            include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-            ),
+            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
         ),
         (
             "runtime index",
             include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
             ),
         ),
         (
@@ -129,24 +127,18 @@ fn assert_status_docs_mirror_split() {
         (
             "structure convention",
             include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
             ),
         ),
         (
             "review findings",
             include_str!(
-                "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+                "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
             ),
         ),
         (
             "module convention",
             include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "session note",
-            include_str!(
-                "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-            ),
         ),
         (
             "status row data",

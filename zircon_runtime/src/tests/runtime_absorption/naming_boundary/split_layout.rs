@@ -10,22 +10,17 @@ const RUNTIME_15_M2_SOURCE: &str = include_str!("runtime_15_m2.rs");
 const ASSET_DYNAMIC_SOURCE: &str = include_str!("runtime_15_m2/asset_dynamic.rs");
 const GRAPHICS_HYBRID_GI_SOURCE: &str = include_str!("runtime_15_m2/graphics/hybrid_gi.rs");
 
-const RUNTIME_15_PLAN: &str = include_str!(
-    "../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-);
+const RUNTIME_15_PLAN: &str = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
 const RUNTIME_INDEX: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md");
 const STRUCTURE_CONVENTION_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md");
 const REVIEW_FINDINGS_PLAN: &str =
-    include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
+    include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md");
 const MODULE_CONVENTION_DOC: &str =
     include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md");
 const FRAMEWORKS_02_PLAN: &str =
     include_str!("../../../../../docs/plans/zircon_runtime/frameworks/02/2026-07-09-module-kernel-and-lifecycle-unification-output-records.md");
-const SESSION_NOTE: &str = include_str!(
-    "../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-);
 const STATUS_ROW_DATA: &str = include_str!(
     "../plan_status/status_output_tables/expected_status_row_data/runtime_15/m3/asset_budget_tests/naming_graphics_misc/root_route_rows.rs"
 );
@@ -183,7 +178,6 @@ fn assert_docs_and_status_mirror_split() {
         ("review findings plan", REVIEW_FINDINGS_PLAN),
         ("module convention doc", MODULE_CONVENTION_DOC),
         ("Frameworks 02 plan", FRAMEWORKS_02_PLAN),
-        ("session note", SESSION_NOTE),
         ("status row data", STATUS_ROW_DATA),
         ("status map", STATUS_MAP),
     ] {

@@ -109,13 +109,11 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
     for (label, source) in [
         (
             "Runtime 15 subplan",
-            include_str!(
-                "../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-            ),
+            crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
         ),
         (
             "runtime index",
-            include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
+            include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"),
         ),
         (
             "frameworks output",
@@ -123,23 +121,17 @@ fn runtime_15_core_scene_naming_ecs_owner_split_layout_is_folder_backed() {
         ),
         (
             "engine code structure convention",
-            include_str!("../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
+            include_str!("../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"),
         ),
         (
             "engine code review findings",
             include_str!(
-                "../../../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+                "../../../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
             ),
         ),
         (
             "module convention doc",
             module_convention,
-        ),
-        (
-            "runtime implementation session note",
-            include_str!(
-                "../../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-            ),
         ),
     ] {
         assert_contains_all(

@@ -111,37 +111,33 @@ fn runtime_15_plugin_surface_lifecycle_guard_is_folder_backed() {
             "Runtime 15 status",
             concat!(
                 include_str!("../../../../../docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md"),
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
+                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md")
             ),
         ),
         (
             "runtime index status",
             concat!(
                 include_str!("../../../../../docs/plans/zircon_runtime/runtime/index.md"),
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
+                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md")
             ),
         ),
         (
             "engine code structure status",
             concat!(
                 include_str!("../../../../../docs/plans/engine-code-structure-convention.md"),
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
+                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md")
             ),
         ),
         (
             "engine code review status",
             concat!(
                 include_str!("../../../../../docs/plans/engine-code-review-findings-2026-06.md"),
-                include_str!("../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
+                include_str!("../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md")
             ),
         ),
         (
             "module convention doc",
             include_str!("../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        ),
-        (
-            "runtime implementation session note",
-            include_str!("../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"),
         ),
     ] {
         assert_contains_all(label, source, &[SLICE, STATUS, GUARD, CHILD_PATHS[4]]);

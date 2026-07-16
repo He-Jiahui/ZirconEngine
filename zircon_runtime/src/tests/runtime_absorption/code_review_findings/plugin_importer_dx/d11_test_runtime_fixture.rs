@@ -19,27 +19,22 @@ const PLUGIN_SDK_PRELUDE: &str =
 #[test]
 fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
     let review_findings = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
     let structure_convention = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let plugins_12 = include_str!(
         "../../../../../../docs/plans/zircon_plugins/12/2026-07-09-plugin-dx-and-structure-framework-output-records.md"
     );
     let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
     let animation_doc = include_str!("../../../../../../docs/zircon_plugins/animation/runtime.md");
-    let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-    );
+    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
     let runtime_index = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let module_convention =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-    );
 
     assert_contains_all(
         "animation/physics integration test should use SDK TestRuntime",
@@ -66,7 +61,8 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
             ".with_runtime_plugin(&physics_plugin)",
             ".with_runtime_plugin(&animation_plugin)",
             "TestRuntime::builder().build().unwrap()",
-            "asset::PROJECT_ASSET_MANAGER_NAME",
+            "asset::project_asset_manager_handle(core)",
+            "resolve_manager_service(",
         ],
     );
     assert_not_contains_any(
@@ -85,6 +81,7 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
             "TEST_MAX_FIXED_STEPS",
             "TEST_FIXED_TIMESTEP_NANOS",
             "fn tick_level",
+            "asset::PROJECT_ASSET_MANAGER_NAME",
         ],
     );
 
@@ -175,7 +172,6 @@ fn review_d11_animation_physics_tests_use_sdk_test_runtime_fixture() {
         ("Runtime 15 plan", runtime_15),
         ("Runtime index", runtime_index),
         ("module convention", module_convention),
-        ("session note", session_note),
     ] {
         assert_contains_all(
             doc_label,

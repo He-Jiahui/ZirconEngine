@@ -3,9 +3,6 @@ use super::super::super::support::{assert_contains_all, runtime_numbered_archive
 #[test]
 fn runtime_15_runtime_07_scene_asset_status_index_anchors_are_locked() {
     let archive_source = runtime_numbered_archive_sources();
-    let session_note = include_str!(
-        "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-    );
     let output_anchors = include_str!(
         "../../../../../../../.codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/runtime_plan_status_output_anchors.py"
     );
@@ -83,7 +80,6 @@ fn runtime_15_runtime_07_scene_asset_status_index_anchors_are_locked() {
     ];
     for (label, source) in [
         ("runtime numbered archives", archive_source.as_str()),
-        ("runtime implementation session note", session_note),
         ("Runtime 15 status row data", runtime_15_status_row_data),
         ("Runtime 15 expected status map", status_map.as_str()),
         ("Runtime 15 expected date map", date_map.as_str()),

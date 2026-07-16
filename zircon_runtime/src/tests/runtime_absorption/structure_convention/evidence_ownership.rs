@@ -2,16 +2,16 @@ use super::runtime_src_path;
 
 #[test]
 fn runtime_15_structure_guards_use_durable_evidence_not_session_notes() {
-    let structure_root = runtime_src_path("tests/runtime_absorption/structure_convention");
+    let runtime_absorption_root = runtime_src_path("tests/runtime_absorption");
     let session_note_root = [".codex", "sessions", ""].join("/");
-    let mut pending = vec![structure_root];
+    let mut pending = vec![runtime_absorption_root];
     let mut violations = Vec::new();
 
     while let Some(path) = pending.pop() {
         let entries = std::fs::read_dir(&path)
             .unwrap_or_else(|error| panic!("failed to read {}: {error}", path.display()));
         for entry in entries {
-            let entry = entry.expect("structure guard directory entry should be readable");
+            let entry = entry.expect("runtime absorption guard directory entry should be readable");
             let entry_path = entry.path();
             if entry_path.is_dir() {
                 pending.push(entry_path);
@@ -32,6 +32,6 @@ fn runtime_15_structure_guards_use_durable_evidence_not_session_notes() {
 
     assert!(
         violations.is_empty(),
-        "structure guards must use durable numbered-plan evidence instead of session notes: {violations:#?}"
+        "runtime absorption guards must use durable numbered-plan evidence instead of session notes: {violations:#?}"
     );
 }

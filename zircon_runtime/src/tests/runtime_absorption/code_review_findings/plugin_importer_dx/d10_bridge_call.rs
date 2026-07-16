@@ -21,10 +21,10 @@ const RUNTIME_HELPERS_FIXTURE: &str = include_str!(
 #[test]
 fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
     let review_findings = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md"
     );
     let structure_convention = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md"
     );
     let plugins_11 =
         include_str!("../../../../../../docs/plans/zircon_plugins/11-plugin-call-bridge.md");
@@ -34,17 +34,12 @@ fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
     let plugin_sdk_doc = include_str!("../../../../../../docs/zircon_plugins/plugin-sdk.md");
     let physics_doc = include_str!("../../../../../../docs/zircon_plugins/physics/runtime.md");
     let animation_doc = include_str!("../../../../../../docs/zircon_plugins/animation/runtime.md");
-    let runtime_15 = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md"
-    );
+    let runtime_15 = crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT;
     let runtime_index = include_str!(
-        "../../../../../../docs/plans/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
+        "../../../../../../docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md"
     );
     let module_convention =
         include_str!("../../../../../../docs/zircon_runtime/structure/module-convention.md");
-    let session_note = include_str!(
-        "../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-    );
 
     assert_contains_all(
         "runtime physics framework should expose the bridge interface contract",
@@ -175,7 +170,6 @@ fn review_d10_animation_physics_tests_use_sdk_bridge_call() {
         ("Runtime 15 plan", runtime_15),
         ("Runtime index", runtime_index),
         ("module convention", module_convention),
-        ("session note", session_note),
     ] {
         assert_contains_all(
             doc_label,

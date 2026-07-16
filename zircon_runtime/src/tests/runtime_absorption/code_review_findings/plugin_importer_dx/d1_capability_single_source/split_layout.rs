@@ -44,9 +44,7 @@ fn runtime_15_plugin_importer_d1_capability_guard_is_folder_backed() {
             "../../../../../../../docs/plans/engine-code-review-findings-2026-06.md"
         ),
         include_str!("../../../../../../../docs/zircon_runtime/structure/module-convention.md"),
-        include_str!(
-            "../../../../../../../.codex/sessions/20260612-0847-runtime-architecture-implementation.md"
-        ),
+        crate::tests::runtime_absorption::current_source_fixture::RUNTIME_ARCHITECTURE_IMPLEMENTATION_OUTPUT,
     ]
     .join("\n");
 
