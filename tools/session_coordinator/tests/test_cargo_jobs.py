@@ -22,7 +22,7 @@ from tools.session_coordinator.cargo_jobs import (
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
-from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator.models import CoordinatorError, SessionStatus
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.tests.helpers import init_repo
 
@@ -184,6 +184,47 @@ class CargoJobTests(unittest.TestCase):
         self.assertIn(job.target_dir, state["stdoutTail"])
         self.assertIn("runner-err", state["stderrTail"])
         self.assertEqual(CargoJobStatus.RELEASED, self.service.get(job.job_id).status)
+
+    def test_runner_releases_bound_cpu_reservation_after_owner_becomes_stale(self) -> None:
+        compatibility = self.compatibility()
+        command = (
+            os.fspath(Path(os.sys.executable)),
+            "-c",
+            "import time; time.sleep(0.2); raise SystemExit(0)",
+        )
+        reservation = self.service.reserve_cpu(
+            "session-a", compatibility=compatibility, command=command
+        )
+        job = self.service.acquire(
+            "session-a", CargoLaneKind.TEST, compatibility=compatibility
+        )
+        runner = CargoJobRunner(
+            self.database,
+            self.service,
+            repo_root=self.repo,
+            log_root=Path(self.temporary_directory.name) / "bound-run-logs",
+        )
+
+        runner.start(session_id="session-a", job_id=job.job_id, command=command)
+        self.sessions.set_status("session-a", SessionStatus.STALE)
+        deadline = datetime.now(UTC) + timedelta(seconds=5)
+        state = runner.status(job.job_id, session_id="session-a")
+        while state["status"] == "running" and datetime.now(UTC) < deadline:
+            time.sleep(0.02)
+            state = runner.status(job.job_id, session_id="session-a")
+
+        self.assertEqual("completed", state["status"])
+        self.assertEqual(CargoJobStatus.RELEASED, self.service.get(job.job_id).status)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                (reservation["reservationId"],),
+            ).fetchone()
+        self.assertEqual("released", row["status"])
+        self.assertEqual(
+            CargoJobStatus.RELEASED,
+            self.service.release(job.job_id, session_id="session-a").status,
+        )
 
     def test_coordinator_runner_records_allowed_environment(self) -> None:
         job = self.service.acquire("session-a", CargoLaneKind.TEST)

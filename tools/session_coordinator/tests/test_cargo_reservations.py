@@ -13,6 +13,9 @@ from tools.session_coordinator.cargo_jobs import (
     CargoLaneKind,
     TargetPathPolicy,
 )
+from tools.session_coordinator.cargo_reservations import (
+    reconcile_terminal_finished_cpu_reservations,
+)
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
@@ -328,6 +331,72 @@ class CargoReservationTests(unittest.TestCase):
             ).fetchone()
         self.assertEqual("released", row["status"])
         self.assertEqual(CargoJobStatus.LEASED, following.status)
+
+    def test_legacy_finished_reconciliation_preserves_each_safety_predicate(self) -> None:
+        cases = (
+            ("executable-owner", SessionStatus.ACTIVE, CargoJobStatus.RELEASED, ()),
+            ("job-not-released", SessionStatus.STALE, CargoJobStatus.SUCCEEDED, ()),
+            ("recorded-process-live", SessionStatus.STALE, CargoJobStatus.RELEASED, (4242,)),
+        )
+        for name, owner_status, job_status, recorded_pids in cases:
+            with self.subTest(name=name):
+                with self.database.transaction() as connection:
+                    connection.execute(
+                        "UPDATE sessions SET status='active' WHERE session_id='session-a'"
+                    )
+                reservation = self.service.reserve_cpu(
+                    "session-a",
+                    compatibility=self.compatibility(),
+                    command=("cargo", "test", "-p", "zircon_runtime"),
+                )
+                job = self.service.acquire(
+                    "session-a", CargoLaneKind.TEST, compatibility=self.compatibility()
+                )
+                self.service.start(
+                    job.job_id,
+                    session_id="session-a",
+                    pid=4242,
+                    command=["cargo", "test", "-p", "zircon_runtime"],
+                )
+                self.service.process_tree_pids = lambda _pid: ()
+                self.service.finish(job.job_id, session_id="session-a", exit_code=0)
+                self.service.release(job.job_id, session_id="session-a")
+
+                with self.database.transaction() as connection:
+                    connection.execute(
+                        "UPDATE sessions SET status=? WHERE session_id='session-a'",
+                        (owner_status.value,),
+                    )
+                    connection.execute(
+                        """
+                        UPDATE cargo_jobs
+                        SET status=?, process_tree_live_pids_json=?,
+                            released_at=CASE WHEN ?='released' THEN released_at ELSE NULL END
+                        WHERE job_id=?
+                        """,
+                        (
+                            job_status.value,
+                            json.dumps(recorded_pids),
+                            job_status.value,
+                            job.job_id,
+                        ),
+                    )
+                    connection.execute(
+                        "UPDATE cargo_lane_reservations SET status='finished' WHERE reservation_id=?",
+                        (reservation["reservationId"],),
+                    )
+                    reconcile_terminal_finished_cpu_reservations(
+                        connection, now="2026-07-16T07:30:00+00:00"
+                    )
+                    row = connection.execute(
+                        "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                        (reservation["reservationId"],),
+                    ).fetchone()
+                    self.assertEqual("finished", row["status"])
+                    connection.execute(
+                        "UPDATE cargo_lane_reservations SET status='released' WHERE reservation_id=?",
+                        (reservation["reservationId"],),
+                    )
 
     def test_expired_pending_cpu_reservation_advances_fifo(self) -> None:
         expired = self.service.reserve_cpu(

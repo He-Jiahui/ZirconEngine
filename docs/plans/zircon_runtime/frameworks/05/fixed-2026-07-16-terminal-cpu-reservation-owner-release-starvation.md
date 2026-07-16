@@ -25,7 +25,7 @@ resolved_at: 2026-07-16
 
 | 状态 | 日期 | 完成项目与证据 |
 |---|---|---|
-| `FIXED / 待受管提交与重载` | 2026-07-16 | job release 同事务释放 bound CPU reservation；历史 `finished` 队首仅在 job 已 `released`、进程树为空且 owner 非可执行时收束。聚焦 Python 回归 `60/60` 通过；canonical P0 Session 已绑定 failure、fixed return、Coordinator01 回传摘要、生产代码、测试与模块文档。 |
+| `FIXED / 待受管提交与重载` | 2026-07-16 | job release 同事务释放 bound CPU reservation；历史 `finished` 队首仅在 job 已 `released`、进程树为空且 owner 非可执行时收束。聚焦 Python 回归 `62/62` 通过；canonical P0 Session 已绑定 fixed return、Coordinator01 回传摘要、M6.8 closeout、生产代码、测试与模块文档。 |
 
 ## 来源执行者
 
@@ -73,5 +73,5 @@ CPU reservation 与 nominated job 的终态不是同一生命周期：runner 已
 
 - 根因：A released CPU job could leave its reservation in finished state when the owner Session became stale, so the FIFO head remained permanently blocking.
 - 架构修复：Cargo job release now releases its bound reservation transactionally, and maintenance reconciliation releases only legacy finished CPU reservations whose job is released, process tree is empty, and owner is non-executable.
-- 验证：Focused reservation lifecycle suite passed 15/15, Cargo job suite passed 45/45, and scoped maintenance regressions passed for failure-return lease enforcement.
-- 回传：The stale Plugins06 FIFO head is non-blocking; a new Render18 reservation may be issued only after this P0 closeout is committed and reloaded.
+- 验证：Focused reservation lifecycle suite passed 16/16, Cargo job suite passed 46/46, including runner-bound stale-owner idempotency and all three historical reconciliation negative predicates; scoped maintenance regressions passed for failure-return lease enforcement.
+- 回传：The stale Runtime11 FIFO head is non-blocking; a new Render18 reservation may be issued only after this P0 closeout is committed and reloaded.
