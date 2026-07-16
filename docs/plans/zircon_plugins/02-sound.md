@@ -138,6 +138,8 @@ zircon_plugins/sound/runtime/
 
 ### M1 kira 接入与 Mixer Graph 映射（替换自研执行栈）
 
+- [ ] **M1.1 kira 依赖与 canonical lock closure.** 仅交付 `zircon_plugins/sound/runtime/Cargo.toml`、`zircon_plugins/Cargo.lock` 与根 `Cargo.lock` 的 Kira 0.12.2 依赖闭包；该切片独立验收，不把父 M1 的 KiraEngine、Mixer Graph、播放控制或热更任务标记为完成。
+
 | 任务  | 内容                                                                | 改动文件                                             | 依赖  | 新增测试                                                               |
 | ----- | ------------------------------------------------------------------- | ---------------------------------------------------- | ----- | ---------------------------------------------------------------------- |
 | M1-T1 | kira 依赖引入 + KiraEngine 生命周期（activate/deactivate/设备选择） | Cargo.toml、kira_bridge/manager.rs、output/lifecycle | —    | `engine_starts_and_stops_with_mock_backend`                          |
