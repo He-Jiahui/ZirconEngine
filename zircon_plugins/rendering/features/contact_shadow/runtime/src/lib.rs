@@ -556,7 +556,7 @@ mod tests {
 
         assert!(hzb_index < contact_index);
         let pass = enabled
-            .graph
+            .graph()
             .passes()
             .iter()
             .find(|pass| pass.name == PASS_NAME)
@@ -679,7 +679,7 @@ mod tests {
 
     fn pass_names(compiled: &CompiledRenderPipeline) -> Vec<&str> {
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -693,7 +693,7 @@ mod tests {
         access: RenderGraphResourceAccessKind,
     ) -> &'a zircon_runtime::render_graph::RenderGraphPassResourceAccess {
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .find(|pass| pass.name == pass_name)
@@ -707,7 +707,7 @@ mod tests {
 
     fn texture_format(compiled: &CompiledRenderPipeline, resource_name: &str) -> TextureFormat {
         let lifetime = compiled
-            .graph
+            .graph()
             .resource_lifetimes()
             .iter()
             .find(|lifetime| lifetime.name == resource_name)

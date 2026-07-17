@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use zircon_runtime::core::{CoreHandle, CoreWeak};
 
 use crate::engine::SoundEngineState;
+use crate::poison_recovery::lock_recover;
 use crate::SoundConfig;
 
 #[derive(Clone, Debug, Default)]
@@ -36,19 +37,14 @@ impl DefaultSoundManager {
     }
 
     pub(super) fn config(&self) -> SoundConfig {
-        self.config
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner())
-            .clone()
+        lock_recover(&self.config).clone()
     }
 
     #[cfg(test)]
     pub(crate) fn poison_state_for_test(&self) {
         let state = Arc::clone(&self.state);
         let _ = std::panic::catch_unwind(move || {
-            let _guard = state
-                .lock()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            let _guard = lock_recover(&state);
             panic!("poison sound state for recovery coverage");
         });
     }

@@ -94,6 +94,13 @@ struct ActiveJobEntry {
 }
 
 impl EditorJobProgressSource {
+    pub fn primary_snapshot(&self) -> Option<EditorJobProgressSnapshot> {
+        self.lock_active()
+            .values()
+            .find(|entry| !entry.terminal)
+            .map(|entry| entry.snapshot.clone())
+    }
+
     pub fn snapshot(&self) -> Vec<EditorJobProgressSnapshot> {
         self.lock_active()
             .values()
@@ -212,5 +219,23 @@ mod tests {
         progress.complete(id);
         assert!(!progress.has_active());
         assert!(progress.unfinished_jobs().is_empty());
+    }
+
+    #[test]
+    fn primary_snapshot_clones_only_the_smallest_visible_job() {
+        let progress = EditorJobProgressSource::default();
+        let first = JobId::new(2);
+        let hidden = JobId::new(1);
+        let later = JobId::new(9);
+        progress.register(later, &EditorJobSpec::new("later", JobCategory::Thumbnail));
+        progress.register(first, &EditorJobSpec::new("first", JobCategory::Compile));
+        progress.register(hidden, &EditorJobSpec::new("hidden", JobCategory::Import));
+        progress.apply_event(hidden, &JobEventKind::Completed);
+
+        let primary = progress.primary_snapshot().unwrap();
+
+        assert_eq!(primary.id(), first);
+        assert_eq!(primary.label(), "first");
+        assert_eq!(progress.snapshot().len(), 2);
     }
 }

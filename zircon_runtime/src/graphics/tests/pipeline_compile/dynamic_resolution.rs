@@ -160,7 +160,7 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
     ));
 
     let upscale_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "upscale")
@@ -175,7 +175,7 @@ fn dynamic_resolution_scales_internal_graph_resources_without_resizing_viewport_
     }));
 
     let output_transfer = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "output-transfer")
@@ -244,7 +244,7 @@ fn default_core2d_pipeline_compiles_expected_stage_order_and_passes() {
     );
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| (pass.name.as_str(), pass.executor_id.as_deref()))

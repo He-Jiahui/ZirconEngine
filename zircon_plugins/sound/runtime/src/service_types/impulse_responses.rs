@@ -15,9 +15,7 @@ impl DefaultSoundManager {
                 "impulse response samples must be non-empty and finite".to_string(),
             ));
         }
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .impulse_responses
             .insert(impulse_response, samples);
         Ok(())
@@ -27,7 +25,7 @@ impl DefaultSoundManager {
         &self,
         impulse_response: SoundImpulseResponseId,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         state
             .impulse_responses
             .remove(&impulse_response)

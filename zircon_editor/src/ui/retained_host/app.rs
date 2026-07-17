@@ -270,6 +270,7 @@ struct RetainedEditorHost {
     hierarchy_pointer_bridge: HierarchyPointerBridge,
     hierarchy_pointer_state: HierarchyPointerState,
     hierarchy_pointer_size: UiSize,
+    hierarchy_scene_entries: Arc<[SceneEntry]>,
     console_scroll_surface: ScrollSurfaceHostState,
     inspector_scroll_surface: ScrollSurfaceHostState,
     browser_asset_details_scroll_surface: ScrollSurfaceHostState,
@@ -307,6 +308,7 @@ struct ActiveDrawerResize {
 }
 
 struct AssetSurfacePointerState {
+    snapshot: Option<Arc<crate::ui::workbench::snapshot::AssetWorkspaceSnapshot>>,
     tree_bridge: AssetFolderTreePointerBridge,
     tree_state: AssetListPointerState,
     tree_size: UiSize,

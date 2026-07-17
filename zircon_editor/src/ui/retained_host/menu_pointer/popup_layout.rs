@@ -37,13 +37,6 @@ pub(in crate::ui::retained_host::menu_pointer) fn popup_content_height(item_coun
     (menu_popup_content_height(item_count) - POPUP_PADDING * 2.0).max(0.0)
 }
 
-pub(in crate::ui::retained_host::menu_pointer) fn popup_viewport_extent(
-    layout: &HostMenuPointerLayout,
-    menu_index: usize,
-) -> f32 {
-    popup_grid_layout(layout, menu_index, 0.0, 0.0).viewport_extent
-}
-
 pub(in crate::ui::retained_host::menu_pointer) fn popup_scroll_metrics(
     layout: &HostMenuPointerLayout,
     menu_index: usize,

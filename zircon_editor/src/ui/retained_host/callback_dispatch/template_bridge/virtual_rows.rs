@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use thiserror::Error;
 use zircon_runtime::ui::surface::UiSurface;
 use zircon_runtime_interface::ui::{
@@ -187,18 +189,31 @@ impl TemplateBridgeVirtualRowSequence {
                 control_id: self.prototype_control_id.clone(),
             })?;
         let prototype_slot = prototype_slot(surface, parent_id, prototype_id);
+        let existing_virtual_rows = surface
+            .tree
+            .nodes
+            .values()
+            .filter_map(|node| {
+                node.template_metadata
+                    .as_ref()
+                    .and_then(|metadata| metadata.control_id.as_deref())
+                    .and_then(|control_id| self.virtual_row_number(control_id))
+            })
+            .collect::<HashSet<_>>();
+        let mut next_node_id = next_node_id(surface).0;
 
         for virtual_index in 0..required_virtual_count {
             let row_number = self.authored_row_count + virtual_index + 1;
             let control_id = self.virtual_control_id(row_number);
-            if control_node_id(surface, &control_id).is_some() {
+            if existing_virtual_rows.contains(&row_number) {
                 continue;
             }
             let context = TemplateBridgeVirtualRowContext {
                 row_number,
                 control_id,
             };
-            let node_id = next_node_id(surface);
+            let node_id = UiNodeId::new(next_node_id);
+            next_node_id = next_node_id.saturating_add(1);
             let row = self.virtual_row_from_prototype(
                 prototype_node.clone(),
                 node_id,
@@ -401,5 +416,24 @@ fn structure_dirty_flags() -> UiDirtyFlags {
         input: true,
         text: true,
         ..UiDirtyFlags::default()
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn virtual_row_growth_indexes_existing_rows_and_node_ids_once() {
+        let source = include_str!("virtual_rows.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+        let ensure = implementation
+            .split("    fn ensure<F>(")
+            .nth(1)
+            .and_then(|body| body.split("    fn prune(").next())
+            .expect("ensure implementation");
+
+        assert!(ensure.contains("existing_virtual_rows"));
+        assert!(ensure.contains("let mut next_node_id = next_node_id(surface).0"));
+        assert!(!ensure.contains("control_node_id(surface, &control_id)"));
+        assert_eq!(ensure.matches("next_node_id(surface)").count(), 1);
     }
 }

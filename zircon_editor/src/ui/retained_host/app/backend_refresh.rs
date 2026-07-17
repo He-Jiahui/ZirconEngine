@@ -1,5 +1,5 @@
 use zircon_runtime::asset::watch::AssetChange;
-use zircon_runtime_interface::resource::ResourceEvent;
+use zircon_runtime_interface::resource::{ResourceEvent, ResourceLocator};
 
 use crate::ui::host::editor_asset_manager::{EditorAssetChange, EditorAssetChangeKind};
 
@@ -60,18 +60,19 @@ pub(crate) fn plan_asset_backend_refresh(
     }
 
     if let Some(default_scene_uri) = default_scene_uri {
+        let default_scene_locator = ResourceLocator::parse(default_scene_uri).ok();
         let default_scene_changed = asset_changes
             .iter()
-            .any(|change| change.uri.to_string() == default_scene_uri)
+            .any(|change| default_scene_locator.as_ref() == Some(&change.uri))
             || resource_changes.iter().any(|change| {
                 change
                     .locator
                     .as_ref()
-                    .is_some_and(|locator| locator.to_string() == default_scene_uri)
+                    .is_some_and(|locator| default_scene_locator.as_ref() == Some(locator))
                     || change
                         .previous_locator
                         .as_ref()
-                        .is_some_and(|locator| locator.to_string() == default_scene_uri)
+                        .is_some_and(|locator| default_scene_locator.as_ref() == Some(locator))
             });
         if default_scene_changed {
             plan.reload_default_scene = true;
@@ -81,4 +82,22 @@ pub(crate) fn plan_asset_backend_refresh(
     }
 
     plan
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn default_scene_refresh_parses_the_locator_once() {
+        let source = include_str!("backend_refresh.rs");
+        let production = source.split("#[cfg(test)]").next().expect("implementation");
+        let formatting_comparison = [".to_", "string() == default_scene_uri"].concat();
+
+        assert!(!production.contains(&formatting_comparison));
+        assert_eq!(
+            production
+                .matches("ResourceLocator::parse(default_scene_uri)")
+                .count(),
+            1
+        );
+    }
 }

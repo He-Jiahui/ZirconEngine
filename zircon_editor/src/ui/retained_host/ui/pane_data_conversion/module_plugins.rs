@@ -29,35 +29,35 @@ pub(crate) fn to_host_contract_module_plugins_pane_from_host_pane(
 }
 
 fn to_host_contract_module_plugin_status(
-    data: ModulePluginStatusViewData,
+    data: &ModulePluginStatusViewData,
 ) -> host_contract::ModulePluginStatusData {
     host_contract::ModulePluginStatusData {
-        plugin_id: data.plugin_id,
-        display_name: data.display_name,
-        package_source: data.package_source,
-        load_state: data.load_state,
+        plugin_id: data.plugin_id.clone(),
+        display_name: data.display_name.clone(),
+        package_source: data.package_source.clone(),
+        load_state: data.load_state.clone(),
         enabled: data.enabled,
         required: data.required,
-        target_modes: data.target_modes,
-        packaging: data.packaging,
-        runtime_crate: data.runtime_crate,
-        editor_crate: data.editor_crate,
-        runtime_capabilities: data.runtime_capabilities,
-        editor_capabilities: data.editor_capabilities,
-        optional_features: data.optional_features,
-        feature_action_label: data.feature_action_label,
-        feature_action_id: data.feature_action_id,
-        diagnostics: data.diagnostics,
-        primary_action_label: data.primary_action_label,
-        primary_action_id: data.primary_action_id,
-        packaging_action_label: data.packaging_action_label,
-        packaging_action_id: data.packaging_action_id,
-        target_modes_action_label: data.target_modes_action_label,
-        target_modes_action_id: data.target_modes_action_id,
-        unload_action_label: data.unload_action_label,
-        unload_action_id: data.unload_action_id,
-        hot_reload_action_label: data.hot_reload_action_label,
-        hot_reload_action_id: data.hot_reload_action_id,
+        target_modes: data.target_modes.clone(),
+        packaging: data.packaging.clone(),
+        runtime_crate: data.runtime_crate.clone(),
+        editor_crate: data.editor_crate.clone(),
+        runtime_capabilities: data.runtime_capabilities.clone(),
+        editor_capabilities: data.editor_capabilities.clone(),
+        optional_features: data.optional_features.clone(),
+        feature_action_label: data.feature_action_label.clone(),
+        feature_action_id: data.feature_action_id.clone(),
+        diagnostics: data.diagnostics.clone(),
+        primary_action_label: data.primary_action_label.clone(),
+        primary_action_id: data.primary_action_id.clone(),
+        packaging_action_label: data.packaging_action_label.clone(),
+        packaging_action_id: data.packaging_action_id.clone(),
+        target_modes_action_label: data.target_modes_action_label.clone(),
+        target_modes_action_id: data.target_modes_action_id.clone(),
+        unload_action_label: data.unload_action_label.clone(),
+        unload_action_id: data.unload_action_id.clone(),
+        hot_reload_action_label: data.hot_reload_action_label.clone(),
+        hot_reload_action_id: data.hot_reload_action_id.clone(),
     }
 }
 
@@ -99,10 +99,7 @@ fn module_plugin_row_nodes(
     let list_width = list_frame.width.max(content_size.width).max(0.0);
     let mut nodes = Vec::new();
 
-    for row in 0..data.plugins.row_count() {
-        let Some(plugin) = data.plugins.row_data(row) else {
-            continue;
-        };
+    for (row, plugin) in data.plugins.iter().enumerate() {
         let plugin_id = plugin.plugin_id.to_string();
         let row_y = list_frame.y + row as f32 * (MODULE_PLUGIN_ROW_HEIGHT + MODULE_PLUGIN_ROW_GAP);
         let row_frame = host_contract::TemplateNodeFrameData {

@@ -44,6 +44,10 @@ impl AssetTypeRegistry {
         self.entries.get(asset_type).map(|entry| &entry.definition)
     }
 
+    pub(super) fn get_by_id(&self, asset_type: &str) -> Option<&AssetTypeDefinition> {
+        self.entries.get(asset_type).map(|entry| &entry.definition)
+    }
+
     pub fn definitions(&self) -> impl Iterator<Item = &AssetTypeDefinition> {
         self.entries.values().map(|entry| &entry.definition)
     }

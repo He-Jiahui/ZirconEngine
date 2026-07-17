@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 
-use image::{ImageBuffer, ImageFormat, Rgba};
+use image::{ColorType, ImageFormat};
 use zircon_runtime::asset::project::ProjectManager;
 use zircon_runtime::asset::{AssetUri, SpriteAtlasAsset};
 
@@ -37,19 +37,15 @@ pub fn write_sprite_atlas_artifacts(
     let image_path = artifact_root.join(format!("{}.png", config.output_stem));
     let manifest_path = artifact_root.join(format!("{}.toml", config.output_stem));
 
-    let image = ImageBuffer::<Rgba<u8>, Vec<u8>>::from_raw(
+    image::save_buffer_with_format(
+        &image_path,
+        &packed.rgba,
         packed.atlas.width,
         packed.atlas.height,
-        packed.rgba.clone(),
+        ColorType::Rgba8,
+        ImageFormat::Png,
     )
-    .ok_or_else(|| {
-        SpriteAtlasBuildError::AtlasValidation(
-            "sprite atlas rgba bytes do not match atlas size".to_string(),
-        )
-    })?;
-    image
-        .save_with_format(&image_path, ImageFormat::Png)
-        .map_err(SpriteAtlasBuildError::from)?;
+    .map_err(SpriteAtlasBuildError::from)?;
 
     let manifest_asset = SpriteAtlasAsset {
         atlas_texture: atlas_texture.clone(),
@@ -181,6 +177,14 @@ mod tests {
         );
 
         let _ = fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn sprite_atlas_artifact_writer_does_not_clone_the_full_rgba_payload() {
+        let source = include_str!("artifact.rs");
+        let full_clone = ["packed", ".rgba", ".clone()"].concat();
+
+        assert!(!source.contains(&full_clone));
     }
 
     fn unique_temp_project_root(label: &str) -> PathBuf {

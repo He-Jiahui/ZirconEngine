@@ -469,7 +469,7 @@ mod tests {
         let graph = RenderGraphBuilder::new("empty-runtime-frame-test")
             .compile()
             .unwrap();
-        CompiledRenderPipeline {
+        CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(1),
             name: "empty".to_string(),
             renderer_name: "empty".to_string(),
@@ -481,7 +481,7 @@ mod tests {
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
             graph,
-        }
+        })
     }
 
     fn advanced_runtime_plan_with_virtual_geometry() -> AdvancedProfileRuntimePlan {

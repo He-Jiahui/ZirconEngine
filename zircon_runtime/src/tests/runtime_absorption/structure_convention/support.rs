@@ -98,6 +98,18 @@ pub(super) fn assert_contains_all(label: &str, source: &str, required: &[&str]) 
     );
 }
 
+pub(super) fn assert_contains_all_exact(label: &str, source: &str, required: &[&str]) {
+    let missing: Vec<_> = required
+        .iter()
+        .copied()
+        .filter(|anchor| !source.contains(anchor))
+        .collect();
+    assert!(
+        missing.is_empty(),
+        "{label} missing required anchors: {missing:?}"
+    );
+}
+
 fn current_status_row_owner_inventory_source() -> &'static str {
     static SOURCE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
     SOURCE.get_or_init(|| {

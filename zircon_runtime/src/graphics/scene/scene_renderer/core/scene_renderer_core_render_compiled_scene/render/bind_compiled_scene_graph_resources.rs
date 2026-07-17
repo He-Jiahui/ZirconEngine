@@ -56,7 +56,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
                 view: resource.view(),
             });
     bind_frame_graph_resources(
-        &pipeline.graph,
+        pipeline.graph(),
         graph_resources,
         target,
         scene_light_data_buffer,
@@ -64,7 +64,7 @@ pub(super) fn bind_compiled_scene_graph_resources(
         Some(shadow_atlas_resources),
     );
     bind_history_graph_resources(
-        &pipeline.graph,
+        pipeline.graph(),
         graph_resources,
         history_textures,
         HistoryGraphResourceBindingFlags {
@@ -78,23 +78,27 @@ pub(super) fn bind_compiled_scene_graph_resources(
         },
     );
     bind_environment_ibl_graph_resources(
-        &pipeline.graph,
+        pipeline.graph(),
         environment_source_cubemap_view,
         graph_resources,
     );
     graph_resources
-        .materialize_transient_resources_with_pool(device, &pipeline.graph, transient_resource_pool)
+        .materialize_transient_resources_with_pool(
+            device,
+            pipeline.graph(),
+            transient_resource_pool,
+        )
         .map_err(GraphicsError::Asset)?;
     bind_execution_owned_graph_resources(
         device,
-        &pipeline.graph,
+        pipeline.graph(),
         graph_resources,
         mesh_draw_lists,
         hzb_occlusion_culler,
     );
     bind_plugin_graph_resources(
         device,
-        &pipeline.graph,
+        pipeline.graph(),
         plugin_external_buffer_bindings,
         graph_resources,
     );

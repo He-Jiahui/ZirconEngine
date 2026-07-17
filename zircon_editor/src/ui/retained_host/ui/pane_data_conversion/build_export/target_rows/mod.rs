@@ -4,7 +4,7 @@ mod metrics;
 mod node;
 mod row;
 
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use crate::ui::layouts::windows::workbench_host_window::{
     BuildExportPaneViewData, PaneContentSize,
@@ -24,10 +24,8 @@ pub(super) fn build_export_target_row_nodes(
     let list_width = list_frame.width.max(content_size.width).max(0.0);
     let mut nodes = Vec::new();
 
-    let targets = (0..data.targets.row_count())
-        .filter_map(|row| data.targets.row_data(row))
-        .collect::<Vec<_>>();
-    let mut platform_counts = BTreeMap::new();
+    let targets = data.targets.iter().collect::<Vec<_>>();
+    let mut platform_counts = HashMap::new();
     for target in &targets {
         *platform_counts
             .entry(build_export_key(target.platform.as_str()))
@@ -44,11 +42,11 @@ pub(super) fn build_export_target_row_nodes(
             )
         })
         .collect::<Vec<_>>();
-    let mut target_id_counts = BTreeMap::new();
+    let mut target_id_counts = HashMap::new();
     for target_id in &target_ids {
         *target_id_counts.entry(target_id.clone()).or_insert(0usize) += 1;
     }
-    let mut target_id_occurrences = BTreeMap::new();
+    let mut target_id_occurrences = HashMap::new();
 
     for (row, (target, mut target_id)) in targets.into_iter().zip(target_ids).enumerate() {
         if target_id_counts.get(&target_id).copied().unwrap_or(0) > 1 {
@@ -61,7 +59,7 @@ pub(super) fn build_export_target_row_nodes(
         nodes.extend(build_export_target_nodes(
             row,
             &target_id,
-            &target,
+            target,
             &list_frame,
             list_width,
         ));

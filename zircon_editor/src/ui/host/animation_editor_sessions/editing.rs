@@ -251,7 +251,7 @@ impl EditorUiHost {
         ) -> Result<bool, EditorError>,
     {
         self.ensure_animation_editor_session(instance_id)?;
-        let (changed, title, dirty, payload) = {
+        let (changed, title, dirty) = {
             let mut sessions = self.lock_animation_editor_sessions();
             let entry = sessions.get_mut(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!(
@@ -264,11 +264,12 @@ impl EditorUiHost {
                 changed,
                 entry.session.display_name(),
                 entry.session.is_dirty(),
-                serde_json::to_value(&entry.route)
-                    .map_err(|error| EditorError::UiAsset(error.to_string()))?,
             )
         };
-        self.update_view_instance_metadata(instance_id, Some(title), Some(dirty), Some(payload))?;
+        if !changed {
+            return Ok(false);
+        }
+        self.update_view_instance_metadata(instance_id, Some(title), Some(dirty), None)?;
         Ok(changed)
     }
 
@@ -346,5 +347,24 @@ impl EditorUiHost {
                     .is_ok_and(|route| route.asset_locator() == &asset_locator)
             })
             .map(|instance| instance.instance_id.clone())
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn animation_mutation_skips_noops_and_does_not_reserialize_the_stable_route() {
+        let source = include_str!("editing.rs");
+        let body = source
+            .split("fn with_animation_session_mut")
+            .nth(1)
+            .expect("animation mutation helper")
+            .split("fn focused_animation_sequence_instance")
+            .next()
+            .expect("animation mutation helper body");
+        let route_serialization = ["serde_json::", "to_value"].concat();
+
+        assert!(body.contains("if !changed"));
+        assert!(!body.contains(&route_serialization));
     }
 }

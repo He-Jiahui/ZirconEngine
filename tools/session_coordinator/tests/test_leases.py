@@ -41,6 +41,46 @@ class LeaseTests(unittest.TestCase):
         self.assertEqual(("a.txt",), second.conflicts)
         self.assertEqual([], self.service.owned_paths("session-b"))
 
+    def test_directory_lease_blocks_a_foreign_child_file_claim(self) -> None:
+        """A subtree owner and a child-file owner must never both write main."""
+        child = self.repo / "input/runtime/event_buffer/frame.rs"
+        child.parent.mkdir(parents=True)
+        child.write_text("pub(crate) struct FrameEventBuffer;\n", encoding="utf-8")
+
+        parent = self.service.acquire("session-a", ["input"])
+        blocked = self.service.acquire("session-b", ["input/runtime/event_buffer/frame.rs"])
+
+        self.assertTrue(parent.acquired)
+        self.assertFalse(blocked.acquired)
+        self.assertEqual(("input",), blocked.conflicts)
+
+    def test_child_file_lease_blocks_a_foreign_directory_claim(self) -> None:
+        """A later broad claim cannot subsume an already owned exact source file."""
+        child = self.repo / "input/runtime/event_buffer/frame.rs"
+        child.parent.mkdir(parents=True)
+        child.write_text("pub(crate) struct FrameEventBuffer;\n", encoding="utf-8")
+
+        exact = self.service.acquire("session-a", ["input/runtime/event_buffer/frame.rs"])
+        blocked = self.service.acquire("session-b", ["input"])
+
+        self.assertTrue(exact.acquired)
+        self.assertFalse(blocked.acquired)
+        self.assertEqual(("input/runtime/event_buffer/frame.rs",), blocked.conflicts)
+
+    def test_directory_owner_satisfies_an_exact_child_ownership_check(self) -> None:
+        """The owning subtree Session may validate a child without a duplicate claim."""
+        child = self.repo / "input/runtime/event_buffer/frame.rs"
+        child.parent.mkdir(parents=True)
+        child.write_text("pub(crate) struct FrameEventBuffer;\n", encoding="utf-8")
+        self.assertTrue(self.service.acquire("session-a", ["input"]).acquired)
+
+        self.service.require_owned_live(
+            "session-a",
+            ["input/runtime/event_buffer/frame.rs"],
+            error_code="lease_not_owned",
+            message="expected subtree ownership",
+        )
+
     def test_expired_lease_can_be_reclaimed_after_grace(self) -> None:
         now = datetime(2026, 7, 11, tzinfo=UTC)
         self.assertTrue(self.service.acquire("session-a", ["a.txt"], now=now).acquired)

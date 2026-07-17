@@ -32,6 +32,7 @@ fn stop_source_reports_cleanup_intent_for_any_input() {
         .unwrap();
     let mut external_source = SoundSourceDescriptor::clip(clip);
     external_source.input = SoundSourceInput::External(external.clone());
+    external_source.playing = false;
     let external_id = sound.create_source(external_source).unwrap();
 
     sound.stop_source(external_id).unwrap();

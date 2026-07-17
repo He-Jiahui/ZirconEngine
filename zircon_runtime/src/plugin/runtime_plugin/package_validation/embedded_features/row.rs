@@ -9,11 +9,11 @@ use self::{
 };
 use super::manifest::validate_runtime_plugin_package_embedded_feature_manifest;
 
-pub(super) fn validate_runtime_plugin_package_embedded_feature_row(
+pub(super) fn validate_runtime_plugin_package_embedded_feature_row<'a>(
     field_name: &str,
-    feature: &PluginFeatureBundleManifest,
-    package_manifest: &PluginPackageManifest,
-    seen_feature_providers: &mut Vec<(String, String)>,
+    feature: &'a PluginFeatureBundleManifest,
+    package_manifest: &'a PluginPackageManifest,
+    seen_feature_providers: &mut Vec<(&'a str, &'a str)>,
     diagnostics: &mut Vec<String>,
 ) {
     validate_runtime_plugin_package_embedded_feature_manifest(feature, diagnostics);

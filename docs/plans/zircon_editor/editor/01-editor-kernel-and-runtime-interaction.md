@@ -27,6 +27,20 @@ status: in_progress
 
 本计划落地 00 总览的 L1 内核骨架（`EditorContext` + 类型化消息）与 L2 门面（`EditorRuntimeGateway`）。它是 W1 基座计划：02/03/04/05/06 全部以本计划的类型为地基。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-editor-kernel-runtime-interaction",
+  "goal": "完成编辑器内核消息、上下文与 runtime gateway 双实现，并清除 UI 对 runtime owner 的深路径旁路。",
+  "milestones": [
+    {"id": "M1", "title": "消息类型化与内核拆解", "depends_on": []},
+    {"id": "M2", "title": "Gateway 双实现与 selected_node 迁出", "depends_on": ["M1"]}
+  ]
+}
+```
+
+<!-- Workflow topology mirrors the existing M1/M2 headings. Slice acceptance does not promote the parent beyond in_progress. -->
+
 ## 参照证据（dev/）
 
 **Fyrox `Editor` 聚合根**（`dev/Fyrox/editor/src/lib.rs:615-670`）：编辑器状态集中于单一结构体——`engine: Engine`、`scenes: SceneContainer`、`message_sender/message_receiver`（MPSC）、`plugins: EditorPluginsContainer`、`docking_manager`、`property_editors: Arc<PropertyEditorDefinitionContainer>`、`running_game_process: Option<(std::process::Child, Arc<AtomicBool>)>`（:660）。一切编辑意图经 `Message` 枚举进入主循环，主循环 `match` 分派。
@@ -142,17 +156,19 @@ zircon_editor/src/ui/workbench/
 pub struct EditorContext {
     bus: SharedEditorMessageBus,
     events: Arc<EditorEventService>,          // journal + listeners + next_event_id/sequence/revision
-    gateway: Arc<dyn EditorRuntimeGateway>,
-    capabilities: RuntimeCapabilities,        // 构造期物化，只读快照
-    // 后续计划字段（本计划留类型占位，不实现）：
-    // jobs(14) / settings(17) / transactions(03) / selection(05) / contributions(06) …
+    gateway: EditorRuntimeGatewayHandle,      // 稳定身份；transport 可在启动后替换
+    jobs: EditorJobSystem,
+    transactions: EditorTransactionEngine,
+    commands: EditorCommandRegistryHandle,
+    command_eval: CommandEvalSnapshotHandle,
+    // 后续计划字段：settings(17) / selection(05) / contributions(06) …
 }
 
 impl EditorContext {
     pub fn bus(&self) -> &SharedEditorMessageBus { &self.bus }
     pub fn events(&self) -> &Arc<EditorEventService> { &self.events }
-    pub fn gateway(&self) -> &Arc<dyn EditorRuntimeGateway> { &self.gateway }
-    pub fn capabilities(&self) -> &RuntimeCapabilities { &self.capabilities }
+    pub fn gateway(&self) -> &EditorRuntimeGatewayHandle { &self.gateway }
+    pub fn capabilities(&self) -> RuntimeCapabilities { self.gateway.capabilities() }
 }
 ```
 
@@ -160,8 +176,8 @@ impl EditorContext {
 
 1. `SharedEditorMessageBus::default()`（无依赖）；
 2. `EditorEventService::new(bus.clone())`（journal 写入即产 bus 事件）；
-3. gateway：GUI 路径注入 `InProcessGateway::new(core_handle, level_system)`（由 `EditorManager` 物化时从模块内核解析）；headless/远程路径注入 `SessionGateway::new(api_table, session_handle)`；
-4. `capabilities = gateway.capabilities().clone()`；
+3. 创建稳定 `EditorRuntimeGatewayHandle`；GUI 进程内路径可注入 `InProcessGateway::new(core_handle, level_system)`，动态/链接 runtime 路径由 app 在 session 建立后替换为 `SessionGateway::new(runtime_owner, api_table, session_handle, capabilities)`；
+4. capabilities 不在 `EditorContext` 构造期缓存；每次调用从稳定 handle 获取 owned 只读快照，保证 transport 替换后不会返回已退休 gateway 内部引用；
 5. 组装 `EditorContext`，`Arc` 化后交 `EditorManager` 持有（GUI）或 commandlet runner 持有（16）。
 
 **禁止**：`EditorContext` 提供 `Default`（隐藏依赖）、字段 `pub`（绕过访问器）、任何 `Mutex<EditorContext>` 整体锁（重蹈覆辙——锁在各服务内部）。
@@ -234,31 +250,47 @@ pub enum FocusMessage {                  // 05 生产
 ```rust
 // core/gateway/contract.rs
 pub enum GatewayError {
-    SessionLost,                         // 函数表调用失败/句柄失效
+    SessionLost,                         // gateway 构造时 session 句柄无效
     RequiresSerializedAccess,            // SessionGateway 对借用式访问的定型拒绝
+    ReentrantBorrowedWorldAccess,         // 同线程借用回调重入 fail-fast
     CapabilityMissing { capability: &'static str },
-    Runtime(String),                     // runtime 侧错误透传（display 化，不跨界传类型）
+    Runtime { message: String },          // runtime 状态错误透传（display 化，不跨界传类型）
+    Protocol { message: String },         // ABI/JSON/owned-buffer 合同错误
 }
 
 pub struct RuntimeCapabilities {
-    pub session_profile: SessionProfileKind,       // 五态镜像（interface 侧 DTO）
-    pub core_capabilities: Vec<String>,            // EditorCoreProfile 六能力命中集
-    pub plugin_summary: Vec<PluginSummaryEntry>,   // id + version + activation
+    session_profile: SessionProfileKind,       // 五态镜像（interface 侧 DTO）
+    core_capabilities: Vec<String>,            // EditorCoreProfile 六能力命中集
+    plugin_summary: Vec<PluginSummaryEntry>,   // id + version + activation；完整 tuple 确定性排序
+}
+
+pub struct EditorRuntimeFrame {
+    abi_version: u32,
+    width: u32,
+    height: u32,
+    generation: u64,
+    rgba: Vec<u8>,                         // host-owned；不携带 provider free 函数指针
 }
 
 pub trait EditorRuntimeGateway: Send + Sync {
-    fn capabilities(&self) -> &RuntimeCapabilities;
+    fn capabilities(&self) -> RuntimeCapabilities;
+    fn session_handle(&self) -> ZrRuntimeSessionHandle;
     // 借用式（仅 InProcess 支持）
     fn with_world(&self, f: &mut dyn FnMut(&World)) -> Result<(), GatewayError>;
     fn with_world_mut(&self, f: &mut dyn FnMut(&mut World)) -> Result<(), GatewayError>;
-    // 序列化式（双实现都支持；02 在此扩 query/watch）
-    fn inspect(&self, query: WorldInspectionQuery) -> Result<WorldInspection, GatewayError>;
-    fn tick(&self, dt: FrameTick) -> Result<(), GatewayError>;
-    fn capture_frame(&self, viewport: ViewportRef) -> Result<FramePayload, GatewayError>;
-    fn push_editor_overlay(&self, overlay: EditorOverlayInput) -> Result<(), GatewayError>; // 选中集推送过渡通道
-    // 02 追加 query/watch；04 追加 spawn_secondary_session
+    // 当前序列化式基础面；02 在此扩 query/watch，05/10 会签 overlay 输入
+    fn tick_frame(&self) -> Result<bool, GatewayError>;
+    fn handle_event(&self, event: ZrRuntimeEventV1) -> Result<(), GatewayError>;
+    fn capture_frame(&self, viewport: ZrRuntimeViewportHandle,
+                     size: ZrRuntimeViewportSizeV1) -> Result<EditorRuntimeFrame, GatewayError>;
+    fn profile_control(&self, request: &ProfileControlRequest)
+        -> Result<Option<ProfileControlResponse>, GatewayError>;
+    fn subscribe_plugin_event(...); fn unsubscribe_plugin_event(...); fn drain_plugin_events(...);
+    fn submit_operation(...); fn poll_operation(...); fn harvest_operation(...);
 }
 ```
+
+`SessionGateway` 收到的 `ZrOwnedByteBuffer` 必须在 gateway 调用栈内完成结构校验并恰好释放一次。frame 的 RGBA 在返回前复制到 `EditorRuntimeFrame` 的宿主 `Vec<u8>`；禁止把带 runtime provider `free` 函数指针的 `ZrRuntimeFrameV1` 直接暴露给编辑器消费者。
 
 行为矩阵（契约测试逐格断言）：
 
@@ -310,8 +342,8 @@ pub trait EditorRuntimeGateway: Send + Sync {
 ### M2 Gateway 双实现与 selected_node 迁出
 
 - 切片 2.1：`gateway/contract.rs` + `InProcessGateway`（`EditorRuntimeClient` 迁入删原位）；`src/ui/**` 的 `zircon_runtime::scene/core` 深路径直用点改走门面（执行时 Grep 清点记状态节）。
-- 切片 2.2：`SessionGateway` 包装函数表（create/destroy/tick_frame/capture_frame/handle_event/drain_host_requests 六指针先行；viewport 三件套与 profile_control 留 04 接线）；`RuntimeCapabilities` 物化。
-- 切片 2.3：runtime 侧删 `RuntimeDynamicSession.selected_node`，`push_editor_overlay` 中性通道顶替（dynamic_api 消费点同步迁移，与 runtime owner 会签）。
+- 切片 2.2：`SessionGateway` 包装已验证的 V2 session 函数表与 handle；create/destroy 继续由 `RuntimeSession` 单一生命周期 owner 负责，gateway 持有 provider `Arc` 防止函数指针或 frame buffer 越过库生命周期，不复制 destroy 权限。当前基础面覆盖 tick/frame/event/profile/plugin-event/operation；可选 `profile_control` 缺失返回 `Ok(None)`，必需入口缺失才返回 `CapabilityMissing`；`RuntimeCapabilities` 物化为 owned 快照。
+- 切片 2.3：runtime 侧删 `RuntimeDynamicSession.selected_node`。当前源证明该字段只保存 construction 阶段默认 cube orbit anchor，没有编辑器更新入口或高亮消费；Runtime10 删除字段与高频 pointer/scroll selection-sync helper，保留中性初始 orbit target。正式 `push_editor_overlay`/HighlightSet 输入仍由 05 接管，不得为等待 05 而保留第二份选择真相。
 - 切片 2.4：守卫测试——`core/` 下 `use crate::ui` 为零（00 §7 不变量，拆解后首次可启用）；`src/ui/**` 禁 `LevelSystem/CoreHandle` 深路径（白名单=gateway 实现文件）。
 - 测试阶段：`cargo test -p zircon_editor --lib --locked` + `cargo test -p zircon_runtime --lib --locked`（session 字段删除牵连）+ `cargo test -p zircon_runtime_interface --locked`；双实现契约测试矩阵全绿；守卫红→绿记录。更新 `docs/zircon_editor/core/gateway.md`。
 
@@ -319,16 +351,22 @@ pub trait EditorRuntimeGateway: Send + Sync {
 
 - 56 处 `lock_inner` 一次迁完是最大回归面；四批时序已把它切成可 check 的步进，若单批内出现借用交叉（同函数同时摸两批字段），按「先拆函数再迁批」处理，不允许两批合迁。
 - `request()` 两段式在释放锁窗口内 target 可能被注销——二次上锁时重验 target，失效返回 `UnknownSubscriber`（新增该竞态单测）。
-- `selected_node` 迁出改变渲染选中高亮的输入来源，M2 期间 `push_editor_overlay` 每帧推送顶替；05 落地 PickIdExtract 后该通道升级为正式 HighlightSet 推送（05 计划接管）。
+- 当前 `selected_node` 不参与渲染高亮，删除它只移除过期 camera anchor node 状态；05 落地 PickIdExtract 后必须以 Editor SelectionModel 为唯一事实源，经正式 HighlightSet/overlay 合同推送，禁止恢复 runtime session 私有选择字段。
 - `Custom{schema_id}` 是插件旁路类型系统的口子——12 的贡献物化器是唯一合法生产者，schema_id 命名空间 `zircon.plugin.<id>.*` 预留，守卫随 12 落地。
 
 ## 产出记录与时间
 
 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
-当前状态：M1.1-M1.3 的实现与聚焦合同已完成；最后一轮完整门禁仍为 2763 passed / 133 failed / 34 ignored，失败已按 Editor UI 03/05/06/08 功能计划接管，因此 Editor01 M1 保持 `in_progress`，M2 尚未开始。
+当前状态：M1.1-M1.3 的实现与聚焦合同已完成；最后一轮完整门禁仍为 2763 passed / 133 failed / 34 ignored，失败已按 Editor UI 03/05/06/08 功能计划接管，因此 Editor01 M1 保持 `in_progress`。M2.1 已完成 `InProcessGateway` 借用访问基础切片：同 world 读写、稳定 handle 转发、detached 定型拒绝、重入 fail-fast、panic 恢复、跨线程 TLS 隔离及 raw owner accessor 删除均已落地；current-source review 为 0/0/0，最终受管门为 7 passed / 0 failed / exit 0（job `37b0965d5e7647bb8952c3adb523145d`，run `6b173cb849884a49b827961fdfcb6667`）。`EditorRuntimeClient` 当前源码 occurrence 已为 0，旧 client owner 不再存在。该证据只关闭基础切片；UI runtime 深路径清理、双实现矩阵和 M2.4 守卫仍未完成，因此整个 M2.1 继续 `in_progress`。
+
+M2.2 current source 已落地 `SessionGateway`、owned `RuntimeCapabilities`/`EditorRuntimeFrame`、provider lifetime、V2 tick/event/frame/profile/plugin-event/operation 转发与 app stable-handle cutover，并删除 `RuntimeSession` 的旧 gateway trait/profile bridge。独立首审为 0/2/0：owned-buffer 与 optional-profile 路径已接受；子计划记录缺失已补齐，editor-normalized table 的 create/destroy lifecycle authority 也已按 test-first source guard 硬切，`RuntimeSession` 保持唯一 create/Drop owner。最终 current-source 复审为 0/0/0。Render01 编译阻断关闭后，受管 job `18d3e80c10094fe09357ae25892bc2b8` / run `2feb43d1b0944a389cbc7cc4b3a7a0e7` 执行 focused app lifecycle gate，1 passed / 0 failed / 175 filtered、exit 0，证明 normalized table 不再携带 create/destroy 且 `RuntimeSession::Drop` 仍唯一销毁 session。gateway matrix 首个实际 run `5636833c80374faf974920f821287952` 被 Performance01 的 `SharedString` 类型推断 E0282 阻断；该问题已按对应功能计划 fixed 回传并由受管提交 `43a1957e929739e229fcd34ab0ef1c36f0f156c3` 关闭。最终 job `13392907003549dbac31e080da7ab7aa` / run `ff0b13f008754335abe011470ad59f75` 执行 `cargo test -p zircon_editor --lib gateway:: --locked --jobs 1 -- --test-threads=1`，24 passed / 0 failed / 3334 filtered、exit 0。app runtime-library 上行门 reservation `1b02c0fbbda6495c9385c057654310a6` 仍在受管 FIFO，因此 M2.2 继续 `in_progress`。
 
 - M1 详细产出归档：[2026-07-14-editor-kernel-m1-output-records](01/2026-07-14-editor-kernel-m1-output-records.md)
+- M2 当前进度：[2026-07-17-m2-gateway-current-source](01/2026-07-17-m2-gateway-current-source.md)
 - fixed 已修复：[font discovery](01/fixed-2026-07-11-editor-m1-font-discovery.md) · [plugin provider lookup](01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md) · [ZUI governance](01/fixed-2026-07-11-editor-m1-zui-governance.md) · [OIT buffer plan export](01/fixed-2026-07-12-oit-buffer-plan-export.md) · [collider shape exhaustiveness](01/fixed-2026-07-12-collider-shape-consumer-exhaustiveness.md)
 - fixed 已修复：[plan-output-record-archive-limit](09/fixed-2026-07-14-plan-output-record-archive-limit.md)
 - open 待修复：[EditorUI03 retained text](../editor_ui/03/failure-2026-07-11-retained-text-family-and-subpixel-contracts.md) · [EditorUI05 UI Asset V2](../editor_ui/05/failure-2026-07-11-ui-asset-v2-projection-drift.md) · [EditorUI06 native painter](../editor_ui/06/failure-2026-07-11-mui-native-painter-contract-drift.md) · [EditorUI08 retained window](../editor_ui/08/failure-2026-07-11-retained-window-hard-cutover-expectations.md) · [EditorUI08 runtime diagnostics](../editor_ui/08/failure-2026-07-11-runtime-diagnostics-physics-state-format.md)
+- fixed 已修复：[font-database-render-input-equivalence-visibility](01/fixed-2026-07-17-font-database-render-input-equivalence-visibility.md)
+- fixed 已修复：[Runtime15 screen-space UI text font-id report mount drift](../../zircon_runtime/text/01/fixed-2026-07-17-screen-space-ui-text-font-id-report-mount-drift.md)；Runtime15 已恢复生产挂载并收敛到 shaping query/actual glyph 单一 owner，受管 `text_font` 门 47/47、独立复审 0/0/0。
+- open 待回传：[Runtime10 editor selection state session boundary](../../zircon_runtime/runtime/10/failure-2026-07-17-editor-selection-state-runtime-session-boundary.md)；M2.3 当前源已删除 `RuntimeDynamicSession.selected_node` 与 pointer/scroll selection-sync helper，保留 construction-only 中性 orbit target，聚焦门 2/2、独立复审 0/0/0；`dynamic_api` 上行 94/112 后的 Runtime10 owner gate 已到 12/13，唯一 Runtime05 stale mirror 已按 single-source hard cut 删除并复审 0/0/0，精确重跑已进入 FIFO。Runtime15 与 Render01 跨 owner failure、Runtime10 重跑和 canonical failure return 全部完成前不能 fixed。

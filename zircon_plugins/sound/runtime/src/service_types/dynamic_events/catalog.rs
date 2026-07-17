@@ -12,10 +12,7 @@ impl DefaultSoundManager {
     pub(in crate::service_types) fn dynamic_event_catalog_impl(
         &self,
     ) -> Result<SoundDynamicEventCatalog, SoundError> {
-        Ok(self
-            .state
-            .lock()
-            .expect("sound state mutex poisoned")
+        Ok(crate::poison_recovery::lock_recover(&self.state)
             .dynamic_events
             .clone())
     }
@@ -24,7 +21,7 @@ impl DefaultSoundManager {
         &self,
         descriptor: SoundDynamicEventDescriptor,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         register_dynamic_event(&mut state.dynamic_events, descriptor)
     }
 
@@ -32,7 +29,7 @@ impl DefaultSoundManager {
         &self,
         event_id: &str,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         unregister_dynamic_event(&mut state.dynamic_events, event_id)?;
         state
             .dynamic_event_handlers

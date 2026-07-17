@@ -112,7 +112,8 @@ impl EditorWindowRegistry {
         let instances = instances_by_id(instances);
         let active_window = layout.active_activity_window_id();
 
-        for (window_id, window) in layout.activity_windows() {
+        let activity_windows = layout.activity_windows();
+        for (window_id, window) in activity_windows.iter() {
             let kind = if window.activity_drawers.is_empty() {
                 WindowKind::Ordinary
             } else {
@@ -129,9 +130,9 @@ impl EditorWindowRegistry {
                 .with_menu_overflow_mode(window.menu_overflow_mode),
             );
             for drawer in window.activity_drawers.values() {
-                sync_drawer_layout(&mut registry, &window_id, drawer, &instances);
+                sync_drawer_layout(&mut registry, window_id, drawer, &instances);
             }
-            sync_window_drawer_selection(&mut registry, &window_id, &window);
+            sync_window_drawer_selection(&mut registry, window_id, window);
         }
 
         for window in &layout.floating_windows {
@@ -148,7 +149,7 @@ impl EditorWindowRegistry {
 fn sync_detached_drawer_window(
     registry: &mut EditorWindowRegistry,
     window: &FloatingWindowLayout,
-    instances: &BTreeMap<ViewInstanceId, ViewInstance>,
+    instances: &BTreeMap<ViewInstanceId, &ViewInstance>,
 ) {
     if !window.window_id.0.starts_with("drawer-window:") {
         return;
@@ -217,7 +218,7 @@ fn sync_drawer_layout(
     registry: &mut EditorWindowRegistry,
     window_id: &ActivityWindowId,
     drawer: &ActivityDrawerLayout,
-    instances: &BTreeMap<ViewInstanceId, ViewInstance>,
+    instances: &BTreeMap<ViewInstanceId, &ViewInstance>,
 ) {
     let position = DrawerDockPosition::from_slot(drawer.slot);
     for instance_id in &drawer.tab_stack.tabs {
@@ -247,10 +248,26 @@ fn sync_drawer_layout(
     }
 }
 
-fn instances_by_id(instances: &[ViewInstance]) -> BTreeMap<ViewInstanceId, ViewInstance> {
+fn instances_by_id(instances: &[ViewInstance]) -> BTreeMap<ViewInstanceId, &ViewInstance> {
     instances
         .iter()
-        .cloned()
         .map(|instance| (instance.instance_id.clone(), instance))
         .collect()
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn window_registry_indexes_instances_without_cloning_rows() {
+        let source = include_str!("editor_window_registry.rs");
+        let index = source
+            .split("fn instances_by_id")
+            .nth(1)
+            .expect("instances_by_id body")
+            .split("#[cfg(test)]")
+            .next()
+            .expect("instances_by_id implementation");
+        assert!(!index.contains(".cloned()"));
+        assert!(index.contains("&ViewInstance"));
+    }
 }

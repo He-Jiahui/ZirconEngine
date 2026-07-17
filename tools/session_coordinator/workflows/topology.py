@@ -22,6 +22,10 @@ _LEGACY_NUMBERED_MILESTONE = re.compile(
     r"^#{2,6}\s+(?:[A-Za-z]{2,}[A-Za-z0-9]*\d*)-(?P<id>M\d+)\s+(?P<title>.+?)\s*$",
     re.MULTILINE,
 )
+_PLAIN_NUMBERED_MILESTONE = re.compile(
+    r"^#{2,6}\s+(?P<id>M\d+)\s+(?P<title>.+?)\s*$",
+    re.MULTILINE,
+)
 _SLICE = re.compile(
     r"^-\s*\[[ xX]\]\s*\*\*(?P<id>M\d+\.\d+)\s+(?P<title>.+?)\.\*\*",
     re.MULTILINE,
@@ -221,11 +225,16 @@ class TopologyParser:
 
     @staticmethod
     def _parse_fallback_milestones(text: str) -> tuple[TopologyNode, ...]:
-        # Older numbered plans used headings such as ``### SH03-M2 Title``.
-        # Treat that stable plan-local prefix as presentation only; workflow
-        # nodes remain canonical M<n> IDs and the plan file stays immutable.
+        # Older numbered plans used headings such as ``### SH03-M2 Title`` or
+        # ``### M2 Title``. Treat their plan-local presentation as syntax only;
+        # workflow nodes remain canonical M<n> IDs and the plan file stays
+        # immutable.
         matches = sorted(
-            (*_MILESTONE.finditer(text), *_LEGACY_NUMBERED_MILESTONE.finditer(text)),
+            (
+                *_MILESTONE.finditer(text),
+                *_LEGACY_NUMBERED_MILESTONE.finditer(text),
+                *_PLAIN_NUMBERED_MILESTONE.finditer(text),
+            ),
             key=lambda match: match.start(),
         )
         if not matches:

@@ -13,7 +13,7 @@ impl DefaultSoundManager {
         &self,
     ) -> Result<SoundDynamicEventExecutionReport, SoundError> {
         let (deliveries, executors) = {
-            let mut state = self.state.lock().expect("sound state mutex poisoned");
+            let mut state = crate::poison_recovery::lock_recover(&self.state);
             let handlers = state.dynamic_event_handlers.clone();
             let deliveries = dispatch_dynamic_events(&handlers, &mut state.pending_dynamic_events);
             (deliveries, state.dynamic_event_executors.clone())

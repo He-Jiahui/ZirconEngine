@@ -11,14 +11,15 @@ impl RetainedEditorHost {
     ) {
         self.use_committed_pointer_layout();
         self.focus_callback_source_window();
-        self.inspector_scroll_surface
-            .set_size(self.resolve_callback_surface_size_for_kind(
-                width,
-                height,
-                self.inspector_scroll_surface.size(),
-                ViewContentKind::Inspector,
-            ));
-        self.sync_inspector_pointer_layout();
+        let size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.inspector_scroll_surface.size(),
+            ViewContentKind::Inspector,
+        );
+        if self.inspector_scroll_surface.set_size(size) {
+            self.sync_inspector_pointer_layout();
+        }
         match self
             .inspector_scroll_surface
             .handle_scroll(UiPoint::new(x, y), delta)

@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use crate::ui::workbench::layout::{ActivityDrawerSlot, WorkbenchLayout};
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::ViewContentKind;
-use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId};
+use crate::ui::workbench::view::ViewDescriptor;
 
 use super::super::super::active_tab::active_tool_tab;
 use super::super::super::constraints::{
@@ -18,7 +18,7 @@ use super::presence::{tool_region_extent, tool_region_has_tabs, tool_region_is_e
 pub(crate) fn build_tool_region_state(
     model: &WorkbenchViewModel,
     layout: &WorkbenchLayout,
-    descriptors: &HashMap<ViewDescriptorId, &ViewDescriptor>,
+    descriptors: &HashMap<&str, &ViewDescriptor>,
     region: ShellRegionId,
     slots: &[ActivityDrawerSlot],
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
@@ -47,7 +47,7 @@ pub(crate) fn build_tool_region_state(
     }
 
     let descriptor_constraints = tab
-        .and_then(|tab| descriptors.get(&tab.descriptor_id).copied())
+        .and_then(|tab| descriptors.get(tab.descriptor_id.0.as_str()).copied())
         .map(|descriptor| {
             if descriptor.default_constraints == PaneConstraints::default() {
                 default_constraints_for_content(

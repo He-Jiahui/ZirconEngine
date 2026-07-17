@@ -160,7 +160,7 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
     ]);
     let disabled = pipeline.compile(&test_extract()).unwrap();
     let disabled_pass_names = disabled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -175,7 +175,7 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
         .compile_with_options(&test_extract(), &options)
         .unwrap();
     let enabled_pass_names = enabled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -198,7 +198,7 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
         );
     }
     let hybrid_trace = enabled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "hybrid-gi-trace-schedule")
@@ -217,7 +217,7 @@ fn gi_and_virtual_geometry_opt_in_add_feature_runtime_passes_to_graph() {
         RenderGraphComputeDispatchExtent::Fixed([1, 1, 1])
     );
     let virtual_geometry_cull = enabled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "virtual-geometry-node-cluster-cull")
@@ -258,7 +258,7 @@ fn builtin_smaa_terminal_aa_pass_compiles_after_output_transfer_when_requested()
             &RenderPipelineCompileOptions::default().with_post_process_stack(stack),
         )
         .unwrap();
-    let passes = compiled.graph.passes();
+    let passes = compiled.graph().passes();
     let pass_names = passes
         .iter()
         .map(|pass| pass.name.as_str())
@@ -325,7 +325,7 @@ fn plugin_render_feature_asset_compiles_descriptor_without_builtin_feature_ident
         )
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -336,7 +336,7 @@ fn plugin_render_feature_asset_compiles_descriptor_without_builtin_feature_ident
         "plugin descriptor pass should be compiled into the render graph"
     );
     let plugin_feature = compiled
-        .enabled_features
+        .enabled_features()
         .iter()
         .find(|feature| feature.feature_name() == "plugin.virtual_geometry")
         .expect("compiled pipeline should retain the plugin feature name");
@@ -364,7 +364,7 @@ fn plugin_render_feature_asset_respects_capability_opt_in_gate() {
 
     let compiled = pipeline.compile(&test_extract()).unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -395,7 +395,7 @@ fn plugin_neural_compute_feature_respects_capability_opt_in_gate() {
     let disabled = pipeline.compile(&test_extract()).unwrap();
     assert!(
         !disabled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name == "plugin-neural-inference"),
@@ -417,7 +417,7 @@ fn plugin_neural_compute_feature_respects_capability_opt_in_gate() {
         .unwrap();
 
     let neural_pass = enabled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "plugin-neural-inference")
@@ -476,7 +476,7 @@ fn plugin_render_feature_descriptors_replace_advanced_builtin_slots() {
         )
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())

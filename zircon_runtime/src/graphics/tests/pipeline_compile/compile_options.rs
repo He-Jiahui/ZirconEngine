@@ -51,7 +51,7 @@ fn compile_options_can_disable_clustered_history_and_rendering_plugin_features()
         .compile_with_options(&test_extract(), &options)
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -79,7 +79,7 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
 
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .filter(|pass| pass.queue == QueueLane::AsyncCompute)
@@ -87,28 +87,28 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         0
     );
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "ssao-evaluate"
             && pass.queue == QueueLane::Graphics
             && pass.declared_queue == QueueLane::AsyncCompute));
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "hzb-occlusion-cull"
             && pass.queue == QueueLane::Graphics
             && pass.declared_queue == QueueLane::AsyncCompute));
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "hzb-build"
             && pass.queue == QueueLane::Graphics
             && pass.declared_queue == QueueLane::AsyncCompute));
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "light-grid-build"
@@ -145,7 +145,7 @@ fn compile_options_fallback_async_compute_passes_to_graphics_queue() {
         ssao_output.attachment_ops, None,
         "compute storage writes must not inherit render attachment load/store ops"
     );
-    assert_eq!(compiled.graph.stats().queue_fallback_pass_count, 4);
+    assert_eq!(compiled.graph().stats().queue_fallback_pass_count, 4);
 }
 
 #[test]
@@ -158,12 +158,12 @@ fn compile_options_gate_hzb_occlusion_cull_without_removing_hzb_build() {
         .unwrap();
 
     assert!(!compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "hzb-occlusion-cull"));
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "hzb-build"));

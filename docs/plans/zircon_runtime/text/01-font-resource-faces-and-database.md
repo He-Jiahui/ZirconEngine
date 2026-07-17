@@ -10,6 +10,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/text/model/font/mod.rs
   - zircon_runtime/src/text/font/database.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
+  - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/render_state.rs
   - zircon_runtime/Cargo.toml
 design_references:
   - dev/UnrealEngine/Engine/Source/Runtime/SlateCore/Public/Fonts/CompositeFont.h
@@ -236,6 +239,8 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 
 当前概述（2026-07-14）：系统 `fontdb` face、项目字体、native shaping 与 SDF 继续共享一个 face-ID/字节 lineage；FR-M2 变量轴已贯通可反查实例、horizontal/vertical RustyBuzz、native Swash、dynamic SDF/MSDF/MTSDF 与 atlas/offline identity。Screen-space preparation 在 atlas 前按每帧唯一资产 URI 加载正式项目字体，失败保持可重试，成功加载与真实 face-count delta 分离；raw VerticalRl 批次清除内部旧 advances 后重塑形，resolved layout-line 保留其权威 advances。fallback span 同时携带 logical family、`FontFaceId` 与 `InstancedFaceId`，cosmic 投影使用有序 span 的 `partition_point`，避免同一物理 family 的逻辑变量实例合并且不引入 O(glyph×spans) 扫描。整个产品 exporter 仅在 Windows 编译，正式临时项目只导入一个 Bahnschrift face，并用真实 `wdth` min/max 形成两个逻辑实例。最终 post-review managed GPU job `d80d6dabac754907b50aa3ae2c1c1056` 为 1/1，PNG 目视与像素验收得到 narrow 256px/3187px、wide 346px/3747px、差异 4984px；focused jobs `61aaa263af684ab7b028956c772e0a20`、`deb789dcbdbe43c3b17fea6a234c9079` 同时取得 `text_font` 41/41、`text_horizontal_` 6/6、dynamic SDF/atlas/Swash 各 1/1。独立复审为 `Accept`，无 Critical/Important 遗留，FR-M2 已完成。FR-M3 CompositeFont 与跨平台 CJK fixture 继续 open，因此整个 Text01 计划保持 `in_progress`。
 
+2026-07-17 Text MVP 基础设施切片已实现共享字体库的 render-input 语义等价判定：fallback、CompositeFont、默认 UI family 与有序 face/source 任一真实变化才推进 generation；等价的 screen-space renderer 重建不再让 shaping/SDF cache 全量失效。数据库替换与 generation 递增在同一写锁临界区，snapshot 不会取得“新库 + 旧代际”；常规重复发布优先走共享字节 `Arc::ptr_eq`，不把全字体字节扫描放进热路径。当前 shared-publication 旧 focused batch 为 2/2，新默认 family guard 与并行 SDF 回归仍待协调器测试阶段执行，因此本切片状态为 `implemented / validation_pending`，Text01 仍保持 `in_progress`。
+
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 
 - 迁入记录：[`01/2026-07-10-font-resource-faces-and-database-output-records.md`](01/2026-07-10-font-resource-faces-and-database-output-records.md)
@@ -245,3 +250,5 @@ face 失效(`unregister_asset`/`invalidate_face`,来源:资产热重载、字体
 - fixed 已修复：[runtime-text-ui-system-constructor-drift](../../zircon_editor/editor_layout/15/fixed-2026-07-14-runtime-text-ui-system-constructor-drift.md)
 - fixed 已修复：[ui-text-module-split-import-drift](../../zircon_editor/editor/02/fixed-2026-07-14-ui-text-module-split-import-drift.md)
 - fixed 已修复：[dynamic-scene-format-version-root-export-drift](01/fixed-2026-07-14-dynamic-scene-format-version-root-export-drift.md)
+- fixed 已修复：[font-database-render-input-equivalence-visibility](../../zircon_editor/editor/01/fixed-2026-07-17-font-database-render-input-equivalence-visibility.md)
+- open 待修复（Runtime15）：[screen-space-ui-text-font-id-report-mount-drift](../runtime/15/failure-2026-07-17-screen-space-ui-text-font-id-report-mount-drift.md)；Text01 46 项行为通过，但 `text_font` 门命中缺少真实生产调用的 Runtime15 child-owner 守卫，Text01 failure 暂不回传。

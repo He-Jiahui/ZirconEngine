@@ -50,7 +50,7 @@ capability = "editor.extension.timeline_sequence_authoring"
 key = "sound.backend"
 display_name = "Audio Backend"
 value_type = "string"
-default_value = "software-mixer"
+default_value = "kira-cpal"
 
 [[options]]
 key = "sound.sample_rate_hz"
@@ -69,7 +69,7 @@ key = "sound.channel_layout"
 display_name = "Channel Layout"
 value_type = "enum"
 default_value = "stereo"
-enum_values = ["mono", "stereo", "quad", "surround_5_0", "surround_5_1", "surround_5_1_side", "surround_7_0", "surround_7_1"]
+enum_values = ["mono", "stereo"]
 
 [[options]]
 key = "sound.global_volume_gain"

@@ -9,6 +9,7 @@ export interface ServiceProjection {
   baseline: string;
   instanceId: string;
   startedAt: string;
+  sessionTtlSeconds: number;
   controlApiVersions: number[];
   supervision?: {
     state: string;
@@ -167,10 +168,30 @@ export interface CollaborationProjection {
 }
 
 export interface ValidationProjection {
-  cargoJobs: CargoJobProjection[];
-  currentCargoTargets: CargoJobProjection[];
+  cargoJobs: CargoLaneProjection[];
+  currentCargoTargets: CargoLaneProjection[];
+  cargoReservations: CargoReservationProjection[];
+  cpuBurst: CpuBurstProjection;
   artifactLifecycle: ArtifactLifecycleProjection;
   validationCopies: ValidationCopyProjection[];
+}
+
+export interface CpuBurstProjection {
+  capacity: 1;
+  active: 0 | 1;
+  eligiblePending: number;
+}
+
+export interface CargoReservationProjection extends JsonObject {
+  reservationId: string;
+  sessionId: string;
+  laneScope: "cpu" | "gpu";
+  executionMode: "warm" | "burst";
+  burstEligible: boolean;
+  status: "pending" | "leased" | "running";
+  queuePosition: number;
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface ArtifactLifecycleProjection {
@@ -181,6 +202,30 @@ export interface ArtifactLifecycleProjection {
 }
 
 export interface GitProjection { finalizeRequests: FinalizeRequestProjection[] }
+
+export interface ExperienceProjection {
+  sync: {
+    runs: number;
+    quietRuns: number;
+    visibleChanges: number;
+    averageDurationMs: number;
+  };
+  blockers: Array<{
+    kind: "cargo";
+    ownerSessionId: string;
+    laneKind: CargoLaneProjection["lane_kind"];
+    status: "leased" | "running";
+    createdAt: string;
+  }>;
+  continuations: Array<{
+    sessionId: string;
+    planPath: string;
+    waitKind: "validation" | "lease";
+    candidate: { milestone: string; title: string };
+    scopeClaimRequired: boolean;
+    returnToPrimary: boolean;
+  }>;
+}
 
 export interface FailureNode extends JsonObject {
   node_id: number;
@@ -231,28 +276,18 @@ export interface PatchProjection extends JsonObject {
   applied_at: string | null;
 }
 
-export interface CargoJobProjection extends JsonObject {
+export interface CargoLaneProjection extends JsonObject {
   job_id: string;
   session_id: string;
   lane_kind: "check" | "test" | "workspace" | "gpu";
-  target_dir: string;
   status: "leased" | "running" | "succeeded" | "failed" | "released" | "orphaned";
-  dry_run: number;
-  pid: number | null;
-  command: string[];
-  exit_code: number | null;
   created_at: string;
-  last_heartbeat_at: string;
   started_at: string | null;
   finished_at: string | null;
   released_at: string | null;
-  reuse_key: string | null;
-  compatibility_key: string | null;
-  reuse_profile: string | null;
-  reused_from_job_id: string | null;
   cleanup_policy: "retained" | "delete_on_release";
   cleanup_status: "retained" | "pending" | "deleted" | "failed";
-  cleanup_error: string | null;
+  process_observation: "not_applicable" | "awaiting_observation" | "observed" | "reconciling";
 }
 
 export interface ValidationCopyProjection extends JsonObject {
@@ -307,6 +342,7 @@ export interface ControlSnapshot {
   failures: FailureProjection;
   collaboration: CollaborationProjection;
   validation: ValidationProjection;
+  experience: ExperienceProjection;
   git: GitProjection;
   audit: AuditEvent[];
 }

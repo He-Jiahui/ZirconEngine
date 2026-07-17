@@ -1,4 +1,4 @@
-use zircon_runtime::ui::surface::UiSurface;
+use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
     event_ui::{UiNodeId, UiNodePath, UiStateFlags, UiTreeId},
     layout::UiFrame,
@@ -6,10 +6,13 @@ use zircon_runtime_interface::ui::{
 };
 
 use super::super::constants::{VIEWPORT_SURFACE_NODE_ID, VIEWPORT_SURFACE_ROOT_ID};
+use super::pointer_dispatch::viewport_pointer_dispatcher;
 
 pub(crate) struct SharedViewportPointerBridge {
     pub(super) surface: UiSurface,
+    pub(super) dispatcher: UiPointerDispatcher,
     pub(super) viewport_node_id: UiNodeId,
+    viewport_frame: UiFrame,
 }
 
 impl SharedViewportPointerBridge {
@@ -57,11 +60,17 @@ impl SharedViewportPointerBridge {
 
         Self {
             surface,
+            dispatcher: viewport_pointer_dispatcher(),
             viewport_node_id: VIEWPORT_SURFACE_NODE_ID,
+            viewport_frame,
         }
     }
 
-    pub(crate) fn update_viewport_frame(&mut self, viewport_frame: UiFrame) {
+    pub(crate) fn update_viewport_frame(&mut self, viewport_frame: UiFrame) -> bool {
+        if self.viewport_frame == viewport_frame {
+            return false;
+        }
+        self.viewport_frame = viewport_frame;
         if let Some(root) = self.surface.tree.node_mut(VIEWPORT_SURFACE_ROOT_ID) {
             root.layout_cache.frame = viewport_frame;
             root.layout_cache.clip_frame = None;
@@ -71,5 +80,6 @@ impl SharedViewportPointerBridge {
             viewport.layout_cache.clip_frame = None;
         }
         self.surface.rebuild();
+        true
     }
 }

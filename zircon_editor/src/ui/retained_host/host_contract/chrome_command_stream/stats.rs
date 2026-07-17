@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::HashSet;
 
 use super::{ChromeCommandKind, ChromeCommandLayer, ChromeCommandStream};
 
@@ -16,7 +16,7 @@ pub(in crate::ui::retained_host::host_contract) struct ChromeCommandStreamStats 
 
 impl ChromeCommandStream {
     pub(in crate::ui::retained_host::host_contract) fn stats(&self) -> ChromeCommandStreamStats {
-        let mut uploaded_image_keys = BTreeSet::new();
+        let mut uploaded_image_keys = HashSet::new();
         let mut stats = ChromeCommandStreamStats {
             command_count: self.commands().len(),
             ..ChromeCommandStreamStats::default()

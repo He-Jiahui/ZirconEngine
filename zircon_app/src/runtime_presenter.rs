@@ -49,26 +49,32 @@ impl SoftbufferRuntimePresenter {
 
         let window = self.surface.window().clone();
         let mut buffer = self.surface.buffer_mut()?;
-        buffer.fill(0);
-        let pixel_count = (frame_size.width as usize) * (frame_size.height as usize);
         {
             zircon_runtime::profile_scope!("app", "runtime_presenter", "copy_rgba");
-            for (pixel, rgba) in buffer
-                .iter_mut()
-                .take(pixel_count)
-                .zip(frame.rgba().chunks_exact(4))
-            {
-                let red = rgba[0] as u32;
-                let green = rgba[1] as u32;
-                let blue = rgba[2] as u32;
-                *pixel = (red << 16) | (green << 8) | blue;
-            }
+            copy_rgba_to_xrgb(&mut buffer, frame.rgba());
         }
 
         window.pre_present_notify();
         zircon_runtime::profile_scope!("app", "runtime_presenter", "softbuffer_present");
         buffer.present()
     }
+}
+
+fn copy_rgba_to_xrgb(surface: &mut [u32], rgba: &[u8]) -> bool {
+    let covers_surface = surface
+        .len()
+        .checked_mul(4)
+        .is_some_and(|required_bytes| rgba.len() >= required_bytes);
+    if !covers_surface {
+        surface.fill(0);
+    }
+    for (pixel, rgba) in surface.iter_mut().zip(rgba.chunks_exact(4)) {
+        let red = rgba[0] as u32;
+        let green = rgba[1] as u32;
+        let blue = rgba[2] as u32;
+        *pixel = (red << 16) | (green << 8) | blue;
+    }
+    !covers_surface
 }
 
 fn current_window_size(window: &dyn Window) -> ZrRuntimeViewportSizeV1 {
@@ -89,4 +95,29 @@ fn clamp_size(size: ZrRuntimeViewportSizeV1) -> ZrRuntimeViewportSizeV1 {
 
 fn non_zero(value: u32) -> NonZeroU32 {
     NonZeroU32::new(value.max(1)).expect("value is clamped to non-zero")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::copy_rgba_to_xrgb;
+
+    #[test]
+    fn complete_rgba_frame_overwrites_the_surface_without_a_preclear() {
+        let mut surface = [0x00ff_00ff, 0x00ff_00ff];
+
+        let cleared = copy_rgba_to_xrgb(&mut surface, &[1, 2, 3, 255, 4, 5, 6, 255]);
+
+        assert!(!cleared);
+        assert_eq!(surface, [0x0001_0203, 0x0004_0506]);
+    }
+
+    #[test]
+    fn truncated_rgba_frame_clears_uncovered_surface_pixels() {
+        let mut surface = [0x00ff_00ff, 0x00ff_00ff];
+
+        let cleared = copy_rgba_to_xrgb(&mut surface, &[1, 2, 3, 255]);
+
+        assert!(cleared);
+        assert_eq!(surface, [0x0001_0203, 0]);
+    }
 }

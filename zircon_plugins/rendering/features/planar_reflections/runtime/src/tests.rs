@@ -39,7 +39,7 @@ fn planar_filter_enters_only_the_owned_capture_camera_graph() {
         .compile(&capture)
         .unwrap();
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == FILTER_PASS));
@@ -53,8 +53,8 @@ fn planar_filter_enters_only_the_owned_capture_camera_graph() {
         .compile(&main)
         .unwrap();
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        installed.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        installed.graph().dump().to_text()
     );
     assert!(
         matches!(capture.view.selected_camera_target(), RenderCameraTarget::Texture(found) if *found == target)
@@ -75,8 +75,8 @@ fn explicitly_disabled_planar_feature_is_exact_graph_baseline() {
         )
         .unwrap();
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        disabled.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        disabled.graph().dump().to_text()
     );
 }
 

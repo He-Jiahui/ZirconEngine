@@ -1,6 +1,7 @@
 ---
 related_code:
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/input.rs
   - zircon_runtime/src/script/vm/gameplay_host/error.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
@@ -17,6 +18,7 @@ related_code:
   - examples/vampire/scripts/vampire_game/main.zr
 implementation_files:
   - zircon_runtime/src/script/vm/gameplay_host.rs
+  - zircon_runtime/src/script/vm/gameplay_host/input.rs
   - zircon_runtime/src/script/vm/gameplay_host/error.rs
   - zircon_runtime/src/script/vm/gameplay_host/combat.rs
   - zircon_runtime/src/script/vm/gameplay_host/lifecycle.rs
@@ -32,7 +34,9 @@ implementation_files:
   - zircon_runtime/src/script/vm/runtime_context.rs
 plan_sources:
   - user: 2026-06-11 vampire roguelite runtime example and screenshot validation
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 tests:
+  - gameplay_key_query_reads_the_lightweight_snapshot_for_codes_and_names
   - cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never
   - cargo test -p zircon_runtime --lib gameplay_host_component_string_reads_string_dynamic_state --target-dir D:\cargo-targets\zircon-vampire-menu-0611 -- --nocapture --test-threads=1: pending current validation stage
   - cargo test -p zircon_runtime --lib vampire_example_manifest_scene_and_scripts_are_importable --message-format short --color never
@@ -61,6 +65,8 @@ The gameplay host functions include entity transform reads/writes, entity existe
 
 The vampire example deliberately uses these generic host functions from `examples/vampire/scripts/vampire_game/main.zr`. The host does not need vampire-specific lifecycle delegates for the current script path: `onStart` and `onUpdate` query `script.bindings` properties and call the generic movement, combat, navigation, animation, particle, and HUD functions directly.
 
+`gameplay.key_pressed` uses the lightweight `InputSnapshot` because it only needs the pressed-button set. It does not clone `InputFrameSnapshot`'s transition sets, wheel history, touch/gamepad state, IME queues, window status, file drag/drop data, or host-request vectors for every script key query. A later Runtime 12 interface milestone may add a direct zero-copy button query; the current change keeps the public input trait unchanged while removing the unrelated frame-wide clone from the MVP script hot path.
+
 ## Script State Ownership
 
 `script_bindings.rs` owns the shared helpers that read and mutate JSON script-binding properties such as `role`, `archetype`, `hp`, `move_speed`, and `contact_damage`. These helpers keep the host API generic while still letting project scripts express gameplay roles as asset data.
@@ -68,6 +74,8 @@ The vampire example deliberately uses these generic host functions from `example
 Per-frame gameplay state for the current vampire slice remains intentionally small and data-oriented: health lives in script bindings, run/menu command state lives in dynamic string/JSON components, action feedback lives in dynamic components or animation parameters, and transient effects live in render dynamic components. The scene keeps only the player and three enemy bindings enabled in the real VM hot path; duplicate visible enemies can carry the same metadata with `enabled = false` so host queries, damage, and navigation skip them. Longer-lived systems such as level-up choices or timed spawners should move into explicit project data or a script-visible state component before being expanded.
 
 ## Validation Notes
+
+The 2026-07-17 performance slice adds `gameplay_key_query_reads_the_lightweight_snapshot_for_codes_and_names` for numeric key-code and logical-name lookup. Scoped rustfmt and diff hygiene are required immediately; package Cargo acceptance remains pending while another coordinated session owns the CPU lane.
 
 The focused host registration test verifies that the built-in gameplay module exposes the reflected gameplay API. The `gameplay_host_component_string_reads_string_dynamic_state` unit test locks the string-component read helper used by the vampire menu command flow. `gameplay_host_script_property_match_and_heal_update_bindings` now also covers `entity_exists` and `script_number_at_most`, and `host_function_registry_matches_documented_ledger` keeps the ledger aligned at 52 fixed host functions / 39 gameplay callbacks. The vampire project manifest test verifies that the project script imports this host module and drives gameplay through generic markers such as `gameplay.key_pressed`, `gameplay.translate`, `gameplay.face_direction`, `gameplay.camera_follow`, `gameplay.follow_position`, `gameplay.nearest_by_script_property`, `gameplay.nav_move_towards_entity`, `gameplay.component_string`, `gameplay.entity_exists`, `gameplay.script_number_at_most`, `gameplay.damage_entity`, `gameplay.set_world_hud_bar`, `gameplay.set_animation_bool`, and `gameplay.set_particle_sprites`.
 

@@ -75,6 +75,8 @@ class FailureNode:
     origin_child_dir: str
     fixing_child_dir: str
     priority: int
+    plan_link_mode: str
+    related_code: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
@@ -135,13 +137,9 @@ class FailureGraphService:
         self, *, expected_artifacts: list[dict[str, str]] | None = None
     ) -> FailureGraphAudit:
         validator = self._validator_module()
-        if expected_artifacts is None:
-            records, parse_errors = validator.parse_handoff_records(self.repo_root)
-            validation_errors = validator.validate_repository(self.repo_root)
-        else:
-            records, parse_errors, validation_errors = self._parse_immutable_snapshot(
-                validator, expected_artifacts
-            )
+        records, parse_errors, validation_errors = self._parse_immutable_snapshot(
+            validator, expected_artifacts
+        )
         diagnostics: list[GraphDiagnostic] = [
             GraphDiagnostic("parse_error", error) for error in parse_errors
         ]
@@ -152,6 +150,7 @@ class FailureGraphService:
         by_lifecycle: dict[str, list[Any]] = {}
         edges: dict[str, set[str]] = {}
         origin_workflow_nodes: dict[str, str | None] = {}
+        handoff_scopes: dict[str, tuple[str, tuple[str, ...]]] = {}
         for record in records:
             by_lifecycle.setdefault(record.lifecycle_key, []).append(record)
             raw_workflow_node = record.metadata.get("origin_workflow_node", "").strip()
@@ -166,6 +165,11 @@ class FailureGraphService:
                 )
                 workflow_node = None
             origin_workflow_nodes[record.relative_path] = workflow_node
+            raw_link_mode = record.metadata.get("_coordinator_plan_link_mode", "")
+            link_mode = raw_link_mode if isinstance(raw_link_mode, str) else ""
+            raw_related_code = record.metadata.get("_coordinator_related_code", ())
+            related_code = tuple(raw_related_code) if isinstance(raw_related_code, tuple) else ()
+            handoff_scopes[record.relative_path] = (link_mode, related_code)
             canonical_status = "open" if record.kind == "failure" else "fixed"
             # Only unresolved handoffs express a live execution dependency.
             # Fixed artifacts remain in the index for audit history, but their
@@ -204,8 +208,9 @@ class FailureGraphService:
                     INSERT INTO failure_nodes(
                         lifecycle_key, artifact_path, kind, status, created_at,
                         resolved_at, summary_slug, origin_plan, origin_workflow_node, fixing_plan,
-                        origin_child_dir, fixing_child_dir, priority, imported_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        origin_child_dir, fixing_child_dir, priority, plan_link_mode,
+                        related_code_json, imported_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         record.lifecycle_key,
@@ -221,6 +226,8 @@ class FailureGraphService:
                         self._relative(record.origin_child_dir),
                         self._relative(record.fixing_child_dir),
                         self._priority(record.kind, canonical_status),
+                        handoff_scopes[record.relative_path][0],
+                        json.dumps(handoff_scopes[record.relative_path][1]),
                         now,
                     ),
                 )
@@ -240,7 +247,7 @@ class FailureGraphService:
         return self.audit()
 
     def _parse_immutable_snapshot(
-        self, validator: ModuleType, expected_artifacts: list[dict[str, str]]
+        self, validator: ModuleType, expected_artifacts: list[dict[str, str]] | None
     ) -> tuple[list[Any], list[str], list[str]]:
         """Read once, hash the same bytes, then parse only an immutable plan copy."""
         plans_root = self.repo_root / "docs" / "plans"
@@ -253,7 +260,7 @@ class FailureGraphService:
             for path, content in captured.items()
             if _is_failure_artifact(Path(path))
         ]
-        if actual != expected_artifacts:
+        if expected_artifacts is not None and actual != expected_artifacts:
             raise CoordinatorError(
                 "action_state_changed",
                 "Failure artifacts changed after controlled-action confirmation",
@@ -266,6 +273,7 @@ class FailureGraphService:
                 destination.write_bytes(content)
             records, parse_errors = validator.parse_handoff_records(snapshot_root)
             validation_errors = validator.validate_repository(snapshot_root)
+            self._annotate_handoff_scopes(records, captured)
             normalized = [
                 replace(
                     record,
@@ -278,6 +286,60 @@ class FailureGraphService:
                 for record in records
             ]
         return normalized, parse_errors, validation_errors
+
+    def _annotate_handoff_scopes(
+        self, records: list[Any], captured: dict[str, bytes] | None = None
+    ) -> None:
+        """Attach child-record scope metadata from the same imported artifact bytes."""
+        for record in records:
+            if captured is None:
+                try:
+                    content = record.artifact_path.read_bytes()
+                except OSError:
+                    content = b""
+            else:
+                content = captured.get(record.relative_path, b"")
+            link_mode, related_code = self._parse_handoff_scope(content)
+            record.metadata["_coordinator_plan_link_mode"] = link_mode
+            record.metadata["_coordinator_related_code"] = related_code
+
+    def _parse_handoff_scope(self, content: bytes) -> tuple[str, tuple[str, ...]]:
+        """Parse only the two gate-owned frontmatter fields; malformed scope fails closed."""
+        try:
+            text = content.decode("utf-8")
+        except UnicodeDecodeError:
+            return "", ()
+        match = re.match(r"\A---\r?\n(?P<header>.*?)\r?\n---(?:\r?\n|\Z)", text, re.DOTALL)
+        if match is None:
+            return "", ()
+        lines = match.group("header").splitlines()
+        link_mode = ""
+        values: list[str] = []
+        reading_related_code = False
+        for line in lines:
+            if line.startswith("plan_link_mode:"):
+                link_mode = line.partition(":")[2].strip()
+                reading_related_code = False
+                continue
+            if line.startswith("related_code:"):
+                reading_related_code = True
+                continue
+            if reading_related_code:
+                item = re.match(r"\s*-\s*(?P<path>\S(?:.*\S)?)\s*$", line)
+                if item is None:
+                    if line and not line[0].isspace():
+                        reading_related_code = False
+                    continue
+                values.append(item.group("path").strip("`'\""))
+        if link_mode != "child_record_only" or not values:
+            return link_mode, ()
+        try:
+            normalized = tuple(
+                self._relative(self._resolve_repo_path(value)) for value in values
+            )
+        except CoordinatorError:
+            return link_mode, ()
+        return link_mode, normalized
 
     def audit(self) -> FailureGraphAudit:
         with self.database.connect() as connection:
@@ -310,6 +372,42 @@ class FailureGraphService:
                 (relative,),
             ).fetchall()
         return [self._node_from_row(row) for row in rows]
+
+    @staticmethod
+    def _complete_child_record_source_slice(
+        node: FailureNode,
+        fixing_plan: str,
+        manifest_paths: tuple[str, ...],
+    ) -> bool:
+        """Permit a verified source slice to precede its separate fixed return.
+
+        This narrow exception applies only to a child-record-only handoff whose
+        immutable imported ``related_code`` scope is wholly present in the
+        candidate manifest.  The failure stays open and continues to block all
+        other manifests until a later verified fixed return is recorded.
+        """
+        return (
+            node.fixing_plan == fixing_plan
+            and node.plan_link_mode == "child_record_only"
+            and bool(node.related_code)
+            and set(node.related_code) <= set(manifest_paths)
+            and FailureGraphService._has_exact_child_record_evidence(node, manifest_paths)
+        )
+
+    @staticmethod
+    def _has_exact_child_record_evidence(
+        node: FailureNode, manifest_paths: tuple[str, ...]
+    ) -> bool:
+        extras = set(manifest_paths) - set(node.related_code)
+        if len(extras) != 1:
+            return False
+        record = Path(next(iter(extras)))
+        return (
+            record.suffix.casefold() == ".md"
+            and bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}-.+\.md", record.name))
+            and not _is_failure_artifact(record)
+            and record.as_posix().startswith(node.fixing_child_dir.rstrip("/") + "/")
+        )
 
     def open_related_to_plan(self, plan_path: str | Path) -> list[FailureNode]:
         relative = self._relative(self._resolve_repo_path(plan_path))
@@ -388,7 +486,14 @@ class FailureGraphService:
                 """,
                 tuple(parameters),
             ).fetchall()
-        return [self._node_from_row(row) for row in rows]
+        nodes = [self._node_from_row(row) for row in rows]
+        return [
+            node
+            for node in nodes
+            if not self._complete_child_record_source_slice(
+                node, relative, normalized_manifest
+            )
+        ]
 
     def validator_errors(self) -> list[str]:
         return list(self._validator_module().validate_repository(self.repo_root))
@@ -752,4 +857,6 @@ class FailureGraphService:
             origin_child_dir=row["origin_child_dir"],
             fixing_child_dir=row["fixing_child_dir"],
             priority=int(row["priority"]),
+            plan_link_mode=row["plan_link_mode"],
+            related_code=tuple(json.loads(row["related_code_json"])),
         )

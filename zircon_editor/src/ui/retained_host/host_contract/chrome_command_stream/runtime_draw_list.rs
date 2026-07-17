@@ -4,7 +4,7 @@ mod text_style;
 
 use zircon_runtime::rhi::UiSurfaceDrawList;
 
-use self::command::ui_surface_command_from_chrome;
+use self::command::{ui_surface_command_from_chrome, ui_surface_command_from_owned_chrome};
 use self::geometry::ui_rect;
 use super::ChromeCommandStream;
 
@@ -20,6 +20,19 @@ pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_str
             .map(ui_surface_command_from_chrome)
             .collect(),
     )
+}
+
+pub(in crate::ui::retained_host::host_contract) fn ui_surface_draw_list_from_owned_stream(
+    stream: ChromeCommandStream,
+) -> UiSurfaceDrawList {
+    let surface_size = stream.surface_size();
+    let damage = stream.damage().map(ui_rect);
+    let commands = stream
+        .into_commands()
+        .into_iter()
+        .map(ui_surface_command_from_owned_chrome)
+        .collect();
+    UiSurfaceDrawList::new(surface_size, damage, commands)
 }
 
 #[cfg(test)]

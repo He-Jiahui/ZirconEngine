@@ -40,3 +40,35 @@ fn sound_plugin_registration_contributes_runtime_options() {
         );
     }
 }
+
+#[test]
+fn sound_backend_defaults_are_canonical_kira_cpal_across_shared_and_package_contracts() {
+    let shared = SoundPluginOptions::default();
+    assert_eq!(shared.backend, "kira-cpal");
+    assert_eq!(
+        SoundConfig::from_plugin_options(shared).backend,
+        "kira-cpal"
+    );
+
+    let report = RuntimePluginRegistrationReport::from_plugin(&runtime_plugin());
+    let backend = report
+        .package_manifest
+        .options
+        .iter()
+        .find(|option| option.key == "sound.backend")
+        .expect("sound package must publish its backend option");
+    assert_eq!(backend.default_value, "kira-cpal");
+}
+
+#[test]
+fn sound_channel_layout_option_exposes_only_kira_v1_output_layouts() {
+    let report = RuntimePluginRegistrationReport::from_plugin(&runtime_plugin());
+    let channel_layout = report
+        .package_manifest
+        .options
+        .iter()
+        .find(|option| option.key == "sound.channel_layout")
+        .expect("sound package must publish its channel layout option");
+
+    assert_eq!(channel_layout.enum_values, ["mono", "stereo"]);
+}

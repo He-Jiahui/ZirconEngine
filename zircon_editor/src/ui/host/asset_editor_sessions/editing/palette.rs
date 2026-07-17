@@ -36,7 +36,9 @@ impl EditorUiHost {
             .update_palette_drag_target(surface_x, surface_y)
             .map_err(|error| EditorError::UiAsset(error.to_string()))?;
         drop(sessions);
-        self.sync_ui_asset_editor_instance(instance_id)?;
+        if changed {
+            self.sync_ui_asset_editor_instance(instance_id)?;
+        }
         Ok(changed)
     }
 
@@ -198,5 +200,22 @@ impl EditorUiHost {
         drop(sessions);
         self.sync_ui_asset_editor_instance(instance_id)?;
         Ok(changed)
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn unchanged_palette_drag_does_not_rebuild_instance_projection() {
+        let source = include_str!("palette.rs");
+        let drag = source
+            .split("pub fn update_ui_asset_editor_palette_drag_target")
+            .nth(1)
+            .expect("drag update function")
+            .split("pub fn clear_ui_asset_editor_palette_drag_target")
+            .next()
+            .expect("drag update body");
+
+        assert!(drag.contains("if changed"));
     }
 }

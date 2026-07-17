@@ -70,6 +70,13 @@ class SessionServiceTests(unittest.TestCase):
         self.assertEqual(40, len(session.base_head))
         self.assertEqual(("tools/session_coordinator",), session.write_scope)
 
+    def test_default_session_liveness_is_relaxed_without_extending_resource_leases(self) -> None:
+        config = CoordinatorConfig.for_repo(self.repo, state_root=self.repo.parent / "state-default")
+
+        self.assertEqual(3600, config.session_ttl_seconds)
+        self.assertEqual(300, config.lease_ttl_seconds)
+        self.assertEqual(120, config.lease_grace_seconds)
+
     def test_legal_transitions_and_heartbeat_are_persisted(self) -> None:
         self.service.register(session_id="session-a")
         active = self.service.set_status("session-a", SessionStatus.ACTIVE)
@@ -151,7 +158,10 @@ class SessionServiceTests(unittest.TestCase):
     def test_mark_stale_preserves_reservation_bound_to_running_job(self) -> None:
         self.service.register(session_id="running")
         self.service.set_status("running", SessionStatus.ACTIVE)
-        cargo_jobs = self.cargo_jobs(process_alive=lambda pid: pid == 4242)
+        process_alive = True
+        cargo_jobs = self.cargo_jobs(
+            process_alive=lambda pid: process_alive and pid == 4242
+        )
         reservation = cargo_jobs.reserve_cpu(
             "running",
             compatibility=self.compatibility(),
@@ -174,7 +184,8 @@ class SessionServiceTests(unittest.TestCase):
 
         marked = self.service.mark_stale(older_than_seconds=60)
 
-        self.assertEqual(["running"], marked)
+        self.assertEqual([], marked)
+        self.assertEqual(SessionStatus.ACTIVE, self.service.get("running").status)
         with self.database.connect() as connection:
             row = connection.execute(
                 "SELECT status, job_id FROM cargo_lane_reservations "
@@ -183,6 +194,15 @@ class SessionServiceTests(unittest.TestCase):
             ).fetchone()
         self.assertEqual("running", row["status"])
         self.assertEqual(job.job_id, row["job_id"])
+
+        process_alive = False
+        cargo_jobs.finish(job.job_id, session_id="running", exit_code=0)
+        cargo_jobs.release(job.job_id, session_id="running")
+
+        marked = self.service.mark_stale(older_than_seconds=60)
+
+        self.assertEqual(["running"], marked)
+        self.assertEqual(SessionStatus.STALE, self.service.get("running").status)
 
     def test_mark_stale_rolls_back_session_and_reservation_when_hook_fails(self) -> None:
         self.service.register(session_id="expired")
@@ -316,6 +336,47 @@ class SessionServiceTests(unittest.TestCase):
 
         self.assertEqual([], archived)
         self.assertEqual(SessionStatus.STALE, self.service.get("cargo-owner").status)
+
+    def test_archive_stale_does_not_keep_a_session_for_an_open_failure(self) -> None:
+        plan_path = "docs/plans/runtime/01-runtime.md"
+        self.service.register(session_id="failure-owner", plan_path=plan_path)
+        self.service.set_status("failure-owner", SessionStatus.ACTIVE)
+        self.service.set_status("failure-owner", SessionStatus.STALE)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE sessions SET updated_at='2000-01-01T00:00:00+00:00' "
+                "WHERE session_id='failure-owner'"
+            )
+            connection.execute(
+                """
+                INSERT INTO failure_nodes(
+                    lifecycle_key, artifact_path, kind, status, created_at, resolved_at,
+                    summary_slug, origin_plan, fixing_plan, origin_child_dir,
+                    fixing_child_dir, priority, imported_at, origin_workflow_node
+                ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, ?, ?, ?, 100, ?, NULL)
+                """,
+                (
+                    "runtime01-stale-owner",
+                    "docs/plans/runtime/01/failure-stale-owner.md",
+                    "2000-01-01T00:00:00+00:00",
+                    "stale-owner",
+                    "docs/plans/runtime/01-runtime.md",
+                    plan_path,
+                    "docs/plans/runtime/01",
+                    "docs/plans/runtime/01",
+                    "2000-01-01T00:00:00+00:00",
+                ),
+            )
+
+        archived = self.service.archive_stale(older_than_seconds=1)
+
+        self.assertEqual(["failure-owner"], archived)
+        self.assertEqual(SessionStatus.ARCHIVED, self.service.get("failure-owner").status)
+        with self.database.connect() as connection:
+            failure = connection.execute(
+                "SELECT status FROM failure_nodes WHERE lifecycle_key='runtime01-stale-owner'"
+            ).fetchone()
+        self.assertEqual("open", failure["status"])
 
 
 if __name__ == "__main__":

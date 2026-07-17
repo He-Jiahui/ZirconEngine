@@ -2,6 +2,10 @@
 
 This document is the authoritative execution policy for validation under `docs/plans/`. It replaces any local default that asks contributors to run Cargo compilation or broad tests after every implementation slice. It does not weaken acceptance criteria or remove regression tests.
 
+## 0. Foundation Priority
+
+Apply [`minimum-viable-engine-foundation.md`](minimum-viable-engine-foundation.md) before selecting a milestone. Until its F0-F5 gates are accepted, batch validation capacity belongs first to foundation work; deferred advanced rendering, complete text, AI, networking, and plugin-expansion work may run only when it directly unblocks an earlier foundation gate.
+
 ## 1. Validation Units
 
 | Unit | Purpose | Required validation |

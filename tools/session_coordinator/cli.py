@@ -163,7 +163,9 @@ def _parser() -> argparse.ArgumentParser:
     cargo_reserve_cpu = cargo_commands.add_parser("reserve-cpu")
     cargo_reserve_cpu.add_argument("--session-id")
     cargo_reserve_cpu.add_argument("--compatibility-json", required=True)
+    cargo_reserve_cpu.add_argument("--target-dir")
     cargo_reserve_cpu.add_argument("--ttl-seconds", type=int, default=900)
+    cargo_reserve_cpu.add_argument("--burst-eligible", action="store_true")
     cargo_reserve_cpu.add_argument("command_args", nargs=argparse.REMAINDER)
     cargo_reserve_gpu = cargo_commands.add_parser("reserve-gpu")
     cargo_reserve_gpu.add_argument("--session-id", required=True)
@@ -598,7 +600,9 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 {
                     "session_id": _session_id(arguments.session_id),
                     "compatibility": json.loads(arguments.compatibility_json),
+                    "target_dir": arguments.target_dir,
                     "ttl_seconds": arguments.ttl_seconds,
+                    "burst_eligible": arguments.burst_eligible,
                     "command": command,
                 },
             )

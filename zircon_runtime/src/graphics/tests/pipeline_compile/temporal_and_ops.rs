@@ -19,7 +19,7 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
         )
         .unwrap();
     let live_pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)
@@ -52,7 +52,7 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
     }
 
     let taa_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "taa-resolve")
@@ -62,7 +62,7 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
         Some("temporal.taa-resolve")
     );
     let reactive_mask_clear_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "taa-reactive-mask-clear")
@@ -86,7 +86,7 @@ fn taa_resolve_compiles_temporal_history_pass_when_taa_stack_is_effective() {
         Some(RenderGraphAttachmentOps::clear_store())
     );
     let reactive_mask_mesh_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "taa-reactive-mask-mesh")
@@ -214,14 +214,14 @@ fn taa_resolve_pass_and_resources_are_absent_when_taa_is_disabled() {
         )
         .unwrap();
     let live_pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)
         .map(|pass| pass.name.as_str())
         .collect::<Vec<_>>();
     let lifetimes = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .map(|lifetime| lifetime.name.as_str())

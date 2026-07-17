@@ -64,3 +64,27 @@ fn document_tab_pointer_bridge_uses_route_intent_only() {
         );
     }
 }
+
+#[test]
+fn document_tab_pointer_rebuild_borrows_measured_frames() {
+    let rebuild = source(
+        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_rebuild_surface.rs",
+    );
+
+    assert!(
+        !rebuild.contains(".cloned()"),
+        "surface rebuild must borrow measured frames instead of cloning the complete frame vector"
+    );
+}
+
+#[test]
+fn repeated_document_tab_measurement_is_a_no_op() {
+    let update = source(
+        "src/ui/retained_host/document_tab_pointer/host_document_tab_pointer_bridge_update_measured_frame.rs",
+    );
+
+    assert!(
+        update.contains("frames[item_index] == Some(measured_frame)"),
+        "repeated tab pointer callbacks must not rebuild an unchanged measured frame"
+    );
+}

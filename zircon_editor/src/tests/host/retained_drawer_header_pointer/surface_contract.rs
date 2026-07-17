@@ -70,3 +70,20 @@ fn drawer_content_consumers_use_componentized_workbench_layout_frames() {
     assert!(viewport.contains(".drawer_shell_frame(region)"));
     assert!(!viewport.contains("root_shell_frames_with_componentized_drawers();"));
 }
+
+#[test]
+fn drawer_header_pointer_rebuild_borrows_measured_frames() {
+    let rebuild = source("src/ui/retained_host/drawer_header_pointer/rebuild_surface.rs");
+
+    assert!(
+        !rebuild.contains(".cloned()"),
+        "drawer-header surface rebuild must borrow measured frames"
+    );
+}
+
+#[test]
+fn repeated_drawer_header_measurement_is_a_no_op() {
+    let update = source("src/ui/retained_host/drawer_header_pointer/update_measured_frame.rs");
+
+    assert!(update.contains("frames[item_index] == Some(measured_frame)"));
+}

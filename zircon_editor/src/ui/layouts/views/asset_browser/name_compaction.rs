@@ -60,22 +60,28 @@ fn compact_stem_with_suffix(
                 .len()
                 .saturating_sub(compaction.min_prefix_chars + 1),
         );
-    let mut fallback = None;
+    let fallback = candidate_with_suffix(
+        &stem_chars,
+        compaction.min_prefix_chars,
+        compaction.min_tail_stem_chars,
+        suffix,
+    );
     for tail_count in (compaction.min_tail_stem_chars..=max_tail).rev() {
         let max_prefix = stem_chars.len().saturating_sub(tail_count + 1);
         if max_prefix < compaction.min_prefix_chars {
             continue;
         }
-        for prefix_count in (compaction.min_prefix_chars..=max_prefix).rev() {
-            let candidate = candidate_with_suffix(&stem_chars, prefix_count, tail_count, suffix);
-            fallback = Some(candidate.clone());
-            if fits_runtime_width(&candidate, compaction) {
-                return Some(candidate);
-            }
+        if let Some(candidate) = largest_fitting_candidate(
+            compaction.min_prefix_chars,
+            max_prefix,
+            compaction,
+            |prefix_count| candidate_with_suffix(&stem_chars, prefix_count, tail_count, suffix),
+        ) {
+            return Some(candidate);
         }
     }
 
-    fallback
+    Some(fallback)
 }
 
 fn compact_whole_text(text: &str, compaction: RuntimeFileNameCompaction) -> String {
@@ -92,22 +98,52 @@ fn compact_whole_text(text: &str, compaction: RuntimeFileNameCompaction) -> Stri
                 .len()
                 .saturating_sub(compaction.min_prefix_chars + 1),
         );
-    let mut fallback = text.to_string();
+    let fallback = candidate_without_suffix(
+        &text_chars,
+        compaction.min_prefix_chars,
+        compaction.min_tail_stem_chars,
+    );
     for tail_count in (compaction.min_tail_stem_chars..=max_tail).rev() {
         let max_prefix = text_chars.len().saturating_sub(tail_count + 1);
         if max_prefix < compaction.min_prefix_chars {
             continue;
         }
-        for prefix_count in (compaction.min_prefix_chars..=max_prefix).rev() {
-            let candidate = candidate_without_suffix(&text_chars, prefix_count, tail_count);
-            fallback = candidate.clone();
-            if fits_runtime_width(&candidate, compaction) {
-                return candidate;
-            }
+        if let Some(candidate) = largest_fitting_candidate(
+            compaction.min_prefix_chars,
+            max_prefix,
+            compaction,
+            |prefix_count| candidate_without_suffix(&text_chars, prefix_count, tail_count),
+        ) {
+            return candidate;
         }
     }
 
     fallback
+}
+
+fn largest_fitting_candidate(
+    min_prefix: usize,
+    max_prefix: usize,
+    compaction: RuntimeFileNameCompaction,
+    mut candidate_for_prefix: impl FnMut(usize) -> String,
+) -> Option<String> {
+    let mut low = min_prefix;
+    let mut high = max_prefix;
+    let mut best = None;
+    while low <= high {
+        let prefix_count = low + (high - low) / 2;
+        let candidate = candidate_for_prefix(prefix_count);
+        if fits_runtime_width(&candidate, compaction) {
+            best = Some(candidate);
+            low = prefix_count + 1;
+        } else {
+            if prefix_count == 0 {
+                break;
+            }
+            high = prefix_count - 1;
+        }
+    }
+    best
 }
 
 fn candidate_with_suffix(
@@ -194,5 +230,13 @@ mod tests {
                 <= compaction.max_width + MEASURE_EPSILON,
             "wide label should fit measured width: {wide_label}"
         );
+    }
+
+    #[test]
+    fn runtime_file_name_compaction_uses_logarithmic_prefix_search() {
+        let source = include_str!("name_compaction.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+        assert!(!implementation.contains("for prefix_count in"));
+        assert!(implementation.contains("largest_fitting_candidate"));
     }
 }

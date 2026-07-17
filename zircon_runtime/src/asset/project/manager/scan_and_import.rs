@@ -5,13 +5,14 @@ use crate::core::framework::render::{
 };
 use crate::core::resource::{ResourceDiagnostic, ResourceRecord, ResourceRegistry, ResourceState};
 
+use crate::asset::importer::stage_environment_ibl_source_with_parallel_executor;
 use crate::asset::project::{AssetMetaEntry, PreviewState};
 use crate::asset::registry::AssetRegistryIndex;
 use crate::asset::{
-    stage_environment_ibl_source, stage_external_source_cubemap_texture, AssetId,
-    AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporterDescriptor, AssetKind,
-    ImportedAsset,
+    stage_external_source_cubemap_texture, AssetId, AssetImportContext, AssetImportError,
+    AssetImportOutcome, AssetImporterDescriptor, AssetKind, ImportedAsset,
 };
+use crate::core::runtime::tasks::TaskPools;
 
 use super::{
     asset_kind::asset_kind, hash_bytes::hash_bytes, load_or_create_meta::load_or_create_meta,
@@ -66,6 +67,7 @@ impl ProjectManager {
         watch_changes: Option<&[crate::asset::watch::AssetChange]>,
         registry_fault: crate::asset::project::meta_io::AtomicWriteFault,
     ) -> Result<Vec<ResourceRecord>, AssetImportError> {
+        let task_pools = TaskPools::process_default();
         let sources = self.collect_import_sources()?;
         let asset_roots = self.registry_scan_roots();
         let registry_root = self.paths.registry_root().to_path_buf();
@@ -150,6 +152,7 @@ impl ProjectManager {
                     &import_context,
                     restored_root_asset.as_ref(),
                     self.paths.cache_root(),
+                    task_pools.compute(),
                 )?;
                 for record in metadata {
                     let asset_id = record.id();
@@ -171,6 +174,7 @@ impl ProjectManager {
                             &import_context,
                             outcome.root_entry().map(|entry| &entry.asset),
                             self.paths.cache_root(),
+                            task_pools.compute(),
                         )
                     });
                     match validation {
@@ -526,17 +530,22 @@ impl ProjectManager {
     }
 }
 
-fn stage_environment_ibl_import(
+fn stage_environment_ibl_import<E>(
     context: &AssetImportContext,
     imported_asset: Option<&ImportedAsset>,
     cache_root: &std::path::Path,
-) -> Result<(), AssetImportError> {
-    stage_environment_ibl_source(context, cache_root).map_err(|error| {
-        AssetImportError::Parse(format!(
-            "stage environment IBL source {}: {error}",
-            context.source_path.display()
-        ))
-    })?;
+    parallel_executor: &E,
+) -> Result<(), AssetImportError>
+where
+    E: crate::core::framework::tasks::ParallelSliceExecutor,
+{
+    stage_environment_ibl_source_with_parallel_executor(context, cache_root, parallel_executor)
+        .map_err(|error| {
+            AssetImportError::Parse(format!(
+                "stage environment IBL source {}: {error}",
+                context.source_path.display()
+            ))
+        })?;
     if let Some(ImportedAsset::Texture(texture)) = imported_asset {
         stage_external_source_cubemap_texture(texture, cache_root).map_err(|error| {
             AssetImportError::Parse(format!(

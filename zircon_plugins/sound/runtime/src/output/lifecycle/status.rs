@@ -1,8 +1,6 @@
 use zircon_runtime::core::framework::sound::SoundOutputDeviceStatus;
 
 use super::super::status::{latency_status_for_descriptor, push_status_diagnostic};
-#[cfg(feature = "cpal-backend")]
-use super::session::SoundOutputBackendSession;
 use super::SoundOutputDeviceRuntimeState;
 
 impl SoundOutputDeviceRuntimeState {
@@ -19,44 +17,7 @@ impl SoundOutputDeviceRuntimeState {
             last_error: self.last_error.clone(),
             diagnostics: Vec::new(),
         };
-        self.finalize_status(self.status_with_backend_session(status))
-    }
-
-    #[cfg(feature = "cpal-backend")]
-    fn status_with_backend_session(
-        &self,
-        mut status: SoundOutputDeviceStatus,
-    ) -> SoundOutputDeviceStatus {
-        if let SoundOutputBackendSession::Cpal(session) = &self.backend_session {
-            let cpal_status = session.status();
-            status.rendered_blocks = status
-                .rendered_blocks
-                .saturating_add(cpal_status.rendered_blocks);
-            status.rendered_frames = status
-                .rendered_frames
-                .saturating_add(cpal_status.rendered_frames);
-            status.callback_count = status
-                .callback_count
-                .saturating_add(cpal_status.callback_count);
-            status.last_callback_sequence = cpal_status
-                .last_callback_sequence
-                .or(status.last_callback_sequence);
-            status.underrun_count = status
-                .underrun_count
-                .saturating_add(cpal_status.underrun_count);
-            status.latency.queued_samples = cpal_status.queued_samples;
-            status.latency.capacity_samples = cpal_status.capacity_samples;
-            status.last_error = cpal_status.last_error.or(status.last_error);
-        }
-        status
-    }
-
-    #[cfg(not(feature = "cpal-backend"))]
-    fn status_with_backend_session(
-        &self,
-        status: SoundOutputDeviceStatus,
-    ) -> SoundOutputDeviceStatus {
-        status
+        self.finalize_status(status)
     }
 
     fn finalize_status(&self, mut status: SoundOutputDeviceStatus) -> SoundOutputDeviceStatus {

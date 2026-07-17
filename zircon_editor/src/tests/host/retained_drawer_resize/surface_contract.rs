@@ -83,6 +83,29 @@ fn shell_pointer_bridge_uses_route_intent_only() {
 }
 
 #[test]
+fn shell_drag_target_frames_are_immutable_and_lock_free() {
+    let drag_surface = source("src/ui/retained_host/shell_pointer/drag_surface.rs");
+    let effects = source("src/ui/retained_host/shell_pointer/effects.rs");
+
+    assert!(drag_surface.contains("Arc::new(DragTargetFrames"));
+    for candidate in [&drag_surface, &effects] {
+        assert!(!candidate.contains("Mutex"));
+        assert!(!candidate.contains(".lock()"));
+    }
+}
+
+#[test]
+fn unchanged_resize_geometry_does_not_rebuild_the_surface() {
+    let common = source("src/ui/retained_host/shell_pointer/common.rs");
+    let resize = source("src/ui/retained_host/shell_pointer/resize_surface.rs");
+
+    assert!(common.contains(") -> bool"));
+    assert!(resize.contains("let mut changed = false;"));
+    assert!(resize.contains("changed |= update_target_node("));
+    assert!(resize.contains("if changed {"));
+}
+
+#[test]
 fn drawer_resize_capture_goes_through_reply() {
     let shell_pointer_bridge = source("src/ui/retained_host/shell_pointer/bridge.rs");
     let resize_surface = source("src/ui/retained_host/shell_pointer/resize_surface.rs");

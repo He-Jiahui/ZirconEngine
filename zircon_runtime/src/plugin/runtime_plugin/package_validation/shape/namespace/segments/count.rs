@@ -1,10 +1,9 @@
 pub(super) fn validate_runtime_plugin_package_namespace_segment_count(
     field_name: &str,
     value: &str,
-    segments: &[&str],
     diagnostics: &mut Vec<String>,
 ) -> bool {
-    if segments.len() >= 2 {
+    if value.contains('.') {
         return true;
     }
 

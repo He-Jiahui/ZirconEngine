@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap};
 
 use toml::Value;
 
@@ -19,14 +19,17 @@ pub(super) fn projected_command_entries(
     let Some(filtered) = attributes.get(FILTERED_COMMANDS) else {
         return commands;
     };
+    let mut command_index = HashMap::with_capacity(commands.len());
+    for (index, entry) in commands.iter().enumerate() {
+        command_index.entry(entry.id.as_str()).or_insert(index);
+    }
 
     command_id_values(filtered)
         .into_iter()
         .filter_map(|id| {
-            commands
-                .iter()
-                .find(|entry| entry.id == id)
-                .cloned()
+            command_index
+                .get(id.as_str())
+                .map(|index| commands[*index].clone())
                 .or_else(|| (!id.is_empty()).then(|| CommandProjectionEntry::new(id)))
                 .map(CommandProjectionEntry::with_filter_matched)
         })

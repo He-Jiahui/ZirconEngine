@@ -31,7 +31,7 @@ fn shadow_atlas_pass_stays_live_as_depth_only_graph_contract() {
             .unwrap(),
     ] {
         let shadow_pass = compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .find(|pass| pass.name == "shadow-atlas")
@@ -66,7 +66,7 @@ fn shadow_atlas_pass_stays_live_as_depth_only_graph_contract() {
         );
         assert!(
             compiled
-                .graph
+                .graph()
                 .passes()
                 .iter()
                 .flat_map(|pass| pass.resources.iter())
@@ -310,7 +310,7 @@ fn pass_resource_access<'a>(
     access: RenderGraphResourceAccessKind,
 ) -> &'a crate::render_graph::RenderGraphPassResourceAccess {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)

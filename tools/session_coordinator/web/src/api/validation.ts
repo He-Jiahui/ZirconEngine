@@ -102,6 +102,10 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   const service = object(root.service, "服务状态");
   for (const key of ["status", "branch", "mode", "baseline", "instanceId", "startedAt"])
     string(service[key], `服务状态.${key}`);
+  if (service.sessionTtlSeconds === undefined) service.sessionTtlSeconds = 600;
+  const sessionTtlSeconds = nonnegativeInteger(service.sessionTtlSeconds, "服务状态.sessionTtlSeconds");
+  if (sessionTtlSeconds < 60 || sessionTtlSeconds > 86_400)
+    throw new Error("服务状态.sessionTtlSeconds 必须在 60 到 86400 秒之间");
   array(service.controlApiVersions, "控制 API 版本");
   if (service.supervision !== undefined) {
     const supervision = object(service.supervision, "服务监督状态");
@@ -113,6 +117,8 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   array(root.sessions, "sessions").forEach((item, index) => validateSession(item, `sessions[${index}]`));
   if (root.codexSessions === undefined) root.codexSessions = emptyCodexSessions();
   validateCodexSessions(root.codexSessions, "Codex Sessions");
+  if (root.experience === undefined) root.experience = emptyExperience();
+  validateExperience(root.experience, "协作体验");
   array(root.audit, "audit").forEach((item, index) => validateAudit(item, `audit[${index}]`));
   const failures = object(root.failures, "失败投影");
   array(failures.nodes, "失败节点").forEach((item, index) => validateFailureNode(item, `失败节点[${index}]`));
@@ -126,8 +132,23 @@ export function parseSnapshot(value: unknown): ControlSnapshot {
   array(collaboration.leases, "协作.leases").forEach((item, index) => validateLease(item, `协作.leases[${index}]`));
   array(collaboration.patches, "协作.patches").forEach((item, index) => validatePatch(item, `协作.patches[${index}]`));
   const validation = object(root.validation, "验证投影");
-  array(validation.cargoJobs, "验证.cargoJobs").forEach((item, index) => validateCargoJob(item, `验证.cargoJobs[${index}]`));
-  array(validation.currentCargoTargets, "验证.currentCargoTargets").forEach((item, index) => validateCargoJob(item, `验证.currentCargoTargets[${index}]`));
+  if (validation.cargoReservations === undefined) validation.cargoReservations = [];
+  if (validation.cpuBurst === undefined) validation.cpuBurst = emptyCpuBurst();
+  array(validation.cargoJobs, "验证.cargoJobs").forEach((item, index) => {
+    applyLegacyCargoLaneDefaults(item, `验证.cargoJobs[${index}]`);
+    validateCargoLane(item, `验证.cargoJobs[${index}]`);
+  });
+  array(validation.currentCargoTargets, "验证.currentCargoTargets").forEach((item, index) => {
+    applyLegacyCargoLaneDefaults(item, `验证.currentCargoTargets[${index}]`);
+    validateCargoLane(item, `验证.currentCargoTargets[${index}]`);
+  });
+  const cargoReservations = array(validation.cargoReservations, "验证.cargoReservations");
+  if (cargoReservations.length > 20) throw new Error("验证.cargoReservations 超过 20 行上限");
+  cargoReservations.forEach((item, index) => {
+    applyLegacyCargoReservationDefaults(item, `验证.cargoReservations[${index}]`);
+    validateCargoReservation(item, `验证.cargoReservations[${index}]`);
+  });
+  validateCpuBurst(validation.cpuBurst, "验证.cpuBurst");
   validateArtifactLifecycle(validation.artifactLifecycle, "验证.artifactLifecycle");
   array(validation.validationCopies, "验证.validationCopies").forEach((item, index) => validateValidationCopy(item, `验证.validationCopies[${index}]`));
   const git = object(root.git, "Git 投影");
@@ -142,6 +163,54 @@ function emptyCodexSessions() {
     sourceCounts: { active: 0, archived: 0, missing: 0 },
     queueDepth: 0, lastSuccessfulAt: null, lastTerminalCode: null, lastRun: null,
   };
+}
+
+function emptyExperience() {
+  return {
+    sync: { runs: 0, quietRuns: 0, visibleChanges: 0, averageDurationMs: 0 },
+    blockers: [],
+    continuations: [],
+  };
+}
+
+function emptyCpuBurst() {
+  return { capacity: 1, active: 0, eligiblePending: 0 };
+}
+
+function validateExperience(value: unknown, label: string): void {
+  const experience = object(value, label);
+  if (experience.continuations === undefined) experience.continuations = [];
+  exactKeys(experience, ["sync", "blockers", "continuations"], label);
+  const sync = object(experience.sync, `${label}.sync`);
+  exactKeys(sync, ["runs", "quietRuns", "visibleChanges", "averageDurationMs"], `${label}.sync`);
+  for (const key of ["runs", "quietRuns", "visibleChanges", "averageDurationMs"])
+    nonnegativeInteger(sync[key], `${label}.sync.${key}`);
+  const blockers = array(experience.blockers, `${label}.blockers`);
+  if (blockers.length > 20) throw new Error(`${label}.blockers 超过 20 行上限`);
+  blockers.forEach((value, index) => {
+    const blocker = object(value, `${label}.blockers[${index}]`);
+    exactKeys(blocker, ["kind", "ownerSessionId", "laneKind", "status", "createdAt"], `${label}.blockers[${index}]`);
+    enumeration(blocker.kind, ["cargo"], `${label}.blockers[${index}].kind`);
+    boundedString(blocker.ownerSessionId, `${label}.blockers[${index}].ownerSessionId`, 160);
+    enumeration(blocker.laneKind, ["check", "test", "workspace", "gpu"], `${label}.blockers[${index}].laneKind`);
+    enumeration(blocker.status, ["leased", "running"], `${label}.blockers[${index}].status`);
+    boundedString(blocker.createdAt, `${label}.blockers[${index}].createdAt`, 64);
+  });
+  const continuations = array(experience.continuations, `${label}.continuations`);
+  if (continuations.length > 20) throw new Error(`${label}.continuations 超过 20 行上限`);
+  continuations.forEach((value, index) => {
+    const continuation = object(value, `${label}.continuations[${index}]`);
+    exactKeys(continuation, ["sessionId", "planPath", "waitKind", "candidate", "scopeClaimRequired", "returnToPrimary"], `${label}.continuations[${index}]`);
+    boundedString(continuation.sessionId, `${label}.continuations[${index}].sessionId`, 160);
+    boundedString(continuation.planPath, `${label}.continuations[${index}].planPath`, 500);
+    enumeration(continuation.waitKind, ["validation", "lease"], `${label}.continuations[${index}].waitKind`);
+    const candidate = object(continuation.candidate, `${label}.continuations[${index}].candidate`);
+    exactKeys(candidate, ["milestone", "title"], `${label}.continuations[${index}].candidate`);
+    boundedString(candidate.milestone, `${label}.continuations[${index}].candidate.milestone`, 32);
+    boundedString(candidate.title, `${label}.continuations[${index}].candidate.title`, 500);
+    if (typeof continuation.scopeClaimRequired !== "boolean") throw new Error(`${label}.continuations[${index}].scopeClaimRequired 必须是布尔值`);
+    if (typeof continuation.returnToPrimary !== "boolean") throw new Error(`${label}.continuations[${index}].returnToPrimary 必须是布尔值`);
+  });
 }
 
 function validateCodexSessions(value: unknown, label: string): void {
@@ -353,22 +422,54 @@ function validatePatch(value: unknown, label: string): void {
   nullableString(patch.applied_at, `${label}.applied_at`);
 }
 
-function validateCargoJob(value: unknown, label: string): void {
+function validateCargoLane(value: unknown, label: string): void {
   const job = object(value, label);
-  for (const key of ["job_id", "session_id", "target_dir", "created_at", "last_heartbeat_at"])
+  for (const key of ["job_id", "session_id", "created_at"])
     string(job[key], `${label}.${key}`);
   enumeration(job.lane_kind, ["check", "test", "workspace", "gpu"], `${label}.lane_kind`);
   enumeration(job.status, ["leased", "running", "succeeded", "failed", "released", "orphaned"], `${label}.status`);
-  flag(job.dry_run, `${label}.dry_run`);
-  nullableInteger(job.pid, `${label}.pid`);
-  stringArray(job.command, `${label}.command`);
-  nullableInteger(job.exit_code, `${label}.exit_code`);
   for (const key of ["started_at", "finished_at", "released_at"])
-    nullableString(job[key], `${label}.${key}`);
-  for (const key of ["reuse_key", "compatibility_key", "reuse_profile", "reused_from_job_id", "cleanup_error"])
     nullableString(job[key], `${label}.${key}`);
   enumeration(job.cleanup_policy, ["retained", "delete_on_release"], `${label}.cleanup_policy`);
   enumeration(job.cleanup_status, ["retained", "pending", "deleted", "failed"], `${label}.cleanup_status`);
+  enumeration(job.process_observation, ["not_applicable", "awaiting_observation", "observed", "reconciling"], `${label}.process_observation`);
+}
+
+function applyLegacyCargoLaneDefaults(value: unknown, label: string): void {
+  const job = object(value, label);
+  if (job.process_observation === undefined)
+    job.process_observation = job.status === "running" ? "awaiting_observation" : "not_applicable";
+}
+
+function validateCargoReservation(value: unknown, label: string): void {
+  const reservation = object(value, label);
+  exactKeys(
+    reservation,
+    ["reservationId", "sessionId", "laneScope", "executionMode", "burstEligible", "status", "queuePosition", "createdAt", "expiresAt"],
+    label,
+  );
+  for (const key of ["reservationId", "sessionId", "createdAt", "expiresAt"])
+    boundedString(reservation[key], `${label}.${key}`, 160);
+  enumeration(reservation.laneScope, ["cpu", "gpu"], `${label}.laneScope`);
+  enumeration(reservation.executionMode, ["warm", "burst"], `${label}.executionMode`);
+  if (typeof reservation.burstEligible !== "boolean") throw new Error(`${label}.burstEligible 必须是布尔值`);
+  enumeration(reservation.status, ["pending", "leased", "running"], `${label}.status`);
+  const position = nonnegativeInteger(reservation.queuePosition, `${label}.queuePosition`);
+  if (position < 1) throw new Error(`${label}.queuePosition 必须从 1 开始`);
+}
+
+function applyLegacyCargoReservationDefaults(value: unknown, label: string): void {
+  const reservation = object(value, label);
+  if (reservation.executionMode === undefined) reservation.executionMode = "warm";
+  if (reservation.burstEligible === undefined) reservation.burstEligible = false;
+}
+
+function validateCpuBurst(value: unknown, label: string): void {
+  const burst = object(value, label);
+  exactKeys(burst, ["capacity", "active", "eligiblePending"], label);
+  if (burst.capacity !== 1) throw new Error(`${label}.capacity 必须为 1`);
+  if (burst.active !== 0 && burst.active !== 1) throw new Error(`${label}.active 必须为 0 或 1`);
+  nonnegativeInteger(burst.eligiblePending, `${label}.eligiblePending`);
 }
 
 function validateValidationCopy(value: unknown, label: string): void {

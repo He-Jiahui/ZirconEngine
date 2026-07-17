@@ -3,7 +3,14 @@ related_code:
   - zircon_editor/src/lib.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/core/editor_operation.rs
+  - zircon_editor/src/core/commands/defaults.rs
+  - zircon_editor/src/core/commandlet/runner.rs
+  - zircon_app/src/entry/cli/launch_args.rs
+  - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_editor/src/core/editing/command.rs
+  - zircon_editor/src/core/commandlet/runner.rs
+  - zircon_app/src/entry/cli/launch_args.rs
+  - zircon_app/src/entry/entry_runner/editor.rs
   - zircon_editor/src/core/editing/history.rs
   - zircon_editor/src/core/editing/intent.rs
   - zircon_editor/src/ui/workbench/state/editor_state_apply_intent.rs
@@ -66,6 +73,8 @@ plan_sources:
   - user: 2026-04-12 实现 Zircon Editor Workbench Shell V1
   - user: 2026-05-02 Unity 式编辑器优先补齐计划：Inspector / Component Drawer 接入 Undo/Redo
   - user: 2026-05-03 Full Milestone Android/iOS/WebGPU/WASM hosts and Component Drawer templates
+  - docs/plans/zircon_editor/editor/16-cli-args-and-hub-integration.md
+  - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - .codex/plans/Full Milestone Export Hosts And Component Drawer Templates.md
   - .cursor/plans/基本路线图.md
   - .codex/plans/ZirconEngine Unity 式编辑器优先补齐计划.md
@@ -75,6 +84,10 @@ tests:
   - zircon_editor/src/tests/editing/import.rs
   - zircon_runtime/src/scene/mod.rs
   - zircon_editor/src/tests/host/binding_dispatch.rs
+  - zircon_editor/src/core/commandlet/tests.rs
+  - zircon_app/src/entry/cli/launch_args.rs
+  - cargo test -p zircon_editor --lib commandlet --locked
+  - cargo test -p zircon_app --locked cli
   - zircon_runtime/src/tests/plugin_extensions/dynamic_components.rs
   - cargo test -p zircon_editor -- --nocapture
   - cargo test -p zircon_app -- --nocapture
@@ -166,6 +179,14 @@ Component Drawer template execution is host-mediated rather than native plugin U
 
 这条路径让插件菜单、内置 View 菜单、Scene toolbar 播放按钮和后续插件贡献的 toolbar 命令不再各自解析字符串。
 
+### 无头 Commandlet 分派
+
+`--run` 是 Editor 可执行体的无头任务投影，而不是 App、Runtime 或二进制入口的第二套命令表。`zircon_app::entry::cli::EditorLaunchArgs` 在 GUI 启动参数之前识别 `--run`，随后只把原始参数交给 `zircon_editor::core::commandlet`。因此 `--run migrate-assets --project <root> --dry-run|--apply` 不会构造 `EditorHostEventController`、窗口或 Workbench。
+
+`migrate-assets` 的唯一描述符位于 `core::commands::default_workbench_commands()`，操作路径为 `asset.migration.migrate_assets`，显式声明 `callable_from_remote=true`、payload schema `editor.commandlet.migrate-assets` 和 `asset.migration` capability。runner 先从该注册表读取描述符并按 `CommandEvalCtx::headless` 校验 capability，随后才调用 `zircon_runtime::asset::migration::migrate_project_assets`。
+
+无论成功或失败，进程都向 stdout 输出同一种 JSON envelope：`command`、`status`、数值 `exit_code`、可选 `migration` 报告与可选 `error`。退出码固定为 0（成功）、1（runtime 任务失败或报告 issue）、2（参数或未知 commandlet）与 3（缺失 capability）。这种区分使自动化能把无效调用、构建裁剪导致的功能不可用和真实迁移失败分别处理，而不需要观察 UI 或解析非结构化 stderr。
+
 Material/Fyrox/JetBrains/Unreal 设计栈里的顶层功能编辑器也走同一条 operation 路径。Workbench `Window` 菜单把 Prefab、Material、UI Asset、Animation、Asset Browser 和 Diagnostics 映射到 `editor.*_window` descriptor，并注册 `window.prefab_editor.open`、`window.material_editor.open`、`window.ui_asset_editor.open`、`window.animation_editor.open`、`window.asset_browser.open`、`window.diagnostics.open`。这些 operation 不直接修改 runtime scene；它们是 editor authoring shell 的窗口打开入口。
 
 ### 普通命令
@@ -252,6 +273,7 @@ UI 层可以隐藏非法操作，但真正的边界必须在 `zircon_scene::Scen
 - enabled Component Drawer descriptors resolve into selected dynamic component Inspector snapshots
 - disabled Component Drawer capabilities keep drawer metadata hidden and leave dynamic component editing protected
 - Component Drawer adapter accepts safe action-style events beyond button press while rejecting draft value-change events before operation invocation
+- `migrate-assets` commandlet 必须经唯一 registry 注册、dry-run 不写入、apply 使用 Runtime 事务、未知/互斥参数输出 JSON exit 2、缺失 capability 输出 JSON exit 3、Runtime typed error 输出 JSON exit 1
 
 `zircon_runtime/src/scene/mod.rs` 当前覆盖：
 

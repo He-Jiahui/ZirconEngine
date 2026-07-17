@@ -127,10 +127,18 @@ pub(super) fn update_resize_surface(
         root_size.height.max(0.0),
     );
 
+    let mut changed = false;
     if let Some(root) = surface.tree.node_mut(RESIZE_POINTER_ROOT_NODE_ID) {
-        root.layout_cache.frame = root_frame;
-        root.layout_cache.clip_frame = None;
-        root.state_flags = base_target_state(false);
+        let next_state = base_target_state(false);
+        if root.layout_cache.frame != root_frame
+            || root.layout_cache.clip_frame.is_some()
+            || root.state_flags != next_state
+        {
+            root.layout_cache.frame = root_frame;
+            root.layout_cache.clip_frame = None;
+            root.state_flags = next_state;
+            changed = true;
+        }
     }
 
     for (node_id, region) in [
@@ -138,7 +146,7 @@ pub(super) fn update_resize_surface(
         (RESIZE_TARGET_RIGHT_NODE_ID, ShellRegionId::Right),
         (RESIZE_TARGET_BOTTOM_NODE_ID, ShellRegionId::Bottom),
     ] {
-        update_target_node(
+        changed |= update_target_node(
             surface,
             node_id,
             frame_if_visible(clamp_frame_to_root(
@@ -150,7 +158,9 @@ pub(super) fn update_resize_surface(
         );
     }
 
-    surface.rebuild();
+    if changed {
+        surface.rebuild();
+    }
 }
 
 fn resize_splitter_frame(componentized_resize_splitter_frame: Option<UiFrame>) -> ShellFrame {

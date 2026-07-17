@@ -69,3 +69,23 @@ fn detail_scroll_pointer_bridge_uses_route_intent_only() {
         );
     }
 }
+
+#[test]
+fn detail_scroll_offset_does_not_recreate_the_pointer_surface() {
+    let scroll = source("src/ui/retained_host/detail_pointer/handle_scroll.rs");
+
+    assert!(
+        !scroll.contains("self.rebuild_surface()"),
+        "the runtime scroll fallback already mutates viewport scroll state; detail scrolling must not recreate the two-node surface"
+    );
+}
+
+#[test]
+fn asset_details_extent_does_not_allocate_a_temporary_section_list() {
+    let extent = source("src/ui/retained_host/detail_pointer/asset_details_content_extent.rs");
+
+    assert!(
+        !extent.contains("vec!["),
+        "fixed asset-details sections should be summed without a temporary heap allocation"
+    );
+}

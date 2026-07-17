@@ -15,10 +15,13 @@ implementation_files:
   - zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
   - zircon_runtime/src/tests/runtime_absorption/rayon_boundary.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/performance/01/2026-07-17-ecs-schedule-static-review.md
   - docs/plans/zircon_runtime/runtime/03-schedule-and-frame-loop-alignment.md
   - docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
   - docs/plans/zircon_runtime/runtime/index.md
 tests:
+  - zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs::tests::cloned_task_registry_shares_frozen_task_map_until_mutated
   - rustfmt --edition 2021 zircon_runtime/src/scene/ecs/schedule_parallel_executor.rs zircon_runtime/src/scene/ecs/mod.rs zircon_runtime/src/scene/tests/ecs_schedule.rs zircon_runtime/src/scene/tests/ecs_schedule/conflict_graph.rs zircon_runtime/src/scene/tests/ecs_schedule/parallel_executor.rs zircon_runtime/src/scene/tests/ecs_schedule_parallel_executor_structure.rs
   - schedule_parallel_executor_runs_registered_batches_through_job_scheduler
   - schedule_parallel_executor_can_run_parallel_batches_serially_with_report
@@ -30,7 +33,7 @@ tests:
   - schedule_parallel_disabled_path_runs_serial_batches_with_fallback_counts
   - schedule_parallel_batches_chain_through_job_handles
   - schedule_parallel_executor_does_not_call_rayon_directly
-- rayon_is_only_reachable_through_core_task_primitives
+  - rayon_is_only_reachable_through_core_task_primitives
   - cargo test -p zircon_runtime --lib ecs_schedule --locked --target-dir E:/cargo-targets/zircon-runtime-03-0612 -- --nocapture --test-threads=1 failed before executing schedule tests on unrelated unresolved import `crate::asset::ui_v2_asset_references` in zircon_runtime/src/ui/tests/asset_dependency_index.rs
 doc_type: module-detail
 ---
@@ -59,7 +62,7 @@ The executor also exposes `parallel_enabled()` and `with_parallel_enabled(false)
 
 `run_batches_with_report(...)` now submits each batch as a `JobScheduler::schedule_after(...)` task. The first batch depends on a completed handle; every following batch depends on the previous batch handle. The caller waits only on the tail handle before replaying batch results in original batch order.
 
-The task registry stores registered system tasks behind `Arc`, so the scheduled batch closure can move a clone into the runtime task pool without borrowing the registry across threads. Batch-local execution now uses `JobScheduler::join(...)` for fixed two-through-six system paths and a balanced recursive `run_parallel_tasks(...)` helper for larger batches. The executor no longer imports or calls Rayon directly; Rayon remains reachable only through the core task primitives.
+The task registry stores the complete immutable task map behind `Arc<HashMap<...>>`, so each scheduled batch can move an O(1) snapshot into the runtime task pool without borrowing or copying the full registry. A later `register(...)` uses copy-on-write and therefore cannot mutate a snapshot already owned by scheduled work. Batch-local execution uses `JobScheduler::join(...)` for fixed two-through-six system paths and a balanced recursive `run_parallel_tasks(...)` helper for larger batches. The executor no longer imports or calls Rayon directly; Rayon remains reachable only through the core task primitives.
 
 If a batch returns a missing-task or task-failed error, a shared abort flag is set. Later scheduled batches complete as no-ops, and `run_batches_with_report(...)` returns the first error in batch order. This preserves the previous failure contract while expressing batch order through `JobHandle` dependencies.
 
@@ -98,3 +101,5 @@ Behavior coverage in `ecs_schedule/parallel_executor.rs` covers:
 - `executor_batches_are_chained_through_job_dependencies` asserts the second and third batches can only observe earlier batch completion, and that the scheduler reports one scheduled/completed job per batch.
 
 Cargo validation is pending. The focused `ecs_schedule` run compiled until an unrelated UI test import error in `zircon_runtime/src/ui/tests/asset_dependency_index.rs`, so these schedule tests did not execute.
+
+The 2026-07-17 performance slice added the copy-on-write registry snapshot regression. It remains Cargo-validation pending. Per-run abort state, per-batch result slots, cloned system-id vectors, and dependency handles remain explicit measurement candidates; no allocation reduction is claimed for those paths yet.

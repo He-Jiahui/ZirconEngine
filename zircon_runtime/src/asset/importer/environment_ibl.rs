@@ -22,6 +22,7 @@ use crate::core::framework::render::{
     SourceCubemapMipChain, SourceCubemapPrefilterQuality, SOURCE_CUBEMAP_MAX_FACE_SIZE,
     SOURCE_CUBEMAP_MIN_FACE_SIZE, SOURCE_CUBEMAP_PMREM_FACE_SIZE, SOURCE_CUBEMAP_PMREM_MIP_COUNT,
 };
+use crate::core::framework::tasks::ParallelSliceExecutor;
 
 pub const ENVIRONMENT_IBL_IMPORT_SETTING: &str = "environment_ibl";
 pub const ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING: &str = "environment_ibl_face_size";
@@ -109,6 +110,53 @@ pub fn stage_environment_ibl_source(
     context: &AssetImportContext,
     cache_root: impl AsRef<Path>,
 ) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError> {
+    stage_environment_ibl_source_with_builder(
+        context,
+        cache_root,
+        |image, face_size, pmrem_face_size, pmrem_mip_count| {
+            SourceCubemapMipChain::from_equirect_with_pmrem_layout(
+                face_size,
+                pmrem_face_size,
+                pmrem_mip_count,
+                SourceCubemapPrefilterQuality::Normal,
+                |u, v| sample_equirect_bilinear(image, u, v),
+            )
+        },
+    )
+}
+
+/// Stages an equirectangular environment through the caller-owned runtime task executor.
+///
+/// The importer retains cache and artifact ownership; callers provide only the execution owner.
+pub fn stage_environment_ibl_source_with_parallel_executor<E>(
+    context: &AssetImportContext,
+    cache_root: impl AsRef<Path>,
+    parallel_executor: &E,
+) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError>
+where
+    E: ParallelSliceExecutor,
+{
+    stage_environment_ibl_source_with_builder(
+        context,
+        cache_root,
+        |image, face_size, pmrem_face_size, pmrem_mip_count| {
+            SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_parallel_executor(
+                face_size,
+                pmrem_face_size,
+                pmrem_mip_count,
+                SourceCubemapPrefilterQuality::Normal,
+                parallel_executor,
+                |u, v| sample_equirect_bilinear(image, u, v),
+            )
+        },
+    )
+}
+
+fn stage_environment_ibl_source_with_builder(
+    context: &AssetImportContext,
+    cache_root: impl AsRef<Path>,
+    build_cubemap: impl FnOnce(&DecodedTextureImageRgba32F, u32, u32, u32) -> SourceCubemapMipChain,
+) -> Result<EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingError> {
     let mode = environment_ibl_import_mode(context)?;
     if mode == EnvironmentIblImportMode::Disabled || !mode.applies_to(context) {
         return Ok(EnvironmentIblSourceStagingReport::skipped());
@@ -153,13 +201,7 @@ pub fn stage_environment_ibl_source(
         ));
     }
 
-    let cubemap = SourceCubemapMipChain::from_equirect_with_pmrem_layout(
-        face_size,
-        pmrem_face_size,
-        pmrem_mip_count,
-        SourceCubemapPrefilterQuality::Normal,
-        |u, v| sample_equirect_bilinear(&image, u, v),
-    );
+    let cubemap = build_cubemap(&image, face_size, pmrem_face_size, pmrem_mip_count);
     let irradiance_cube = build_source_cubemap_irradiance_cube(&cubemap);
     store
         .write_source_cubemap_staged_bundle(

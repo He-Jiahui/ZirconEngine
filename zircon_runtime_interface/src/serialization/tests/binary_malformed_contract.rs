@@ -1,9 +1,9 @@
 use super::super::{
-    Format, LoadError, MigrationChain, PayloadHeader, SchemaId, VersionedSchema,
     binary::{
-        BinaryNode, BinaryValue, MAX_BINARY_BODY_BYTES, MAX_BINARY_DEPTH, encode_binary_value,
+        encode_binary_value, BinaryNode, BinaryValue, MAX_BINARY_BODY_BYTES, MAX_BINARY_DEPTH,
     },
-    load_versioned, write_versioned,
+    load_versioned, write_versioned, Format, LoadError, MigrationChain, PayloadHeader, SchemaId,
+    VersionedSchema,
 };
 use super::FixtureDocument;
 

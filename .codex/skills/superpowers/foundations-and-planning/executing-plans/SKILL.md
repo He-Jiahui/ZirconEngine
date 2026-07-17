@@ -17,6 +17,8 @@ Load plan, review critically, execute all tasks, report when complete.
 
 In `zirconEngine`, also read `../../../zircon-project-skills/milestone-first-workflow-policy.md`. Do not turn each plan task into its own compile/build/unit-test loop when the plan separates implementation slices from a milestone testing stage.
 
+For a plan executed in a separate Session, also read `../../../zircon-project-skills/cross-session-coordination/references/model-tier-policy.md`. Every delegated task must declare an allowed `5.6-sol`, `5.6-terra`, or `5.6-luna` tier and Light/Medium/High/Extra High thinking depth. Do not use or silently fall back to `gpt-5.5` or lower.
+
 ## The Process
 
 ### Step 1: Load and Review Plan

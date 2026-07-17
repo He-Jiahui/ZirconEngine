@@ -52,7 +52,7 @@ fn compile_preserves_renderer_stage_for_each_graph_pass() {
         Some(RenderPassStage::Transparent3d)
     );
     assert_eq!(compiled.pass_stage("missing-pass"), None);
-    assert_eq!(compiled.pass_stages.len(), compiled.graph.passes().len());
+    assert_eq!(compiled.pass_stages.len(), compiled.graph().passes().len());
 }
 
 #[test]
@@ -90,7 +90,7 @@ fn compile_preserves_compute_workload_from_feature_descriptor() {
 
     let compiled = pipeline.compile(&test_extract()).unwrap();
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "ssao-evaluate")
@@ -121,7 +121,7 @@ fn compile_options_append_environment_ibl_bake_graph_passes() {
         .unwrap();
 
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS)
@@ -153,7 +153,7 @@ fn compile_without_environment_ibl_request_keeps_bake_graph_absent() {
     assert!(compiled.environment_ibl_bake_request.is_none());
     assert!(
         !compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name == crate::graphics::scene::IBL_BAKE_IRRADIANCE_SH9_PASS),
@@ -188,7 +188,7 @@ fn compile_skips_core_particle_pass_when_particle_sprites_miss_selected_camera_l
 
     assert!(
         !compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name == "particle-render"),

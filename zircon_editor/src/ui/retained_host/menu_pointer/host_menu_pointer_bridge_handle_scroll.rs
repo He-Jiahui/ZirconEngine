@@ -20,7 +20,7 @@ impl HostMenuPointerBridge {
             UiPointerEvent::new(UiPointerEventKind::Scroll, point).with_scroll_delta(delta),
         )?;
 
-        let mut hover_route = route.clone();
+        let mut refreshed_hover_route = None;
         if self.state.open_menu_index.is_none() && menu_bar_contains_point(&self.layout, point) {
             let next_offset = clamped_menu_bar_scroll_offset(
                 &self.layout,
@@ -29,8 +29,9 @@ impl HostMenuPointerBridge {
             if (self.state.menu_bar_scroll_offset - next_offset).abs() > f32::EPSILON {
                 self.state.menu_bar_scroll_offset = next_offset;
                 self.rebuild_surface();
-                hover_route =
-                    self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+                refreshed_hover_route = Some(
+                    self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?,
+                );
             }
         } else if self.state.open_menu_index.is_some() {
             if let Some(popup) = self.surface.tree.node(popup_node_id(0)) {
@@ -40,11 +41,12 @@ impl HostMenuPointerBridge {
                     self.rebuild_surface();
                 }
             }
-            hover_route =
-                self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?;
+            refreshed_hover_route =
+                Some(self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Move, point))?);
         }
 
         let mut rebuild_after_hover = false;
+        let hover_route = refreshed_hover_route.as_ref().unwrap_or(&route);
         match hover_route.as_ref() {
             Some(HostMenuPointerRouteIntent::SubmenuBranch {
                 menu_index,

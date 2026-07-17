@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::fmt;
 
 #[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,6 +23,12 @@ impl From<&str> for RenderPassExecutorId {
 impl From<String> for RenderPassExecutorId {
     fn from(value: String) -> Self {
         Self::new(value)
+    }
+}
+
+impl Borrow<str> for RenderPassExecutorId {
+    fn borrow(&self) -> &str {
+        self.as_str()
     }
 }
 

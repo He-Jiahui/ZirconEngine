@@ -83,7 +83,10 @@ related_code:
   - zircon_runtime/src/text/font/fallback.rs
   - zircon_runtime/src/text/font/fallback/tests.rs
   - zircon_runtime/src/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/text/font/handle_registry.rs
   - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/font/shared/tests.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
   - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -206,6 +209,7 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
 - zircon_runtime/src/text/sdf/params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
@@ -389,7 +393,9 @@ implementation_files:
   - zircon_runtime/src/text/font/fallback.rs
   - zircon_runtime/src/text/font/fallback/tests.rs
   - zircon_runtime/src/text/font/test_font_fixtures.rs
+  - zircon_runtime/src/text/font/handle_registry.rs
   - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
   - zircon_runtime/assets/fonts/ZirconDefaultComposite-subset.ttc
   - zircon_runtime/assets/fonts/OFL-NotoSansSC.md
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs
@@ -488,6 +494,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_upload/tests.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
 - zircon_runtime/src/text/sdf/params.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_render/vertices.rs
@@ -587,6 +594,7 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/text_markers.rs
 plan_sources:
+  - user: 2026-07-16 Runtime Text MVP basic rendering/layout stability and performance-first closeout
   - docs/plans/zircon_runtime/text/index.md
   - docs/plans/zircon_runtime/text/01-font-resource-faces-and-database.md
   - docs/plans/zircon_runtime/text/02-shaping-unicode-and-bidi.md
@@ -603,6 +611,8 @@ plan_sources:
   - docs/superpowers/specs/2026-07-12-runtime-rich-table-cell-box-design.md
   - docs/superpowers/plans/2026-07-12-runtime-rich-table-cell-box.md
 tests:
+- zircon_runtime/src/text/font/shared/tests.rs (`identical_shared_font_database_publish_preserves_generation`; semantic font mutations advance once)
+- zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs (parallel SDF cache residency and authoritative system-face generation guards)
 - zircon_runtime/src/text/font/database/tests.rs (`text_font_database_composite_activation_is_explicit_and_replaceable`; `text_font_runtime_default_composite_selects_checked_in_zh_hans_face`)
 - tools/tests/test_text_01_composite_activation.py (registration is activation-free; constructor activates once; candidate resolver is folder-backed)
 - zircon_runtime/tests/runtime_text_multilingual_product_framebuffer/product_project_fixture.rs (checked-in manifest, TTC face 1, and Chinese glyph-coverage product preconditions)
@@ -1503,6 +1513,37 @@ The SDF mixed fallback span follow-up consumes that glyph-aligned data inside `g
 The SDF fallback byte-range follow-up extends those span records with `start_byte_index` and `end_byte_index` from `source_text.char_indices()`, plus fallback/page-limit/oversized source byte counts in the prepare report. This keeps UTF-8 slicing knowledge in the fallback owner instead of duplicating it in the renderer later. Visible rendering is still whole-batch native fallback; the byte ranges are a data-plane prerequisite for local mixed native/SDF overlay.
 
 The SDF mixed native overlay first slice consumes those byte ranges and measured SDF advances for the safe Horizontal LTR / no-wrap / non-justify case. `text/sdf_fallback.rs` keeps the original SDF batch for allocated glyphs and creates native overlay batches only for failed spans, while `sdf_render.rs` supplies per-character fallback advances and `text.rs` only reparses/reprepares the atlas on whole-batch fallback. Vertical, RTL, justify, wrapped mixed overlay and independent oversized fallback remain separate follow-ups.
+
+## 2026-07-17 Text MVP shared font generation stability
+
+`TextRenderState` remains the renderer-local owner of the mutable font database, while
+`text/font/shared.rs` owns the process-wide immutable snapshot lineage. Constructing another
+`ScreenSpaceUiTextSystem` republishes that local database after default/composite font setup, but
+an equivalent publication no longer advances the global generation. This keeps shaped-run,
+locale `FontSystem`, font-handle, and SDF bake caches resident when the effective render inputs are
+unchanged instead of turning renderer construction order into cache invalidation.
+
+Semantic comparison is child-owned by `text/font/database/equivalence.rs`. It compares the ordered
+face descriptors and sources, fallback families, active CompositeFont, and default UI family. Face
+order is part of identity because `FontFaceId` indexes that order. Diagnostics, runtime caches,
+instance registries, and derived backend indexes are intentionally excluded because publishing
+them cannot change a rendered glyph. Shared byte sources use `Arc::ptr_eq` first, so the normal
+clone-and-republish path is O(face count); byte comparison is only the fallback for independently
+materialized but equivalent databases.
+
+Snapshot reads and publish equality/replacement/generation updates use the same `RwLock` boundary.
+The database replacement and generation increment therefore occur in one write-locked critical
+section, preventing a reader from pairing the new database with the old generation. No shaping or
+raster hot path holds that lock: readers clone one immutable snapshot at the existing refresh
+boundary, and the lock-free atomic generation probe remains the common cache check.
+
+The tests use two deliberately test-only controls. `force_publish_shared_font_database(...)` keeps
+the stale-handle regression able to force a lineage change even when the database payload is
+equivalent. `shared_font_database_test_read_guard()` serializes the generation-sensitive SDF cache
+fixtures against unrelated global publishers without adding a production lock or changing SDF
+behavior. The initial focused shared-publication batch passed 2/2 in managed job
+`82420bdd20f8450eabaf5e08fd009759`; the expanded default-family guard and parallel SDF batch remain
+in the milestone testing queue, so this implementation is recorded as active rather than accepted.
 
 ## 2026-07-10 Text 06 backend face identity hard cut
 

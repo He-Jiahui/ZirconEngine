@@ -374,7 +374,7 @@ fn spot_shadow_pcf_capture_extract(
                         52_101,
                         Transform {
                             translation: Vec3::new(-1.05, 0.0, 0.42),
-                            scale: Vec3::new(0.24, 0.28, 0.58),
+                            scale: Vec3::new(0.10, 0.14, 0.42),
                             ..Transform::default()
                         },
                         caster_material,
@@ -389,7 +389,7 @@ fn spot_shadow_pcf_capture_extract(
                         DEFAULT_RENDER_LAYER_MASK,
                     ),
                     position: Vec3::new(-0.30, -1.85, 2.05),
-                    direction: (Vec3::new(-0.65, 0.02, 0.04) - Vec3::new(-0.30, -1.85, 2.05))
+                    direction: (Vec3::new(-1.05, 0.02, 0.04) - Vec3::new(-0.30, -1.85, 2.05))
                         .normalize(),
                     color: Vec3::ONE,
                     intensity: 3.6,

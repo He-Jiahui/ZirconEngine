@@ -1,4 +1,4 @@
-use super::super::dsp_state::SoundHistoryState;
+use super::history::SoundHistoryState;
 
 pub(super) fn reverb_block(
     buffer: &mut [f32],

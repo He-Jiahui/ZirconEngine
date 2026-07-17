@@ -28,7 +28,7 @@ impl CoreHandle {
             .record(path, frame_index, value, unit, subsystem_tags);
     }
 
-    fn lock_diagnostics(&self) -> MutexGuard<'_, DiagnosticStore> {
+    pub(super) fn lock_diagnostics(&self) -> MutexGuard<'_, DiagnosticStore> {
         self.inner
             .diagnostics
             .lock()

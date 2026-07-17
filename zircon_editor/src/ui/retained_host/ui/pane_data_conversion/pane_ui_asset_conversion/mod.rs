@@ -30,11 +30,10 @@ pub(in super::super) fn to_host_contract_ui_asset_pane(
     mut data: asset_editor::UiAssetEditorPanePresentation,
     instance_id: &str,
 ) -> host_contract::UiAssetEditorPaneData {
-    let inspector_widget_prop_state_rows = data.inspector_widget_prop_state_rows.clone();
     let template_nodes = to_host_contract_ui_asset_template_nodes(
         std::mem::take(&mut data.nodes),
         &data,
-        &inspector_widget_prop_state_rows,
+        &data.inspector_widget_prop_state_rows,
         instance_id,
     );
     let preview = to_host_contract_ui_asset_preview_panel(&mut data);

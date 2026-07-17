@@ -7,7 +7,7 @@ use crate::ui::retained_host as host_contract;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::super::template_node_conversion::to_host_contract_template_node_owned;
+use super::super::template_node_conversion::to_host_contract_template_node;
 use super::inspector_fields::{inspector_field_nodes, InspectorVisualFields};
 use super::pane_component_projection::host_template_node;
 use super::pane_template_runtime;
@@ -15,22 +15,22 @@ use super::pane_value_conversion::{value_as_bool, value_as_string};
 use super::template_node_projection::project_node_vec;
 
 fn to_host_contract_inspector_pane(
-    data: InspectorPaneViewData,
+    data: &InspectorPaneViewData,
     content_size: PaneContentSize,
 ) -> host_contract::InspectorPaneData {
     let fields = InspectorVisualFields::from_view_data(&data);
-    let mut nodes = project_node_vec(&data.nodes, to_host_contract_template_node_owned);
+    let mut nodes = project_node_vec(&data.nodes, to_host_contract_template_node);
     let inspector_nodes = inspector_field_nodes(&fields, &nodes, content_size);
     nodes.extend(inspector_nodes);
 
     host_contract::InspectorPaneData {
         nodes: model_rc(nodes),
-        info: data.info,
-        inspector_name: data.inspector_name,
-        inspector_parent: data.inspector_parent,
-        inspector_x: data.inspector_x,
-        inspector_y: data.inspector_y,
-        inspector_z: data.inspector_z,
+        info: data.info.clone(),
+        inspector_name: data.inspector_name.clone(),
+        inspector_parent: data.inspector_parent.clone(),
+        inspector_x: data.inspector_x.clone(),
+        inspector_y: data.inspector_y.clone(),
+        inspector_z: data.inspector_z.clone(),
         delete_enabled: data.delete_enabled,
     }
 }
@@ -40,7 +40,7 @@ pub(crate) fn to_host_contract_inspector_pane_from_host_pane(
     content_size: PaneContentSize,
 ) -> host_contract::InspectorPaneData {
     inspector_template_projection(data, content_size, None).unwrap_or_else(|| {
-        to_host_contract_inspector_pane(data.native_body.inspector.clone(), content_size)
+        to_host_contract_inspector_pane(&data.native_body.inspector, content_size)
     })
 }
 
@@ -50,7 +50,7 @@ pub(crate) fn to_host_contract_inspector_pane_from_host_pane_with_runtime(
     runtime: &EditorUiHostRuntime,
 ) -> host_contract::InspectorPaneData {
     inspector_template_projection(data, content_size, Some(runtime)).unwrap_or_else(|| {
-        to_host_contract_inspector_pane(data.native_body.inspector.clone(), content_size)
+        to_host_contract_inspector_pane(&data.native_body.inspector, content_size)
     })
 }
 

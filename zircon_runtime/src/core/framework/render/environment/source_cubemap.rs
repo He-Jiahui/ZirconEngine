@@ -205,6 +205,27 @@ impl SourceCubemapMipChain {
         )
     }
 
+    pub fn from_equirect_with_pmrem_layout_and_parallel_executor<E, F>(
+        source_face_size: u32,
+        pmrem_face_size: u32,
+        pmrem_mip_count: u32,
+        quality: SourceCubemapPrefilterQuality,
+        parallel_executor: &E,
+        sample_equirect: F,
+    ) -> Self
+    where
+        E: ParallelSliceExecutor,
+        F: FnMut(Real, Real) -> [Real; 4],
+    {
+        build_source_cubemap_from_equirect_with_pmrem_layout_and_parallel_executor(
+            source_face_size,
+            SourceCubemapPmremLayout::new(pmrem_face_size, pmrem_mip_count),
+            quality,
+            parallel_executor,
+            sample_equirect,
+        )
+    }
+
     pub fn from_captured_faces_with_parallel_executor<E>(
         source_face_size: u32,
         captured_face_texels: Vec<[Real; 4]>,

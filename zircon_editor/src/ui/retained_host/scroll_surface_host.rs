@@ -23,8 +23,13 @@ impl ScrollSurfaceHostState {
         self.size
     }
 
-    pub(crate) fn set_size(&mut self, size: UiSize) {
-        self.size = UiSize::new(size.width.max(0.0), size.height.max(0.0));
+    pub(crate) fn set_size(&mut self, size: UiSize) -> bool {
+        let size = UiSize::new(size.width.max(0.0), size.height.max(0.0));
+        if self.size == size {
+            return false;
+        }
+        self.size = size;
+        true
     }
 
     pub(crate) fn has_size(&self) -> bool {
@@ -43,5 +48,19 @@ impl ScrollSurfaceHostState {
 
     pub(crate) fn scroll_offset(&self) -> f32 {
         self.state.scroll_offset
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+
+    #[test]
+    fn repeated_surface_size_is_a_no_op() {
+        let mut surface = ScrollSurfaceHostState::new("test", "test");
+        let size = UiSize::new(320.0, 180.0);
+
+        assert!(surface.set_size(size));
+        assert!(!surface.set_size(size));
     }
 }

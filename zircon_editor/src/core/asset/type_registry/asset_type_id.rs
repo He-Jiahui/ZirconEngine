@@ -84,7 +84,7 @@ fn is_valid_segment(segment: &str) -> bool {
         && chars.all(|value| value.is_ascii_lowercase() || value.is_ascii_digit() || value == '_')
 }
 
-fn canonical_resource_kind_id(kind: ResourceKind) -> &'static str {
+pub(super) fn canonical_resource_kind_id(kind: ResourceKind) -> &'static str {
     match kind {
         ResourceKind::Data => "data",
         ResourceKind::Model => "model",

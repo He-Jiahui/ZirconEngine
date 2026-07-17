@@ -1,5 +1,27 @@
 use super::*;
 
+#[derive(Default)]
+struct CountingParallelSliceExecutor(std::sync::atomic::AtomicUsize);
+
+impl CountingParallelSliceExecutor {
+    fn call_count(&self) -> usize {
+        self.0.load(std::sync::atomic::Ordering::Relaxed)
+    }
+}
+
+impl crate::core::framework::tasks::ParallelSliceExecutor for CountingParallelSliceExecutor {
+    fn parallel_for<T, F>(&self, items: &mut [T], chunk_size: usize, task: F)
+    where
+        T: Send,
+        F: Fn(&mut [T]) + Send + Sync,
+    {
+        self.0.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        for chunk in items.chunks_mut(chunk_size.max(1)) {
+            task(chunk);
+        }
+    }
+}
+
 #[test]
 fn source_cubemap_face_size_clamps_equirect_height_to_power_of_two() {
     assert_eq!(source_cubemap_face_size_from_equirect_height(512), 256);
@@ -205,6 +227,57 @@ fn source_cubemap_explicit_executor_entry_preserves_output_contract() {
     });
 
     assert_eq!(pooled, serial);
+}
+
+#[test]
+fn source_cubemap_parallel_executor_preserves_explicit_pmrem_layout() {
+    use crate::core::framework::tasks::TaskPoolDescriptor;
+    use crate::core::runtime::tasks::TaskPool;
+
+    let serial = SourceCubemapMipChain::from_equirect_with_pmrem_layout(
+        64,
+        32,
+        source_cubemap_mip_count(32),
+        SourceCubemapPrefilterQuality::Normal,
+        |u, v| [u, v, u * v, 1.0],
+    );
+    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
+    let parallel = SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_parallel_executor(
+        64,
+        32,
+        source_cubemap_mip_count(32),
+        SourceCubemapPrefilterQuality::Normal,
+        &pool,
+        |u, v| [u, v, u * v, 1.0],
+    );
+
+    assert_eq!(parallel, serial);
+}
+
+#[test]
+fn source_cubemap_parallel_executor_dispatches_pmrem_face_work() {
+    let serial = SourceCubemapMipChain::from_equirect_with_pmrem_layout(
+        64,
+        64,
+        source_cubemap_mip_count(64),
+        SourceCubemapPrefilterQuality::Fast,
+        |u, v| [u, v, u * v, 1.0],
+    );
+    let executor = CountingParallelSliceExecutor::default();
+    let parallel = SourceCubemapMipChain::from_equirect_with_pmrem_layout_and_parallel_executor(
+        64,
+        64,
+        source_cubemap_mip_count(64),
+        SourceCubemapPrefilterQuality::Fast,
+        &executor,
+        |u, v| [u, v, u * v, 1.0],
+    );
+
+    assert_eq!(parallel, serial);
+    assert!(
+        executor.call_count() >= source_cubemap_mip_count(64) as usize,
+        "each PMREM mip must dispatch its independent cube-face work through the caller executor"
+    );
 }
 
 #[test]

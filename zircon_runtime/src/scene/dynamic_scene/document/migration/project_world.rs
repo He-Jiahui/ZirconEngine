@@ -1,4 +1,4 @@
-use serde_json::{Map, Value, json};
+use serde_json::{json, Map, Value};
 use zircon_runtime_interface::serialization::MigrateError;
 
 use crate::scene::components::default_render_layer_mask;

@@ -13,7 +13,8 @@ use zircon_editor::{
     run_editor_with_config,
     ui::host::{EditorHostEventController, EditorManager},
     ui::workbench::state::EditorState,
-    EditorGuiStartupRequest, EditorHostRunConfig, EDITOR_MANAGER_NAME,
+    EditorGuiStartupRequest, EditorHostRunConfig, RuntimeCapabilities, SessionProfileKind,
+    EDITOR_MANAGER_NAME,
 };
 #[cfg(feature = "target-editor-host")]
 use zircon_runtime::asset::project::ProjectManager;
@@ -22,7 +23,7 @@ use zircon_runtime::core::math::UVec2;
 
 #[cfg(feature = "target-editor-host")]
 use crate::entry::{
-    first_party_editor_plugin_registrations_for_config,
+    cli::EditorLaunchArgs, first_party_editor_plugin_registrations_for_config,
     first_party_runtime_plugin_registrations_for_config, EntryConfig, EntryProfile,
 };
 
@@ -46,6 +47,22 @@ impl EntryRunner {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
+        let exit_code = Self::run_editor_with_args_exit_code(args)?;
+        if exit_code == 0 {
+            Ok(())
+        } else {
+            Err(format!("editor commandlet completed with exit code {exit_code}").into())
+        }
+    }
+
+    /// Run the editor executable and return its stable process exit code. Commandlet outcomes
+    /// are emitted as JSON before this method returns, while GUI and operation-control startup
+    /// retain their existing result contracts.
+    pub fn run_editor_with_args_exit_code<I, S>(args: I) -> Result<u8, Box<dyn Error>>
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
         #[cfg(not(feature = "target-editor-host"))]
         {
             let _ = args;
@@ -61,6 +78,18 @@ impl EntryRunner {
             #[cfg(feature = "profiling-tracy")]
             let _ = zircon_runtime::core::diagnostics::profiling::initialize_tracy_sink();
             let remaining_args = diagnostic_args.remaining_args;
+            let remaining_args = match EditorLaunchArgs::parse(remaining_args) {
+                EditorLaunchArgs::Commandlet(request) => {
+                    let report = zircon_editor::core::commandlet::run_commandlet(request);
+                    println!("{}", serde_json::to_string(&report)?);
+                    return Ok(report.exit_code().as_u8());
+                }
+                EditorLaunchArgs::CommandletRejected(report) => {
+                    println!("{}", serde_json::to_string(&report)?);
+                    return Ok(report.exit_code().as_u8());
+                }
+                EditorLaunchArgs::Standard(args) => args,
+            };
             let gui_startup_request = EditorGuiStartupRequestArgs::parse(remaining_args.clone())?;
             let request = if gui_startup_request.is_none() {
                 EditorCliOperationRequest::parse(remaining_args)?
@@ -70,7 +99,7 @@ impl EntryRunner {
             if let Some(request) = request {
                 let response = Self::run_editor_operation(request)?;
                 println!("{}", serde_json::to_string(&response)?);
-                return Ok(());
+                return Ok(0);
             }
             #[cfg(feature = "profiling")]
             let profile_capture =
@@ -80,16 +109,21 @@ impl EntryRunner {
                 first_party_editor_plugin_registrations_for_config(&entry_config);
             let runtime_plugin_registrations =
                 first_party_runtime_plugin_registrations_for_config(&entry_config);
+            let runtime_capabilities = RuntimeCapabilities::from_runtime_plugin_registrations(
+                SessionProfileKind::Editor,
+                &runtime_plugin_registrations,
+            );
             let project_root = editor_startup_project_root(gui_startup_request.as_ref());
             let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(entry_config)?;
             let runtime = LoadedRuntime::linked()?;
-            let runtime_gateway =
+            let runtime_session =
                 std::sync::Arc::new(RuntimeSession::create_linked_with_profile_and_project(
                     runtime,
                     b"editor",
                     project_root,
                     runtime_plugin_registrations,
                 )?);
+            let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
             let host_config = editor_host_run_config_with_first_frame_exit(
                 gui_startup_request,
                 editor_exit_after_first_frame_enabled(),
@@ -106,7 +140,7 @@ impl EntryRunner {
                 }
             }
             result?;
-            Ok(())
+            Ok(0)
         }
     }
 
@@ -118,6 +152,10 @@ impl EntryRunner {
         let entry_config = EntryConfig::new(EntryProfile::Editor);
         let runtime_plugin_registrations =
             first_party_runtime_plugin_registrations_for_config(&entry_config);
+        let runtime_capabilities = RuntimeCapabilities::from_runtime_plugin_registrations(
+            SessionProfileKind::Editor,
+            &runtime_plugin_registrations,
+        );
         let core = Self::bootstrap_with_first_party_runtime_plugin_registrations(entry_config)?;
         let state = EditorState::with_default_selection(
             zircon_runtime::scene::create_default_level(&core)?,
@@ -126,13 +164,14 @@ impl EntryRunner {
         let manager = core.resolve_manager::<EditorManager>(EDITOR_MANAGER_NAME)?;
         let runtime = EditorHostEventController::new(state, manager);
         let runtime_library = LoadedRuntime::linked()?;
-        let runtime_gateway =
+        let runtime_session =
             std::sync::Arc::new(RuntimeSession::create_linked_with_profile_and_project(
                 runtime_library,
                 b"editor",
                 None,
                 runtime_plugin_registrations,
             )?);
+        let runtime_gateway = runtime_session.editor_gateway(runtime_capabilities)?;
         runtime.set_runtime_gateway(runtime_gateway);
         Ok(runtime.handle_operation_control_request_from_source(
             EditorOperationSource::Cli,

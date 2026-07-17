@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
@@ -46,16 +47,23 @@ impl Default for WorkbenchLayout {
 }
 
 impl WorkbenchLayout {
-    pub fn activity_windows(&self) -> BTreeMap<ActivityWindowId, ActivityWindowLayout> {
+    pub fn activity_windows(&self) -> Cow<'_, BTreeMap<ActivityWindowId, ActivityWindowLayout>> {
         if self.activity_windows.is_empty() {
-            default_activity_windows_with_drawers(self.drawers.clone())
+            Cow::Owned(default_activity_windows_with_drawers(self.drawers.clone()))
+        } else if self.activity_windows.values().all(|window| {
+            window
+                .activity_drawers
+                .iter()
+                .all(|(slot, drawer)| slot.canonical() == *slot && drawer.slot == *slot)
+        }) {
+            Cow::Borrowed(&self.activity_windows)
         } else {
             let mut windows = self.activity_windows.clone();
             for window in windows.values_mut() {
                 window.activity_drawers =
                     canonical_activity_drawers(std::mem::take(&mut window.activity_drawers));
             }
-            windows
+            Cow::Owned(windows)
         }
     }
 
@@ -174,4 +182,21 @@ fn merge_drawer_layout(existing: &mut ActivityDrawerLayout, incoming: ActivityDr
         existing.extent = incoming.extent;
     }
     existing.visible |= incoming.visible;
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use std::borrow::Cow;
+
+    use super::WorkbenchLayout;
+
+    #[test]
+    fn canonical_activity_windows_are_borrowed() {
+        let layout = WorkbenchLayout::default();
+        assert!(matches!(layout.activity_windows(), Cow::Borrowed(_)));
+
+        let mut legacy = layout.clone();
+        legacy.activity_windows.clear();
+        assert!(matches!(legacy.activity_windows(), Cow::Owned(_)));
+    }
 }

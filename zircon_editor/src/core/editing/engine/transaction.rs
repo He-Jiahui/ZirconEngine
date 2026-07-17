@@ -435,12 +435,11 @@ impl EditorTransactionEngine {
                 return Err(EditCommandError::ScopeClosed);
             };
             let context = Self::take_context_from(&mut state)?;
-            let frames = state.active.drain(position..).rev().collect::<Vec<_>>();
+            let frames = state.active.drain(position..).collect::<Vec<_>>();
             (context, frames)
         };
 
-        while !frames.is_empty() {
-            let mut frame = frames.remove(0);
+        while let Some(mut frame) = frames.pop() {
             match Self::cancel_frame(&mut frame, context.as_mut()) {
                 Ok(()) => {
                     if frame.root {
@@ -449,7 +448,7 @@ impl EditorTransactionEngine {
                 }
                 Err(error) => {
                     let mut state = self.lock_state();
-                    for retained in frames.into_iter().rev() {
+                    for retained in frames {
                         state.active.push(retained);
                     }
                     state.active.push(frame);
@@ -741,5 +740,15 @@ impl Drop for TransactionScope<'_> {
             }
         }
         self.closed = true;
+    }
+}
+
+#[cfg(test)]
+mod performance_source_guards {
+    #[test]
+    fn nested_cancel_does_not_remove_from_the_front_of_a_vec() {
+        let source = include_str!("transaction.rs");
+        let front_remove = ["frames", ".remove(0)"].concat();
+        assert!(!source.contains(&front_remove));
     }
 }

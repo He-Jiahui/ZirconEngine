@@ -24,6 +24,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 
 - Default lookback window: `4` hours unless the user says otherwise.
 - Start or query `tools/zircon-session.ps1`, register the current Session and numbered plan, and use the service as the first coordination source. Markdown notes are the offline fallback, not a competing state database.
+- **Coordinator leases are the only write-exclusion mechanism in the shared checkout.** Never create an OS-level source-file lock (including a `FileShare.Read` loop), and never use ACL changes or `ReadOnly` attributes to block another Session. If an unmanaged lock is suspected, diagnose it with Restart Manager, preserve live managed Cargo trees, terminate only the verified locking helper, and record the owner/evidence in the current Session note before continuing through coordinator leases and delayed patches.
 - Before overlap-sensitive edits or debugging, scan `.codex/plans/` and `.codex/sessions/` sorted by `LastWriteTime` descending. Freshness is mandatory.
 - Independently scan the active `docs/plans/{family}/{id}/` directory for `failure-*.md`; open handoffs do not expire with the four-hour lookback.
 - Read modification times before trusting a plan or session note. Stale notes are not active coordination signals.
@@ -34,6 +35,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 - If a failing test or broken behavior appears outside the current task's scope, check recent plans and session notes before trying to "fix" it.
 - If another numbered child plan owns the lowest shared cause, apply `../handle-plan-failure-handoffs/SKILL.md`. Publish the handoff, continue independent source work, and do not mark the session blocked solely because the handoff is open.
 - **Failure Priority Gate:** when the registered plan is the fixing owner of an applicable open handoff, switch to `resolving_failure` and do not begin ordinary feature slices until the handoff is returned as `fixed-*`.
+- **Model Tier Gate:** before any cross-Session task, read [the model-tier policy](references/model-tier-policy.md), declare its allowed `5.6-sol` / `5.6-terra` / `5.6-luna` tier and thinking depth in the task/session state, and reject `gpt-5.5` or lower fallback. When the platform cannot set a model, verify the active runtime model is allowed before dispatch.
 - When a failure is in a lower shared layer, also apply `../support-first-regression-testing/SKILL.md`.
 - On completion, remove the note from active circulation: delete it if no handoff record is needed, or move it to `.codex/sessions/archive/` with `status: completed`. Never leave completed notes in the active root.
 
@@ -51,6 +53,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 
 3. Publish the current session state.
 - Keep enum status, heartbeat, plan owner, write scope and file leases in the coordinator. Use `lease claim` before editing concrete shared files; enqueue a delayed patch when another Session owns the path.
+- Put `model_tier`, `thinking_depth`, `selection_reason`, and `primary_session` in the active task note. A temporary cross-Session task must return to `primary_session` after its accepted evidence; do not keep spawning detours while the primary task is executable.
 - Create `.codex/sessions/` if it does not exist yet.
 - Copy `references/session-note-template.md` into a new note such as `.codex/sessions/20260408-0315-parser-import-cleanup.md`.
 - Record only live state: current goal, current step, touched modules, related plans/tests, blockers, and warnings for other sessions.
@@ -69,6 +72,7 @@ Do not use this skill for isolated one-file edits with no plausible overlap, or 
 ## Resources
 
 - `references/session-note-template.md` contains the active-note template and lifecycle rules.
+- `references/model-tier-policy.md` is the mandatory allowed-model, cost, thinking-depth, and no-fallback contract.
 - `scripts/Get-RecentCoordinationContext.ps1` prints a markdown digest of recent plans and active session notes.
 - `../handle-plan-failure-handoffs/SKILL.md` owns durable failure/fixed artifact naming, routing, priority, and return rules.
 

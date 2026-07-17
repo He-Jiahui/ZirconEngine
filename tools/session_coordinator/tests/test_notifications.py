@@ -95,6 +95,28 @@ class NotificationTests(unittest.TestCase):
         self.assertNotIn("secret", result.sanitized_error or "")
         self.assertNotIn("qyapi", result.sanitized_error or "")
 
+    def test_post_commit_preparation_failure_is_recorded_once_without_delivery(self) -> None:
+        calls: list[list[str]] = []
+        service = WeComNotificationService(
+            self.database,
+            script_path="send.ps1",
+            runner=lambda command: calls.append(command),
+        )
+
+        first = service.record_post_commit_failure(
+            commit_sha="e" * 40,
+            error=CoordinatorError("notification_content_invalid", "format failed"),
+        )
+        duplicate = service.record_post_commit_failure(
+            commit_sha="e" * 40,
+            error=CoordinatorError("notification_content_invalid", "format failed"),
+        )
+
+        self.assertEqual("unknown", first.status)
+        self.assertEqual(first.notification_attempt_id, duplicate.notification_attempt_id)
+        self.assertIn("post-commit", first.sanitized_error or "")
+        self.assertEqual([], calls)
+
     def test_startup_marks_abandoned_reservation_unknown_without_retry(self) -> None:
         with self.database.transaction() as connection:
             connection.execute(

@@ -5,6 +5,7 @@ related_code:
   - Cargo.toml
   - zircon_runtime/Cargo.toml
   - dev/bevy/docs/profiling.md
+  - dev/bevy/crates/bevy_diagnostic/src/diagnostic.rs
   - dev/bevy/crates/bevy_render/src/diagnostic/mod.rs
   - dev/bevy/crates/bevy_render/src/diagnostic/internal.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
@@ -60,6 +61,7 @@ implementation_files:
   - zircon_runtime/src/graphics/runtime/render_framework/wgpu_render_framework/wgpu_render_framework.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/execute_graph_stage.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_runtime/runtime/07-runtime-performance-hotpath.md
   - .codex/plans/Zircon 性能时间轴与 Tracy 集成设计.md
   - user: 2026-05-13 continue profiling timeline and Tracy integration milestone
@@ -70,6 +72,7 @@ plan_sources:
 tests:
   - zircon_runtime/src/core/runtime/diagnostics/profiling/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/recorder.rs
+  - planned milestone test: ring_push_evicts_oldest_sample_at_capacity
   - zircon_runtime/src/core/runtime/diagnostics/profiling/hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/counter_hotspot.rs
   - zircon_runtime/src/core/runtime/diagnostics/profiling/export.rs
@@ -116,7 +119,11 @@ still deferred until no other Cargo/rustc lane is using the shared checkout.
 
 ## Runtime Shape
 
-`ProfileRecorder` is a process-local ring-buffer recorder. `start_capture` normalizes `ProfileCaptureConfig`, resets the origin timestamp, clears existing frames/spans/counters, and starts accepting samples. `stop_capture` leaves captured samples readable but stops accepting new ones. `reset_capture` clears all sample buffers.
+`ProfileRecorder` is a process-local ring-buffer recorder. Frames, spans, and counters use `VecDeque`: when a configured limit is reached, `push_ring` removes the oldest sample with `pop_front` and appends the new sample with `push_back`. Eviction is therefore constant time and does not shift every retained element. This matters most for spans because the default capture limit is 16,384; a full `Vec` plus `remove(0)` would otherwise make every later recorded span move the remaining buffer and distort the profile being measured. `snapshot` collects each deque from oldest to newest into the public `Vec` DTO, preserving the existing export order and wire shape.
+
+This bounded-history shape follows `dev/bevy/crates/bevy_diagnostic/src/diagnostic.rs`, where `Diagnostic` also uses `VecDeque`, `pop_front`, and `push_back` for capped measurement history. Zircon retains separate frame/span/counter queues and the existing `ProfileCaptureConfig` limits because its export DTO and hotspot analyzers consume those three streams independently.
+
+`start_capture` normalizes `ProfileCaptureConfig`, resets the origin timestamp, clears existing frames/spans/counters, and starts accepting samples. `stop_capture` leaves captured samples readable but stops accepting new ones. `reset_capture` clears all sample buffers.
 
 `ProfileScope` and `ProfileFrameScope` are RAII guards created by macros. Scope state is thread-local so nested spans can record parent ids, path strings, depth, and the current frame index without passing context through every call. Frame scopes track one monotonically increasing frame index per stream, so editor and runtime frames can coexist in the same snapshot.
 
@@ -179,7 +186,7 @@ M10.8 promotion therefore needs two linked but separate outputs: store-backed re
 
 ## Test Coverage
 
-Recorder tests cover ring-buffer truncation. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Counter hotspot tests cover counter grouping, ordering, finite-positive filtering, latest sample tracking, and `counter_hotspots.json` export/summary presence. Export tests cover profile artifact writing, perfetto opt-out, and typed directory creation failures through `export_snapshot_reports_typed_directory_error_source`. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit real headless generated and direct runtime frames in profiling builds and assert that operation/state wait spans, render-framework build/prepare/render/feedback spans, plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting. Runtime 07 F3 also has `direct_runtime_frame_submit_exports_perfetto_trace_artifacts` for `profiling-chrome`: it submits a direct `ViewportRenderFrame`, exports `timeline.zrtrace.json`, `timeline.perfetto.json`, `hotspots.json`, and `summary.md`, and requires both trace files to retain the `submit_runtime_frame` / `render_frame_with_pipeline` / `DepthPrepass` / `depth-prepass` path. Its status anchor is `render_direct_runtime_frame_trace_export_static_passed_profile_timeout_fps_pending`: static guards cover the source/docs anchors, while the cargo profiling test still needs a clean build lane and the authoritative vampire FPS gate remains open.
+Recorder tests cover ring-buffer truncation. `ring_push_evicts_oldest_sample_at_capacity` additionally fixes the storage contract to a deque-shaped bounded queue and verifies oldest-first eviction while preserving sample order; it is queued for the performance P0 milestone testing stage. Profiling macro tests cover nested span parentage, dynamic runtime-generated scope names, and disabled-feature no-op argument behavior. Hotspot tests cover total/p95 ordering. Counter hotspot tests cover counter grouping, ordering, finite-positive filtering, latest sample tracking, and `counter_hotspots.json` export/summary presence. Export tests cover profile artifact writing, perfetto opt-out, and typed directory creation failures through `export_snapshot_reports_typed_directory_error_source`. Dynamic API tests cover optional `profile_control` exposure, invalid JSON rejection before session lookup, and snapshot serialization. Graphics profiling tests submit real headless generated and direct runtime frames in profiling builds and assert that operation/state wait spans, render-framework build/prepare/render/feedback spans, plus render graph stage/pass spans appear in the captured runtime timeline with the expected nesting. Runtime 07 F3 also has `direct_runtime_frame_submit_exports_perfetto_trace_artifacts` for `profiling-chrome`: it submits a direct `ViewportRenderFrame`, exports `timeline.zrtrace.json`, `timeline.perfetto.json`, `hotspots.json`, and `summary.md`, and requires both trace files to retain the `submit_runtime_frame` / `render_frame_with_pipeline` / `DepthPrepass` / `depth-prepass` path. Its status anchor is `render_direct_runtime_frame_trace_export_static_passed_profile_timeout_fps_pending`: static guards cover the source/docs anchors, while the cargo profiling test still needs a clean build lane and the authoritative vampire FPS gate remains open.
 
 2026-05-26 M10W evidence:
 

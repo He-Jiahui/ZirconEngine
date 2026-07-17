@@ -104,6 +104,25 @@ class ActionExecutionTests(unittest.TestCase):
                 connection.execute("UPDATE action_approvals SET reason = 'changed'")
         self.assertEqual(1, approvals)
 
+    def test_controlled_session_heartbeat_renews_only_its_owned_leases(self) -> None:
+        self.leases.acquire("session-a", ["src/feature.py"])
+        self.leases.acquire("session-b", ["src/other.py"])
+
+        preview = self.service.preview(
+            self.context, ActionKind.SESSION_HEARTBEAT.value, {"sessionId": "session-a"}
+        )
+        result = self.service.confirm(
+            self.context,
+            preview.action_id,
+            phrase=preview.confirmation_phrase,
+            reason="keep active owner leases live",
+        )
+
+        self.assertEqual("succeeded", result.status.value)
+        self.assertEqual(1, result.result["leases"]["renewed"])
+        self.assertEqual(["src/feature.py"], self.leases.owned_paths("session-a"))
+        self.assertEqual(["src/other.py"], self.leases.owned_paths("session-b"))
+
     def test_runtime_confirm_reuses_the_session_binding_from_preview(self) -> None:
         runtime_preview = ActionContext(
             actor="local-runtime",

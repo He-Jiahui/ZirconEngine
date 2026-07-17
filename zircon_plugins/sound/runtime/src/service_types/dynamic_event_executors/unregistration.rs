@@ -10,7 +10,7 @@ impl DefaultSoundManager {
         plugin_id: &str,
         handler_id: &str,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         let key = SoundDynamicEventExecutorKey::new(plugin_id, handler_id);
         state
             .dynamic_event_executors

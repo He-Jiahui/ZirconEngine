@@ -6,6 +6,8 @@ pub enum GatewayError {
     SessionLost,
     #[error("runtime access requires a serialized gateway operation")]
     RequiresSerializedAccess,
+    #[error("borrowed runtime world access cannot be re-entered from its callback")]
+    ReentrantBorrowedWorldAccess,
     #[error("runtime gateway capability `{capability}` is unavailable")]
     CapabilityMissing { capability: &'static str },
     #[error("runtime operation failed: {message}")]

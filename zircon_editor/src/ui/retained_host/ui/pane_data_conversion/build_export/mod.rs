@@ -40,19 +40,19 @@ pub(crate) fn to_host_contract_build_export_pane_from_host_pane(
 }
 
 fn to_host_contract_build_export_target(
-    data: BuildExportTargetViewData,
+    data: &BuildExportTargetViewData,
 ) -> host_contract::BuildExportTargetData {
     host_contract::BuildExportTargetData {
-        profile_name: data.profile_name,
-        platform: data.platform,
-        target_mode: data.target_mode,
-        strategies: data.strategies,
-        status: data.status,
-        enabled_plugins: data.enabled_plugins,
-        linked_runtime_crates: data.linked_runtime_crates,
-        native_dynamic_packages: data.native_dynamic_packages,
-        generated_files: data.generated_files,
-        diagnostics: data.diagnostics,
+        profile_name: data.profile_name.clone(),
+        platform: data.platform.clone(),
+        target_mode: data.target_mode.clone(),
+        strategies: data.strategies.clone(),
+        status: data.status.clone(),
+        enabled_plugins: data.enabled_plugins.clone(),
+        linked_runtime_crates: data.linked_runtime_crates.clone(),
+        native_dynamic_packages: data.native_dynamic_packages.clone(),
+        generated_files: data.generated_files.clone(),
+        diagnostics: data.diagnostics.clone(),
         fatal: data.fatal,
     }
 }

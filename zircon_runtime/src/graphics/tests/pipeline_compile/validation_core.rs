@@ -70,7 +70,7 @@ fn disabling_post_process_keeps_overlay_extract_requirements_for_debug_gizmos() 
         )
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -157,7 +157,7 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
         )
         .unwrap();
     let live_pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)
@@ -188,7 +188,7 @@ fn effective_post_process_stack_culls_disabled_optional_post_process_passes() {
     }
 
     let lifetimes = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .map(|lifetime| lifetime.name.as_str())
@@ -241,7 +241,7 @@ fn effective_post_process_stack_keeps_screen_space_reflection_passes_when_reques
         )
         .unwrap();
     let live_pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)
@@ -280,7 +280,7 @@ fn renderer_feature_asset_quality_gate_controls_compiled_passes() {
 
     let without_gate = pipeline.compile(&test_extract()).unwrap();
     assert!(!without_gate
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "bloom-extract"));
@@ -293,7 +293,7 @@ fn renderer_feature_asset_quality_gate_controls_compiled_passes() {
         )
         .unwrap();
     assert!(with_gate
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "bloom-extract"));
@@ -347,7 +347,7 @@ fn renderer_feature_asset_local_config_and_capabilities_survive_compile() {
 
     let compiled = pipeline.compile(&test_extract()).unwrap();
     let compiled_color_grading = compiled
-        .enabled_features
+        .enabled_features()
         .iter()
         .find(|feature| feature.is_builtin(BuiltinRenderFeature::ColorGrading))
         .expect("color grading should remain enabled");
@@ -388,7 +388,7 @@ fn renderer_feature_asset_descriptor_override_changes_compiled_graph() {
 
     let compiled = pipeline.compile(&test_extract()).unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -399,7 +399,11 @@ fn renderer_feature_asset_descriptor_override_changes_compiled_graph() {
     assert!(compiled
         .required_extract_sections
         .contains(&"custom_post".to_string()));
-    assert!(compiled.graph.resource_lifetimes().iter().any(|lifetime| {
-        lifetime.name == "viewport-output" && lifetime.kind == RenderGraphResourceKind::External
-    }));
+    assert!(compiled
+        .graph()
+        .resource_lifetimes()
+        .iter()
+        .any(|lifetime| {
+            lifetime.name == "viewport-output" && lifetime.kind == RenderGraphResourceKind::External
+        }));
 }

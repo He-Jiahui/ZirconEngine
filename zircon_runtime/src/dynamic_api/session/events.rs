@@ -113,7 +113,6 @@ impl RuntimeDynamicSession {
         self.cursor = position;
         self.level
             .with_world_mut(|world| self.camera_controller.pointer_moved(world, position));
-        self.sync_orbit_target_from_selection();
     }
 
     fn handle_mouse_button(&mut self, event: ZrRuntimeEventV1) -> ZrStatus {
@@ -432,18 +431,5 @@ impl RuntimeDynamicSession {
     fn handle_scroll(&mut self, delta: f32) {
         self.level
             .with_world_mut(|world| self.camera_controller.scrolled(world, delta));
-        self.sync_orbit_target_from_selection();
-    }
-
-    fn sync_orbit_target_from_selection(&mut self) {
-        let selected = self.selected_node;
-        let orbit_target = self.level.with_world(|world| {
-            selected
-                .and_then(|selected| world.find_node(selected))
-                .map(|node| node.transform.translation)
-        });
-        if let Some(target) = orbit_target {
-            self.camera_controller.set_orbit_target(target);
-        }
     }
 }

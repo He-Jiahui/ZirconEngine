@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
-use super::super::super::pane_value_conversion::value_as_float_array;
-use super::super::attribute_values::vec_component;
+use super::super::super::pane_value_conversion::value_as_f64;
 
 pub(super) struct ProjectedWorldTransform {
     pub(super) position_x: f32,
@@ -18,28 +17,33 @@ pub(super) struct ProjectedWorldTransform {
 pub(super) fn projected_world_transform(
     attributes: &BTreeMap<String, toml::Value>,
 ) -> ProjectedWorldTransform {
-    let position = attributes
-        .get("world_position")
-        .and_then(value_as_float_array)
-        .unwrap_or_default();
-    let rotation = attributes
-        .get("world_rotation")
-        .and_then(value_as_float_array)
-        .unwrap_or_default();
-    let scale = attributes
-        .get("world_scale")
-        .and_then(value_as_float_array)
-        .unwrap_or_else(|| vec![1.0, 1.0, 1.0]);
+    let position = transform_components(attributes.get("world_position"), 0.0);
+    let rotation = transform_components(attributes.get("world_rotation"), 0.0);
+    let scale = transform_components(attributes.get("world_scale"), 1.0);
 
     ProjectedWorldTransform {
-        position_x: vec_component(&position, 0, 0.0),
-        position_y: vec_component(&position, 1, 0.0),
-        position_z: vec_component(&position, 2, 0.0),
-        rotation_x: vec_component(&rotation, 0, 0.0),
-        rotation_y: vec_component(&rotation, 1, 0.0),
-        rotation_z: vec_component(&rotation, 2, 0.0),
-        scale_x: vec_component(&scale, 0, 1.0),
-        scale_y: vec_component(&scale, 1, 1.0),
-        scale_z: vec_component(&scale, 2, 1.0),
+        position_x: position[0],
+        position_y: position[1],
+        position_z: position[2],
+        rotation_x: rotation[0],
+        rotation_y: rotation[1],
+        rotation_z: rotation[2],
+        scale_x: scale[0],
+        scale_y: scale[1],
+        scale_z: scale[2],
     }
+}
+
+fn transform_components(value: Option<&toml::Value>, default: f32) -> [f32; 3] {
+    let mut components = [default; 3];
+    let Some(toml::Value::Array(values)) = value else {
+        return components;
+    };
+    for (component, value) in components
+        .iter_mut()
+        .zip(values.iter().filter_map(value_as_f64))
+    {
+        *component = value as f32;
+    }
+    components
 }

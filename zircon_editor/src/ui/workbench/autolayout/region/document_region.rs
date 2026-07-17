@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap};
 use crate::ui::workbench::layout::WorkbenchLayout;
 use crate::ui::workbench::model::WorkbenchViewModel;
 use crate::ui::workbench::snapshot::ViewContentKind;
-use crate::ui::workbench::view::{ViewDescriptor, ViewDescriptorId};
+use crate::ui::workbench::view::ViewDescriptor;
 
 use super::super::active_tab::active_document_tab;
 use super::super::constraints::{
@@ -15,12 +15,12 @@ use super::super::{PaneConstraints, ShellRegionId};
 pub(crate) fn build_document_region_state(
     model: &WorkbenchViewModel,
     layout: &WorkbenchLayout,
-    descriptors: &HashMap<ViewDescriptorId, &ViewDescriptor>,
+    descriptors: &HashMap<&str, &ViewDescriptor>,
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
 ) -> RegionState {
     let tab = active_document_tab(model);
     let descriptor_constraints = tab
-        .and_then(|tab| descriptors.get(&tab.descriptor_id).copied())
+        .and_then(|tab| descriptors.get(tab.descriptor_id.0.as_str()).copied())
         .map(|descriptor| {
             if descriptor.default_constraints == PaneConstraints::default() {
                 default_constraints_for_content(

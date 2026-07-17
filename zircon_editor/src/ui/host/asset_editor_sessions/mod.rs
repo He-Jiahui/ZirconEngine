@@ -62,8 +62,10 @@ pub(super) fn ui_asset_editor_route_from_source(
 }
 
 pub(super) fn is_v2_backed_ui_asset_id(asset_id: &str) -> bool {
-    let asset_id = asset_id.trim().to_ascii_lowercase();
-    asset_id.ends_with(".zui")
+    let bytes = asset_id.trim().as_bytes();
+    bytes
+        .get(bytes.len().saturating_sub(4)..)
+        .is_some_and(|suffix| suffix.eq_ignore_ascii_case(b".zui"))
 }
 
 const fn legacy_asset_kind_for_v2(kind: UiV2AssetKind) -> UiAssetKind {
@@ -71,5 +73,16 @@ const fn legacy_asset_kind_for_v2(kind: UiV2AssetKind) -> UiAssetKind {
         UiV2AssetKind::View => UiAssetKind::Layout,
         UiV2AssetKind::Component => UiAssetKind::Widget,
         UiV2AssetKind::Style | UiV2AssetKind::ThemeTokens => UiAssetKind::Style,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn zui_suffix_check_does_not_lowercase_the_whole_asset_id() {
+        let source = include_str!("mod.rs");
+        let allocating_fold = ["to_ascii_", "lowercase()"].concat();
+
+        assert!(!source.contains(&allocating_fold));
     }
 }

@@ -292,7 +292,7 @@ fn empty_pipeline() -> CompiledRenderPipeline {
     let graph = RenderGraphBuilder::new("advanced-runtime-plan-context-test")
         .compile()
         .unwrap();
-    CompiledRenderPipeline {
+    CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {
         handle: RenderPipelineHandle::new(1),
         name: "empty".to_string(),
         renderer_name: "empty".to_string(),
@@ -304,5 +304,5 @@ fn empty_pipeline() -> CompiledRenderPipeline {
         history_bindings: Vec::new(),
         environment_ibl_bake_request: None,
         graph,
-    }
+    })
 }

@@ -7,7 +7,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from tools.session_coordinator.baselines import BaselineService
+from tools.session_coordinator.baselines import BaselineHealth, BaselineService
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.git_finalize import GitFinalizeService
@@ -647,6 +647,34 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertTrue(foreign.exists())
         self.assertNotIn("[zircon-session:", result.message)
         self.assertEqual(SessionStatus.COMPLETED, self.sessions.get("session-a").status)
+        with self.database.connect() as connection:
+            request = connection.execute(
+                "SELECT index_snapshot FROM finalize_requests WHERE request_id = ?",
+                (result.request_id,),
+            ).fetchone()
+        self.assertIsNone(request["index_snapshot"])
+
+    def test_explicit_finalize_allows_owned_scope_when_global_baseline_is_degraded(self) -> None:
+        paths = self._complete_with_changes()
+        foreign = self.repo / "foreign-unattributed.txt"
+        foreign.write_text("unrelated workspace change\n", encoding="utf-8")
+        self.baselines.scan()
+        self.assertEqual(BaselineHealth.DEGRADED, self.baselines.current().health)
+
+        result = self.service.finalize(
+            "session-a", paths=paths, message="feat(runtime): finalize against degraded baseline"
+        )
+
+        committed = subprocess.run(
+            ["git", "show", "--pretty=", "--name-only", result.commit_sha],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.splitlines()
+        self.assertEqual(sorted(paths), sorted(item for item in committed if item))
+        self.assertEqual("unrelated workspace change\n", foreign.read_text(encoding="utf-8"))
+        self.assertEqual(SessionStatus.COMPLETED, self.sessions.get("session-a").status)
 
     def test_finalize_rejects_an_owned_dirty_path_omitted_from_manifest(self) -> None:
         paths = self._complete_with_changes()
@@ -924,10 +952,11 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(SessionStatus.COMPLETED, self.sessions.get("session-a").status)
         with self.database.connect() as connection:
             request = connection.execute(
-                "SELECT status FROM finalize_requests WHERE request_id = ?",
+                "SELECT status, index_snapshot FROM finalize_requests WHERE request_id = ?",
                 (preview.request_id,),
             ).fetchone()
         self.assertEqual("failed", request["status"])
+        self.assertIsNone(request["index_snapshot"])
 
     def test_restart_reconciles_commit_when_baseline_update_failed(self) -> None:
         paths = self._complete_with_changes()

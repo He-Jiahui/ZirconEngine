@@ -1,7 +1,8 @@
 use crate::core::editor_extension::ComponentDrawerDescriptor;
 use crate::ui::workbench::state::EditorState;
 use serde_json::Value;
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use zircon_runtime::scene::components::SceneNode;
 use zircon_runtime::scene::{NodeId, Scene};
 use zircon_runtime_interface::reflect::{
     ReflectFieldValue, ReflectFieldsRequest, ReflectObjectAddress, ReflectTypeRegistration,
@@ -9,8 +10,8 @@ use zircon_runtime_interface::reflect::{
 };
 
 use super::super::{
-    AssetSurfaceMode, EditorDataSnapshot, InspectorPluginComponentPropertySnapshot,
-    InspectorPluginComponentSnapshot, InspectorSnapshot, SceneEntry,
+    EditorDataSnapshot, InspectorPluginComponentPropertySnapshot, InspectorPluginComponentSnapshot,
+    InspectorSnapshot, SceneEntry,
 };
 
 impl EditorState {
@@ -46,13 +47,14 @@ impl EditorState {
                         component_drawers,
                     ),
                 });
-                let scene_entries = scene
-                    .node_records()
+                let node_records = scene.node_records();
+                let hierarchy_depths = hierarchy_depths(&node_records);
+                let scene_entries = node_records
                     .iter()
                     .map(|node| SceneEntry {
                         id: node.id,
                         name: node.name.clone(),
-                        depth: hierarchy_depth(scene, node.id),
+                        depth: hierarchy_depths.get(&node.id).copied().unwrap_or_default(),
                         selected: selected_items.contains(&node.id),
                     })
                     .collect();
@@ -60,6 +62,7 @@ impl EditorState {
                 (scene_entries, inspector)
             })
             .unwrap_or_else(|| (Vec::new(), None));
+        let (asset_activity, asset_browser) = self.asset_workspace.build_surface_snapshots();
 
         EditorDataSnapshot {
             scene_entries,
@@ -71,12 +74,8 @@ impl EditorState {
             scene_viewport_settings: self.viewport_controller.settings().clone(),
             mesh_import_path: self.mesh_import_path.clone(),
             project_overview: self.asset_workspace.project_overview(),
-            asset_activity: self
-                .asset_workspace
-                .build_snapshot(AssetSurfaceMode::Activity),
-            asset_browser: self
-                .asset_workspace
-                .build_snapshot(AssetSurfaceMode::Explorer),
+            asset_activity,
+            asset_browser,
             project_path: self.project_path.clone(),
             session_mode: self.session_mode,
             welcome: self.welcome.clone(),
@@ -392,12 +391,68 @@ fn reflected_value_primitive_editable(value: &ReflectedValue) -> bool {
     )
 }
 
-fn hierarchy_depth(scene: &Scene, node_id: zircon_runtime::scene::NodeId) -> usize {
-    let mut depth = 0;
-    let mut cursor = scene.find_node(node_id).and_then(|node| node.parent);
-    while let Some(parent) = cursor {
-        depth += 1;
-        cursor = scene.find_node(parent).and_then(|node| node.parent);
+fn hierarchy_depths(nodes: &[SceneNode]) -> HashMap<NodeId, usize> {
+    let parents = nodes
+        .iter()
+        .map(|node| (node.id, node.parent))
+        .collect::<HashMap<_, _>>();
+    hierarchy_depths_from_parents(&parents)
+}
+
+fn hierarchy_depths_from_parents(
+    parents: &HashMap<NodeId, Option<NodeId>>,
+) -> HashMap<NodeId, usize> {
+    let mut depths = HashMap::with_capacity(parents.len());
+    let mut unresolved = Vec::with_capacity(parents.len());
+    let mut visiting = HashSet::with_capacity(parents.len());
+    for node_id in parents.keys().copied() {
+        if depths.contains_key(&node_id) {
+            continue;
+        }
+        unresolved.clear();
+        visiting.clear();
+        let mut cursor = Some(node_id);
+        let mut resolved_depth = 0;
+        while let Some(current) = cursor {
+            if let Some(depth) = depths.get(&current) {
+                resolved_depth = *depth + 1;
+                break;
+            }
+            if !visiting.insert(current) {
+                break;
+            }
+            unresolved.push(current);
+            cursor = parents.get(&current).copied().flatten();
+        }
+        for current in unresolved.drain(..).rev() {
+            depths.entry(current).or_insert(resolved_depth);
+            resolved_depth += 1;
+        }
     }
-    depth
+    depths
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use std::collections::HashMap;
+
+    use super::hierarchy_depths_from_parents;
+
+    #[test]
+    fn hierarchy_depth_projection_memoizes_parent_chains() {
+        let parents = HashMap::from([
+            (1, None),
+            (2, Some(1)),
+            (3, Some(2)),
+            (4, Some(1)),
+            (5, None),
+        ]);
+        let depths = hierarchy_depths_from_parents(&parents);
+
+        assert_eq!(depths.get(&1), Some(&0));
+        assert_eq!(depths.get(&2), Some(&1));
+        assert_eq!(depths.get(&3), Some(&2));
+        assert_eq!(depths.get(&4), Some(&1));
+        assert_eq!(depths.get(&5), Some(&0));
+    }
 }

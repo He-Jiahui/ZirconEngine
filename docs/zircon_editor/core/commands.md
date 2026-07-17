@@ -53,6 +53,7 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_session_state.rs
   - zircon_editor/src/ui/host/workspace_state.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/08-tool-orchestration-and-commands.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
   - docs/plans/zircon_editor/editor/05-scene-editing-hierarchy-and-gizmos.md
@@ -61,6 +62,10 @@ plan_sources:
   - docs/plans/engine-code-review-findings-2026-06.md
   - docs/plans/zircon_editor/editor/07/failure-2026-07-12-command-eval-focused-document-projection.md
 tests:
+  - zircon_editor/src/core/commands/descriptor.rs::tests::command_enablement_does_not_materialize_an_effective_when_clause
+  - zircon_editor/src/core/commands/document_kind.rs::tests::document_kind_validation_streams_segments
+  - zircon_editor/src/core/commands/registry.rs::tests::command_descriptor_validation_streams_path_segments
+  - zircon_editor/src/tests/editor_event/runtime/registry.rs::editor_operation_path_validation_streams_segments_without_collecting
   - zircon_editor/src/tests/commands/registry.rs
   - zircon_editor/src/tests/commands/when.rs
   - zircon_editor/src/tests/commands/descriptor_when.rs
@@ -89,6 +94,17 @@ doc_type: module-detail
 
 - `Emit(EditorEvent)` stores the already-supported typed event inline. There is no command-to-operation string hop.
 - `Operation` marks commands that require an Editor 03 operation factory. The command registry stores a matching `OperationCommandFactoryRegistration`; ordinary event lookup returns `OperationRequiresInvocation`, while the operation dispatcher creates a real `EditCommand` and executes it through the transaction engine. Missing or mismatched factories are typed registration/dispatch failures, never fabricated events or fake undo records.
+
+## Performance-sensitive evaluation
+
+`is_enabled` evaluates the stored `when` clause, required capabilities, and `AssetWritable`
+requirement directly. It does not call `effective_when`, so menu, palette, and invocation permission
+checks do not clone capability strings or materialize/sort a temporary clause tree. The public
+`effective_when` projection remains available to serialization and inspection consumers.
+
+Document-kind, menu-path, payload-schema, and `EditorOperationPath` validation stream dotted/path
+segments without a temporary `Vec`. Source guards completed RED-to-GREEN and formatting/diff checks
+pass; focused current-source Cargo and retained-menu allocation traces remain pending.
 
 The retained pointer integration guard registers an operation-only descriptor plus factory, clicks
 the materialized menu item, and requires one `EditCommand::apply` plus an undoable Global history

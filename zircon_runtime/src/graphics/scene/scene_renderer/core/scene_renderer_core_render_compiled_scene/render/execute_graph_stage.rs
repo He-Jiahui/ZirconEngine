@@ -233,7 +233,7 @@ fn execute_graph_pass(
     execution: &mut RenderGraphStageExecution<'_>,
 ) -> Result<(), GraphicsError> {
     let Some(pass) = pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == stage_entry.pass_name)
@@ -325,7 +325,7 @@ fn execute_graph_pass(
             pass.dependencies.clone(),
             pass.resources.clone(),
         )
-        .with_resource_resolver(&pipeline.graph, pass.id)
+        .with_resource_resolver(pipeline.graph(), pass.id)
         .with_gpu(gpu);
 
     let profile_started = Instant::now();

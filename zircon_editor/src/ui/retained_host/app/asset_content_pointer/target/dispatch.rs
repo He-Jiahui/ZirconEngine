@@ -23,15 +23,17 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return false;
         };
-        surface.content_size = target.content_size;
-        surface.content_bridge.sync(
-            AssetContentListPointerLayout::from_snapshot(
-                &target.snapshot,
-                surface.content_size,
-                surface_profile,
-            ),
-            surface.content_state.clone(),
-        );
+        if surface.content_size != target.content_size {
+            surface.content_size = target.content_size;
+            surface.content_bridge.sync(
+                AssetContentListPointerLayout::from_snapshot(
+                    target.snapshot.as_ref(),
+                    surface.content_size,
+                    surface_profile,
+                ),
+                surface.content_state.clone(),
+            );
+        }
         true
     }
 
@@ -55,15 +57,17 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return None;
         };
-        surface.content_size = target.content_size;
-        surface.content_bridge.sync(
-            AssetContentListPointerLayout::from_snapshot(
-                &target.snapshot,
-                surface.content_size,
-                surface_profile,
-            ),
-            surface.content_state.clone(),
-        );
+        if surface.content_size != target.content_size {
+            surface.content_size = target.content_size;
+            surface.content_bridge.sync(
+                AssetContentListPointerLayout::from_snapshot(
+                    target.snapshot.as_ref(),
+                    surface.content_size,
+                    surface_profile,
+                ),
+                surface.content_state.clone(),
+            );
+        }
         Some(dispatch(&mut surface.content_bridge))
     }
 }

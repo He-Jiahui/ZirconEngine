@@ -79,8 +79,7 @@ pub(super) fn build_host_model(
     let bindings = projection
         .bindings
         .iter()
-        .cloned()
-        .map(|binding| (binding.binding_id.clone(), binding))
+        .map(|binding| (binding.binding_id.as_str(), binding))
         .collect::<BTreeMap<_, _>>();
     let mut nodes = Vec::new();
     collect_host_nodes(&projection.root, None, "root", &bindings, &mut nodes)?;
@@ -97,8 +96,7 @@ pub(super) fn build_host_model_with_surface(
     let bindings = projection
         .bindings
         .iter()
-        .cloned()
-        .map(|binding| (binding.binding_id.clone(), binding))
+        .map(|binding| (binding.binding_id.as_str(), binding))
         .collect::<BTreeMap<_, _>>();
     let mut nodes = Vec::new();
     for root_id in &surface.tree.roots {
@@ -114,7 +112,7 @@ pub(super) fn build_host_model_with_surface(
 fn merge_projection_only_host_nodes(
     surface_nodes: &mut Vec<RetainedUiHostNodeProjection>,
     projection: &RetainedUiProjection,
-    bindings: &BTreeMap<String, RetainedUiBindingProjection>,
+    bindings: &BTreeMap<&str, &RetainedUiBindingProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {
     let mut projection_nodes = Vec::new();
     collect_host_nodes(
@@ -343,7 +341,7 @@ fn collect_host_nodes(
     node: &RetainedUiNodeProjection,
     parent_id: Option<&str>,
     node_id: &str,
-    bindings: &BTreeMap<String, RetainedUiBindingProjection>,
+    bindings: &BTreeMap<&str, &RetainedUiBindingProjection>,
     host_nodes: &mut Vec<RetainedUiHostNodeProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {
     let mut stack = vec![HostProjectionFrame {
@@ -387,7 +385,7 @@ struct HostProjectionFrame<'a> {
 fn collect_surface_host_nodes(
     surface: &UiSurface,
     node_id: UiNodeId,
-    bindings: &BTreeMap<String, RetainedUiBindingProjection>,
+    bindings: &BTreeMap<&str, &RetainedUiBindingProjection>,
     host_nodes: &mut Vec<RetainedUiHostNodeProjection>,
 ) -> Result<(), EditorUiHostRuntimeError> {
     let tree = &surface.tree;
@@ -442,13 +440,13 @@ fn collect_surface_host_nodes(
 
 fn node_bindings_from_ids(
     binding_ids: &[String],
-    bindings: &BTreeMap<String, RetainedUiBindingProjection>,
+    bindings: &BTreeMap<&str, &RetainedUiBindingProjection>,
 ) -> Result<Vec<RetainedUiHostBindingProjection>, EditorUiHostRuntimeError> {
     binding_ids
         .iter()
         .map(|binding_id| {
             bindings
-                .get(binding_id)
+                .get(binding_id.as_str())
                 .map(|binding| RetainedUiHostBindingProjection {
                     binding_id: binding.binding_id.clone(),
                     action_id: retained_action_id_for_binding(&binding.binding),
@@ -467,5 +465,23 @@ fn retained_action_id_for_binding(binding: &EditorUiBinding) -> String {
         EditorUiBindingPayload::MenuAction { action_id } => action_id.clone(),
         EditorUiBindingPayload::EditorCommand { command_id } => command_id.clone(),
         _ => String::new(),
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn host_projection_indexes_bindings_by_reference() {
+        let source = include_str!("projection.rs");
+        let builders = source
+            .split("pub(super) fn build_host_model")
+            .nth(1)
+            .expect("host model builders")
+            .split("fn merge_projection_only_host_nodes")
+            .next()
+            .expect("host model builder bodies");
+        let cloned_rows = [".cloned", "()"].concat();
+
+        assert!(!builders.contains(&cloned_rows));
     }
 }

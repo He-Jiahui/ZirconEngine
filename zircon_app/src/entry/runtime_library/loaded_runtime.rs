@@ -175,6 +175,26 @@ impl LoadedRuntime {
         )
     }
 
+    #[cfg(feature = "target-editor-host")]
+    pub(crate) fn editor_gateway_api_table(&self) -> ZrRuntimeApiV2 {
+        let mut api = ZrRuntimeApiV2::empty();
+        api.handle_event = Some(self.handle_event());
+        api.capture_frame = Some(self.capture_frame());
+        api.bind_viewport_surface = self.bind_viewport_surface();
+        api.unbind_viewport_surface = self.unbind_viewport_surface();
+        api.present_viewport = self.present_viewport();
+        api.profile_control = self.profile_control();
+        api.tick_frame = self.tick_frame();
+        api.drain_host_requests = self.drain_host_requests();
+        api.subscribe_plugin_event = Some(self.subscribe_plugin_event());
+        api.unsubscribe_plugin_event = Some(self.unsubscribe_plugin_event());
+        api.drain_plugin_events = Some(self.drain_plugin_events());
+        api.submit_operation = Some(self.submit_operation());
+        api.poll_operation = Some(self.poll_operation());
+        api.harvest_operation = Some(self.harvest_operation());
+        api
+    }
+
     fn api_function_field<T: Copy>(&self, field_offset: usize) -> Option<T> {
         read_api_function_field(self.api, self.size_bytes, field_offset)
     }

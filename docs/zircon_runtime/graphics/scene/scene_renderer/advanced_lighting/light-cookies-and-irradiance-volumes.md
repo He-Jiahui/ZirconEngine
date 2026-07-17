@@ -19,6 +19,7 @@ implementation_files:
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/light_cookie/executor.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/resources.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/advanced_lighting/irradiance_volume/executor.rs
+  - zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/render.rs
   - zircon_runtime/src/graphics/scene/resources/resource_streamer/resource_streamer_advanced_lighting.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
   - zircon_runtime/src/graphics/shader/ide_env_generation.rs
@@ -39,6 +40,8 @@ tests:
   - shader_ide_standard_pbr_stub_resolves_transitive_advanced_lighting_dependencies
   - render_product_af_m2_feature_off_matches_graph_baseline_exactly
   - render_product_af_m2_frame_without_volume_clears_previous_volume_state
+  - frame_without_irradiance_volumes_does_not_scan_mesh_positions
+  - frame_with_irradiance_volumes_collects_mesh_positions_once
   - render_product_af_m2_cookie_and_volume_execute_and_change_wgpu_frame
   - export_render_product_af_m2_light_cookie_irradiance_volume_png
 doc_type: module-detail
@@ -57,6 +60,13 @@ IDs, and assigns at most 64 cells in a fixed 8 by 8 atlas. The atlas is a
 persistent 1024 by 1024 `Rgba8Unorm` texture. Every rebuild first restores
 white, so a missing or disabled cookie is an exact multiplicative identity.
 Loaded source textures are copied through the GPU fullscreen blit pipeline.
+
+The compiled-scene frame path first checks whether the extract contains any
+irradiance volumes. Empty-volume frames do not iterate the mesh list or allocate
+the per-view sample-position vector; frames with volumes preserve the existing
+camera-layer filter and collect each visible mesh position once before volume
+selection. This keeps the optional feature at zero mesh-scan overhead for the
+default MVP scene while retaining the authored volume selection contract.
 
 `GpuLightData` carries an appended 32-byte cookie tail. Existing fields retain
 their offsets, while the total storage stride becomes 128 bytes. The tail

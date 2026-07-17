@@ -11,9 +11,9 @@ use crate::asset::{
     AlphaMode, AssetImportContext, AssetImportError, AssetImportOutcome, AssetImporter,
     AssetImporterDescriptor, AssetKind, AssetReference, AssetUri, FunctionAssetImporter,
     ImportedAsset, MaterialAsset, PhysicsMaterialAsset, ProjectManifest, ReferenceResolutionError,
-    SceneAsset, SceneCameraAsset, SceneEntityAsset, SceneMeshInstanceAsset, SceneMobilityAsset,
-    SoundAsset, TransformAsset, UiV2ComponentAsset, UiV2StyleAsset, UiV2ViewAsset,
-    ZMaterialDocument,
+    SceneAsset, SceneCameraAsset, SceneDirectionalLightAsset, SceneEntityAsset,
+    SceneMeshInstanceAsset, SceneMobilityAsset, SoundAsset, TransformAsset, UiV2ComponentAsset,
+    UiV2StyleAsset, UiV2ViewAsset, ZMaterialDocument,
 };
 use crate::core::framework::animation::{
     AnimationChannelAsset, AnimationChannelKeyAsset, AnimationChannelValueAsset,
@@ -319,12 +319,65 @@ pub(crate) fn write_default_scene(path: PathBuf) {
             },
         ],
     };
-    let project_root = fixture_project_root(&path);
+    write_project_scene(&path, &scene);
+}
+
+pub(crate) fn write_static_lit_default_scene(path: PathBuf) {
+    write_default_scene(path.clone());
+    let document = fs::read_to_string(&path).unwrap();
+    let mut scene = SceneAsset::from_project_toml_str(&document, |reference| {
+        Ok::<_, ReferenceResolutionError>(runtime_reference_for_fixture(reference))
+    })
+    .unwrap();
+    scene.entities[1].mobility = SceneMobilityAsset::Static;
+    scene.entities.push(SceneEntityAsset {
+        entity: 3,
+        name: "Sun".to_string(),
+        parent: None,
+        transform: TransformAsset {
+            translation: [0.0, 4.0, 2.0],
+            rotation: [0.0, 0.0, 0.0, 1.0],
+            scale: [1.0, 1.0, 1.0],
+        },
+        active: true,
+        render_layer_mask: 0x0000_0001,
+        mobility: SceneMobilityAsset::Static,
+        camera: None,
+        mesh: None,
+        ambient_light: None,
+        directional_light: Some(SceneDirectionalLightAsset {
+            direction: [-0.4, -1.0, -0.25],
+            color: [1.0, 0.96, 0.9],
+            intensity: 3.0,
+            volumetric: false,
+        }),
+        point_light: None,
+        rect_light: None,
+        spot_light: None,
+        post_process_volume: None,
+        rigid_body: None,
+        collider: None,
+        joint: None,
+        animation_skeleton: None,
+        animation_player: None,
+        animation_sequence_player: None,
+        animation_graph_player: None,
+        animation_state_machine_player: None,
+        terrain: None,
+        tilemap: None,
+        prefab_instance: None,
+        script_bindings: Vec::new(),
+    });
+    write_project_scene(&path, &scene);
+}
+
+fn write_project_scene(path: &Path, scene: &SceneAsset) {
+    let project_root = fixture_project_root(path);
     let document = scene
         .to_project_toml_string(|reference| {
             Ok::<_, ReferenceResolutionError>(persisted_reference_for_fixture(
                 &project_root,
-                &path,
+                path,
                 reference,
             ))
         })

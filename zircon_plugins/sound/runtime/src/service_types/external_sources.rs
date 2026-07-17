@@ -16,9 +16,7 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         validate_external_source_handle(&handle)?;
         validate_external_source_block(&block)?;
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .external_sources
             .insert(handle, block);
         Ok(())
@@ -29,9 +27,7 @@ impl DefaultSoundManager {
         handle: &ExternalAudioSourceHandle,
     ) -> Result<(), SoundError> {
         validate_external_source_handle(handle)?;
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .external_sources
             .remove(handle)
             .map(|_| ())

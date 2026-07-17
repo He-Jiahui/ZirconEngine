@@ -44,6 +44,23 @@ class LeaseAcquisition:
     conflicts: tuple[str, ...]
 
 
+def lease_paths_overlap(left_key: str, right_key: str) -> bool:
+    """Return whether two repository-relative lease scopes intersect.
+
+    A Session may lease a directory to own a coherent module subtree, or lease
+    one exact file.  Treating only byte-identical keys as conflicting lets a
+    second Session claim a child beneath a live directory lease (and vice
+    versa), which makes shared-main writes non-exclusive.  Keys are normalized
+    repository-relative paths, so a separator-bounded prefix is the required
+    hierarchy test; `input` must not overlap an unrelated `input_state`.
+    """
+    return (
+        left_key == right_key
+        or left_key.startswith(right_key + "/")
+        or right_key.startswith(left_key + "/")
+    )
+
+
 class LeaseService:
     def __init__(
         self,
@@ -90,14 +107,15 @@ class LeaseService:
                     f"Session {session_id} cannot acquire leases while {session['status']}",
                 )
             self._remove_expired(connection, current_time)
-            placeholders = ",".join("?" for _ in normalized)
-            rows = connection.execute(
-                f"SELECT * FROM leases WHERE path_key IN ({placeholders})",
-                tuple(item.key for item in normalized),
-            ).fetchall()
+            rows = connection.execute("SELECT * FROM leases").fetchall()
             conflicts = tuple(
                 sorted(
-                    (row["display_path"] for row in rows if row["session_id"] != session_id),
+                    {
+                        row["display_path"]
+                        for row in rows
+                        if row["session_id"] != session_id
+                        and any(lease_paths_overlap(row["path_key"], item.key) for item in normalized)
+                    },
                     key=str.casefold,
                 )
             )
@@ -190,20 +208,22 @@ class LeaseService:
         normalized = [self.path_policy.normalize(path) for path in paths]
         if not normalized:
             raise ValueError("at least one lease path is required")
-        keys = tuple(item.key for item in normalized)
-        placeholders = ",".join("?" for _ in keys)
         with self.database.connect() as connection:
             rows = connection.execute(
-                f"SELECT path_key, session_id, expires_at FROM leases WHERE path_key IN ({placeholders})",
-                keys,
+                "SELECT path_key, session_id, expires_at FROM leases"
             ).fetchall()
-        leases = {row["path_key"]: row for row in rows}
         missing = [
             item.display
             for item in normalized
-            if (row := leases.get(item.key)) is None
-            or row["session_id"] != session_id
-            or current_time > parse_utc(row["expires_at"])
+            if not any(
+                row["session_id"] == session_id
+                and (
+                    row["path_key"] == item.key
+                    or item.key.startswith(row["path_key"] + "/")
+                )
+                and current_time <= parse_utc(row["expires_at"])
+                for row in rows
+            )
         ]
         if missing:
             raise CoordinatorError(error_code, message, details={"paths": missing})

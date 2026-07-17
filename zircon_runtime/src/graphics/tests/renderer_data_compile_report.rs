@@ -54,7 +54,7 @@ fn render_pipeline_compile_report_groups_diagnostics_by_feature_material_and_sha
         ],
     };
 
-    assert!(!report.pipeline.graph.passes().is_empty());
+    assert!(!report.pipeline.graph().passes().is_empty());
 
     let diagnostics_by_feature = report.diagnostics_by_feature();
     assert_eq!(diagnostics_by_feature["mesh"].len(), 5);

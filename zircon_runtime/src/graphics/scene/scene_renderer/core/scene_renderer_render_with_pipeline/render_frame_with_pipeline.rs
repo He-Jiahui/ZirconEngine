@@ -150,13 +150,11 @@ impl SceneRenderer {
                 .is_enabled()
             && pipeline_writes_screen_space_reflection_history(pipeline);
         let hzb_history_enabled =
-            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::HZB_FURTHEST);
+            pipeline.writes_resource(PostProcessGraphResourceNames::HZB_FURTHEST);
         let exposure_history_enabled =
-            pipeline_writes_resource(pipeline, PostProcessGraphResourceNames::EXPOSURE_CURRENT);
-        let volumetric_history_quality = pipeline_writes_resource(
-            pipeline,
-            PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING,
-        )
+            pipeline.writes_resource(PostProcessGraphResourceNames::EXPOSURE_CURRENT);
+        let volumetric_history_quality = pipeline
+            .writes_resource(PostProcessGraphResourceNames::VOLUMETRIC_SCATTERING)
         .then(|| {
             crate::graphics::scene::scene_renderer::advanced_lighting::froxel::volumetric_history_quality(
                 &frame.extract,
@@ -259,23 +257,7 @@ fn output_target_capture_resource(
 }
 
 fn pipeline_writes_screen_space_reflection_history(pipeline: &CompiledRenderPipeline) -> bool {
-    pipeline_writes_resource(
-        pipeline,
-        PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY,
-    )
-}
-
-fn pipeline_writes_resource(pipeline: &CompiledRenderPipeline, resource_name: &str) -> bool {
-    pipeline
-        .graph
-        .passes()
-        .iter()
-        .filter(|pass| !pass.culled)
-        .flat_map(|pass| pass.resources.iter())
-        .any(|resource| {
-            resource.name == resource_name
-                && resource.access == RenderGraphResourceAccessKind::Write
-        })
+    pipeline.writes_resource(PostProcessGraphResourceNames::SCREEN_SPACE_REFLECTION_HISTORY)
 }
 
 impl SceneRenderer {

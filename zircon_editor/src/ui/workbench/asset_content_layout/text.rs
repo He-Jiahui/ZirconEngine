@@ -56,23 +56,67 @@ fn compact_chars(
         .preferred_tail_stem_chars
         .max(compaction.min_tail_stem_chars)
         .min(chars.len().saturating_sub(compaction.min_prefix_chars + 1));
-    let mut fallback = None;
+    let fallback = compacted_candidate(
+        chars,
+        compaction.min_prefix_chars,
+        compaction.min_tail_stem_chars,
+        suffix,
+    );
     for tail_count in (compaction.min_tail_stem_chars..=max_tail).rev() {
         let max_prefix = chars.len().saturating_sub(tail_count + 1);
-        for prefix_count in (compaction.min_prefix_chars..=max_prefix).rev() {
-            let prefix = chars.iter().take(prefix_count).collect::<String>();
-            let tail = chars[chars.len() - tail_count..].iter().collect::<String>();
-            let candidate = match suffix {
-                Some(suffix) => format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}.{suffix}"),
-                None => format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}"),
-            };
-            fallback = Some(candidate.clone());
-            if fits(&candidate, compaction) {
-                return Some(candidate);
-            }
+        if let Some(candidate) = largest_fitting_candidate(
+            chars,
+            suffix,
+            tail_count,
+            compaction.min_prefix_chars,
+            max_prefix,
+            compaction,
+        ) {
+            return Some(candidate);
         }
     }
-    fallback
+    Some(fallback)
+}
+
+fn largest_fitting_candidate(
+    chars: &[char],
+    suffix: Option<&str>,
+    tail_count: usize,
+    min_prefix: usize,
+    max_prefix: usize,
+    compaction: RuntimeFileNameCompaction,
+) -> Option<String> {
+    let mut low = min_prefix;
+    let mut high = max_prefix;
+    let mut best = None;
+    while low <= high {
+        let prefix_count = low + (high - low) / 2;
+        let candidate = compacted_candidate(chars, prefix_count, tail_count, suffix);
+        if fits(&candidate, compaction) {
+            best = Some(candidate);
+            low = prefix_count + 1;
+        } else {
+            if prefix_count == 0 {
+                break;
+            }
+            high = prefix_count - 1;
+        }
+    }
+    best
+}
+
+fn compacted_candidate(
+    chars: &[char],
+    prefix_count: usize,
+    tail_count: usize,
+    suffix: Option<&str>,
+) -> String {
+    let prefix = chars.iter().take(prefix_count).collect::<String>();
+    let tail = chars[chars.len() - tail_count..].iter().collect::<String>();
+    match suffix {
+        Some(suffix) => format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}.{suffix}"),
+        None => format!("{prefix}{FILE_NAME_ELLIPSIS}{tail}"),
+    }
 }
 
 fn fits(text: &str, compaction: RuntimeFileNameCompaction) -> bool {

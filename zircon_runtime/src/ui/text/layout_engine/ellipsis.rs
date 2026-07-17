@@ -137,27 +137,11 @@ fn ellipsize_line_with_advances_inner(
         &mut prefix_count,
         ellipsis_placement(overflow),
     );
-    #[cfg(test)]
-    if matches!(
-        overflow,
-        UiTextOverflow::EllipsisStart
-            | UiTextOverflow::EllipsisMiddle
-            | UiTextOverflow::EllipsisWord
-    ) {
-        eprintln!(
-            "ellipsis projection: overflow={overflow:?}, placement={:?}, prefix={prefix_count}, suffix={suffix_count}, text={:?}, runs={:?}, advances={advances:?}",
-            ellipsis_placement(overflow),
-            line.text,
-            line.runs
-                .iter()
-                .map(|run| run.text.as_str())
-                .collect::<Vec<_>>()
-        );
-    }
-    let prefix_end = graphemes
-        .get(prefix_count.saturating_sub(1))
-        .map(|(_, end)| *end)
-        .unwrap_or_default();
+    let prefix_end = if prefix_count == 0 {
+        0
+    } else {
+        graphemes[prefix_count - 1].1
+    };
     let suffix_start = graphemes
         .get(graphemes.len().saturating_sub(suffix_count))
         .map(|(start, _)| *start)
@@ -343,9 +327,11 @@ fn push_ellipsis_range(
     start: usize,
     end: usize,
 ) {
+    let mut visual_cursor = 0;
     for run in &line.runs {
-        let run_start = run.visual_range.start;
-        let run_end = run.visual_range.end;
+        let run_start = visual_cursor;
+        let run_end = run_start + run.text.len();
+        visual_cursor = run_end;
         let local_start = start.max(run_start);
         let local_end = end.min(run_end);
         if local_start >= local_end {

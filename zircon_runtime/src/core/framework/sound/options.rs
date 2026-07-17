@@ -28,7 +28,7 @@ impl Default for SoundPluginOptions {
     fn default() -> Self {
         Self {
             enabled: true,
-            backend: "software-mixer".to_string(),
+            backend: "kira-cpal".to_string(),
             sample_rate_hz: 48_000,
             channel_count: 2,
             channel_layout: AudioChannelLayout::stereo(),

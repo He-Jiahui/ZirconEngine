@@ -1,9 +1,9 @@
 use std::path::Path;
 use std::slice;
+#[cfg(feature = "target-editor-host")]
+use std::sync::Arc;
 
 use zircon_runtime::plugin::RuntimePluginRegistrationReport;
-#[cfg(feature = "target-editor-host")]
-use zircon_runtime_interface::{ProfileControlRequest, ProfileControlResponse};
 use zircon_runtime_interface::{
     ZrByteSlice, ZrOwnedByteBuffer, ZrRuntimeBindViewportSurfaceRequestV1, ZrRuntimeEventV1,
     ZrRuntimeFrameRequestV1, ZrRuntimeFrameV1, ZrRuntimeHostRequestBatchV1, ZrRuntimeHostRequestV1,
@@ -23,6 +23,26 @@ pub(crate) struct RuntimeSession {
 }
 
 impl RuntimeSession {
+    #[cfg(feature = "target-editor-host")]
+    pub(crate) fn editor_gateway(
+        self: &Arc<Self>,
+        capabilities: zircon_editor::core::gateway::RuntimeCapabilities,
+    ) -> Result<
+        Arc<zircon_editor::core::gateway::SessionGateway>,
+        zircon_editor::core::gateway::GatewayError,
+    > {
+        let owner: Arc<dyn Send + Sync> = self.clone();
+        let gateway = unsafe {
+            zircon_editor::core::gateway::SessionGateway::new(
+                owner,
+                self.runtime.editor_gateway_api_table(),
+                self.handle,
+                capabilities,
+            )?
+        };
+        Ok(Arc::new(gateway))
+    }
+
     #[cfg(feature = "target-editor-host")]
     pub(crate) fn create_with_profile(
         runtime: LoadedRuntime,
@@ -272,148 +292,6 @@ impl RuntimeSession {
             ));
         }
         Ok(batch.deliveries)
-    }
-
-    #[cfg(feature = "target-editor-host")]
-    pub(crate) fn profile_control(
-        &self,
-        request: &ProfileControlRequest,
-    ) -> Result<Option<ProfileControlResponse>, RuntimeLibraryError> {
-        let Some(profile_control) = self.runtime.profile_control() else {
-            return Ok(None);
-        };
-        let request_json = serde_json::to_vec(request)
-            .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
-        let mut output = ZrOwnedByteBuffer::empty();
-        let status = unsafe {
-            profile_control(
-                self.handle,
-                ZrByteSlice {
-                    data: request_json.as_ptr(),
-                    len: request_json.len(),
-                },
-                &mut output,
-            )
-        };
-        ensure_status(status, "control runtime profiling")?;
-        let bytes = if output.data.is_null() || output.len == 0 {
-            &[]
-        } else {
-            unsafe { slice::from_raw_parts(output.data.cast_const(), output.len) }
-        };
-        let response = serde_json::from_slice::<ProfileControlResponse>(bytes)
-            .map_err(|error| RuntimeLibraryError::new(error.to_string()))?;
-        if let Some(free) = output.free {
-            let _ = unsafe { free(output) };
-        }
-        Ok(Some(response))
-    }
-}
-
-#[cfg(feature = "target-editor-host")]
-impl zircon_editor::core::gateway::EditorRuntimeGateway for RuntimeSession {
-    fn session_handle(&self) -> ZrRuntimeSessionHandle {
-        self.handle
-    }
-
-    fn tick_frame(&self) -> Result<bool, zircon_editor::core::gateway::GatewayError> {
-        RuntimeSession::tick_frame(self).map_err(gateway_runtime_error)
-    }
-
-    fn handle_event(
-        &self,
-        event: ZrRuntimeEventV1,
-    ) -> Result<(), zircon_editor::core::gateway::GatewayError> {
-        RuntimeSession::handle_event(self, event).map_err(gateway_runtime_error)
-    }
-
-    fn capture_frame(
-        &self,
-        viewport: ZrRuntimeViewportHandle,
-        size: ZrRuntimeViewportSizeV1,
-    ) -> Result<ZrRuntimeFrameV1, zircon_editor::core::gateway::GatewayError> {
-        let capture_frame = self.runtime.capture_frame();
-        let mut frame = ZrRuntimeFrameV1::empty(ZIRCON_RUNTIME_ABI_VERSION_V1);
-        let status = unsafe {
-            capture_frame(
-                self.handle,
-                ZrRuntimeFrameRequestV1::new(ZIRCON_RUNTIME_ABI_VERSION_V1, viewport, size),
-                &mut frame,
-            )
-        };
-        ensure_status(status, "capture runtime frame").map_err(gateway_runtime_error)?;
-        Ok(frame)
-    }
-
-    fn profile_control(
-        &self,
-        request: &ProfileControlRequest,
-    ) -> Result<Option<ProfileControlResponse>, zircon_editor::core::gateway::GatewayError> {
-        RuntimeSession::profile_control(self, request).map_err(gateway_runtime_error)
-    }
-
-    fn subscribe_plugin_event(
-        &self,
-        event_id: &str,
-        payload_schema: &str,
-    ) -> Result<
-        Option<ZrRuntimePluginEventSubscriptionHandle>,
-        zircon_editor::core::gateway::GatewayError,
-    > {
-        RuntimeSession::subscribe_plugin_event(self, event_id, payload_schema)
-            .map_err(gateway_runtime_error)
-    }
-
-    fn unsubscribe_plugin_event(
-        &self,
-        subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<bool, zircon_editor::core::gateway::GatewayError> {
-        RuntimeSession::unsubscribe_plugin_event(self, subscription).map_err(gateway_runtime_error)
-    }
-
-    fn drain_plugin_events(
-        &self,
-        subscription: ZrRuntimePluginEventSubscriptionHandle,
-    ) -> Result<Vec<ZrRuntimePluginEventDeliveryV1>, zircon_editor::core::gateway::GatewayError>
-    {
-        RuntimeSession::drain_plugin_events(self, subscription).map_err(gateway_runtime_error)
-    }
-
-    fn submit_operation(
-        &self,
-        request: zircon_runtime_interface::ZrRuntimeOperationSubmitRequestV1,
-    ) -> Result<
-        zircon_runtime_interface::ZrRuntimeOperationHandle,
-        zircon_editor::core::gateway::GatewayError,
-    > {
-        RuntimeSession::submit_operation(self, request).map_err(gateway_runtime_error)
-    }
-
-    fn poll_operation(
-        &self,
-        handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
-    ) -> Result<
-        zircon_runtime_interface::ZrRuntimeOperationProgressV1,
-        zircon_editor::core::gateway::GatewayError,
-    > {
-        RuntimeSession::poll_operation(self, handle).map_err(gateway_runtime_error)
-    }
-
-    fn harvest_operation(
-        &self,
-        handle: zircon_runtime_interface::ZrRuntimeOperationHandle,
-    ) -> Result<
-        zircon_runtime_interface::ZrRuntimeOperationResultV1,
-        zircon_editor::core::gateway::GatewayError,
-    > {
-        RuntimeSession::harvest_operation(self, handle).map_err(gateway_runtime_error)
-    }
-}
-
-#[cfg(feature = "target-editor-host")]
-fn gateway_runtime_error(error: RuntimeLibraryError) -> zircon_editor::core::gateway::GatewayError {
-    zircon_editor::core::gateway::GatewayError::Runtime {
-        message: error.to_string(),
     }
 }
 

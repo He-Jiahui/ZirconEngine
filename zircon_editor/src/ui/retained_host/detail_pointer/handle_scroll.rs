@@ -23,7 +23,6 @@ impl ScrollSurfacePointerBridge {
             let offset = viewport.scroll_state.unwrap_or_default().offset;
             if (self.state.scroll_offset - offset).abs() > f32::EPSILON {
                 self.state.scroll_offset = offset;
-                self.rebuild_surface();
             }
         }
 

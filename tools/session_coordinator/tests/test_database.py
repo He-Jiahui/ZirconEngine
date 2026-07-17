@@ -53,6 +53,78 @@ class DatabaseTests(unittest.TestCase):
             self.assertEqual(LATEST_SCHEMA_VERSION, version)
             self.assertIn("origin_workflow_node", columns)
 
+    def test_schema_47_clears_only_terminal_finalize_snapshots_and_compacts(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+            terminal_snapshot = b"terminal-index" * (128 * 1024)
+            live_snapshot = b"live-index" * (128 * 1024)
+            with database.transaction() as connection:
+                connection.execute("DELETE FROM schema_version WHERE version = 47")
+                connection.execute(
+                    "INSERT INTO sessions(session_id, status, created_at, updated_at, last_heartbeat_at) "
+                    "VALUES ('snapshot-owner', 'registered', 'now', 'now', 'now')"
+                )
+                for request_id, status, snapshot in (
+                    ("terminal-committed", "committed", terminal_snapshot),
+                    ("terminal-failed", "failed", terminal_snapshot),
+                    ("live-finalizing", "finalizing", live_snapshot),
+                ):
+                    connection.execute(
+                        """
+                        INSERT INTO finalize_requests(
+                            request_id, session_id, message, paths_json, categories_json,
+                            untracked_json, maintenance, status, created_at, completed_at,
+                            index_snapshot
+                        ) VALUES (?, 'snapshot-owner', 'test snapshot retention', '[]', '{}',
+                                  '[]', 0, ?, 'now', 'now', ?)
+                        """,
+                        (request_id, status, snapshot),
+                    )
+            with database.connect() as connection:
+                connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            bytes_before = database.path.stat().st_size
+
+            self.assertEqual(LATEST_SCHEMA_VERSION, migrate(database))
+
+            with database.connect() as connection:
+                snapshots = {
+                    row["request_id"]: row["index_snapshot"]
+                    for row in connection.execute(
+                        "SELECT request_id, index_snapshot FROM finalize_requests "
+                        "WHERE request_id LIKE 'terminal-%' OR request_id='live-finalizing'"
+                    )
+                }
+            self.assertIsNone(snapshots["terminal-committed"])
+            self.assertIsNone(snapshots["terminal-failed"])
+            self.assertEqual(live_snapshot, snapshots["live-finalizing"])
+            self.assertLess(database.path.stat().st_size, bytes_before)
+
+    def test_latest_schema_preserves_warm_exclusivity_and_adds_one_cpu_burst_slot(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            database = Database(Path(directory) / "coordinator.sqlite3")
+            migrate(database)
+
+            with database.connect() as connection:
+                columns = {
+                    row[1]
+                    for row in connection.execute("PRAGMA table_info(cargo_lane_reservations)")
+                }
+                indexes = {
+                    row[1]
+                    for row in connection.execute("PRAGMA index_list(cargo_lane_reservations)")
+                }
+
+            self.assertTrue({"execution_mode", "burst_eligible"} <= columns)
+            self.assertTrue(
+                {
+                    "cargo_lane_reservations_one_active_warm",
+                    "cargo_lane_reservations_one_active_burst",
+                    "cargo_lane_reservations_cpu_warm_fifo",
+                }
+                <= indexes
+            )
+
     def test_schema_41_preserves_evidence_progress_and_adds_reservation_payload(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             database = Database(Path(directory) / "coordinator.sqlite3")

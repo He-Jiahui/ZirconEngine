@@ -1,4 +1,5 @@
 use std::collections::{HashMap, VecDeque};
+use std::sync::Arc;
 
 use zircon_runtime::core::framework::scene::WorldHandle;
 use zircon_runtime::core::framework::sound::{
@@ -11,14 +12,12 @@ use zircon_runtime::core::framework::sound::{
     SoundSourceId, SoundTrackId, SoundTrackMeter, SoundVolumeDescriptor, SoundVolumeId,
 };
 
+use crate::kira_bridge::DefaultKiraEngine;
 use crate::output::SoundOutputDeviceRuntimeState;
 use crate::timeline::playback::SoundTimelineSequencePlayback;
 use crate::SoundConfig;
 
-use super::super::{
-    SoundEffectRuntimeState, SoundEffectStateKey, SoundHrtfRenderState, SoundHrtfRenderStateKey,
-    SoundTrackRuntimeState,
-};
+use super::super::{SoundHrtfRenderState, SoundHrtfRenderStateKey};
 use super::{
     ActivePlayback, LoadedClip, SoundDynamicEventExecutor, SoundDynamicEventExecutorKey,
     SourceVoice,
@@ -32,6 +31,7 @@ pub(crate) struct SoundGameplayEmissionJournal {
 
 #[derive(Debug)]
 pub(crate) struct SoundEngineState {
+    pub(crate) kira: DefaultKiraEngine,
     pub(crate) next_clip_id: u64,
     pub(crate) next_playback_id: u64,
     pub(crate) next_source_id: u64,
@@ -58,9 +58,8 @@ pub(crate) struct SoundEngineState {
     pub(crate) dynamic_event_executors:
         HashMap<SoundDynamicEventExecutorKey, SoundDynamicEventExecutor>,
     pub(crate) pending_dynamic_events: Vec<SoundDynamicEventInvocation>,
-    pub(crate) graph: SoundMixerGraph,
-    pub(crate) effect_states: HashMap<SoundEffectStateKey, SoundEffectRuntimeState>,
-    pub(crate) track_states: HashMap<SoundTrackId, SoundTrackRuntimeState>,
+    pub(crate) graph: Arc<SoundMixerGraph>,
+    pub(crate) graph_revision: u64,
     pub(crate) output_device: SoundOutputDeviceRuntimeState,
     pub(crate) meters: Vec<SoundTrackMeter>,
     pub(crate) latency_frames: usize,
@@ -73,6 +72,7 @@ impl SoundEngineState {
         graph.channel_count = config.channel_count.max(1);
         graph.channel_layout = config.channel_layout.clone();
         Self {
+            kira: DefaultKiraEngine::inactive(),
             next_clip_id: 0,
             next_playback_id: 0,
             next_source_id: 0,
@@ -97,9 +97,8 @@ impl SoundEngineState {
             dynamic_event_handlers: Vec::new(),
             dynamic_event_executors: HashMap::new(),
             pending_dynamic_events: Vec::new(),
-            graph,
-            effect_states: HashMap::new(),
-            track_states: HashMap::new(),
+            graph: Arc::new(graph),
+            graph_revision: 0,
             output_device: SoundOutputDeviceRuntimeState::new(config),
             meters: vec![SoundTrackMeter::silent(SoundTrackId::master())],
             latency_frames: 0,

@@ -4,12 +4,13 @@ use std::sync::{Arc, Mutex};
 
 use serde::Deserialize;
 use zircon_runtime_interface::{
-    ZrRuntimeEventV1, ZrRuntimeFrameV1, ZrRuntimePluginEventDeliveryV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1,
+    ZrRuntimeEventV1, ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle,
+    ZrRuntimeSessionHandle, ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
 };
 
-use crate::core::gateway::{EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError};
+use crate::core::gateway::{
+    EditorRuntimeFrame, EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
+};
 use crate::core::runtime_event_consumer::{
     EditorRuntimeEventConsumerError, EditorRuntimeEventConsumerHost,
     EditorRuntimeEventConsumerManifest, EditorRuntimeEventConsumerRegistration,
@@ -115,8 +116,8 @@ impl EditorRuntimeGateway for FakeRuntimeGateway {
         &self,
         _viewport: ZrRuntimeViewportHandle,
         _size: ZrRuntimeViewportSizeV1,
-    ) -> Result<ZrRuntimeFrameV1, GatewayError> {
-        Ok(ZrRuntimeFrameV1::empty(1))
+    ) -> Result<EditorRuntimeFrame, GatewayError> {
+        Ok(EditorRuntimeFrame::empty(1))
     }
 
     fn subscribe_plugin_event(

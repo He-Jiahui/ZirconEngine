@@ -10,7 +10,7 @@ impl DefaultSoundManager {
         profile: SoundHrtfProfileDescriptor,
     ) -> Result<(), SoundError> {
         validate_hrtf_profile_descriptor(&profile)?;
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         state
             .hrtf_profiles
             .insert(profile.profile_id.clone(), profile);
@@ -19,7 +19,7 @@ impl DefaultSoundManager {
     }
 
     pub(super) fn remove_hrtf_profile_impl(&self, profile_id: &str) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         state
             .hrtf_profiles
             .remove(profile_id)
@@ -32,10 +32,7 @@ impl DefaultSoundManager {
     }
 
     pub(super) fn hrtf_profiles_impl(&self) -> Result<Vec<SoundHrtfProfileDescriptor>, SoundError> {
-        let mut profiles = self
-            .state
-            .lock()
-            .expect("sound state mutex poisoned")
+        let mut profiles = crate::poison_recovery::lock_recover(&self.state)
             .hrtf_profiles
             .values()
             .cloned()

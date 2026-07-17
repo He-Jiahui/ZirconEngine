@@ -6,6 +6,7 @@ mod source;
 mod storage;
 
 pub(crate) use dynamic_events::{SoundDynamicEventExecutor, SoundDynamicEventExecutorKey};
+pub(crate) use graph::SoundGraphSnapshot;
 pub(crate) use playback::{ActivePlayback, LoadedClip};
 pub(crate) use source::SourceVoice;
 pub(crate) use storage::SoundEngineState;

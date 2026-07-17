@@ -18,7 +18,7 @@ pub(super) fn visible_collection_items(
 
     items
         .into_iter()
-        .enumerate()
-        .filter_map(|(index, item)| (index >= start && index < end).then_some(item))
+        .skip(start)
+        .take(end.saturating_sub(start))
         .collect()
 }

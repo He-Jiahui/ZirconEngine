@@ -60,7 +60,14 @@ class ActionService:
             rows = connection.execute(
                 """SELECT action_id, action_kind, parameters_json
                    FROM action_requests
-                   WHERE status='executing' AND daemon_instance_id <> ?""",
+                   WHERE status='executing' AND daemon_instance_id <> ?
+                     AND NOT EXISTS (
+                         SELECT 1
+                         FROM service_lifecycle_intents AS intent
+                         WHERE intent.action_id=action_requests.action_id
+                           AND intent.kind='service.rollover'
+                           AND intent.status='awaiting_restart'
+                     )""",
                 (self.daemon_instance_id,),
             ).fetchall()
             if not rows:

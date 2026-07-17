@@ -1,8 +1,11 @@
+use kira::backend::Backend;
 use zircon_runtime::core::framework::sound::{SoundError, SoundSourceId, SoundSourceInput};
 
 use crate::automation::values::ensure_finite_value;
+use crate::engine::SourceVoice;
+use crate::kira_bridge::KiraEngine;
 
-use super::DefaultSoundManager;
+use super::{kira_slice_position_for_absolute_frame, DefaultSoundManager};
 
 impl DefaultSoundManager {
     pub(super) fn seek_source_seconds_impl(
@@ -16,8 +19,9 @@ impl DefaultSoundManager {
                 "source seek seconds must be non-negative".to_string(),
             ));
         }
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
-        let clamped_frame = {
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.poll_kira_completions();
+        let (clamped_frame, range_start_frame) = {
             let voice = state
                 .sources
                 .get(&source)
@@ -45,9 +49,12 @@ impl DefaultSoundManager {
                             start_frame.saturating_add(duration_frames).min(frame_count)
                         })
                         .unwrap_or(frame_count);
-                    ((seconds * sample_rate).round() as usize)
-                        .max(start_frame)
-                        .min(range_end)
+                    (
+                        ((seconds * sample_rate).round() as usize)
+                            .max(start_frame)
+                            .min(range_end),
+                        start_frame,
+                    )
                 }
                 SoundSourceInput::External(handle) => {
                     let block = state.external_sources.get(handle).ok_or_else(|| {
@@ -57,12 +64,15 @@ impl DefaultSoundManager {
                         ))
                     })?;
                     let frame_count = block.samples.len() / block.channel_count.max(1) as usize;
-                    ((seconds * block.sample_rate_hz.max(1) as f32).round() as usize)
-                        .min(frame_count)
+                    (
+                        ((seconds * block.sample_rate_hz.max(1) as f32).round() as usize)
+                            .min(frame_count),
+                        0,
+                    )
                 }
                 SoundSourceInput::SynthParameter { .. } | SoundSourceInput::Silence => {
                     if seconds == 0.0 {
-                        0
+                        (0, 0)
                     } else {
                         return Err(SoundError::InvalidParameter(
                             "source seek requires clip or external input".to_string(),
@@ -71,12 +81,48 @@ impl DefaultSoundManager {
                 }
             }
         };
-        let voice = state
+        let mut voice = state
             .sources
-            .get_mut(&source)
+            .remove(&source)
             .ok_or(SoundError::UnknownSource { source_id: source })?;
-        voice.cursor_frame = clamped_frame;
-        voice.cursor_position = clamped_frame as f64;
-        Ok(())
+        let sample_rate = source_sample_rate(&state, &voice);
+        let seconds = kira_slice_position_for_absolute_frame(
+            clamped_frame,
+            range_start_frame,
+            sample_rate as f32,
+        );
+        let result = seek_bound_source(&mut state.kira, &mut voice, seconds, clamped_frame);
+        state.sources.insert(source, voice);
+        result
+    }
+}
+
+pub(crate) fn seek_bound_source<B: Backend>(
+    kira: &mut KiraEngine<B>,
+    voice: &mut SourceVoice,
+    seconds: f64,
+    frame: usize,
+) -> Result<(), SoundError> {
+    if let Some(playback) = voice.kira_playback {
+        kira.seek_to(playback, seconds)?;
+    }
+    voice.cursor_frame = frame;
+    voice.cursor_position = frame as f64;
+    Ok(())
+}
+
+fn source_sample_rate(state: &crate::engine::SoundEngineState, voice: &SourceVoice) -> f64 {
+    match &voice.descriptor.input {
+        SoundSourceInput::Clip(clip) => state
+            .clips
+            .get(clip)
+            .map(|clip| clip.asset.sample_rate_hz.max(1) as f64)
+            .unwrap_or(1.0),
+        SoundSourceInput::External(handle) => state
+            .external_sources
+            .get(handle)
+            .map(|block| block.sample_rate_hz.max(1) as f64)
+            .unwrap_or(1.0),
+        SoundSourceInput::SynthParameter { .. } | SoundSourceInput::Silence => 1.0,
     }
 }

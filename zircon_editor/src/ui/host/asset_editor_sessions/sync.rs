@@ -12,9 +12,10 @@ impl EditorUiHost {
             let entry = sessions.get(instance_id).ok_or_else(|| {
                 EditorError::UiAsset(format!("missing ui asset session {}", instance_id.0))
             })?;
+            let reflection = entry.session.reflection_model();
             (
-                entry.session.reflection_model().display_name,
-                entry.session.reflection_model().source_dirty,
+                reflection.display_name,
+                reflection.source_dirty,
                 serde_json::to_value(entry.session.route())
                     .map_err(|error| EditorError::UiAsset(error.to_string()))?,
             )
@@ -30,5 +31,16 @@ impl EditorUiHost {
         instance.dirty = dirty;
         instance.serializable_payload = payload;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn syncing_instance_builds_one_reflection_model() {
+        let source = include_str!("sync.rs");
+        let reflection_build = ["session.", "reflection_model()"].concat();
+
+        assert_eq!(source.matches(&reflection_build).count(), 1);
     }
 }

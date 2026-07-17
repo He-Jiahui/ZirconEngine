@@ -30,7 +30,7 @@ fn asset_aware_compile_reports_missing_shader_and_material_without_blocking_grap
 
     assert!(report
         .pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "opaque-mesh"));
@@ -192,7 +192,7 @@ fn asset_aware_compile_reports_material_contract_diagnostics() {
 
     assert!(report
         .pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "opaque-mesh"));

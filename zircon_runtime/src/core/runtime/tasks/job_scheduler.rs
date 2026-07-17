@@ -43,8 +43,7 @@ impl JobScheduler {
         self.diagnostics.record_scheduled();
         let diagnostics = Arc::clone(&self.diagnostics);
         self.pool.spawn(move || {
-            task();
-            diagnostics.record_completed();
+            run_detached_task(diagnostics, task);
         });
     }
 
@@ -195,6 +194,27 @@ impl PendingScheduledJob {
     }
 }
 
+struct DetachedTaskCompletion {
+    diagnostics: Arc<JobSchedulerDiagnosticsState>,
+}
+
+impl DetachedTaskCompletion {
+    fn new(diagnostics: Arc<JobSchedulerDiagnosticsState>) -> Self {
+        Self { diagnostics }
+    }
+}
+
+impl Drop for DetachedTaskCompletion {
+    fn drop(&mut self) {
+        self.diagnostics.record_completed();
+    }
+}
+
+fn run_detached_task(diagnostics: Arc<JobSchedulerDiagnosticsState>, task: impl FnOnce()) {
+    let _completion = DetachedTaskCompletion::new(diagnostics);
+    task();
+}
+
 fn complete_scheduled_task(
     handle: JobHandle,
     diagnostics: Arc<JobSchedulerDiagnosticsState>,
@@ -218,8 +238,23 @@ mod tests {
     use std::time::Instant;
 
     use super::{
-        JobHandle, JobSchedulerDiagnosticsState, PendingScheduledJob, TaskPool, TaskPoolDescriptor,
+        run_detached_task, JobHandle, JobSchedulerDiagnosticsState, PendingScheduledJob, TaskPool,
+        TaskPoolDescriptor,
     };
+
+    #[test]
+    fn detached_spawn_counts_panicked_tasks_as_completed() {
+        let diagnostics = Arc::new(JobSchedulerDiagnosticsState::default());
+        diagnostics.record_scheduled();
+
+        let result = panic::catch_unwind(AssertUnwindSafe(|| {
+            run_detached_task(Arc::clone(&diagnostics), || panic!("detached task failure"));
+        }));
+
+        assert!(result.is_err());
+        assert_eq!(diagnostics.report().scheduled, 1);
+        assert_eq!(diagnostics.report().completed, 1);
+    }
 
     #[test]
     fn pending_scheduled_job_recovers_poisoned_task_lock() {

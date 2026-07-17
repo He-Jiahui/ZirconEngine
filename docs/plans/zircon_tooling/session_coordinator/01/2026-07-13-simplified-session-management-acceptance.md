@@ -21,7 +21,7 @@
 
 - `/health`：HTTP 200。
 - `/control/v1/snapshot`：HTTP 200、`272.854ms`、238 workflows、232 business Sessions、27 Codex Sessions、54 Failure nodes、500 条有界 Cargo 记录。
-- `/ui/`：HTTP 200；CSP、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`、Permissions Policy 均已加载。
+- `/ui/`：HTTP 200；当前不发送 `Content-Security-Policy`，保留 `X-Frame-Options: DENY` 与 Permissions Policy，并使用 `Referrer-Policy: same-origin`。本轮早期冒烟曾验证 CSP 与 `no-referrer`，后续状态由 [`2026-07-13-web-csp-disabled.md`](2026-07-13-web-csp-disabled.md) 取代。
 - 托盘：唯一 PID `31360`；仓库根、仓库键、daemon PID 创建时间、可执行文件与命令行身份全部匹配。
 - daemon 日志：`latest.json` 与本轮 stdout/stderr 日志已写入 LocalAppData；本轮 stderr 为 0 bytes。
 - 简化前已完成的 2 小时隔离观察也自然结束：`passed`，7200.393 秒、240 样本、一次受控重启、两代实例、0 errors、workspace 已清理。该结果作为补充诊断证据，不再是用户要求的复杂门禁。

@@ -11,9 +11,8 @@ pub(super) fn dispatch_text_focus_value(
     window: &UiHostWindow,
     focus: HostTextInputFocusData,
     target_id: SharedString,
-    value: String,
+    value: SharedString,
 ) -> NativePointerDispatchResult {
-    let value: SharedString = value.into();
     let control_id = focus.control_id.clone();
     let pane_host = window.global::<PaneSurfaceHostContext>();
     match focus.dispatch_kind.as_str() {

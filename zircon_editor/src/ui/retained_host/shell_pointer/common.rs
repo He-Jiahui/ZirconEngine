@@ -22,18 +22,30 @@ pub(super) fn update_target_node(
     surface: &mut UiSurface,
     node_id: UiNodeId,
     frame: Option<UiFrame>,
-) {
+) -> bool {
     if let Some(node) = surface.tree.node_mut(node_id) {
         let interactive = frame.is_some();
-        node.layout_cache.frame = frame.unwrap_or_default();
-        node.layout_cache.clip_frame = None;
-        node.input_policy = if interactive {
+        let next_frame = frame.unwrap_or_default();
+        let next_input_policy = if interactive {
             UiInputPolicy::Receive
         } else {
             UiInputPolicy::Ignore
         };
-        node.state_flags = base_target_state(interactive);
+        let next_state = base_target_state(interactive);
+        if node.layout_cache.frame == next_frame
+            && node.layout_cache.clip_frame.is_none()
+            && node.input_policy == next_input_policy
+            && node.state_flags == next_state
+        {
+            return false;
+        }
+        node.layout_cache.frame = next_frame;
+        node.layout_cache.clip_frame = None;
+        node.input_policy = next_input_policy;
+        node.state_flags = next_state;
+        return true;
     }
+    false
 }
 
 pub(super) fn frame_if_visible(frame: UiFrame) -> Option<UiFrame> {

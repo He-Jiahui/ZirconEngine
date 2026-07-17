@@ -17,6 +17,7 @@ pub(crate) use advanced_pbr_pass_contract::{
     ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
     TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
+pub(crate) use compiled_render_pipeline::CompiledRenderPipelineParts;
 pub use compiled_render_pipeline::{CompiledRenderPipeline, CompiledRenderPipelinePassStage};
 pub use render_pass_stage::RenderPassStage;
 pub use render_pipeline_asset::RenderPipelineAsset;

@@ -8,6 +8,7 @@ mod editor_plugin_catalog_consistency;
 mod editor_plugin_sdk;
 mod gateway;
 mod host;
+mod jobs;
 mod runtime_event_consumer;
 mod structure_convention;
 pub(crate) mod support;

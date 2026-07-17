@@ -47,7 +47,7 @@ pub(in crate::ui::retained_host::ui) fn projected_sample_grid_data(
 fn has_variant(attributes: &BTreeMap<String, toml::Value>, expected: &str) -> bool {
     ["component_variant", "variant"]
         .into_iter()
-        .filter_map(|name| string_attribute(attributes, name))
+        .filter_map(|name| attributes.get(name).and_then(toml::Value::as_str))
         .any(|variant| variant.split_whitespace().any(|token| token == expected))
 }
 

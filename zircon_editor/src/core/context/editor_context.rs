@@ -4,7 +4,7 @@ use crate::core::commands::{CommandEvalSnapshotHandle, EditorCommandRegistryHand
 use crate::core::editing::engine::EditorTransactionEngine;
 use crate::core::editor_event::EditorEventService;
 use crate::core::editor_message::SharedEditorMessageBus;
-use crate::core::gateway::EditorRuntimeGatewayHandle;
+use crate::core::gateway::{EditorRuntimeGatewayHandle, RuntimeCapabilities};
 use crate::core::jobs::EditorJobSystem;
 
 /// Explicit L1 editor service aggregate. Each service owns its own synchronization.
@@ -65,5 +65,9 @@ impl EditorContext {
 
     pub fn gateway(&self) -> &EditorRuntimeGatewayHandle {
         &self.gateway
+    }
+
+    pub fn capabilities(&self) -> RuntimeCapabilities {
+        self.gateway.capabilities()
     }
 }

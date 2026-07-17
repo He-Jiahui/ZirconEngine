@@ -16,7 +16,7 @@ fn particle_plugin_render_feature_adds_transparent_pass_to_default_pipeline() {
         .with_plugin_render_features([particle_render_feature_descriptor()]);
     let compiled = pipeline.compile(&test_extract()).unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -27,7 +27,7 @@ fn particle_plugin_render_feature_adds_transparent_pass_to_default_pipeline() {
         .required_extract_sections
         .contains(&"particles".to_string()));
     let particle_feature = compiled
-        .enabled_features
+        .enabled_features()
         .iter()
         .find(|feature| feature.feature_name() == "particle")
         .expect("particle plugin feature should remain in compiled pipeline");
@@ -44,7 +44,7 @@ fn core_scene_particle_extract_adds_billboard_pass_without_plugin_feature_identi
         .compile(&test_extract_with_particle_sprite())
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -56,14 +56,14 @@ fn core_scene_particle_extract_adds_billboard_pass_without_plugin_feature_identi
         .contains(&"particles".to_string()));
     assert!(
         !compiled
-            .enabled_features
+            .enabled_features()
             .iter()
             .any(|feature| feature.feature_name() == "particle"),
         "core scene particles should not masquerade as an external particle plugin feature"
     );
     assert!(
         !compiled
-            .enabled_features
+            .enabled_features()
             .iter()
             .any(|feature| feature.is_builtin(BuiltinRenderFeature::Particle)),
         "core scene particles should not reintroduce the descriptor-only built-in particle slot"
@@ -81,7 +81,7 @@ fn compile_options_can_disable_core_scene_particle_billboard_pass() {
         )
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -104,7 +104,7 @@ fn compile_options_can_disable_particle_plugin_feature_by_name() {
         )
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -135,7 +135,7 @@ fn test_extract_with_particle_sprite() -> RenderFrameExtract {
 
 fn assert_particle_pass_uses_depth_read_color_write(compiled: &CompiledRenderPipeline) {
     let particle_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "particle-render")

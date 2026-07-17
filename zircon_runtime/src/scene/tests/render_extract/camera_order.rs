@@ -162,6 +162,33 @@ fn render_frame_extract_carries_scene_camera_order_report_for_scene_camera() {
 }
 
 #[test]
+fn scene_frame_reuses_its_frozen_camera_descriptors_for_the_order_report() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("render.rs"),
+    )
+    .unwrap();
+    let builder = source
+        .split("fn build_render_view_extract")
+        .nth(1)
+        .and_then(|text| text.split("fn render_extract_layers_for_view").next())
+        .expect("read render view extract builder");
+
+    assert!(
+        builder.contains("scene_camera_descriptors_with_override")
+            && builder.contains("render_camera_order_report_from_descriptors(&view.cameras)"),
+        "scene frame construction must build descriptors once, apply the selected override before insertion, and derive the order report from that frozen list"
+    );
+    assert!(
+        !builder.contains("self.render_camera_order_report()"),
+        "scene frame construction must not rebuild and resort every camera descriptor for its order report"
+    );
+}
+
+#[test]
 fn explicit_camera_render_frame_extract_has_no_scene_camera_order_report() {
     let mut world = World::empty();
     let scene_camera = spawn_camera_on_layer(&mut world, 0b0001);

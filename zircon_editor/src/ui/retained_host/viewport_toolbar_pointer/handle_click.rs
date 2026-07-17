@@ -25,23 +25,47 @@ impl ViewportToolbarPointerBridge {
             .map(|surface| surface.frame)
             .ok_or_else(|| format!("Unknown viewport toolbar surface {surface_key}"))?;
         route_for_control(surface_key, control_id)?;
-        self.controls_by_surface.insert(
-            surface_key.to_string(),
-            vec![ViewportToolbarPointerControl {
-                action_key: control_id.to_string(),
-                frame: UiFrame::new(
-                    surface_frame.x + control_x,
-                    surface_frame.y + control_y,
-                    control_width.max(1.0),
-                    control_height.max(1.0),
-                ),
-            }],
-        );
-        self.rebuild_surface();
+        let control = ViewportToolbarPointerControl {
+            action_key: control_id.to_string(),
+            frame: UiFrame::new(
+                surface_frame.x + control_x,
+                surface_frame.y + control_y,
+                control_width.max(1.0),
+                control_height.max(1.0),
+            ),
+        };
+        if self.sync_clicked_control(surface_key, control) {
+            self.rebuild_surface();
+        }
 
         let point = UiPoint::new(surface_frame.x + point.x, surface_frame.y + point.y);
         let route = self.dispatch_event(UiPointerEvent::new(UiPointerEventKind::Down, point))?;
         Ok(ViewportToolbarPointerDispatch { route })
+    }
+
+    fn sync_clicked_control(
+        &mut self,
+        surface_key: &str,
+        control: ViewportToolbarPointerControl,
+    ) -> bool {
+        if let Some(controls) = self.controls_by_surface.get_mut(surface_key) {
+            if let Some(control_index) = controls
+                .iter()
+                .position(|existing| existing.action_key == control.action_key)
+            {
+                if controls[control_index] == control {
+                    return false;
+                }
+                controls[control_index] = control;
+                return true;
+            }
+            controls.push(control);
+            return true;
+        }
+
+        self.controls_by_surface
+            .insert(surface_key.to_string(), vec![control]);
+        true
     }
 
     pub(crate) fn handle_click_at_point(

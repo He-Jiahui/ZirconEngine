@@ -129,7 +129,7 @@ test("persistent action activity loads safe audit fields", async () => {
 
 test("unsafe service projection disables mutation before preview", () => {
   const service = (mode: string, state: string): ServiceProjection => ({
-    status: "ok", branch: "main", mode, baseline: "healthy", instanceId: "i", startedAt: "now", controlApiVersions: [1],
+    status: "ok", branch: "main", mode, baseline: "healthy", instanceId: "i", startedAt: "now", sessionTtlSeconds: 3600, controlApiVersions: [1],
     supervision: { state, busy: false, blockers: [] },
   });
   assert.match(actionMutationBlockReason(service("read_only", "read_only")) ?? "", /只读/);

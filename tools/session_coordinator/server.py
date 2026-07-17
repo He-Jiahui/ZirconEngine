@@ -333,6 +333,7 @@ class CoordinatorApplication:
             self.database,
             self.workflow_projections,
             self.control_service_state,
+            repo_root=self.config.repo_root,
         )
 
     @property

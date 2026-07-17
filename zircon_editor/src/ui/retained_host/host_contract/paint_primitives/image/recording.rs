@@ -55,7 +55,7 @@ impl ImageRecordingMetadata<'_> {
                     atlas.resource_key.clone(),
                     atlas.width,
                     atlas.height,
-                    atlas.rgba.clone(),
+                    None,
                     Some(atlas.clone()),
                 );
             }

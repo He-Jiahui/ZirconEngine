@@ -1,3 +1,5 @@
+use std::sync::OnceLock;
+
 use crate::scene::viewport::{
     RenderFrameExtract, RenderHybridGiExtract, RenderHybridGiProfile, RenderQualityProfile,
 };
@@ -20,14 +22,12 @@ pub(super) fn apply_editor_viewport_render_defaults(extract: &mut RenderFrameExt
         .hybrid_global_illumination
         .get_or_insert_with(RenderHybridGiExtract::default);
     settings.enabled = true;
-    if let Ok(value) = std::env::var(EDITOR_HYBRID_GI_PROFILE_ENV) {
-        if let Some(profile) = parse_editor_hybrid_gi_profile(&value) {
-            settings.profile = profile;
-            if profile != RenderHybridGiProfile::Custom {
-                settings.trace_budget = 0;
-                settings.card_budget = 0;
-                settings.voxel_budget = 0;
-            }
+    if let Some(profile) = editor_hybrid_gi_profile_override() {
+        settings.profile = profile;
+        if profile != RenderHybridGiProfile::Custom {
+            settings.trace_budget = 0;
+            settings.card_budget = 0;
+            settings.voxel_budget = 0;
         }
     }
     if settings.profile != RenderHybridGiProfile::Custom {
@@ -42,6 +42,17 @@ pub(super) fn apply_editor_viewport_render_defaults(extract: &mut RenderFrameExt
     if settings.voxel_budget == 0 {
         settings.voxel_budget = EDITOR_HYBRID_GI_VOXEL_BUDGET;
     }
+}
+
+fn editor_hybrid_gi_profile_override() -> Option<RenderHybridGiProfile> {
+    static PROFILE: OnceLock<Option<RenderHybridGiProfile>> = OnceLock::new();
+    PROFILE
+        .get_or_init(|| {
+            std::env::var(EDITOR_HYBRID_GI_PROFILE_ENV)
+                .ok()
+                .and_then(|value| parse_editor_hybrid_gi_profile(&value))
+        })
+        .clone()
 }
 
 fn parse_editor_hybrid_gi_profile(value: &str) -> Option<RenderHybridGiProfile> {
@@ -78,5 +89,21 @@ mod tests {
             Some(RenderHybridGiProfile::Cinematic)
         );
         assert_eq!(parse_editor_hybrid_gi_profile("unknown"), None);
+    }
+
+    #[test]
+    fn editor_hybrid_gi_environment_override_uses_a_process_cache() {
+        let source = std::fs::read_to_string(
+            std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("src/ui/retained_host/viewport/editor_viewport_render_defaults.rs"),
+        )
+        .expect("render defaults source should read");
+        let production = source
+            .split("#[cfg(test)]")
+            .next()
+            .expect("render defaults production source should exist");
+
+        assert!(production.contains("static PROFILE: OnceLock<Option<RenderHybridGiProfile>>"));
+        assert_eq!(production.matches("std::env::var(").count(), 1);
     }
 }

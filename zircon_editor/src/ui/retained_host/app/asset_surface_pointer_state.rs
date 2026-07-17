@@ -13,6 +13,7 @@ impl AssetReferenceListSurfacePointerState {
 impl AssetSurfacePointerState {
     pub(super) fn new() -> Self {
         Self {
+            snapshot: None,
             tree_bridge: AssetFolderTreePointerBridge::new(),
             tree_state: AssetListPointerState::default(),
             tree_size: UiSize::new(0.0, 0.0),

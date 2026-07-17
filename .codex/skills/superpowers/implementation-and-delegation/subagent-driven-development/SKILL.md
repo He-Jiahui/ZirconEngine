@@ -90,13 +90,15 @@ digraph process {
 
 ## Model Selection
 
-Use the least powerful model that can handle each role to conserve cost and increase speed.
+Use only the cross-Session tiers in `../../../zircon-project-skills/cross-session-coordination/references/model-tier-policy.md`. Record `model_tier`, `thinking_depth`, and `selection_reason` in every dispatch prompt; never use or silently fall back to `gpt-5.5` or a lower model.
 
-**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use a fast, cheap model. Most implementation tasks are mechanical when the plan is well-specified.
+Use the least expensive allowed tier that can handle each role to conserve cost and increase speed.
 
-**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use a standard model.
+**Mechanical implementation tasks** (isolated functions, clear specs, 1-2 files): use `5.6-luna` with Light or Medium thinking. Most implementation tasks are mechanical when the plan is well-specified.
 
-**Architecture, design, and review tasks**: use the most capable available model.
+**Integration and judgment tasks** (multi-file coordination, pattern matching, debugging): use `5.6-terra` with Medium or High thinking.
+
+**Architecture, design, and review tasks**: use `5.6-sol` with High or Extra High thinking.
 
 **Task complexity signals:**
 - Touches 1-2 files with a complete spec → cheap model
@@ -115,7 +117,7 @@ Implementer subagents report one of four statuses. Handle each appropriately:
 
 **BLOCKED:** The implementer cannot complete the task. Assess the blocker:
 1. If it's a context problem, provide more context and re-dispatch with the same model
-2. If the task requires more reasoning, re-dispatch with a more capable model
+2. If the task requires more reasoning, re-dispatch with a higher allowed tier or depth; never with `gpt-5.5` or a lower model
 3. If the task is too large, break it into smaller pieces
 4. If the plan itself is wrong, escalate to the human
 

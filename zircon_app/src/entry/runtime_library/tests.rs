@@ -26,6 +26,42 @@ fn runtime_session_satisfies_editor_gateway_thread_safety_contract() {
     assert_send_sync::<super::runtime_session::RuntimeSession>();
 }
 
+#[cfg(feature = "target-editor-host")]
+#[test]
+fn editor_gateway_is_owned_by_session_gateway_instead_of_runtime_session() {
+    let runtime_session_source = include_str!("runtime_session.rs");
+
+    assert!(runtime_session_source.contains("pub(crate) fn editor_gateway("));
+    assert!(runtime_session_source.contains("SessionGateway::new("));
+    assert!(!runtime_session_source
+        .contains("impl zircon_editor::core::gateway::EditorRuntimeGateway for RuntimeSession"));
+    assert!(!runtime_session_source.contains("pub(crate) fn profile_control("));
+}
+
+#[cfg(feature = "target-editor-host")]
+#[test]
+fn editor_gateway_api_table_strips_session_lifecycle_authority() {
+    let runtime = LoadedRuntime::linked().expect("load linked runtime API");
+    let editor_api = runtime.editor_gateway_api_table();
+
+    assert!(
+        editor_api.create_session.is_none(),
+        "SessionGateway must not receive session creation authority"
+    );
+    assert!(
+        editor_api.destroy_session.is_none(),
+        "SessionGateway must not receive session destruction authority"
+    );
+
+    let runtime_session_source = include_str!("runtime_session.rs");
+    let drop_body = runtime_session_source
+        .split("impl Drop for RuntimeSession")
+        .nth(1)
+        .expect("RuntimeSession should own session teardown");
+    assert!(drop_body.contains("let destroy_session = self.runtime.destroy_session();"));
+    assert!(drop_body.contains("destroy_session(self.handle)"));
+}
+
 unsafe extern "C" fn fake_subscribe_plugin_event(
     _session: ZrRuntimeSessionHandle,
     _request: ZrByteSlice,
@@ -54,7 +90,9 @@ unsafe extern "C" fn fake_drain_plugin_events(
 fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
     use std::sync::Arc;
 
-    use zircon_editor::core::gateway::EditorRuntimeGatewayHandle;
+    use zircon_editor::core::gateway::{
+        EditorRuntimeGatewayHandle, RuntimeCapabilities, SessionProfileKind,
+    };
     use zircon_editor::core::runtime_event_consumer::EditorRuntimeEventConsumerHost;
     use zircon_runtime::builtin::RuntimePluginId;
     use zircon_runtime::core::framework::platform::RuntimeTargetMode;
@@ -79,6 +117,10 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
         );
     assert_eq!(runtime_registrations.len(), 1);
     assert_eq!(editor_registrations.len(), 1);
+    let capabilities = RuntimeCapabilities::from_runtime_plugin_registrations(
+        SessionProfileKind::Editor,
+        &runtime_registrations,
+    );
 
     let runtime = Arc::new(
         super::runtime_session::RuntimeSession::create_linked_with_profile_and_project(
@@ -89,8 +131,9 @@ fn editor_product_ticks_selected_navigation_plugin_into_typed_consumer() {
         )
         .unwrap(),
     );
-    let host =
-        EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(runtime.clone()));
+    let gateway: Arc<zircon_editor::core::gateway::SessionGateway> =
+        runtime.editor_gateway(capabilities).unwrap();
+    let host = EditorRuntimeEventConsumerHost::new(EditorRuntimeGatewayHandle::new(gateway));
     let editor_registration = editor_registrations.remove(0);
     let capability = editor_registration.runtime_event_consumers.manifests()[0]
         .required_capability

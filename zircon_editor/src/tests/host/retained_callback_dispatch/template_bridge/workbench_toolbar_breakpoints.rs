@@ -10,9 +10,13 @@ use zircon_runtime_interface::ui::tree::UiVisibility;
 
 const COMPACT_WORKBENCH_WIDTH: u32 = 900;
 const COMPACT_WORKBENCH_HEIGHT: u32 = 620;
+const NARROW_WORKBENCH_WIDTH: u32 = 640;
+const NARROW_WORKBENCH_HEIGHT: u32 = 520;
 const FULL_WORKBENCH_WIDTH: u32 = 1672;
 const FULL_WORKBENCH_HEIGHT: u32 = 941;
 const MODULE_OVERFLOW_SCREENSHOT: &str = "editor-window-m3-workbench-module-overflow-900x620.png";
+const MVP_RUN_CONTROLS_SCREENSHOT: &str =
+    "editor-window-m3-workbench-mvp-run-controls-640x520.png";
 const RUN_MODE_SCREENSHOT: &str = "editor-window-m3-workbench-run-mode-1672x941.png";
 
 const COMPACT_CORE_MODULE_TABS: &[&str] = &[
@@ -109,6 +113,55 @@ fn compact_workbench_toolbar_keeps_core_module_tabs_readable_and_collapses_overf
         control_visibility(&bridge, "WorkbenchModuleDiff"),
         Some(UiVisibility::Collapsed)
     );
+}
+
+#[test]
+fn mvp_run_controls_remain_reachable_across_narrow_regular_and_wide_layouts() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    for (width, height) in [(640.0, 520.0), (900.0, 620.0), (1260.0, 780.0)] {
+        let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(width, height))
+            .unwrap_or_else(|error| panic!("{width}px workbench bridge should build: {error:?}"));
+        let command_row = bridge
+            .control_frame("WorkbenchToolbarCommandRow")
+            .unwrap_or_else(|| panic!("{width}px toolbar should expose its command row"));
+        let module_commands = bridge
+            .control_frame("WorkbenchModuleCommands")
+            .unwrap_or_else(|| panic!("{width}px toolbar should expose primary module commands"));
+        let run_group = bridge
+            .control_frame("WorkbenchToolbarRunGroup")
+            .unwrap_or_else(|| panic!("{width}px toolbar should keep the MVP run group reachable"));
+        let play = bridge
+            .control_frame("WorkbenchRunPlay")
+            .unwrap_or_else(|| panic!("{width}px toolbar should keep Play reachable"));
+        let run_mode = bridge
+            .control_frame("WorkbenchRunMode")
+            .unwrap_or_else(|| panic!("{width}px toolbar should keep Run Mode reachable"));
+
+        assert_frame_value("compact MVP run group width", run_group.width, 70.0);
+        assert_frame_value("Play to Run Mode gap", run_mode.x - play.right(), 4.0);
+        assert!(
+            run_group.x >= module_commands.right(),
+            "{width}px MVP run controls should follow primary commands without overlap"
+        );
+        assert!(
+            run_group.right() <= command_row.right(),
+            "{width}px MVP run controls should remain inside the command row"
+        );
+        assert_eq!(
+            control_visibility(&bridge, "WorkbenchLayoutGrid"),
+            Some(UiVisibility::Collapsed),
+            "{width}px toolbar should defer the secondary layout control"
+        );
+        assert_eq!(
+            control_visibility(&bridge, "WorkbenchThemeToggle"),
+            Some(UiVisibility::Collapsed),
+            "{width}px toolbar should defer the secondary theme control"
+        );
+    }
 }
 
 #[test]
@@ -601,6 +654,65 @@ fn capture_workbench_module_overflow_visual_artifact() {
 
 #[test]
 #[ignore = "writes a visual artifact under docs/tests/editor"]
+fn capture_narrow_workbench_mvp_run_controls_visual_artifact() {
+    let _guard = match env_lock().lock() {
+        Ok(guard) => guard,
+        Err(error) => panic!("test environment lock is poisoned: {error}"),
+    };
+
+    let bridge = BuiltinWorkbenchWindowTemplateSurfaceBridge::new(UiSize::new(
+        NARROW_WORKBENCH_WIDTH as f32,
+        NARROW_WORKBENCH_HEIGHT as f32,
+    ))
+    .expect("narrow workbench bridge should build");
+    let run_group = bridge
+        .control_frame("WorkbenchToolbarRunGroup")
+        .expect("narrow toolbar should keep the MVP run group reachable");
+    let play = bridge
+        .control_frame("WorkbenchRunPlay")
+        .expect("narrow toolbar should keep Play reachable");
+    let run_mode = bridge
+        .control_frame("WorkbenchRunMode")
+        .expect("narrow toolbar should keep Run Mode reachable");
+    assert_frame_value("narrow MVP run group width", run_group.width, 70.0);
+    assert_frame_value("narrow Play to Run Mode gap", run_mode.x - play.right(), 4.0);
+
+    let bytes = paint_runtime_render_commands_for_test(
+        NARROW_WORKBENCH_WIDTH,
+        NARROW_WORKBENCH_HEIGHT,
+        &bridge.surface().render_extract.list.commands,
+    );
+    for (label, frame) in [("Play", play), ("Run Mode", run_mode)] {
+        assert!(
+            first_non_black_pixel_in_frame(
+                &bytes,
+                NARROW_WORKBENCH_WIDTH,
+                NARROW_WORKBENCH_HEIGHT,
+                frame,
+            )
+            .is_some(),
+            "narrow {label} control should paint visible pixels"
+        );
+    }
+
+    let path = mvp_run_controls_screenshot_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).expect("MVP run controls screenshot directory should exist");
+    }
+    image::save_buffer_with_format(
+        &path,
+        &bytes,
+        NARROW_WORKBENCH_WIDTH,
+        NARROW_WORKBENCH_HEIGHT,
+        image::ColorType::Rgba8,
+        image::ImageFormat::Png,
+    )
+    .expect("MVP run controls screenshot should be written");
+    println!("wrote {}", path.display());
+}
+
+#[test]
+#[ignore = "writes a visual artifact under docs/tests/editor"]
 fn capture_full_workbench_run_mode_visual_artifact() {
     let _guard = match env_lock().lock() {
         Ok(guard) => guard,
@@ -679,6 +791,16 @@ fn module_overflow_screenshot_path() -> PathBuf {
         .join("tests")
         .join("editor")
         .join(MODULE_OVERFLOW_SCREENSHOT)
+}
+
+fn mvp_run_controls_screenshot_path() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .expect("zircon_editor should live under the repository root")
+        .join("docs")
+        .join("tests")
+        .join("editor")
+        .join(MVP_RUN_CONTROLS_SCREENSHOT)
 }
 
 fn run_mode_screenshot_path() -> PathBuf {

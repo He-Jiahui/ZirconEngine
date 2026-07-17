@@ -132,8 +132,8 @@ fn render_advanced_extract_empty_keeps_graph_baseline_when_feature_is_disabled()
         .unwrap();
 
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        disabled.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        disabled.graph().dump().to_text()
     );
 }
 
@@ -156,7 +156,7 @@ fn volumetric_fog_graph_uses_rgba16f_d3_resources_and_two_physical_slots() {
         assert_eq!(desc.sample_count, 1);
     }
 
-    let allocation = compiled.graph.transient_allocation_plan();
+    let allocation = compiled.graph().transient_allocation_plan();
     assert_eq!(
         allocation.slot_for(PostProcessGraphResourceNames::VOLUMETRIC_MEDIA),
         allocation.slot_for(PostProcessGraphResourceNames::VOLUMETRIC_INTEGRATED),
@@ -259,7 +259,7 @@ fn volumetric_extract() -> RenderFrameExtract {
 
 fn pass_names(compiled: &CompiledRenderPipeline) -> Vec<&str> {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -286,7 +286,7 @@ fn texture_desc<'a>(
     resource_name: &str,
 ) -> &'a zircon_runtime::rhi::TextureDesc {
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == resource_name)
@@ -302,7 +302,7 @@ fn compute_dispatch<'a>(
     pass_name: &str,
 ) -> &'a RenderGraphComputeDispatchExtent {
     &compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)
@@ -315,7 +315,7 @@ fn compute_dispatch<'a>(
 
 fn pass_reads_integrated(compiled: &CompiledRenderPipeline, pass_name: &str) {
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)

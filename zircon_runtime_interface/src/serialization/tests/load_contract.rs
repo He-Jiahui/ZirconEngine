@@ -1,9 +1,9 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::super::{
-    Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId, VersionedSchema,
-    load_versioned,
+    load_versioned, Format, LoadError, MigrateError, MigrationChain, MigrationStep, SchemaId,
+    VersionedSchema,
 };
 use super::FixtureDocument;
 

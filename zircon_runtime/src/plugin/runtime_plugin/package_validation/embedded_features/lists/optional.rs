@@ -2,9 +2,9 @@ use crate::plugin::PluginPackageManifest;
 
 use super::super::row::validate_runtime_plugin_package_embedded_feature_row;
 
-pub(super) fn validate_runtime_plugin_package_optional_feature_list(
-    package_manifest: &PluginPackageManifest,
-    seen_feature_providers: &mut Vec<(String, String)>,
+pub(super) fn validate_runtime_plugin_package_optional_feature_list<'a>(
+    package_manifest: &'a PluginPackageManifest,
+    seen_feature_providers: &mut Vec<(&'a str, &'a str)>,
     diagnostics: &mut Vec<String>,
 ) {
     for feature in &package_manifest.optional_features {

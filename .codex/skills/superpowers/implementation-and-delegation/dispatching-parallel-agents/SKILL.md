@@ -87,6 +87,7 @@ Good agent prompts are:
 1. **Focused** - One clear problem domain
 2. **Self-contained** - All context needed to understand the problem
 3. **Specific about output** - What should the agent return?
+4. **Tiered** - Declare one allowed model tier and thinking depth using `../../../zircon-project-skills/cross-session-coordination/references/model-tier-policy.md`; never permit a `gpt-5.5` or lower fallback.
 
 ```markdown
 Fix the 3 failing tests in src/agents/agent-tool-abort.test.ts:
@@ -163,6 +164,16 @@ Agent 3 → Fix tool-approval-race-conditions.test.ts
 2. **Focus** - Each agent has narrow scope, less context to track
 3. **Independence** - Agents don't interfere with each other
 4. **Speed** - 3 problems solved in time of 1
+
+## Model Tier Gate
+
+For any cross-Session dispatch, use only `5.6-sol`, `5.6-terra`, or
+`5.6-luna` and record the selected thinking depth in the task prompt. Choose
+the lowest priced tier that satisfies the work: Luna for Light/Medium mechanical
+work, Terra for Medium/High integration, and Sol for High/Extra High
+architecture or incident work. If the platform does not expose model selection,
+verify its active model is allowed; never silently fall back to `gpt-5.5` or
+lower.
 
 ## Verification
 

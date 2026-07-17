@@ -379,7 +379,7 @@ fn assert_ui_after_overlay_for_default_3d(compiled: &CompiledRenderPipeline) {
     assert_pass_before(compiled, "overlay-gizmo", "runtime-ui");
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .last()
             .map(|pass| pass.name.as_str()),
@@ -389,13 +389,13 @@ fn assert_ui_after_overlay_for_default_3d(compiled: &CompiledRenderPipeline) {
 
 fn assert_pass_before(compiled: &CompiledRenderPipeline, earlier: &str, later: &str) {
     let earlier_index = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .position(|pass| pass.name == earlier)
         .unwrap_or_else(|| panic!("compiled pipeline should include {earlier}"));
     let later_index = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .position(|pass| pass.name == later)

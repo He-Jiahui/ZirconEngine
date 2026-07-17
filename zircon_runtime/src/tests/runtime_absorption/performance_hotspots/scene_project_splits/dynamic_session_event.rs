@@ -2,6 +2,8 @@
 fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
     let session_facade = include_str!("../../../../dynamic_api/session.rs");
     let session_ffi = include_str!("../../../../dynamic_api/session/ffi.rs");
+    let session_state = include_str!("../../../../dynamic_api/session/state.rs");
+    let session_construction = include_str!("../../../../dynamic_api/session/construction.rs");
     let session_events = include_str!("../../../../dynamic_api/session/events.rs");
     let runtime_07_output = include_str!(
         "../../../../../../docs/plans/zircon_runtime/runtime/07/2026-07-09-runtime-performance-hotpath-output-records.md"
@@ -34,7 +36,6 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
         "fn handle_keyboard",
         "fn handle_ime",
         "fn handle_gamepad_axis",
-        "fn sync_orbit_target_from_selection",
     ] {
         assert!(
             !session_facade.contains(moved_event_anchor)
@@ -45,6 +46,26 @@ fn runtime_07_dynamic_session_event_split_keeps_abi_entry_and_event_owner() {
             session_events.contains(moved_event_anchor),
             "session/events.rs should own dynamic event helper `{moved_event_anchor}`"
         );
+    }
+
+    for (owner, source) in [
+        ("session/state.rs", session_state),
+        ("session/construction.rs", session_construction),
+        ("session/events.rs", session_events),
+    ] {
+        for removed_editor_selection_anchor in [
+            "selected_node",
+            "selection_node",
+            "selected_entity",
+            "editor_selection",
+            "set_selected_node",
+            "sync_orbit_target_from_selection",
+        ] {
+            assert!(
+                !source.contains(removed_editor_selection_anchor),
+                "{owner} must not retain editor selection anchor `{removed_editor_selection_anchor}`"
+            );
+        }
     }
 
     for events_anchor in [

@@ -30,7 +30,7 @@ pub(in crate::ui::retained_host::ui) use scene_conversion::to_host_contract_host
 use scene_conversion::{
     to_host_contract_chrome_tab, to_host_contract_host_scene_data_with_runtime,
     to_host_contract_host_shell, to_host_contract_host_window_layout,
-    to_host_contract_native_floating_surface_data_with_runtime, to_host_contract_project_overview,
+    to_host_contract_native_floating_surface_data_with_runtime,
 };
 
 pub(crate) fn apply_presentation(
@@ -78,60 +78,6 @@ pub(crate) fn apply_presentation(
         )
     };
     let pane_surface_host = ui.global::<host_contract::PaneSurfaceHostContext>();
-
-    {
-        zircon_runtime::profile_scope!("editor", "retained_host", "apply_pane_surface_globals");
-        pane_surface_host.set_recent_projects(to_host_contract_recent_projects(
-            &presentation.welcome.recent_projects,
-        ));
-        pane_surface_host.set_project_overview(to_host_contract_project_overview(
-            &presentation.project_overview,
-        ));
-        pane_surface_host.set_activity_asset_tree_folders(to_host_contract_asset_folders(
-            &presentation.activity.tree_folders,
-        ));
-        pane_surface_host.set_activity_asset_content_folders(to_host_contract_asset_folders(
-            &presentation.activity.content_folders,
-        ));
-        pane_surface_host.set_activity_asset_content_items(to_host_contract_asset_items(
-            &presentation.activity.content_items,
-        ));
-        pane_surface_host.set_activity_asset_selection(to_host_contract_asset_selection(
-            &presentation.activity.selection,
-        ));
-        pane_surface_host.set_activity_asset_references(to_host_contract_asset_references(
-            &presentation.activity.references,
-        ));
-        pane_surface_host.set_activity_asset_used_by(to_host_contract_asset_references(
-            &presentation.activity.used_by,
-        ));
-        pane_surface_host.set_activity_asset_search_query(presentation.activity.search_query);
-        pane_surface_host.set_activity_asset_kind_filter(presentation.activity.kind_filter);
-        pane_surface_host.set_activity_asset_view_mode(presentation.activity.view_mode);
-        pane_surface_host.set_activity_asset_utility_tab(presentation.activity.utility_tab);
-        pane_surface_host.set_browser_asset_tree_folders(to_host_contract_asset_folders(
-            &presentation.browser.tree_folders,
-        ));
-        pane_surface_host.set_browser_asset_content_folders(to_host_contract_asset_folders(
-            &presentation.browser.content_folders,
-        ));
-        pane_surface_host.set_browser_asset_content_items(to_host_contract_asset_items(
-            &presentation.browser.content_items,
-        ));
-        pane_surface_host.set_browser_asset_selection(to_host_contract_asset_selection(
-            &presentation.browser.selection,
-        ));
-        pane_surface_host.set_browser_asset_references(to_host_contract_asset_references(
-            &presentation.browser.references,
-        ));
-        pane_surface_host.set_browser_asset_used_by(to_host_contract_asset_references(
-            &presentation.browser.used_by,
-        ));
-        pane_surface_host.set_browser_asset_search_query(presentation.browser.search_query);
-        pane_surface_host.set_browser_asset_kind_filter(presentation.browser.kind_filter);
-        pane_surface_host.set_browser_asset_view_mode(presentation.browser.view_mode);
-        pane_surface_host.set_browser_asset_utility_tab(presentation.browser.utility_tab);
-    }
 
     let host_layout = {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_host_window_layout");
@@ -223,7 +169,6 @@ pub(crate) fn apply_presentation(
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "apply_set_tail_globals");
         pane_surface_host.set_welcome_pane(host_welcome_pane);
-        pane_surface_host.set_mesh_import_path(presentation.mesh_import_path);
     }
 }
 
@@ -523,8 +468,10 @@ fn resolve_visible_welcome_pane_size(scene: &host_window::HostWindowSceneData) -
         ));
     }
 
-    (0..scene.floating_layer.floating_windows.row_count())
-        .filter_map(|row| scene.floating_layer.floating_windows.row_data(row))
+    scene
+        .floating_layer
+        .floating_windows
+        .iter()
         .find_map(|window| {
             (window.active_pane.kind.as_str() == "Welcome").then(|| {
                 UiSize::new(
@@ -555,84 +502,6 @@ fn to_host_contract_recent_projects(
     data: &ModelRc<view_data::RecentProjectData>,
 ) -> ModelRc<host_contract::RecentProjectData> {
     map_model_rc(data, to_host_contract_recent_project)
-}
-
-fn to_host_contract_asset_folder(
-    data: view_data::AssetFolderData,
-) -> host_contract::AssetFolderData {
-    host_contract::AssetFolderData {
-        id: data.id,
-        name: data.name,
-        count: data.count,
-        depth: data.depth,
-        selected: data.selected,
-    }
-}
-
-fn to_host_contract_asset_folders(
-    data: &ModelRc<view_data::AssetFolderData>,
-) -> ModelRc<host_contract::AssetFolderData> {
-    map_model_rc(data, to_host_contract_asset_folder)
-}
-
-fn to_host_contract_asset_item(data: view_data::AssetItemData) -> host_contract::AssetItemData {
-    host_contract::AssetItemData {
-        uuid: data.uuid,
-        locator: data.locator,
-        name: data.name,
-        file_name: data.file_name,
-        kind: data.kind,
-        extension: data.extension,
-        dirty: data.dirty,
-        has_error: data.has_error,
-        has_preview: data.has_preview,
-        state: data.state,
-        revision: data.revision,
-        selected: data.selected,
-        preview: data.preview,
-    }
-}
-
-fn to_host_contract_asset_items(
-    data: &ModelRc<view_data::AssetItemData>,
-) -> ModelRc<host_contract::AssetItemData> {
-    map_model_rc(data, to_host_contract_asset_item)
-}
-
-fn to_host_contract_asset_reference(
-    data: view_data::AssetReferenceData,
-) -> host_contract::AssetReferenceData {
-    host_contract::AssetReferenceData {
-        uuid: data.uuid,
-        locator: data.locator,
-        name: data.name,
-        kind: data.kind,
-        known_project_asset: data.known_project_asset,
-    }
-}
-
-fn to_host_contract_asset_references(
-    data: &ModelRc<view_data::AssetReferenceData>,
-) -> ModelRc<host_contract::AssetReferenceData> {
-    map_model_rc(data, to_host_contract_asset_reference)
-}
-
-fn to_host_contract_asset_selection(
-    data: &view_data::AssetSelectionData,
-) -> host_contract::AssetSelectionData {
-    host_contract::AssetSelectionData {
-        uuid: data.uuid.clone(),
-        name: data.name.clone(),
-        locator: data.locator.clone(),
-        kind: data.kind.clone(),
-        meta_path: data.meta_path.clone(),
-        toolkit_view_id: data.toolkit_view_id.clone(),
-        state: data.state.clone(),
-        revision: data.revision.clone(),
-        diagnostics: data.diagnostics.clone(),
-        has_preview: data.has_preview,
-        preview: data.preview.clone(),
-    }
 }
 
 fn to_host_contract_scene_viewport_chrome(
@@ -770,4 +639,37 @@ fn to_host_contract_ui_asset_pane(
     instance_id: &str,
 ) -> host_contract::UiAssetEditorPaneData {
     pane_data_conversion::to_host_contract_ui_asset_pane(data, instance_id)
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn visible_welcome_size_borrows_floating_window_rows() {
+        let source = include_str!("apply_presentation.rs");
+        let function = source
+            .split("fn resolve_visible_welcome_pane_size")
+            .nth(1)
+            .and_then(|body| body.split("fn dock_content_height").next())
+            .expect("welcome size implementation");
+
+        assert!(function.contains(".floating_windows"));
+        assert!(function.contains(".iter()"));
+        assert!(!function.contains("row_data"));
+    }
+
+    #[test]
+    fn apply_presentation_does_not_build_discarded_pane_globals() {
+        let source = include_str!("apply_presentation.rs");
+        let function = source
+            .split("pub(crate) fn apply_presentation")
+            .nth(1)
+            .and_then(|body| body.split("fn host_window_layout").next())
+            .expect("apply presentation implementation");
+
+        assert!(!function.contains("apply_pane_surface_globals"));
+        assert!(!function.contains("set_activity_asset_"));
+        assert!(!function.contains("set_browser_asset_"));
+        assert!(!function.contains("set_recent_projects"));
+        assert!(!function.contains("set_project_overview"));
+    }
 }

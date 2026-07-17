@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+import os
 from pathlib import Path
 
 from tools.session_coordinator.codex_sync.discovery import CodexSessionDiscovery
@@ -127,6 +128,73 @@ class CodexStoreTests(unittest.TestCase):
             ).fetchone()
         self.assertEqual(("missing", "unavailable", 2), tuple(after_third))
         self.assertEqual(0, third_missing.changed_count)
+
+    def test_metadata_only_source_revision_refresh_is_quiet(self) -> None:
+        rollout = write_rollout(
+            self.codex_home,
+            thread_id="quiet-thread",
+            cwd=self.repo,
+            lifecycle=("task_started",),
+        )
+        clocks = iter(("2026-07-13T00:00:00+00:00", "2026-07-13T00:01:00+00:00"))
+        store = CodexSessionStore(self.database, clock=lambda: next(clocks))
+        first = store.reconcile(self._discover(), trigger=CodexSyncTrigger.STARTUP)
+        stat = rollout.stat()
+        os.utime(
+            rollout,
+            ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000),
+        )
+
+        second = store.reconcile(self._discover(), trigger=CodexSyncTrigger.PERIODIC)
+
+        with self.database.connect() as connection:
+            event_types = [
+                row[0]
+                for row in connection.execute("SELECT event_type FROM events ORDER BY event_id")
+            ]
+            row = connection.execute(
+                "SELECT source_mtime_ns, last_synced_at FROM codex_sessions WHERE thread_id='quiet-thread'"
+            ).fetchone()
+        self.assertEqual(1, first.changed_count)
+        self.assertEqual(0, second.changed_count)
+        self.assertEqual(["codex.session.discovered", "codex.sync.completed"], event_types)
+        self.assertEqual(stat.st_mtime_ns + 1_000_000_000, row[0])
+        self.assertEqual("2026-07-13T00:01:00+00:00", row[1])
+
+    def test_visible_codex_lifecycle_change_remains_a_timeline_event(self) -> None:
+        write_rollout(
+            self.codex_home,
+            thread_id="visible-thread",
+            cwd=self.repo,
+            lifecycle=("task_started",),
+        )
+        clocks = iter(("2026-07-13T00:00:00+00:00", "2026-07-13T00:01:00+00:00"))
+        store = CodexSessionStore(self.database, clock=lambda: next(clocks))
+        store.reconcile(self._discover(), trigger=CodexSyncTrigger.STARTUP)
+        write_rollout(
+            self.codex_home,
+            thread_id="visible-thread",
+            cwd=self.repo,
+            lifecycle=("task_completed",),
+        )
+
+        changed = store.reconcile(self._discover(), trigger=CodexSyncTrigger.PERIODIC)
+
+        with self.database.connect() as connection:
+            event_types = [
+                row[0]
+                for row in connection.execute("SELECT event_type FROM events ORDER BY event_id")
+            ]
+        self.assertEqual(1, changed.changed_count)
+        self.assertEqual(
+            [
+                "codex.session.discovered",
+                "codex.sync.completed",
+                "codex.session.state_changed",
+                "codex.sync.completed",
+            ],
+            event_types,
+        )
 
 
 if __name__ == "__main__":

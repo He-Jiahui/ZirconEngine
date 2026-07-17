@@ -70,10 +70,11 @@ impl NativePluginLiveHost {
                 skipped_plugin_ids.push(candidate.plugin_id);
                 continue;
             }
-            runtime_plugin_ids.push(candidate.plugin_id.clone());
+            let plugin_id = candidate.plugin_id.clone();
+            runtime_plugin_ids.push(plugin_id.clone());
             let load_report = self.loader.load_candidates_for_module_kinds(
                 NativePluginLoadReport {
-                    discovered: vec![candidate.clone()],
+                    discovered: vec![candidate],
                     loaded: Vec::new(),
                     diagnostics: Vec::new(),
                 },
@@ -82,11 +83,11 @@ impl NativePluginLiveHost {
             match self.hot_reload_reported_plugin(
                 load_report,
                 export_root,
-                &candidate.plugin_id,
+                &plugin_id,
                 PluginModuleKind::Runtime,
             ) {
                 Ok(outcome) => {
-                    loaded_plugin_ids.push(candidate.plugin_id);
+                    loaded_plugin_ids.push(plugin_id);
                     diagnostics.extend(outcome.diagnostics.clone());
                     outcomes.push(outcome);
                 }
@@ -139,4 +140,16 @@ fn native_candidate_has_module_kind(
             .iter()
             .flat_map(|feature| feature.modules.iter())
             .any(|module| module.kind == module_kind)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn hot_update_moves_owned_candidates_into_the_single_plugin_load_report() {
+        let source = include_str!("hot_update_application.rs");
+        let deep_clone = ["discovered: vec![candidate", ".clone()]"].concat();
+
+        assert!(!source.contains(&deep_clone));
+        assert!(source.contains("discovered: vec![candidate]"));
+    }
 }

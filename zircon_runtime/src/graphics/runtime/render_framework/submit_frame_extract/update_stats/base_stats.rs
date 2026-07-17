@@ -63,7 +63,7 @@ pub(super) fn update_base_stats(
     );
     let compiled_pipeline = context.compiled_pipeline();
     state.stats.last_effective_features = compiled_feature_names(compiled_pipeline);
-    let graph_stats = compiled_pipeline.graph.stats();
+    let graph_stats = compiled_pipeline.graph().stats();
     state.stats.last_graph_pass_count = graph_stats.total_pass_count;
     state.stats.last_graph_culled_pass_count = graph_stats.culled_pass_count;
     state.stats.last_graph_resource_lifetime_count = graph_stats.resource_lifetime_count;
@@ -71,7 +71,7 @@ pub(super) fn update_base_stats(
         graph_stats.sparse_texture_lifetime_count;
     state.stats.last_graph_planned_resource_access_count = graph_stats.total_resource_access_count;
     state.stats.last_graph_planned_dependency_count = graph_stats.total_dependency_count;
-    let allocation_plan = compiled_pipeline.graph.transient_allocation_plan();
+    let allocation_plan = compiled_pipeline.graph().transient_allocation_plan();
     state.stats.last_graph_transient_texture_slot_count = allocation_plan.texture_slot_count;
     state.stats.last_graph_sparse_texture_slot_count = allocation_plan.sparse_texture_slot_count;
     state.stats.last_graph_transient_buffer_slot_count = allocation_plan.buffer_slot_count;
@@ -648,7 +648,7 @@ fn graph_execution_coverage_report(
 ) -> RenderGraphExecutionCoverageReport {
     graph_execution_coverage_report_from_names(
         compiled_pipeline
-            .graph
+            .graph()
             .passes()
             .iter()
             .filter(|pass| !pass.culled)

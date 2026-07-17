@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
-use crate::core::commands::EditorCommandRegistryHandle;
+use crate::core::commands::{EditorCommandRegistryHandle, EditorKeymap};
 use crate::core::context::EditorContext;
 use crate::core::gateway::{EditorRuntimeGateway, SharedEditorRuntimeGateway};
 use crate::core::play::{EditorPlayBridge, SharedEditorRuntimePlayModeBackend};
@@ -22,6 +22,7 @@ pub struct EditorHostEventController {
     context: Arc<EditorContext>,
     shell: Arc<WorkbenchShellState>,
     commands: EditorCommandRegistryHandle,
+    keymap: EditorKeymap,
     play_bridge: Arc<EditorPlayBridge>,
     gizmo_drag: Arc<GizmoDragState>,
     runtime_event_consumers: EditorRuntimeEventConsumerHost,
@@ -36,6 +37,7 @@ impl EditorHostEventController {
             context: context.clone(),
             shell: Arc::new(WorkbenchShellState::new(state, manager)),
             commands,
+            keymap: EditorKeymap::default_workbench(),
             play_bridge: Arc::new(EditorPlayBridge::new()),
             gizmo_drag: Arc::new(GizmoDragState::default()),
             runtime_event_consumers: EditorRuntimeEventConsumerHost::new(context.gateway().clone()),
@@ -132,6 +134,10 @@ impl EditorHostEventController {
 
     pub(crate) fn commands(&self) -> &EditorCommandRegistryHandle {
         &self.commands
+    }
+
+    pub(crate) fn keymap(&self) -> &EditorKeymap {
+        &self.keymap
     }
 
     pub(crate) fn play_bridge(&self) -> &EditorPlayBridge {

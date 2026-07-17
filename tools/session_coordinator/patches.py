@@ -157,7 +157,16 @@ class PatchService:
             allowed = set(patch_ids)
             queued = [patch for patch in queued if patch.patch_id in allowed]
         for patch in queued:
-            acquisition = self.leases.acquire(patch.session_id, patch.targets)
+            try:
+                acquisition = self.leases.acquire(patch.session_id, patch.targets)
+            except CoordinatorError as error:
+                if error.code != "session_not_writable":
+                    raise
+                # A terminal or stale owner cannot safely apply its queued
+                # patch. Keep the durable request for an explicit resume
+                # rather than turning an unrelated successful lease release
+                # into a client-visible command failure.
+                continue
             if not acquisition.acquired:
                 continue
             current_hashes = {

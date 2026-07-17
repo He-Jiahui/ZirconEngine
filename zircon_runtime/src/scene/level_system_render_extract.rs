@@ -6,14 +6,14 @@ use crate::scene::LevelSystem;
 
 impl RenderExtractProducer for LevelSystem {
     fn build_render_frame_extract(&self, context: &RenderExtractContext) -> RenderFrameExtract {
-        let cached_poses = self.animation_poses();
+        let cached_poses = self.animation_pose_entries();
         self.with_world_mut(|world| {
             let mut extract = world.build_prepared_render_frame_extract(context);
             if cached_poses.is_empty() {
                 return extract;
             }
 
-            let mut animation_poses = cached_poses
+            let animation_poses = cached_poses
                 .into_iter()
                 .filter_map(|(entity, pose)| {
                     world
@@ -27,7 +27,6 @@ impl RenderExtractProducer for LevelSystem {
                         })
                 })
                 .collect::<Vec<_>>();
-            animation_poses.sort_by_key(|entry| entry.entity);
             extract.animation_poses = animation_poses;
             extract
         })

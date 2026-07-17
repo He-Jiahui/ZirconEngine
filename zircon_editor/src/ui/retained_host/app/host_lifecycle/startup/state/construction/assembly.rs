@@ -87,6 +87,7 @@ pub(in crate::ui::retained_host::app::host_lifecycle::startup) fn construct_star
         hierarchy_pointer_bridge: interaction.hierarchy_pointer_bridge,
         hierarchy_pointer_state: interaction.hierarchy_pointer_state,
         hierarchy_pointer_size: interaction.hierarchy_pointer_size,
+        hierarchy_scene_entries: interaction.hierarchy_scene_entries,
         console_scroll_surface: interaction.console_scroll_surface,
         inspector_scroll_surface: interaction.inspector_scroll_surface,
         browser_asset_details_scroll_surface: interaction.browser_asset_details_scroll_surface,

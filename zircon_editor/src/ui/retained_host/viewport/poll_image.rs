@@ -7,13 +7,13 @@ impl RetainedViewportController {
     pub(crate) fn poll_image(&self) -> Option<Image> {
         let mut shared = self.lock_shared();
         let Some(viewport) = shared.viewport.map(|viewport| viewport.handle) else {
-            return shared.latest_image.clone();
+            return None;
         };
         let render_framework = match shared.render_framework() {
             Ok(render_framework) => render_framework,
             Err(error) => {
                 shared.last_error = Some(error.to_string());
-                return shared.latest_image.clone();
+                return None;
             }
         };
         match render_framework.capture_frame(viewport) {
@@ -22,22 +22,22 @@ impl RetainedViewportController {
                     return None;
                 }
                 match import_frame_image(&frame) {
-                    Ok(image) => {
-                        shared.latest_generation = Some(image.0);
-                        shared.latest_image = Some(image.1.clone());
+                    Ok((generation, image)) => {
+                        shared.latest_generation = Some(generation);
+                        shared.latest_image = Some(image.clone());
                         shared.last_error = None;
-                        shared.latest_image.clone()
+                        Some(image)
                     }
                     Err(error) => {
                         shared.last_error = Some(error);
-                        shared.latest_image.clone()
+                        None
                     }
                 }
             }
             Ok(None) => None,
             Err(error) => {
                 shared.last_error = Some(error.to_string());
-                shared.latest_image.clone()
+                None
             }
         }
     }

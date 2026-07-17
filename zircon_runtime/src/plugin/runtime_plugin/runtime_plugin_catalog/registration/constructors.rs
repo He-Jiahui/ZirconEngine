@@ -1,4 +1,7 @@
-use crate::plugin::{RuntimePlugin, RuntimePluginDescriptor};
+use crate::plugin::{
+    RuntimePlugin, RuntimePluginDescriptor, RuntimePluginFeatureRegistrationReport,
+    RuntimePluginRegistrationReport,
+};
 
 use super::super::RuntimePluginCatalog;
 use super::order::{order_runtime_plugin_descriptors, order_runtime_plugins};
@@ -13,10 +16,13 @@ impl RuntimePluginCatalog {
                 return catalog;
             }
         };
-        for plugin in plugins {
-            catalog.register(plugin);
-        }
-        catalog
+        let registrations = plugins
+            .into_iter()
+            .map(RuntimePluginRegistrationReport::from_plugin);
+        Self::from_registration_reports(
+            registrations,
+            std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+        )
     }
 
     pub fn from_descriptors(
@@ -31,13 +37,26 @@ impl RuntimePluginCatalog {
                     return catalog;
                 }
             };
-        for descriptor in descriptors {
-            catalog.register(&descriptor);
-        }
-        catalog
+        let registrations = descriptors
+            .iter()
+            .map(|descriptor| RuntimePluginRegistrationReport::from_plugin(descriptor));
+        Self::from_registration_reports(
+            registrations,
+            std::iter::empty::<RuntimePluginFeatureRegistrationReport>(),
+        )
     }
 
     pub fn builtin() -> Self {
         Self::from_descriptors(RuntimePluginDescriptor::builtin_catalog())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn catalog_constructors_do_not_rebuild_after_each_registration() {
+        let source = include_str!("constructors.rs");
+        let incremental_register = ["catalog", ".register("].concat();
+        assert!(!source.contains(&incremental_register));
     }
 }

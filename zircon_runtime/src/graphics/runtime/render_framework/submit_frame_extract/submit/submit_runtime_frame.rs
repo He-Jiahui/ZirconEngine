@@ -443,19 +443,21 @@ mod tests {
         let graph = crate::render_graph::RenderGraphBuilder::new("direct-runtime-frame-test")
             .compile()
             .unwrap();
-        crate::graphics::CompiledRenderPipeline {
-            handle: crate::core::framework::render::RenderPipelineHandle::new(1),
-            name: "empty".to_string(),
-            renderer_name: "empty".to_string(),
-            stages: vec![crate::graphics::RenderPassStage::Opaque3d],
-            pass_stages: Vec::new(),
-            enabled_features: Vec::new(),
-            required_extract_sections: Vec::new(),
-            capability_requirements: Vec::new(),
-            history_bindings: Vec::new(),
-            environment_ibl_bake_request: None,
-            graph,
-        }
+        crate::graphics::CompiledRenderPipeline::from_parts(
+            crate::graphics::pipeline::CompiledRenderPipelineParts {
+                handle: crate::core::framework::render::RenderPipelineHandle::new(1),
+                name: "empty".to_string(),
+                renderer_name: "empty".to_string(),
+                stages: vec![crate::graphics::RenderPassStage::Opaque3d],
+                pass_stages: Vec::new(),
+                enabled_features: Vec::new(),
+                required_extract_sections: Vec::new(),
+                capability_requirements: Vec::new(),
+                history_bindings: Vec::new(),
+                environment_ibl_bake_request: None,
+                graph,
+            },
+        )
     }
 
     fn default_render_advanced_runtime_plan() -> AdvancedProfileRuntimePlan {

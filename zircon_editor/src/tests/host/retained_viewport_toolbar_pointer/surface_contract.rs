@@ -52,3 +52,13 @@ fn viewport_toolbar_pointer_bridge_uses_route_intent_only() {
         );
     }
 }
+
+#[test]
+fn viewport_toolbar_click_upserts_only_the_measured_control() {
+    let click = source("src/ui/retained_host/viewport_toolbar_pointer/handle_click.rs");
+
+    assert!(click.contains("fn sync_clicked_control("));
+    assert!(click.contains("position(|existing| existing.action_key == control.action_key)"));
+    assert!(click.contains("if controls[control_index] == control"));
+    assert!(click.contains("if self.sync_clicked_control(surface_key, control)"));
+}

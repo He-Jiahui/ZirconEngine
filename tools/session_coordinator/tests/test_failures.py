@@ -15,6 +15,7 @@ from tools.session_coordinator.failures import (
     failure_artifact_snapshot,
 )
 from tools.session_coordinator.models import CoordinatorError
+from tools.session_coordinator import migrations as migrations_module
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 
@@ -120,6 +121,123 @@ class FailureGraphTests(unittest.TestCase):
             ["current-slice"],
             [node.summary_slug for node in fixed_return],
         )
+
+    def test_child_record_source_slice_requires_complete_related_code_before_commit(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/02-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/plugins/02-sound.md")
+        failure = self.fixture.add_handoff(origin, fixing, "sound-lock-closure")
+        failure.write_text(
+            failure.read_text(encoding="utf-8").replace(
+                "summary_slug:",
+                "plan_link_mode: child_record_only\n"
+                "related_code:\n"
+                "  - Cargo.lock\n"
+                "  - plugins/Cargo.lock\n"
+                "  - plugins/sound/runtime/Cargo.toml\n"
+                "summary_slug:",
+            ),
+            encoding="utf-8",
+        )
+        self.service.import_repository()
+
+        incomplete = self.service.open_for_manifest(
+            fixing.path,
+            ("M1",),
+            ("Cargo.lock", "plugins/Cargo.lock"),
+        )
+        complete = self.service.open_for_manifest(
+            fixing.path,
+            ("M1",),
+            (
+                "Cargo.lock",
+                "plugins/Cargo.lock",
+                "plugins/sound/runtime/Cargo.toml",
+                "docs/plans/plugins/02/2026-07-17-m1-lock-closure.md",
+            ),
+        )
+        piggybacked = self.service.open_for_manifest(
+            fixing.path,
+            ("M1",),
+            (
+                "Cargo.lock",
+                "plugins/Cargo.lock",
+                "plugins/sound/runtime/Cargo.toml",
+                "plugins/unrelated/runtime/lib.rs",
+                "docs/plans/plugins/02/2026-07-17-m1-lock-closure.md",
+            ),
+        )
+
+        self.assertEqual(["sound-lock-closure"], [node.summary_slug for node in incomplete])
+        self.assertEqual([], complete)
+        self.assertEqual(["sound-lock-closure"], [node.summary_slug for node in piggybacked])
+
+    def test_import_uses_one_snapshot_for_scope_metadata_and_validation(self) -> None:
+        origin = self.fixture.add_plan("docs/plans/editor/02-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/plugins/02-sound.md")
+        failure = self.fixture.add_handoff(origin, fixing, "immutable-scope")
+        failure.write_text(
+            failure.read_text(encoding="utf-8").replace(
+                "summary_slug:",
+                "plan_link_mode: child_record_only\n"
+                "related_code:\n"
+                "  - Cargo.lock\n"
+                "summary_slug:",
+            ),
+            encoding="utf-8",
+        )
+        validator = self.service._validator_module()
+
+        def parse_then_mutate(snapshot_root: Path):
+            records, errors = validator.parse_handoff_records(snapshot_root)
+            failure.write_text(
+                failure.read_text(encoding="utf-8").replace("Cargo.lock", "foreign.rs"),
+                encoding="utf-8",
+            )
+            return records, errors
+
+        self.service._validator = SimpleNamespace(
+            parse_handoff_records=parse_then_mutate,
+            validate_repository=validator.validate_repository,
+        )
+        audit = self.service.import_repository()
+
+        self.assertEqual(("Cargo.lock",), audit.nodes[0].related_code)
+
+    def test_pre45_failure_rows_fail_closed_until_an_import_refreshes_scope(self) -> None:
+        legacy_database = Database(self.root / "state/pre45.sqlite3")
+        with mock.patch.object(migrations_module, "LATEST_SCHEMA_VERSION", 44):
+            migrate(legacy_database)
+        origin = self.fixture.add_plan("docs/plans/editor/02-editor.md")
+        fixing = self.fixture.add_plan("docs/plans/plugins/02-sound.md")
+        with legacy_database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO failure_nodes(
+                    lifecycle_key, artifact_path, kind, status, created_at,
+                    resolved_at, summary_slug, origin_plan, origin_workflow_node,
+                    fixing_plan, origin_child_dir, fixing_child_dir, priority, imported_at
+                ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, 'M1', ?, ?, ?, 0, ?)""",
+                (
+                    "legacy",
+                    "docs/plans/plugins/02/failure-legacy.md",
+                    "2026-07-17",
+                    "legacy",
+                    origin.path.relative_to(self.root).as_posix(),
+                    fixing.path.relative_to(self.root).as_posix(),
+                    origin.child.relative_to(self.root).as_posix(),
+                    fixing.child.relative_to(self.root).as_posix(),
+                    "2026-07-17T00:00:00+00:00",
+                ),
+            )
+        migrate(legacy_database)
+        service = FailureGraphService(legacy_database, self.root)
+
+        blocking = service.open_for_manifest(
+            fixing.path,
+            ("M1",),
+            ("Cargo.lock", "docs/plans/plugins/02/2026-07-17-m1-lock-closure.md"),
+        )
+
+        self.assertEqual(["legacy"], [node.summary_slug for node in blocking])
 
     def test_artifact_snapshot_ignores_date_named_output_record_with_failure_summary(self) -> None:
         record = (

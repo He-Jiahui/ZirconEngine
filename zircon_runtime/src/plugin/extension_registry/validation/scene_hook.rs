@@ -37,13 +37,12 @@ fn validate_scene_hook_namespace(
     field_name: &str,
     value: &str,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let segments: Vec<_> = value.split('.').collect();
-    if segments.len() < 2 {
+    if !value.contains('.') {
         return Err(RuntimeExtensionRegistryError::InvalidSceneHook(format!(
             "{field_name} `{value}` must use at least two dot-separated namespace segments"
         )));
     }
-    for segment in segments {
+    for segment in value.split('.') {
         validate_scene_hook_segment(field_name, value, segment)?;
     }
     Ok(())

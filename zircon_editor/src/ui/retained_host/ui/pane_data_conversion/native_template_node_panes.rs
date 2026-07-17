@@ -5,14 +5,14 @@ use crate::ui::layouts::windows::workbench_host_window::{
 use crate::ui::retained_host as host_contract;
 
 use super::super::template_layout_context::apply_table_layout_context_variant;
-use super::super::template_node_conversion::to_host_contract_template_node_owned;
+use super::super::template_node_conversion::to_host_contract_template_node;
 use super::template_node_projection::project_nodes;
 
 pub(in super::super) fn to_host_contract_assets_activity_pane(
     data: AssetsActivityPaneViewData,
 ) -> host_contract::AssetsActivityPaneData {
     host_contract::AssetsActivityPaneData {
-        nodes: project_nodes(&data.nodes, to_host_contract_template_node_owned),
+        nodes: project_nodes(&data.nodes, to_host_contract_template_node),
     }
 }
 
@@ -23,7 +23,7 @@ pub(in super::super) fn to_host_contract_asset_browser_pane(
     host_contract::AssetBrowserPaneData {
         nodes: project_nodes(&data.nodes, |node| {
             apply_table_layout_context_variant(
-                to_host_contract_template_node_owned(node),
+                to_host_contract_template_node(node),
                 pane_size.width,
             )
         }),
@@ -74,6 +74,6 @@ pub(in super::super) fn to_host_contract_project_overview_pane(
     data: ProjectOverviewPaneViewData,
 ) -> host_contract::ProjectOverviewPaneData {
     host_contract::ProjectOverviewPaneData {
-        nodes: project_nodes(&data.nodes, to_host_contract_template_node_owned),
+        nodes: project_nodes(&data.nodes, to_host_contract_template_node),
     }
 }

@@ -58,7 +58,7 @@ fn test_extract() -> RenderFrameExtract {
 
 fn assert_shadow_atlas_is_required_external_texture(compiled: &CompiledRenderPipeline) {
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetime_by_name(PostProcessGraphResourceNames::SHADOW_ATLAS)
         .expect("shadow atlas external lifetime");
 
@@ -75,7 +75,7 @@ fn assert_graph_pass_uses_shadow_atlas(
     access: RenderGraphResourceAccessKind,
 ) {
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)

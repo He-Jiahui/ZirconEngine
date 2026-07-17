@@ -22,6 +22,10 @@ status: active
 updated_at: 2026-04-08 03:15 +08:00
 owner: codex
 lookback_hours: 4
+model_tier: 5.6-terra
+thinking_depth: Medium
+selection_reason: bounded cross-session implementation
+primary_session: 20260408-0315-runtime-script-hot-reload
 related_plans:
   - docs/plans/example/01-numbered-plan.md
 coordinator:
@@ -74,3 +78,4 @@ related_tests:
 - Treat this note as coordination state only; it must not become the sole permanent owner of a concrete output record.
 - Update `updated_at` each time the note changes materially.
 - If the task expands into a new subsystem, add the new touched module explicitly instead of assuming readers will infer it.
+- `model_tier` must be one of `5.6-sol`, `5.6-terra`, or `5.6-luna`; `thinking_depth` must be Light, Medium, High, or Extra High. Never write `gpt-5.5` or a lower model as a fallback.

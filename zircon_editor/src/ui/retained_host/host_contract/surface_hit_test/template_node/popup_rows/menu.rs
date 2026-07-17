@@ -4,6 +4,7 @@ use super::super::super::super::paint_geometry::frame_from_template;
 use super::super::super::super::template_popup_layout::menu_item_row_frame;
 use super::action_id::normalized_menu_row_action_id;
 use super::hit::{template_popup_row_hit, TemplatePopupRowHit};
+use super::{next_uniform_popup_row_at_boundary, uniform_popup_row_at_y};
 
 pub(super) fn hit_test_template_menu_rows(
     node: &TemplatePaneNodeData,
@@ -23,13 +24,25 @@ pub(super) fn hit_test_template_menu_rows(
         width: local.width,
         height: local.height,
     };
-    for row in 0..row_count {
-        let item = node.structured_menu_items.row_data(row)?;
-        if item.disabled || item.separator || item.action_id.is_empty() {
-            continue;
-        }
-        let row_frame = menu_item_row_frame(&menu_frame, row_count, row)?;
-        if contains_point(&row_frame, x, y) {
+    let row_height = menu_item_row_frame(&menu_frame, row_count, 0)?.height;
+    let rows_frame = FrameRect {
+        height: row_height * row_count as f32,
+        ..menu_frame.clone()
+    };
+    if contains_point(&rows_frame, x, y) {
+        let row = uniform_popup_row_at_y(y, menu_frame.y, row_height, row_count)?;
+        for candidate in [
+            Some(row),
+            next_uniform_popup_row_at_boundary(y, menu_frame.y, row_height, row, row_count),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let item = node.structured_menu_items.get(candidate)?;
+            if item.disabled || item.separator || item.action_id.is_empty() {
+                continue;
+            }
+            let row_frame = menu_item_row_frame(&menu_frame, row_count, candidate)?;
             return Some(TemplatePopupRowHit::Hit(template_popup_row_hit(
                 node,
                 row_frame,

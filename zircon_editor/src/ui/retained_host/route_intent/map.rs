@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use zircon_runtime_interface::ui::{
     dispatch::{UiComponentEventReport, UiPointerDispatchResult},
@@ -32,8 +32,8 @@ pub(crate) enum EditorRouteIntent {
 
 #[derive(Clone, Debug, Default)]
 pub(crate) struct EditorRouteIntentMap {
-    route_by_node: BTreeMap<UiNodeId, UiRouteId>,
-    intent_by_route: BTreeMap<UiRouteId, EditorRouteIntent>,
+    route_by_node: HashMap<UiNodeId, UiRouteId>,
+    intent_by_route: HashMap<UiRouteId, EditorRouteIntent>,
 }
 
 impl EditorRouteIntentMap {
@@ -182,4 +182,16 @@ impl EditorRouteIntentMap {
 
 fn pointer_dispatch_route_node(dispatch: &UiPointerDispatchResult) -> Option<UiNodeId> {
     dispatch.handled_by.or(dispatch.route.target)
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn route_intent_map_uses_hash_indices_for_hot_pointer_lookup() {
+        let source = include_str!("map.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+        assert!(implementation.contains("HashMap<UiNodeId, UiRouteId>"));
+        assert!(implementation.contains("HashMap<UiRouteId, EditorRouteIntent>"));
+        assert!(!implementation.contains("BTreeMap"));
+    }
 }

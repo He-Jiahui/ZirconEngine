@@ -11,26 +11,34 @@ impl DesktopExportWizardSessions {
         String,
         Result<ExportWizardPanelUpdate, ExportWizardPanelSessionError>,
     )> {
-        let profile_names = self.sessions.keys().cloned().collect::<Vec<_>>();
         let mut updates = Vec::new();
-        for profile_name in profile_names {
-            let before = self
-                .sessions
-                .get(profile_name.as_str())
-                .map(|session| session.view_model().snapshot().clone());
-            let result = self
-                .session_mut(profile_name.as_str())
-                .and_then(|session| session.handle_request(ExportWizardPanelRequest::Poll));
+        for (profile_name, session) in &mut self.sessions {
+            if session.view_model().snapshot().is_terminal() {
+                continue;
+            }
+            let before = session.view_model().snapshot().clone();
+            let result = session.handle_request(ExportWizardPanelRequest::Poll);
             let changed = match &result {
-                Ok(update) => {
-                    update.events_drained > 0 || before.as_ref() != Some(&update.snapshot)
-                }
+                Ok(update) => update.events_drained > 0 || before != update.snapshot,
                 Err(_) => true,
             };
             if changed {
-                updates.push((profile_name, result));
+                updates.push((profile_name.clone(), result));
             }
         }
         updates
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn polling_streams_mutable_sessions_and_skips_terminal_snapshots() {
+        let source = include_str!("polling.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(production.contains("for (profile_name, session) in &mut self.sessions"));
+        assert!(production.contains("if session.view_model().snapshot().is_terminal()"));
+        assert!(!production.contains("self.sessions.keys().cloned().collect"));
     }
 }

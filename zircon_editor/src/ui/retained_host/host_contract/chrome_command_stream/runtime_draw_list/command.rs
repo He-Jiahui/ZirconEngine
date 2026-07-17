@@ -55,3 +55,55 @@ pub(super) fn ui_surface_command_from_chrome(command: &ChromeCommand) -> UiSurfa
         },
     }
 }
+
+pub(super) fn ui_surface_command_from_owned_chrome(command: ChromeCommand) -> UiSurfaceCommand {
+    UiSurfaceCommand {
+        z_index: command.z_index,
+        frame: ui_rect(&command.frame),
+        clip: command.clip.as_ref().map(ui_rect),
+        kind: match command.kind {
+            ChromeCommandKind::Quad {
+                color,
+                corner_radius,
+            } => UiSurfaceCommandKind::Quad {
+                color,
+                corner_radius,
+            },
+            ChromeCommandKind::Border {
+                color,
+                width,
+                corner_radius,
+            } => UiSurfaceCommandKind::Border {
+                color,
+                width,
+                corner_radius,
+            },
+            ChromeCommandKind::Text {
+                text,
+                color,
+                size,
+                line_height,
+                style,
+            } => UiSurfaceCommandKind::Text {
+                text,
+                color,
+                font_family: Some(ui_text_font_family(style)),
+                font_weight: ui_text_font_weight(style),
+                font_size: size,
+                line_height,
+                style: ui_text_style(style),
+            },
+            ChromeCommandKind::Image { payload } => UiSurfaceCommandKind::Image {
+                payload: UiSurfaceImagePayload {
+                    resource_key: payload.resource_key,
+                    width: payload.width,
+                    height: payload.height,
+                    upload_bytes: payload.upload_bytes,
+                    rgba: payload.rgba,
+                    atlas_uv: payload.atlas_uv.map(ui_image_uv_rect),
+                },
+            },
+            ChromeCommandKind::Clip => UiSurfaceCommandKind::Clip,
+        },
+    }
+}

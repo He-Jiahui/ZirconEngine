@@ -31,8 +31,9 @@ impl Default for EditorEventListenerFilter {
 
 impl EditorEventListenerFilter {
     pub fn operation_prefix(prefix: impl Into<String>) -> Self {
+        let prefix = prefix.into();
         Self {
-            operation_path_prefixes: vec![prefix.into()],
+            operation_path_prefixes: vec![normalize_operation_path_prefix(&prefix)],
             ..Self::default()
         }
     }
@@ -71,6 +72,13 @@ impl EditorEventListenerFilter {
         self
     }
 
+    fn normalized(mut self) -> Self {
+        for prefix in &mut self.operation_path_prefixes {
+            *prefix = normalize_operation_path_prefix(prefix);
+        }
+        self
+    }
+
     fn accepts(&self, record: &EditorEventRecord) -> bool {
         if !self.operation_path_prefixes.is_empty() {
             let Some(operation_id) = record.operation_id.as_deref() else {
@@ -79,7 +87,7 @@ impl EditorEventListenerFilter {
             if !self
                 .operation_path_prefixes
                 .iter()
-                .any(|prefix| operation_id.starts_with(&normalize_operation_path_prefix(prefix)))
+                .any(|prefix| operation_id.starts_with(prefix))
             {
                 return false;
             }
@@ -278,7 +286,7 @@ impl EditorEventListenerRegistry {
                 "editor event listener {listener_id} is not registered"
             ));
         };
-        listener.filter = Some(filter);
+        listener.filter = Some(filter.normalized());
         Ok(())
     }
 
@@ -466,4 +474,24 @@ pub(crate) fn listener_deliveries(deliveries: &[EditorEventListenerDelivery]) ->
             })
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn listener_acceptance_does_not_normalize_prefixes_per_record() {
+        let source = include_str!("listener.rs");
+        let hot_normalization = [
+            "operation_id.starts_with(&",
+            "normalize_operation_path_prefix(prefix))",
+        ]
+        .concat();
+        assert!(!source.contains(&hot_normalization));
+    }
+
+    #[test]
+    fn listener_filter_normalizes_operation_prefixes_once() {
+        let filter = super::EditorEventListenerFilter::operation_prefix("  Scene.Node  ");
+        assert_eq!(filter.operation_path_prefixes, vec!["scene.node"]);
+    }
 }

@@ -1,15 +1,12 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundOutputDeviceDescriptor};
 
-use super::{cpal, software};
+use crate::kira_bridge::KIRA_CPAL_BACKEND;
 
-pub(super) fn validate_backend_supported(
+pub(crate) fn validate_backend_supported(
     descriptor: &SoundOutputDeviceDescriptor,
 ) -> Result<(), SoundError> {
-    if software::supports_software_backend(&descriptor.backend) {
+    if descriptor.backend == KIRA_CPAL_BACKEND {
         return Ok(());
-    }
-    if descriptor.backend == cpal::CPAL_BACKEND {
-        return cpal::validate_cpal_backend_supported();
     }
     Err(SoundError::BackendUnavailable {
         detail: format!(
@@ -60,6 +57,12 @@ pub(crate) fn validate_output_device_descriptor(
         return Err(SoundError::InvalidParameter(format!(
             "output channel layout `{}` must use canonical speaker metadata",
             descriptor.channel_layout.name
+        )));
+    }
+    if descriptor.channel_count > 2 {
+        return Err(SoundError::UnsupportedAdvancedFeature(format!(
+            "{}-channel sound output is enabled after Kira adds multichannel backend support",
+            descriptor.channel_count
         )));
     }
     if descriptor.block_size_frames == 0 {

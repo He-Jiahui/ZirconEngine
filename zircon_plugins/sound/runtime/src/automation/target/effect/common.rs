@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundEffectDescriptor, SoundError, SoundParameterId};
 
-use crate::engine::validation::validate_effect;
+use crate::kira_bridge::validate_effect;
 
 use super::super::helpers::bool_from_value;
 

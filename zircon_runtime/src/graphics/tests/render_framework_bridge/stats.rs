@@ -119,34 +119,34 @@ fn render_framework_stats_report_executed_render_graph_passes() {
         )
         .unwrap();
     let expected_executed_passes = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled && pass.executor_id.is_some())
         .map(|pass| pass.name.clone())
         .collect::<Vec<_>>();
     let expected_executor_ids = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)
         .filter_map(|pass| pass.executor_id.clone())
         .collect::<Vec<_>>();
     let expected_resource_access_count = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled && pass.executor_id.is_some())
         .map(|pass| pass.resources.len())
         .sum::<usize>();
     let expected_dependency_count = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled && pass.executor_id.is_some())
         .map(|pass| pass.dependencies.len())
         .sum::<usize>();
-    let expected_graph_stats = expected_pipeline.graph.stats();
+    let expected_graph_stats = expected_pipeline.graph().stats();
 
     server
         .submit_frame_extract(viewport, test_extract())
@@ -155,12 +155,12 @@ fn render_framework_stats_report_executed_render_graph_passes() {
 
     assert_eq!(
         stats.last_graph_pass_count,
-        expected_pipeline.graph.passes().len()
+        expected_pipeline.graph().passes().len()
     );
     assert_eq!(
         stats.last_graph_culled_pass_count,
         expected_pipeline
-            .graph
+            .graph()
             .passes()
             .iter()
             .filter(|pass| pass.culled)
@@ -199,7 +199,7 @@ fn render_framework_stats_report_executed_render_graph_passes() {
         stats.last_graph_planned_dependency_count,
         expected_graph_stats.total_dependency_count
     );
-    let expected_allocation_plan = expected_pipeline.graph.transient_allocation_plan();
+    let expected_allocation_plan = expected_pipeline.graph().transient_allocation_plan();
     assert_eq!(
         stats.last_graph_transient_texture_slot_count,
         expected_allocation_plan.texture_slot_count

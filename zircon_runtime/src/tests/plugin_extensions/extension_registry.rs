@@ -394,14 +394,7 @@ impl RuntimePlugin for WeatherRuntimePlugin {
             "WeatherPlugin",
             "Weather simulation plugin",
         ))?;
-        registry.register_render_feature(RenderFeatureDescriptor {
-            name: "weather.volumetric_clouds".to_string(),
-            required_extract_sections: vec!["weather.cloud_volume".to_string()],
-            capability_requirements: Vec::new(),
-            history_bindings: Vec::new(),
-            stage_passes: Vec::new(),
-            pass_resource_extensions: Vec::new(),
-        })?;
+        registry.register_render_feature(weather_render_feature_descriptor())?;
         registry.register_render_pass_executor(RenderPassExecutorRegistration::new(
             "weather.volumetric-clouds",
             weather_render_executor,

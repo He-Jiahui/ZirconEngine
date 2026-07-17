@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 use super::super::{
-    Format, MigrationChain, PayloadHeader, SchemaId, VersionedSchema,
-    binary::{BinaryNode, BinaryValue, encode_binary_payload, encode_binary_value},
-    load_versioned, write_versioned, write_versioned_text,
+    binary::{encode_binary_payload, encode_binary_value, BinaryNode, BinaryValue},
+    load_versioned, write_versioned, write_versioned_text, Format, MigrationChain, PayloadHeader,
+    SchemaId, VersionedSchema,
 };
 use super::FixtureDocument;
 

@@ -189,6 +189,26 @@ class WorkflowTopologyTests(unittest.TestCase):
             [(node.node_id, node.title) for node in topology.milestones],
         )
 
+    def test_fallback_imports_plain_numbered_milestone_headings(self) -> None:
+        self._write(
+            "# Sound plan\n\n"
+            "### M1 Kira integration\n\n"
+            "Initial dependency closure.\n\n"
+            "### M2 Effects mapping\n\n"
+            "**Dependencies:** M1 accepted.\n"
+        )
+
+        topology = TopologyParser(self.repo).parse(
+            "docs/plans/runtime/01-control.md"
+        )
+
+        self.assertEqual("headings", topology.source)
+        self.assertEqual(
+            [("M1", "Kira integration"), ("M2", "Effects mapping")],
+            [(node.node_id, node.title) for node in topology.milestones],
+        )
+        self.assertEqual(("M1",), topology.milestones[1].depends_on)
+
     def test_changed_plan_hash_creates_version_without_rewriting_running_graph(self) -> None:
         self._write(
             "```zircon-workflow\n"

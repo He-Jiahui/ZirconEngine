@@ -154,6 +154,10 @@ related_code:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/resource_write_index.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_metadata.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_forward_plus.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_deferred.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
@@ -553,6 +557,10 @@ implementation_files:
   - zircon_runtime/src/graphics/extract/history.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/compile.rs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_feature_flags.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/resource_write_index.rs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/runtime_metadata.rs
   - zircon_runtime/src/graphics/pipeline/render_pipeline_asset/default_core2d.rs
   - zircon_runtime/src/scene/components/render2d/sprite.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/sprite/sprite_renderer.rs
@@ -791,6 +799,8 @@ plan_sources:
   - user: 2026-06-11 analyze and optimize current rendering around 10fps with RenderDoc evidence
   - user: 2026-06-17 bind HZB executor-owned external buffers for render plan 01
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render, feature-first with tests deferred
+  - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/superpowers/plans/2026-05-08-render-m4-plus-product-pipeline.md
   - .codex/plans/Runtime 渲染风险清单与 RenderDoc 调试支持计划.md
 tests:
@@ -1124,6 +1134,11 @@ tests:
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_reports_lookup_status
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::render_graph_compile_frame_fingerprint_tracks_compile_extract_inputs
   - zircon_runtime/src/graphics/pipeline/compiled_graph_cache.rs::tests::compiled_render_pipeline_cache_key_tracks_texture_target_format_class
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/tests.rs::render01_compiled_pipeline_runtime_metadata_builds_resource_write_index_once_for_scaled_graphs
+  - zircon_runtime/src/graphics/pipeline/declarations/compiled_render_pipeline/tests.rs::render01_compiled_pipeline_runtime_metadata_freezes_descriptor_capability_flags
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/validation_cache.rs::render01_compiled_pipeline_executor_validation_cache_skips_stable_10_100_500_pass_rescans
+  - zircon_runtime/src/graphics/scene/scene_renderer/graph_execution/render_pass_executor_registry/tests/validation_cache.rs::render01_compiled_pipeline_executor_revoke_invalidates_cache_before_submission
+  - zircon_runtime/src/tests/runtime_absorption/code_review_findings/render_structure.rs::render01_compiled_pipeline_cached_sources_are_immutable_and_frame_flags_are_precomputed
   - zircon_runtime/src/graphics/tests/render_framework_bridge/pipeline_profiles.rs::headless_wgpu_server_falls_back_async_compute_passes_to_graphics
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs::runtime_diagnostics_combines_core_render_contract_and_missing_externalized_plugins
   - cargo test -p zircon_runtime --lib render_pass_executor_registry --locked --jobs 1 --target-dir E:\cargo-targets\zircon-render-main-chain --message-format short --color never
@@ -1412,6 +1427,10 @@ Post-process graph diagnostics are separate from effect-stack readiness. `Render
 The 2026-06-11 10fps RenderDoc follow-up makes the compiled graph consume the same effective post-process stack that submit execution uses. `RenderPipelineCompileOptions::with_post_process_stack(...)` carries the resolved stack into the second runtime compile, and `render_pipeline_asset::compile` filters built-in postprocess descriptors before graph construction. When motion blur, depth of field, screen-space reflection, bloom, color grading, history resolve, or FXAA are disabled, their optional passes and effect-owned transient resources no longer remain live solely because the static product descriptor declared them. The final `post.stack` pass still keeps the stable WGPU bind group ABI: `record_post_process_stack(...)` binds renderer-owned black or white fallback views for missing optional graph resources, while `scene-color`, `scene-depth`, final outputs, GI, and pre-bound light-list resources stay required. This reduces the default/vampire profile's planned postprocess work, transient texture lifetimes, and RenderDoc-visible resource materialization without changing authored enabled-effect behavior.
 
 The 2026-06-17 RG-M3 compiled graph cache follow-up keeps that submit compile boundary hot-path aware. `RenderFrameworkState` owns `CompiledGraphCache`, and `compile_submission_pipeline(...)` builds a key from pipeline handle, pipeline revision, shader quality tier, `RenderPipelineCompileOptions`, backend capability fingerprint, and the frame compile fingerprint covering core pipeline, view/render size, HDR, MSAA, and particle-sprite pass presence. Misses still call `RenderPipelineAsset::compile_with_options(...)` and validate capabilities; hits reuse the cached `Arc<CompiledRenderPipeline>` and skip descriptor lowering, graph compilation, culling, and transient allocation planning for that stable key. Hit lookups now report `CompiledGraphCacheLookupStatus` and debug-assert the live `extract_compile_fingerprint(...)` against the cache-key frame fingerprint so future extract-read additions cannot silently reuse a stale graph. Registering or reloading a pipeline invalidates entries for the affected handle, and reload bumps the asset revision before future submissions. `RenderStats.last_graph_compiled_cache_*` and `render.graph.compiled_cache.*` expose hit/miss/eviction/entry counts as compile-cache telemetry, not GPU execution timing.
+
+The 2026-07-17 F2 hot-path repair extends the compiled artifact instead of adding frame-local memoization. `CompiledRenderPipelineRuntimeMetadata` freezes builtin/plugin/capability feature flags and a hash-indexed resource-name bitset when `RenderPipelineAsset::compile_with_options(...)` produces the graph. `CompiledRenderPipelineParts` is the crate-owned construction boundary: it builds metadata from the same graph and feature list before those source fields become private, while public consumers receive read-only `graph()` and `enabled_features()` views. This prevents field replacement from separating executor-validation identity or feature/resource snapshots from the graph that will actually submit. `runtime_features_from_pipeline(...)`, `resolve_enabled_features(...)`, and frame-submission context construction now copy the compact flags, while SSR, HZB, exposure, volumetric, TAA, and material-GBuffer checks call `CompiledRenderPipeline::writes_resource(...)`; stable frames no longer traverse `enabled_features`, graph passes, or resource-access vectors for those decisions. The index allocates only during pipeline compilation and immutable lookups do not change its hash-table capacity or bit storage.
+
+`RenderPassExecutorRegistry` now owns an explicit mutation generation plus a successful-validation cache keyed by the compiled pipeline's unique metadata generation and the registry generation. Repeated submit validation for the same pair returns before pass traversal. Registering, replacing, or unregistering an executor advances the registry generation and invalidates the cached pair, so plugin reload/revoke forces the next submit to rescan before GPU command encoding; a missing executor remains a hard `GraphicsError::Asset` path and is never cached as success. Test-only scan counters cover stable and reload paths at 10, 100, and 500 plugin passes without adding release-build frame counters.
 
 The RG-M2 transient pool budget follow-up stays on the execution side of the same submit boundary. `SceneRendererCore` still releases owned graph backings into `TransientResourcePool` after command submission, but the pool now records descriptor-derived retained bytes and applies independent texture/buffer byte budgets after stale-entry eviction. `RenderGraphExecutionResourceReport.transient_pool_report` carries retained bytes, configured budgets, stale eviction counts, and budget eviction counts into `RenderStats.last_graph_execution_resource_report`; diagnostics publish them under `render.graph.execution.transient_pool.*`. The submit facade continues to expose only neutral counts and byte totals, not renderer-private WGPU handles.
 

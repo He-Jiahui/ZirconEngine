@@ -1,13 +1,12 @@
-use zircon_runtime::core::framework::audio::AudioChannelLayout;
 use zircon_runtime::plugin::PluginOptionManifest;
 
 pub fn sound_options() -> Vec<PluginOptionManifest> {
     vec![
-        PluginOptionManifest::new("sound.backend", "Audio Backend", "string", "software-mixer"),
+        PluginOptionManifest::new("sound.backend", "Audio Backend", "string", "kira-cpal"),
         PluginOptionManifest::new("sound.sample_rate_hz", "Sample Rate", "integer", "48000"),
         PluginOptionManifest::new("sound.channel_count", "Channel Count", "integer", "2"),
         PluginOptionManifest::new("sound.channel_layout", "Channel Layout", "enum", "stereo")
-            .with_enum_values(AudioChannelLayout::named_layout_names().iter().copied()),
+            .with_enum_values(["mono", "stereo"]),
         PluginOptionManifest::new("sound.global_volume_gain", "Global Volume", "number", "1.0"),
         PluginOptionManifest::new(
             "sound.default_spatial_scale",

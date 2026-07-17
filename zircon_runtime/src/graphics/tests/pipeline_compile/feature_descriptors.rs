@@ -6,7 +6,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     let compiled = pipeline.compile(&test_extract()).unwrap();
 
     let depth_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "depth-prepass")
@@ -31,7 +31,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let preview_sky_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "preview-sky")
@@ -56,7 +56,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let velocity_object_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "velocity-object")
@@ -83,7 +83,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let velocity_camera_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "velocity-camera")
@@ -110,7 +110,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let motion_vector_tile_max_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "motion-vector-tile-max")
@@ -144,7 +144,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let motion_vector_tile_max_coarse_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "motion-vector-tile-max-coarse")
@@ -180,7 +180,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let motion_vector_neighbor_max_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "motion-vector-neighbor-max")
@@ -214,14 +214,14 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
     );
 
     let opaque_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "opaque-mesh")
         .expect("default forward pipeline should include opaque mesh pass");
     assert_eq!(opaque_pass.executor_id.as_deref(), Some("mesh.opaque"));
     let overlay_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "overlay-gizmo")
@@ -234,7 +234,7 @@ fn feature_pass_descriptors_drive_executor_ids_and_resource_graph() {
         "overlay executor should declare its depth read instead of borrowing the target privately"
     );
 
-    let lifetimes = compiled.graph.resource_lifetimes();
+    let lifetimes = compiled.graph().resource_lifetimes();
     assert!(lifetimes.iter().any(|lifetime| {
         lifetime.name == "scene-depth" && lifetime.kind == RenderGraphResourceKind::TransientTexture
     }));
@@ -285,7 +285,7 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
         .unwrap();
 
     let scene_color = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == "scene-color")
@@ -300,7 +300,7 @@ fn compiled_pipeline_resources_use_extract_viewport_hdr_and_msaa_descriptors() {
     ));
 
     let scene_depth = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == "scene-depth")

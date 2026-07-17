@@ -201,6 +201,7 @@ implementation_files:
   - zircon_app/src/runtime_presenter.rs
 plan_sources:
   - user: 2026-05-10 switch runtime preview to real wgpu surface present for ordinary RenderDoc capture
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - .codex/plans/ZirconEngine Bevy 式 Platform Window Input Gilrs 完成度计划.md
   - docs/superpowers/plans/2026-05-10-runtime-surface-present.md
   - dev/bevy/crates/bevy_window/src/lib.rs
@@ -375,6 +376,8 @@ When extraction succeeds, `RuntimeSession::bind_viewport_surface()` sends a `ZrR
 
 If `present_viewport()` returns `Ok(false)` or an error, the app marks `surface_present_failed`, logs `runtime_surface_present_failed`, disables/unbinds the native path, creates the softbuffer presenter on demand, and continues through the existing fallback branch in the same redraw event. The fallback branch calls `RuntimeSession::capture_frame()` and passes the CPU RGBA frame to `SoftbufferRuntimePresenter::present()`.
 
+The softbuffer conversion treats a complete RGBA payload as a full overwrite and converts it directly to the XRGB surface. It no longer zeros the entire surface before immediately overwriting every pixel. A truncated payload still clears the surface first, so missing pixels remain black and the defensive behavior for malformed or older dynamic runtimes is unchanged. Unit coverage pins both the complete no-preclear branch and the truncated clear branch.
+
 `about_to_wait()` delegates to `frame_loop.rs`, which applies the current platform event-loop policy through `event_loop_policy/control_flow.rs` before runtime ticks and redraw scheduling. The runtime-preview host maps `EventLoopPolicy::Game` and `EventLoopPolicy::Continuous` to winit `ControlFlow::Poll`, and maps `DesktopApp`, `Mobile`, and `Headless` to `ControlFlow::Wait`. The preview app still calls `request_redraw()` on the window each loop after the runtime tick and host-request drain so both native surface present and softbuffer fallback remain frame-driven.
 
 ## Resize And Teardown
@@ -403,6 +406,8 @@ RenderDoc ordinary `Capture Frame` should show the runtime process as presenting
 This path is for runtime preview. Editor viewport embedding remains on offscreen readback until a separate editor GPU embedding milestone. The fallback path is not legacy dead code; it remains required for unsupported native surfaces, dynamic runtimes without the optional ABI fields, headless/test workflows, and editor viewport imports.
 
 ## Validation
+
+The 2026-07-17 MVP performance slice added `complete_rgba_frame_overwrites_the_surface_without_a_preclear` and `truncated_rgba_frame_clears_uncovered_surface_pixels`. Scoped `rustfmt --check` and `git diff --check` are required immediately; Cargo acceptance remains pending while another coordinated session owns the shared CPU lane, so this slice must not be recorded as package-passed yet.
 
 The 2026-05-12 app validation ran `cargo test -p zircon_app --locked --verbose runtime_entry`, `cargo check -p zircon_app --locked`, `cargo fmt -p zircon_app --check`, and the full package command `cargo test -p zircon_app --locked --verbose`. The final full package run passed with `41 passed; 0 failed`; the runtime-preview binary test target and doc tests both ran zero tests successfully. Manual RenderDoc validation remains separate because it needs an interactive Windows GPU/window capture session.
 

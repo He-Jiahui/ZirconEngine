@@ -1,33 +1,31 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundOutputDeviceDescriptor};
 
 use super::super::DefaultSoundManager;
+use crate::output::{validate_backend_supported, validate_output_device_descriptor};
+use crate::poison_recovery::lock_recover;
 
 impl DefaultSoundManager {
     pub(in crate::service_types) fn configure_output_device_impl(
         &self,
         descriptor: SoundOutputDeviceDescriptor,
     ) -> Result<(), SoundError> {
-        let mut config = self.config.lock().expect("sound config mutex poisoned");
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
-        if let Err(error) = state.output_device.configure(descriptor.clone()) {
-            if let SoundError::BackendUnavailable { detail } = &error {
-                state
-                    .output_device
-                    .record_backend_unavailable(descriptor.backend, detail.clone());
-            }
-            return Err(error);
-        }
+        validate_output_device_descriptor(&descriptor)?;
+        validate_backend_supported(&descriptor)?;
+        let mut config = lock_recover(&self.config);
+        let mut state = lock_recover(&self.state);
+        state.deactivate_kira();
+        state.output_device.configure(descriptor.clone())?;
+        state.update_graph_format(
+            descriptor.sample_rate_hz,
+            descriptor.channel_count,
+            descriptor.channel_layout.clone(),
+        );
+        state.hrtf_states.clear();
         config.backend = descriptor.backend.clone();
         config.sample_rate_hz = descriptor.sample_rate_hz;
         config.channel_count = descriptor.channel_count;
         config.channel_layout = descriptor.channel_layout.clone();
         config.block_size_frames = descriptor.block_size_frames;
-        state.graph.sample_rate_hz = config.sample_rate_hz;
-        state.graph.channel_count = config.channel_count;
-        state.graph.channel_layout = config.channel_layout.clone();
-        state.effect_states.clear();
-        state.track_states.clear();
-        state.hrtf_states.clear();
         Ok(())
     }
 }

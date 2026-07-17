@@ -3,7 +3,6 @@ use zircon_runtime::core::framework::sound::{SoundError, SoundOutputDeviceDescri
 use super::super::descriptor_validation::{
     validate_backend_supported, validate_output_device_descriptor,
 };
-use super::session::SoundOutputBackendSession;
 use super::SoundOutputDeviceRuntimeState;
 
 impl SoundOutputDeviceRuntimeState {
@@ -13,7 +12,6 @@ impl SoundOutputDeviceRuntimeState {
     ) -> Result<(), SoundError> {
         validate_output_device_descriptor(&descriptor)?;
         validate_backend_supported(&descriptor)?;
-        self.clear_backend_session();
         self.descriptor = descriptor;
         self.state = zircon_runtime::core::framework::sound::SoundOutputDeviceState::Stopped;
         self.rendered_blocks = 0;
@@ -26,14 +24,5 @@ impl SoundOutputDeviceRuntimeState {
         self.unavailable_backend = None;
         self.unavailable_detail = None;
         Ok(())
-    }
-
-    pub(super) fn clear_backend_session(&mut self) {
-        match &mut self.backend_session {
-            SoundOutputBackendSession::None => {}
-            #[cfg(feature = "cpal-backend")]
-            SoundOutputBackendSession::Cpal(session) => session.stop(),
-        }
-        self.backend_session = SoundOutputBackendSession::None;
     }
 }

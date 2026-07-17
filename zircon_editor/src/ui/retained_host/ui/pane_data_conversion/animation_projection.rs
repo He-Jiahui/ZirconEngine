@@ -6,27 +6,27 @@ use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::{ModelRc, SharedString};
 use crate::ui::template_runtime::EditorUiHostRuntime;
 
-use super::super::template_node_conversion::to_host_contract_template_node_owned;
+use super::super::template_node_conversion::to_host_contract_template_node;
 use super::template_node_projection::project_nodes;
 
 fn to_host_contract_animation_editor_pane(
-    data: AnimationEditorPaneViewData,
+    data: &AnimationEditorPaneViewData,
 ) -> host_contract::AnimationEditorPaneData {
     host_contract::AnimationEditorPaneData {
-        nodes: project_nodes(&data.nodes, to_host_contract_template_node_owned),
-        mode: data.mode,
-        asset_path: data.asset_path,
-        status: data.status,
-        selection: data.selection,
+        nodes: project_nodes(&data.nodes, to_host_contract_template_node),
+        mode: data.mode.clone(),
+        asset_path: data.asset_path.clone(),
+        status: data.status.clone(),
+        selection: data.selection.clone(),
         current_frame: data.current_frame,
         timeline_start_frame: data.timeline_start_frame,
         timeline_end_frame: data.timeline_end_frame,
-        playback_label: data.playback_label,
-        track_items: data.track_items,
-        parameter_items: data.parameter_items,
-        node_items: data.node_items,
-        state_items: data.state_items,
-        transition_items: data.transition_items,
+        playback_label: data.playback_label.clone(),
+        track_items: data.track_items.clone(),
+        parameter_items: data.parameter_items.clone(),
+        node_items: data.node_items.clone(),
+        state_items: data.state_items.clone(),
+        transition_items: data.transition_items.clone(),
     }
 }
 
@@ -34,9 +34,8 @@ pub(crate) fn to_host_contract_animation_editor_pane_from_host_pane(
     data: &PaneData,
     content_size: PaneContentSize,
 ) -> host_contract::AnimationEditorPaneData {
-    animation_template_projection(data, content_size, None).unwrap_or_else(|| {
-        to_host_contract_animation_editor_pane(data.native_body.animation.clone())
-    })
+    animation_template_projection(data, content_size, None)
+        .unwrap_or_else(|| to_host_contract_animation_editor_pane(&data.native_body.animation))
 }
 
 pub(crate) fn to_host_contract_animation_editor_pane_from_host_pane_with_runtime(
@@ -44,9 +43,8 @@ pub(crate) fn to_host_contract_animation_editor_pane_from_host_pane_with_runtime
     content_size: PaneContentSize,
     runtime: &EditorUiHostRuntime,
 ) -> host_contract::AnimationEditorPaneData {
-    animation_template_projection(data, content_size, Some(runtime)).unwrap_or_else(|| {
-        to_host_contract_animation_editor_pane(data.native_body.animation.clone())
-    })
+    animation_template_projection(data, content_size, Some(runtime))
+        .unwrap_or_else(|| to_host_contract_animation_editor_pane(&data.native_body.animation))
 }
 
 fn animation_template_projection(

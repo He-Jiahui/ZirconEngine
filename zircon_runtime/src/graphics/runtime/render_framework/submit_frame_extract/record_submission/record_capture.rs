@@ -10,7 +10,7 @@ pub(super) fn record_capture(
     context: &FrameSubmissionContext,
     frame: ViewportFrame,
 ) {
-    let graph_dump = Some(context.compiled_pipeline().graph.dump().to_text());
+    let graph_dump = Some(context.compiled_pipeline().graph().dump().to_text());
     record.store_capture(
         context.compiled_pipeline().clone(),
         CapturedFrame::with_capture_report_and_graph_dump(

@@ -17,13 +17,11 @@ pub(crate) fn build_world_space_ui_surface_submissions_from_host_scene(
     extend_world_space_pane_submissions("right-dock", &scene.right_dock.pane, &mut submissions);
     extend_world_space_pane_submissions("bottom-dock", &scene.bottom_dock.pane, &mut submissions);
 
-    for index in 0..scene.floating_layer.floating_windows.row_count() {
-        let Some(window) = scene.floating_layer.floating_windows.row_data(index) else {
-            continue;
-        };
+    for window in scene.floating_layer.floating_windows.iter() {
         let surface_id = format!("floating-window:{}", window.window_id);
+        let header_surface_id = format!("{surface_id}:header");
         submissions.extend(build_world_space_ui_surface_submissions(
-            format!("{surface_id}:header"),
+            &header_surface_id,
             &window.header_nodes,
         ));
         extend_world_space_pane_submissions(&surface_id, &window.active_pane, &mut submissions);

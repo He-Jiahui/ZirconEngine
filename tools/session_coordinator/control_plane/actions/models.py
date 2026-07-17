@@ -41,6 +41,7 @@ class ActionKind(StrEnum):
     DRAIN_PREVIEW = "service.drain_preview"
     SERVICE_DRAIN = "service.drain"
     SERVICE_RESUME = "service.resume"
+    SERVICE_ROLLOVER = "service.rollover"
     SERVICE_STOP = "service.stop"
     MILESTONE_COMMIT = "milestone.commit"
     MILESTONE_RECONCILE = "milestone.reconcile_accepted"

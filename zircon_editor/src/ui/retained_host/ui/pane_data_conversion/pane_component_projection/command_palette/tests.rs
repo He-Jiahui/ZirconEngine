@@ -84,6 +84,37 @@ fn table_entries_use_enabled_false_as_disabled() {
 }
 
 #[test]
+fn filtered_commands_use_the_first_duplicate_and_match_ascii_case_insensitively() {
+    let attributes = command_attributes([
+        ("query", Value::String("BUILD".into())),
+        (
+            "filtered_commands",
+            Value::Array(vec![Value::String("build.run".into())]),
+        ),
+        (
+            "commands",
+            Value::Array(vec![
+                command_entry([
+                    ("id", Value::String("build.run".into())),
+                    ("label", Value::String("Run Build".into())),
+                ]),
+                command_entry([
+                    ("id", Value::String("build.run".into())),
+                    ("label", Value::String("Duplicate".into())),
+                ]),
+            ]),
+        ),
+    ]);
+
+    let rows = projected_command_palette_structured_options("command-palette", &attributes)
+        .expect("command rows should project");
+
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0].label.as_str(), "Run Build");
+    assert!(rows[0].matched);
+}
+
+#[test]
 fn non_command_palette_roles_do_not_claim_options() {
     let attributes = command_attributes([(
         "commands",

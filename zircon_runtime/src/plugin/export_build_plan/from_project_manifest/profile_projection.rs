@@ -88,11 +88,10 @@ pub(super) fn export_profile_selection_diagnostics(
             fatal_diagnostics.push(diagnostic);
         }
         for feature_id in feature_ids {
-            let normalized_feature_id = normalize_profile_feature_id(owner_plugin_id, feature_id);
             if !owner
                 .features
                 .iter()
-                .any(|feature| feature.id == normalized_feature_id)
+                .any(|feature| profile_feature_id_matches(owner_plugin_id, feature_id, &feature.id))
             {
                 let diagnostic = format!(
                     "export profile {} selects feature {} for plugin {} but the project plugin manifest does not contain it",
@@ -157,7 +156,7 @@ fn profile_selects_feature(
 ) -> bool {
     selected_features
         .iter()
-        .any(|feature_id| normalize_profile_feature_id(owner_plugin_id, feature_id) == feature.id)
+        .any(|feature_id| profile_feature_id_matches(owner_plugin_id, feature_id, &feature.id))
 }
 
 fn feature_id_list_selects(
@@ -167,13 +166,56 @@ fn feature_id_list_selects(
 ) -> bool {
     selected_features
         .iter()
-        .any(|selected| normalize_profile_feature_id(owner_plugin_id, selected) == feature_id)
+        .any(|selected| profile_feature_id_matches(owner_plugin_id, selected, feature_id))
 }
 
-fn normalize_profile_feature_id(owner_plugin_id: &str, feature_id: &str) -> String {
-    if feature_id.contains('.') {
-        feature_id.to_string()
-    } else {
-        format!("{owner_plugin_id}.{feature_id}")
+fn profile_feature_id_matches(
+    owner_plugin_id: &str,
+    selected_feature_id: &str,
+    expected_feature_id: &str,
+) -> bool {
+    if selected_feature_id.contains('.') {
+        return selected_feature_id == expected_feature_id;
+    }
+    expected_feature_id
+        .strip_prefix(owner_plugin_id)
+        .and_then(|suffix| suffix.strip_prefix('.'))
+        == Some(selected_feature_id)
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn feature_projection_search_does_not_allocate_normalized_ids() {
+        let source = include_str!("profile_projection.rs");
+        let allocating_helper = ["normalize_", "profile_feature_id"].concat();
+        assert!(
+            !source.contains(&allocating_helper),
+            "feature matching should compare qualified and short ids without formatting a String"
+        );
+    }
+
+    #[test]
+    fn feature_projection_matches_short_and_qualified_ids_without_normalizing() {
+        assert!(super::profile_feature_id_matches(
+            "rendering",
+            "deferred",
+            "rendering.deferred"
+        ));
+        assert!(super::profile_feature_id_matches(
+            "rendering",
+            "rendering.deferred",
+            "rendering.deferred"
+        ));
+        assert!(!super::profile_feature_id_matches(
+            "rendering",
+            "deferred",
+            "rendering.forward"
+        ));
+        assert!(!super::profile_feature_id_matches(
+            "rendering",
+            "other.deferred",
+            "rendering.deferred"
+        ));
     }
 }

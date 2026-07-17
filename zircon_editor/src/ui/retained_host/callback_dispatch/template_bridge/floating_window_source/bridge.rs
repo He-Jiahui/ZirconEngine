@@ -13,6 +13,7 @@ use super::surface::{
 
 pub(crate) struct BuiltinFloatingWindowSourceTemplateBridge {
     surface: UiSurface,
+    shell_size: UiSize,
 }
 
 impl BuiltinFloatingWindowSourceTemplateBridge {
@@ -30,15 +31,23 @@ impl BuiltinFloatingWindowSourceTemplateBridge {
         shell_size: UiSize,
     ) -> Result<Self, BuiltinFloatingWindowSourceTemplateBridgeError> {
         let surface = build_builtin_floating_window_source_surface(runtime, shell_size)?;
-        Ok(Self { surface })
+        Ok(Self {
+            surface,
+            shell_size,
+        })
     }
 
     pub(crate) fn recompute_layout(
         &mut self,
         shell_size: UiSize,
-    ) -> Result<(), BuiltinFloatingWindowSourceTemplateBridgeError> {
+    ) -> Result<bool, BuiltinFloatingWindowSourceTemplateBridgeError> {
+        if self.shell_size == shell_size {
+            return Ok(false);
+        }
+
         rebuild_builtin_floating_window_source_surface(&mut self.surface, shell_size)?;
-        Ok(())
+        self.shell_size = shell_size;
+        Ok(true)
     }
 
     pub(crate) fn source_frames(&self) -> BuiltinFloatingWindowSourceFrames {

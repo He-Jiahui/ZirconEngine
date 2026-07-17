@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::time::Instant;
 
 use zircon_runtime_interface::{
@@ -31,9 +31,9 @@ pub struct ProfileRecorder {
     origin: Instant,
     next_span_id: u64,
     next_frame_index_by_stream: HashMap<String, u64>,
-    frames: Vec<ProfileFrameSnapshot>,
-    spans: Vec<ProfileSpanSnapshot>,
-    counters: Vec<ProfileCounterSnapshot>,
+    frames: VecDeque<ProfileFrameSnapshot>,
+    spans: VecDeque<ProfileSpanSnapshot>,
+    counters: VecDeque<ProfileCounterSnapshot>,
 }
 
 impl ProfileRecorder {
@@ -44,9 +44,9 @@ impl ProfileRecorder {
             origin: Instant::now(),
             next_span_id: 1,
             next_frame_index_by_stream: HashMap::new(),
-            frames: Vec::new(),
-            spans: Vec::new(),
-            counters: Vec::new(),
+            frames: VecDeque::new(),
+            spans: VecDeque::new(),
+            counters: VecDeque::new(),
         }
     }
 
@@ -137,28 +137,42 @@ impl ProfileRecorder {
             active: self.active,
             feature_enabled: crate::core::diagnostics::profiling::feature_enabled(),
             frame_budget_ms: self.config.frame_budget_ms,
-            frames: self.frames.clone(),
-            spans: self.spans.clone(),
-            counters: self.counters.clone(),
+            frames: self.frames.iter().cloned().collect(),
+            spans: self.spans.iter().cloned().collect(),
+            counters: self.counters.iter().cloned().collect(),
         }
     }
 }
 
-fn push_ring<T>(items: &mut Vec<T>, item: T, max_items: usize) {
+/// Appends to a bounded sample queue without shifting retained samples on eviction.
+fn push_ring<T>(items: &mut VecDeque<T>, item: T, max_items: usize) {
     let max_items = max_items.max(1);
     if items.len() >= max_items {
-        items.remove(0);
+        items.pop_front();
     }
-    items.push(item);
+    items.push_back(item);
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::VecDeque;
+
     use zircon_runtime_interface::{
         ProfileCaptureConfig, ProfileCounterSnapshot, ProfileFrameSnapshot, ProfileSpanSnapshot,
     };
 
-    use super::ProfileRecorder;
+    use super::{push_ring, ProfileRecorder};
+
+    #[test]
+    fn ring_push_evicts_oldest_sample_at_capacity() {
+        let mut samples = VecDeque::with_capacity(3);
+
+        for sample in 0..5 {
+            push_ring(&mut samples, sample, 3);
+        }
+
+        assert_eq!(samples.into_iter().collect::<Vec<_>>(), vec![2, 3, 4]);
+    }
 
     #[test]
     fn recorder_retains_latest_items_with_configured_ring_limits() {

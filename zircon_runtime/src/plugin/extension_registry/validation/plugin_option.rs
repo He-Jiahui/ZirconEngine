@@ -81,13 +81,12 @@ fn validate_plugin_option_namespace(
     field_name: &str,
     value: &str,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let segments: Vec<_> = value.split('.').collect();
-    if segments.len() < 2 {
+    if !value.contains('.') {
         return invalid_plugin_option(format!(
             "{field_name} `{value}` must use at least two dot-separated namespace segments"
         ));
     }
-    for segment in segments {
+    for segment in value.split('.') {
         if segment.is_empty()
             || !segment
                 .bytes()

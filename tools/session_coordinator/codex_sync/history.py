@@ -93,15 +93,22 @@ class CodexHistoricalEvidenceCollector:
             raise ValueError("byte_budget must not be negative")
         month_root = self._month_root(generated_at)
         remaining = byte_budget
-        for path in self._prioritized_rollouts(self._rollouts(month_root)):
-            if remaining <= 0:
+        paths = self._prioritized_rollouts(self._rollouts(month_root))
+        while remaining > 0:
+            advanced = False
+            for path in paths:
+                if remaining <= 0:
+                    break
+                consumed = self._collect_source(
+                    path,
+                    generated_at,
+                    byte_budget=min(remaining, MAX_SOURCE_BYTES_PER_PASS),
+                )
+                if consumed > 0:
+                    advanced = True
+                    remaining = max(0, remaining - consumed)
+            if not advanced:
                 break
-            consumed = self._collect_source(
-                path,
-                generated_at,
-                byte_budget=min(remaining, MAX_SOURCE_BYTES_PER_PASS),
-            )
-            remaining = max(0, remaining - consumed)
 
     def render_month_history(self, generated_at: datetime) -> Path:
         generated_at = generated_at.astimezone(UTC)
@@ -120,14 +127,61 @@ class CodexHistoricalEvidenceCollector:
             ).fetchall()
 
     def _rollouts(self, month_root: Path) -> tuple[Path, ...]:
-        if not month_root.exists():
-            return ()
-        try:
-            candidates = [path for path in month_root.rglob("rollout-*.jsonl") if path.is_file()]
-        except OSError:
-            return ()
+        candidates: list[Path] = []
+        if month_root.exists():
+            try:
+                candidates = [
+                    path for path in month_root.rglob("rollout-*.jsonl") if path.is_file()
+                ]
+            except OSError:
+                candidates = []
         candidates.sort(key=lambda path: os.path.normcase(str(path)))
-        return tuple(candidates[: self.max_files])
+        candidates = candidates[: self.max_files]
+
+        # Codex moves completed rollout files to archived_sessions.  A file with
+        # a persisted incomplete cursor must remain discoverable after that move,
+        # but the collector must never enumerate arbitrary archive contents.
+        candidates.extend(self._incomplete_archived_rollouts(month_root))
+        unique: dict[str, Path] = {}
+        for path in candidates:
+            try:
+                resolved = path.resolve(strict=True)
+            except OSError:
+                continue
+            unique.setdefault(os.path.normcase(str(resolved)), resolved)
+        return tuple(unique.values())
+
+    def _incomplete_archived_rollouts(self, month_root: Path) -> tuple[Path, ...]:
+        month_prefix = f"rollout-{month_root.parent.name}-{month_root.name}-"
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """SELECT evidence.rollout_name, sessions.rollout_path
+                   FROM codex_evidence_sources AS evidence
+                   JOIN codex_sessions AS sessions ON sessions.thread_id=evidence.thread_id
+                   WHERE evidence.scan_complete=0
+                     AND sessions.source_location='archived'
+                     AND evidence.rollout_name LIKE ?
+                     AND sessions.rollout_path IS NOT NULL
+                   ORDER BY evidence.indexed_at ASC, evidence.source_id ASC""",
+                (f"{month_prefix}%",),
+            ).fetchall()
+
+        candidates: list[Path] = []
+        for row in rows:
+            rollout_name = str(row["rollout_name"])
+            try:
+                resolved = Path(str(row["rollout_path"])).resolve(strict=True)
+            except (OSError, ValueError):
+                continue
+            if (
+                resolved.name != rollout_name
+                or not resolved.match("rollout-*.jsonl")
+                or not self._inside(resolved, self.codex_home)
+                or not resolved.is_file()
+            ):
+                continue
+            candidates.append(resolved)
+        return tuple(candidates)
 
     def _month_root(self, generated_at: datetime) -> Path:
         return (
@@ -196,6 +250,7 @@ class CodexHistoricalEvidenceCollector:
             return 0
 
         source_id = self._hash(str(resolved))
+        source_aliases: tuple[str, ...] = ()
         with self.database.connect() as connection:
             previous = connection.execute(
                 """SELECT source_mtime_ns, source_size, scan_offset, prefix_hash,
@@ -204,6 +259,40 @@ class CodexHistoricalEvidenceCollector:
                    WHERE source_id=?""",
                 (source_id,),
             ).fetchone()
+            if self._inside(resolved, self.codex_home / "archived_sessions"):
+                migrated = connection.execute(
+                    """SELECT source_id, source_mtime_ns, source_size, scan_offset,
+                              prefix_hash, pending_calls_json, scan_complete, scan_revision
+                       FROM codex_evidence_sources
+                       WHERE thread_id=?
+                         AND rollout_name=?
+                         AND source_size=?
+                         AND prefix_hash=?
+                       ORDER BY scan_offset DESC, scan_complete DESC, source_id ASC
+                    """,
+                    (thread_id, resolved.name, stat.st_size, prefix_hash),
+                ).fetchall()
+                if migrated:
+                    # Preserve the pre-archive identity so its evidence cursor
+                    # and records continue to describe the same rollout bytes.
+                    prearchive_source_id = self._prearchive_source_id(resolved)
+                    preferred = next(
+                        (
+                            row
+                            for row in migrated
+                            if str(row["source_id"]) == prearchive_source_id
+                        ),
+                        migrated[0],
+                    )
+                    source_id = str(preferred["source_id"])
+                    previous = preferred
+                    source_aliases = tuple(
+                        str(row["source_id"])
+                        for row in migrated
+                        if str(row["source_id"]) != source_id
+                    )
+
+        self._consolidate_archived_source_aliases(source_id, source_aliases)
 
         offset = 0
         revision = 1
@@ -301,6 +390,50 @@ class CodexHistoricalEvidenceCollector:
                 ),
             )
         return scan.bytes_read
+
+    def _consolidate_archived_source_aliases(
+        self, source_id: str, source_aliases: tuple[str, ...]
+    ) -> None:
+        if not source_aliases:
+            return
+        with self.database.transaction() as connection:
+            for alias_source_id in source_aliases:
+                connection.execute(
+                    """INSERT OR IGNORE INTO codex_evidence_records(
+                           source_id, thread_id, rollout_name, event_key_hash, kind,
+                           outcome, exit_code, event_at, recorded_at
+                       ) SELECT ?, thread_id, rollout_name, event_key_hash, kind,
+                                outcome, exit_code, event_at, recorded_at
+                         FROM codex_evidence_records
+                         WHERE source_id=?""",
+                    (source_id, alias_source_id),
+                )
+                connection.execute(
+                    "DELETE FROM codex_evidence_records WHERE source_id=?",
+                    (alias_source_id,),
+                )
+                connection.execute(
+                    "DELETE FROM codex_evidence_sources WHERE source_id=?",
+                    (alias_source_id,),
+                )
+
+    def _prearchive_source_id(self, archived_path: Path) -> str | None:
+        """Return the original daily-rollout identity when an archive name encodes it."""
+        match = re.match(
+            r"^rollout-(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})T",
+            archived_path.name,
+        )
+        if match is None:
+            return None
+        original = (
+            self.codex_home
+            / "sessions"
+            / match.group("year")
+            / match.group("month")
+            / match.group("day")
+            / archived_path.name
+        )
+        return self._hash(str(original.resolve()))
 
     def _thread_id(self, path: Path) -> str | None:
         with path.open("rb") as handle:

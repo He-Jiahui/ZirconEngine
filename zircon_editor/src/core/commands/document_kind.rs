@@ -34,9 +34,8 @@ impl DocumentKind {
 
     pub fn parse(value: impl Into<String>) -> Result<Self, DocumentKindError> {
         let value = value.into();
-        let segments = value.split('.').collect::<Vec<_>>();
-        let valid = !segments.is_empty()
-            && segments.iter().all(|segment| {
+        let valid = !value.is_empty()
+            && value.split('.').all(|segment| {
                 !segment.is_empty()
                     && segment.chars().all(|character| {
                         character.is_ascii_lowercase()
@@ -85,3 +84,13 @@ impl fmt::Display for DocumentKindError {
 }
 
 impl std::error::Error for DocumentKindError {}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn document_kind_validation_streams_segments() {
+        let source = include_str!("document_kind.rs");
+        let collecting_shape = ["split('.')", ".collect::<Vec<_>>()"].concat();
+        assert!(!source.contains(&collecting_shape));
+    }
+}

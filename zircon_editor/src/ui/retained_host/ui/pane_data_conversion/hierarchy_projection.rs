@@ -6,15 +6,15 @@ use crate::ui::retained_host as host_contract;
 use crate::ui::retained_host::primitives::ModelRc;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 
-use super::super::template_node_conversion::to_host_contract_template_node_owned;
+use super::super::template_node_conversion::to_host_contract_template_node;
 use super::model_projection::map_model_rc;
 use super::template_node_projection::project_nodes;
 
 pub(super) fn to_host_contract_hierarchy_pane(
-    data: HierarchyPaneViewData,
+    data: &HierarchyPaneViewData,
 ) -> host_contract::HierarchyPaneData {
     host_contract::HierarchyPaneData {
-        nodes: project_nodes(&data.nodes, to_host_contract_template_node_owned),
+        nodes: project_nodes(&data.nodes, to_host_contract_template_node),
         hierarchy_nodes: to_host_contract_scene_nodes(&data.hierarchy_nodes),
     }
 }
@@ -24,7 +24,7 @@ pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane(
     content_size: PaneContentSize,
 ) -> host_contract::HierarchyPaneData {
     hierarchy_template_projection(data, content_size, None)
-        .unwrap_or_else(|| to_host_contract_hierarchy_pane(data.native_body.hierarchy.clone()))
+        .unwrap_or_else(|| to_host_contract_hierarchy_pane(&data.native_body.hierarchy))
 }
 
 pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane_with_runtime(
@@ -33,7 +33,7 @@ pub(crate) fn to_host_contract_hierarchy_pane_from_host_pane_with_runtime(
     runtime: &EditorUiHostRuntime,
 ) -> host_contract::HierarchyPaneData {
     hierarchy_template_projection(data, content_size, Some(runtime))
-        .unwrap_or_else(|| to_host_contract_hierarchy_pane(data.native_body.hierarchy.clone()))
+        .unwrap_or_else(|| to_host_contract_hierarchy_pane(&data.native_body.hierarchy))
 }
 
 fn hierarchy_template_projection(
@@ -70,10 +70,10 @@ fn hierarchy_template_projection(
     })
 }
 
-fn to_host_contract_scene_node(node: SceneNodeData) -> host_contract::SceneNodeData {
+fn to_host_contract_scene_node(node: &SceneNodeData) -> host_contract::SceneNodeData {
     host_contract::SceneNodeData {
-        id: node.id,
-        name: node.name,
+        id: node.id.clone(),
+        name: node.name.clone(),
         depth: node.depth,
         selected: node.selected,
     }

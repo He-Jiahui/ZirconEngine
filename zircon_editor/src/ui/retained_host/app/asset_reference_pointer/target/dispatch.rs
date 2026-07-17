@@ -22,15 +22,17 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset reference list {list_kind}"));
             return false;
         };
-        list.size = target.list_size;
-        let Some(layout) =
-            Self::asset_reference_layout(&target.snapshot, list_kind, target.list_size)
-        else {
-            self.clear_asset_reference_drag_on_error(clear_drag_on_error);
-            self.set_status_line(format!("Unknown asset reference list {list_kind}"));
-            return false;
-        };
-        list.bridge.sync(layout, list.state.clone());
+        if list.size != target.list_size {
+            list.size = target.list_size;
+            let Some(layout) =
+                Self::asset_reference_layout(target.snapshot.as_ref(), list_kind, target.list_size)
+            else {
+                self.clear_asset_reference_drag_on_error(clear_drag_on_error);
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return false;
+            };
+            list.bridge.sync(layout, list.state.clone());
+        }
         true
     }
 
@@ -54,15 +56,17 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset reference list {list_kind}"));
             return None;
         };
-        list.size = target.list_size;
-        let Some(layout) =
-            Self::asset_reference_layout(&target.snapshot, list_kind, target.list_size)
-        else {
-            self.clear_asset_reference_drag_on_error(clear_drag_on_error);
-            self.set_status_line(format!("Unknown asset reference list {list_kind}"));
-            return None;
-        };
-        list.bridge.sync(layout, list.state.clone());
+        if list.size != target.list_size {
+            list.size = target.list_size;
+            let Some(layout) =
+                Self::asset_reference_layout(target.snapshot.as_ref(), list_kind, target.list_size)
+            else {
+                self.clear_asset_reference_drag_on_error(clear_drag_on_error);
+                self.set_status_line(format!("Unknown asset reference list {list_kind}"));
+                return None;
+            };
+            list.bridge.sync(layout, list.state.clone());
+        }
         Some(dispatch(&mut list.bridge))
     }
 }

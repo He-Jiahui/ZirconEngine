@@ -22,11 +22,8 @@ pub(in crate::ui::retained_host::host_contract) fn template_nodes_bounds(
     nodes: &ModelRc<TemplatePaneNodeData>,
 ) -> Option<FrameRect> {
     let mut bounds: Option<FrameRect> = None;
-    for row in 0..nodes.row_count() {
-        let Some(node) = nodes.row_data(row) else {
-            continue;
-        };
-        let frame = frame_from_template_node(&node);
+    for node in nodes.iter() {
+        let frame = frame_from_template_node(node);
         if !visible_frame(&frame) {
             continue;
         }

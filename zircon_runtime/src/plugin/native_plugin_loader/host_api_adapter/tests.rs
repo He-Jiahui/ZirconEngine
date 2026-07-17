@@ -22,6 +22,20 @@ struct NativeWeatherProvider;
 impl NativeWeatherBridge for NativeWeatherProvider {}
 
 #[test]
+fn native_bridge_call_context_snapshots_share_the_dispatch_table() {
+    let table = RuntimeExtensionRegistry::default().frozen_bridge_table();
+    let scope = NativeHostBridgeCallScope::new(table);
+
+    let first = bridge_context_for(scope.handle()).expect("first context snapshot");
+    let second = bridge_context_for(scope.handle()).expect("second context snapshot");
+
+    assert!(
+        Arc::ptr_eq(&first, &second),
+        "bridge calls must clone an Arc context instead of deep-cloning the method map"
+    );
+}
+
+#[test]
 fn native_host_api_v3_registers_systems_and_components_into_runtime_registry() {
     let mut registry = RuntimeExtensionRegistry::default();
     let scope = NativeHostApiV3RegistrationScope::new(&mut registry, "weather.runtime").unwrap();
@@ -465,6 +479,21 @@ fn native_host_api_v3_preserves_dotted_plugin_ids() {
     assert!(status.is_ok());
     assert_eq!(registry.components().len(), 1);
     assert_eq!(registry.components()[0].plugin_id, "net.rpc");
+}
+
+#[test]
+fn native_host_bridge_call_checks_entry_status_without_materializing_a_diagnostic_snapshot() {
+    let source = include_str!("../host_api_adapter.rs");
+    let function = source
+        .split_once("unsafe fn native_host_bridge_call_v1_inner")
+        .expect("native bridge call implementation should exist")
+        .1
+        .split_once("unsafe extern \"C\" fn native_host_diagnostics_emit_v1")
+        .expect("diagnostics callback should follow native bridge call")
+        .0;
+
+    assert!(!function.contains("interface_snapshot"));
+    assert!(function.contains("context.table.entry(slot)"));
 }
 
 fn native_bridge_test_method(call: NativeBridgeCall) -> ZrStatus {

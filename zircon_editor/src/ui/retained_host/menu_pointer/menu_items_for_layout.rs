@@ -1,15 +1,17 @@
+use std::borrow::Cow;
+
 use super::host_menu_pointer_layout::HostMenuPointerLayout;
 use super::menu_item_spec::MenuItemSpec;
 
-pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout(
-    layout: &HostMenuPointerLayout,
+pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout<'a>(
+    layout: &'a HostMenuPointerLayout,
     menu_index: usize,
-) -> Vec<MenuItemSpec> {
+) -> Cow<'a, [MenuItemSpec]> {
     if let Some(items) = layout.menus.get(menu_index) {
-        return items.clone();
+        return Cow::Borrowed(items);
     }
 
-    match menu_index {
+    Cow::Owned(match menu_index {
         0 => vec![
             menu_action("file.project.open", true),
             menu_action("file.project.save", layout.save_project_enabled),
@@ -66,7 +68,7 @@ pub(in crate::ui::retained_host::menu_pointer) fn menu_items_for_layout(
         }
         6 => vec![menu_action("view.asset_browser.open", true)],
         _ => Vec::new(),
-    }
+    })
 }
 
 fn menu_action(action_id: impl Into<String>, enabled: bool) -> MenuItemSpec {

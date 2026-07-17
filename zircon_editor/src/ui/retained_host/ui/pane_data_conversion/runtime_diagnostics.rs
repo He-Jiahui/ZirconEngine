@@ -79,10 +79,7 @@ fn runtime_diagnostics_debug_surface_frame(
         .with_input_policy(UiInputPolicy::Ignore),
     );
 
-    for row in 0..data.nodes.row_count() {
-        let Some(node) = data.nodes.row_data(row) else {
-            continue;
-        };
+    for (row, node) in data.nodes.iter().enumerate() {
         let mut attributes = BTreeMap::new();
         if !node.text.is_empty() {
             attributes.insert(
@@ -354,14 +351,15 @@ fn runtime_debug_reflector_nodes_from_parts(
 fn runtime_diagnostics_existing_template_nodes(
     data: &host_contract::RuntimeDiagnosticsPaneData,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
-    (0..data.nodes.row_count())
-        .filter_map(|row| data.nodes.row_data(row))
+    data.nodes
+        .iter()
         .filter(|node| {
             !node
                 .node_id
                 .as_str()
                 .starts_with("runtime_debug_reflector_")
         })
+        .cloned()
         .collect()
 }
 

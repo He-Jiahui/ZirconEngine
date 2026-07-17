@@ -16,10 +16,7 @@ impl DefaultSoundManager {
         status: SoundRayTracingConvolutionStatus,
     ) -> Result<(), SoundError> {
         validate_ray_tracing_status(&status)?;
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
-            .ray_tracing = status;
+        crate::poison_recovery::lock_recover(&self.state).ray_tracing = status;
         Ok(())
     }
 
@@ -27,17 +24,14 @@ impl DefaultSoundManager {
         &self,
         descriptor: SoundRayTracedImpulseResponseDescriptor,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         submit_ray_traced_impulse_response(&mut state, descriptor)
     }
 
     pub(super) fn ray_traced_impulse_responses_impl(
         &self,
     ) -> Result<Vec<SoundRayTracedImpulseResponseDescriptor>, SoundError> {
-        Ok(self
-            .state
-            .lock()
-            .expect("sound state mutex poisoned")
+        Ok(crate::poison_recovery::lock_recover(&self.state)
             .ray_traced_impulse_responses
             .values()
             .cloned()
@@ -48,7 +42,7 @@ impl DefaultSoundManager {
         &self,
         impulse_response: SoundImpulseResponseId,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         clear_ray_traced_impulse_response(&mut state, impulse_response)
     }
 }

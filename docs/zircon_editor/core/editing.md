@@ -11,6 +11,7 @@ related_code:
   - zircon_editor/src/core/context/builder.rs
   - zircon_editor/src/core/editor_message/message/transaction.rs
 implementation_files:
+  - zircon_editor/src/core/editing/command.rs
   - zircon_editor/src/core/editing/engine/mod.rs
   - zircon_editor/src/core/editing/engine/command.rs
   - zircon_editor/src/core/editing/engine/history.rs
@@ -20,10 +21,13 @@ implementation_files:
   - zircon_editor/src/core/editing/context.rs
   - zircon_editor/src/core/context/editor_context.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/03-command-transaction-and-undo.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - zircon_editor/src/core/editing/command.rs::tests::editor_commands_avoid_recollecting_batches_and_reapplying_unchanged_node_fields
+  - zircon_editor/src/core/editing/engine/transaction.rs::tests::nested_cancel_does_not_remove_from_the_front_of_a_vec
   - zircon_editor/src/tests/editing/transaction_engine/history.rs
   - zircon_editor/src/tests/editing/transaction_engine/scope.rs
   - zircon_editor/src/tests/editing/transaction_engine/events.rs
@@ -71,3 +75,15 @@ The engine records the five internal states `Started`, `Canceled`, `Committed`, 
 The dedicated source tests cover cursor truncation, capacity eviction, dirty state, RAII cancellation, nesting, merge modes, failure rollback, record metadata, routing, event order, context engine identity, empty transaction history, and the old-operation-stack source boundary. The boundary guard now treats `operation_state.rs` as a deleted legacy aggregate, requires the folder-backed `editing/context.rs` and `editing/engine/{history,transaction}.rs` owners, and verifies the current `HistoryStore`/`EditorTransactionEngine` exports without restoring a facade.
 
 On 2026-07-14, a standalone `rustc --test` harness directly compiled the current `editor_event_cutover.rs` source together with its support module. Its three editing/event boundary tests passed; the combined Editor03/Render01 guard run was 6 passed / 0 failed in 9.72 seconds (`.codex/tmp/editor03-render01-guard-standalone-20260714.log`). This is focused source-contract evidence only: the shared full Cargo library gate remains blocked by separately owned failures and is not reported as green here.
+
+## Performance-sensitive mutation paths
+
+The 2026-07-17 pass removed a redundant batch collect. `UpdateNodeCommand` now captures the node
+once, derives before/after snapshots, and applies only fields whose directional values differ;
+single-field edits no longer recapture or rewrite parent, name, and transform together. Nested
+cancel collects frames in normal order and restores them by `pop`, preserving reverse rollback
+without repeated front removal and shifting.
+
+The two source guards completed RED-to-GREEN and scoped formatting/diff checks pass. Current-source
+transaction behavior tests and an interaction trace are still pending, so this is not dynamic
+performance acceptance.

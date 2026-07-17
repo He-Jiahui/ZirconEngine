@@ -124,7 +124,8 @@ pub(crate) fn resolve_font_instance_handle(handle: TextFontFaceHandle) -> Option
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::text::font::{publish_shared_font_database, shared_font_database_snapshot};
+    use crate::text::font::shared::force_publish_shared_font_database;
+    use crate::text::font::shared_font_database_snapshot;
 
     #[test]
     fn generation_change_invalidates_old_slots_without_reinterpreting_backend_ids() {
@@ -152,7 +153,7 @@ mod tests {
             .expect("pre-reload face should receive a slot");
         assert_eq!(resolve_font_face_handle(before_reload), Some(backend_face));
 
-        let reloaded_generation = publish_shared_font_database(&database);
+        let reloaded_generation = force_publish_shared_font_database(&database);
 
         assert!(reloaded_generation > generation);
         assert_eq!(resolve_font_face_handle(before_reload), None);

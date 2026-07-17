@@ -33,6 +33,11 @@ related_code:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/codex_sync/worker.py
+  - tools/session_coordinator/codex_sync/store.py
+  - tools/session_coordinator/web/src/api/contracts.ts
+  - tools/session_coordinator/web/src/api/validation.ts
+  - tools/session_coordinator/web/src/pages/OverviewPage.tsx
   - tools/session_coordinator/control_plane/actions/catalog.py
   - tools/session_coordinator/control_plane/actions/executor.py
   - tools/session_coordinator/control_plane/actions/fingerprint.py
@@ -79,6 +84,11 @@ implementation_files:
   - tools/session_coordinator/control_plane/http_security.py
   - tools/session_coordinator/control_plane/router.py
   - tools/session_coordinator/control_plane/snapshot.py
+  - tools/session_coordinator/codex_sync/worker.py
+  - tools/session_coordinator/codex_sync/store.py
+  - tools/session_coordinator/web/src/api/contracts.ts
+  - tools/session_coordinator/web/src/api/validation.ts
+  - tools/session_coordinator/web/src/pages/OverviewPage.tsx
   - tools/session_coordinator/control_plane/actions/catalog.py
   - tools/session_coordinator/control_plane/actions/executor.py
   - tools/session_coordinator/control_plane/actions/fingerprint.py
@@ -91,6 +101,12 @@ implementation_files:
   - tools/install-session-coordinator-task.ps1
   - .codex/skills/zircon-dev/scripts/validate-matrix.ps1
 plan_sources:
+  - user: 2026-07-17 remove global coordinator blocking while retaining scoped finalization safety
+  - user: 2026-07-17 optimize coordinator storage after unmanaged Cargo-artifact scan revealed terminal index snapshot growth
+  - docs/superpowers/plans/2026-07-17-coordinator-terminal-index-snapshot-retention.md
+  - user: 2026-07-16 reduce coordinator friction using two days of session evidence and improve the visual work board
+  - docs/superpowers/specs/2026-07-16-coordinator-flow-efficiency-design.md
+  - docs/superpowers/plans/2026-07-16-coordinator-flow-efficiency-m1.md
   - user: 2026-07-16 keep coordinator admission nonblocking and replay safe local requests after startup
   - docs/superpowers/plans/2026-07-16-coordinator-offline-replay-nonblocking.md
   - user: 2026-07-11 implement local multi-Session coordination on shared main
@@ -103,6 +119,7 @@ plan_sources:
   - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-15-milestone-finalize-session-relative-owned-scope.md
   - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-15-support-slice-exact-finalize-plan-output-conflict.md
   - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-16-stale-session-pending-cpu-reservation-starvation.md
+  - docs/plans/zircon_tooling/session_coordinator/01/failure-2026-07-16-legacy-open-failure-pins-stale-sessions.md
 tests:
   - tools/session_coordinator/tests/test_database.py
   - tools/session_coordinator/tests/test_server.py
@@ -131,6 +148,9 @@ tests:
   - tools/session_coordinator/tests/test_control_http.py
   - tools/session_coordinator/tests/test_control_security.py
   - tools/session_coordinator/tests/test_control_snapshot.py
+  - tools/session_coordinator/tests/test_codex_store.py
+  - tools/session_coordinator/web/src/__tests__/contracts.test.ts
+  - tools/session_coordinator/web/src/__tests__/components.test.tsx
   - tools/session_coordinator/tests/test_action_catalog.py
   - tools/session_coordinator/tests/test_action_auth.py
   - tools/session_coordinator/tests/test_action_fingerprint.py
@@ -471,6 +491,32 @@ work. The last 200 sanitized audit events remain available for immediate diagnos
 history remains in the coordinator SQLite ledger and the dedicated log/audit interfaces, not
 in the startup payload.
 
+### Quiet sync and the operator work board
+
+Codex rollout discovery separates source metadata refresh from a visible lifecycle change.
+A periodic scan may update a file revision, size, or observation timestamp without emitting a
+`codex.session.updated` event or adding a `codex.sync.completed` audit record. A new rollout,
+lifecycle/identity change, diagnostic, unavailable source, and every operator-triggered sync
+remain visible events. This keeps the timeline focused on work that changed rather than the
+thirty-second observer's bookkeeping while retaining the complete current source revision in
+the database.
+
+The browser's Overview page adds a bounded `experience` projection for the last 24 hours:
+`静默同步` shows quiet runs over total sync runs, and `资源阻塞` lists at most 20 current
+Cargo reservations or jobs with only their owning Session, lane kind, state, and creation time.
+It does not expose command lines, historical retry noise, or a global admission state. A
+blocker is scoped to its resource owner: it tells the next developer which validation lane is
+occupied, never that unrelated Session registration or file work must wait. During a rolling
+daemon/UI upgrade, a missing projection renders as `0/0` and no blockers instead of breaking
+the control surface.
+
+The Overview page also renders a compact `validation.artifactLifecycle` maintenance-debt
+summary: reusable pools, ephemeral targets, pending cleanup, and cleanup failures. A pending
+or failed cleanup is actionable only from Validation details and is never an admission gate:
+the panel explicitly preserves open Session admission and never requests a global drain. Its
+counts retain the current-directory semantics above, so historical jobs and already-deleted
+targets do not inflate the operator's cleanup work.
+
 The Windows tray follows the same always-admitting policy. It exposes operationally valid
 actions only: open the local console, refresh the tray state, diagnostics, startup-item
 management, and exit. It intentionally omits global drain/stop/restart/force-stop commands,
@@ -558,11 +604,20 @@ Owned-scope eligibility is Session-relative, not global-baseline-relative. Attri
 
 Every requested path must be attributed to the completed Session at its current SHA-256 hash. Every other dirty path attributed to that Session must also appear in the manifest, so untracked files, documentation, tests and scripts cannot be silently omitted. The durable finalize request records four categories (`code`, `docs`, `tests`, `scripts`) and a separate `untracked_paths` inventory.
 
-Before index mutation, the service rejects a degraded/stale baseline, an active Git mutex, foreign leases, queued or `needs_rebase` patches, foreign staged paths, protected/global plan output, output outside the registered numbered child plan, and an unresolved Failure routed to the Session plan. Staged added lines are also scanned for Enterprise WeChat webhook URLs and credential markers. Webhook configuration remains local and must never enter Git.
+Before index mutation, the service requires the baseline `HEAD` to remain current, rejects an active Git mutex, foreign leases, queued or `needs_rebase` patches, foreign staged paths, protected/global plan output, output outside the registered numbered child plan, and an unresolved Failure routed to the Session plan. A degraded baseline is retained as a workspace-health observation rather than a global finalization gate: an exactly attributed, scope-complete Session may commit without waiting for unrelated worktree changes to be reconciled. Staged added lines are also scanned for Enterprise WeChat webhook URLs and credential markers. Webhook configuration remains local and must never enter Git.
 
 The service persists the pre-transaction HEAD and exact Git index bytes after taking its database mutex, calculates each approved worktree file's Git-cleaned blob identity, stages only the approved paths, then verifies both the exact staged name set and staged blob identities. This closes the last-write race between attribution checking and staging. After optional validation commands, it repeats scope, blob and secret checks. The final commit is built from the verified index tree and advances `HEAD` with an expected-old-SHA compare-and-swap, so repository hooks or validation cannot silently widen the commit. A pre-commit or validation failure atomically restores the prior index and preserves every worktree file. Successful commits record their SHA and open a new baseline epoch that advances only committed paths; other Sessions' dirty files remain visible as baseline differences.
 
 Service restart restores a persisted pre-commit index when HEAD did not advance, returns an interrupted Session to `completed`, and marks the request failed. The `ref_updated_sha` intent closes the post-commit/pre-baseline window: if the exact expected scoped commit already advanced HEAD before a process interruption, startup reconciles its SHA and commit-derived partial baseline instead of reporting a false failure or capturing the full dirty worktree.
+
+The persisted Git index bytes are a recovery-only BLOB. They exist only while a
+request is `finalizing`; every `committed` or `failed` transition clears them in
+the same transaction that records the terminal result. Schema 47 performs the
+same terminal-only cleanup for historical records before daemon admission and
+then compacts an existing SQLite database. It never clears a live `finalizing`
+record, does not alter baseline manifests, and does not introduce a global drain
+or registration gate. If physical compaction fails, the schema marker remains
+absent so a later safe startup retries rather than reporting reclaimed storage.
 
 Health probes keep a short three-second timeout. Mutating service commands use a separate five-minute client timeout. If that deadline is genuinely reached, the client reports typed `command_timeout` with the command and deadline rather than falsely reporting the daemon as offline; callers inspect the typed job/session status before retrying. `session heartbeat`, lease claim/release, and the complete Cargo acquire/start/heartbeat/finish/release lifecycle each use their own short SQLite transaction and never wait behind baseline observation or validation-copy work. Baseline observation and direct validation-copy materialize/run/cleanup keep their own durable status transitions and do not own that foreground lifecycle lane; shared-worktree patch, finalization and Failure mutations remain serialized.
 
@@ -608,7 +663,7 @@ Migration is report-first. The report parser reads only root-level `.codex/sessi
 .\tools\zircon-session.ps1 legacy import --apply --report E:\temp\zircon-import-applied.json -Json
 ```
 
-Known status aliases map to the fixed enum. `working`, `in_progress`, and `implementing` become `active`; `done` and `complete` become `completed`; exact service statuses remain exact. Unknown or retired values such as `blocked` are preserved verbatim in `status_reason` and classified from evidence rather than persisted as a new status. A live PID, a note updated inside ten minutes, an active service heartbeat/lease, a pending/rebase patch, or an open Failure overrides even a terminal source label and keeps the note active. Without activity evidence, the note becomes `stale`. Import is hash-keyed and idempotent, preserves newer service state, imports a numbered plan link where available, uses the source mtime for legacy timestamps, clears obsolete terminal timestamps on reactivation, and never moves or deletes the source note.
+Known status aliases map to the fixed enum. `working`, `in_progress`, and `implementing` become `active`; `done` and `complete` become `completed`; exact service statuses remain exact. Unknown or retired values such as `blocked` are preserved verbatim in `status_reason` and classified from evidence rather than persisted as a new status. Only a live PID, a note updated inside ten minutes, a fresh service heartbeat, an active lease, or a pending/rebase patch overrides even a terminal source label and keeps the note active. An open Failure remains a durable priority record in the Failure graph, but never becomes a synthetic Session heartbeat: an otherwise inactive root note still becomes `stale` and may be archived. Import is hash-keyed and idempotent, preserves newer service state, imports a numbered plan link where available, uses the source mtime for legacy timestamps, clears obsolete terminal timestamps on reactivation, and never moves or deletes the source note.
 
 Archive is a separate explicit operation:
 
@@ -633,7 +688,7 @@ Active Session snapshots are retained. Completed/cancelled snapshots remain for 
 
 ## Maintenance and Rollout Audit
 
-One maintenance tick performs enum-only stale classification, Cargo orphan reconciliation, dead validation-child recovery, a WAL checkpoint, and retention/Cargo cleanup planning. The daemon-owned periodic tick also imports and journal-archives inactive root notes, archives service-native stale Sessions after 24 hours with no lease/patch/Failure, and applies revalidated retention/Cargo plans:
+One maintenance tick performs enum-only stale classification, Cargo orphan reconciliation, dead validation-child recovery, a WAL checkpoint, and retention/Cargo cleanup planning. The daemon-owned periodic tick also imports and journal-archives inactive root notes, archives service-native stale Sessions after 24 hours with no live liveness signal, and applies revalidated retention/Cargo plans. A queued patch, live lease, or running Cargo job retains its owner; an open Failure does not. Failure priority stays queryable independently of both legacy-note and native-Session archival:
 
 ```powershell
 .\tools\zircon-session.ps1 maintenance tick -Json

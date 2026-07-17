@@ -10,7 +10,7 @@ fn render_advanced_material_scene_copy_is_absent_without_specular_transmission()
         let compiled = pipeline.compile(&test_extract()).unwrap();
 
         assert!(!compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name == "transmission.scene_copy"));
@@ -20,7 +20,7 @@ fn render_advanced_material_scene_copy_is_absent_without_specular_transmission()
             PostProcessGraphResourceNames::TRANSMISSION_SCENE_COLOR,
         );
         assert!(!compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name.starts_with("transmission-mesh")));
@@ -41,7 +41,7 @@ fn render_advanced_material_scene_copy_runs_after_sky_before_transparency() {
     ] {
         let compiled = pipeline.compile(&extract).unwrap();
         let pass_names = compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -106,7 +106,7 @@ fn render_advanced_material_transmission_steps_alternate_copy_and_nonoverlapping
     ] {
         let compiled = pipeline.compile(&extract).unwrap();
         let pass_names = compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -156,12 +156,12 @@ fn render_advanced_material_zero_copy_steps_keep_one_environment_only_draw() {
         .unwrap();
 
     assert!(!compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name.starts_with("transmission.scene_copy")));
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "transmission-mesh.0"));
@@ -188,7 +188,7 @@ fn render_advanced_opaque_forward_runs_after_sky_before_scene_copy() {
     ] {
         let compiled = pipeline.compile(&extract).unwrap();
         let pass_names = compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())

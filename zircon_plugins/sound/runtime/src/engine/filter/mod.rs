@@ -6,3 +6,6 @@ mod state;
 
 pub(crate) use apply::apply_biquad_filter_block;
 pub(crate) use state::SoundBiquadFilterState;
+
+#[cfg(test)]
+mod tests;

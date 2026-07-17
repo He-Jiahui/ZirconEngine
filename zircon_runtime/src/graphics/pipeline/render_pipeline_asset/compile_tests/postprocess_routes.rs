@@ -19,7 +19,7 @@ fn compile_describes_color_lut_as_rgba16float_3d_transient_when_enabled() {
 
     let color_lut = texture_lifetime(&compiled, PostProcessGraphResourceNames::COLOR_LUT);
     let color_lut_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "color-lut-bake")
@@ -84,7 +84,7 @@ fn compile_routes_bloom_extract_after_split_scene_color_passes() {
         .unwrap();
 
     let bloom_extract = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "bloom-extract")
@@ -355,7 +355,7 @@ fn compile_declares_uber_light_list_frame_resource_for_default_stack() {
         )
         .unwrap();
     let uber = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "uber")
@@ -366,7 +366,7 @@ fn compile_declares_uber_light_list_frame_resource_for_default_stack() {
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == PostProcessGraphResourceNames::LIGHT_LIST)
@@ -389,7 +389,7 @@ fn compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disab
         )
         .unwrap();
     let uber = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "uber")
@@ -401,7 +401,7 @@ fn compile_declares_uber_light_list_as_external_when_clustered_lighting_is_disab
             && resource.access == RenderGraphResourceAccessKind::Read
     }));
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == PostProcessGraphResourceNames::LIGHT_LIST)
@@ -505,7 +505,7 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
         .unwrap();
 
     let output_transfer = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "output-transfer")
@@ -521,7 +521,7 @@ fn compile_routes_output_transfer_through_fxaa_terminal_input() {
     }));
 
     let fxaa = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "fxaa")
@@ -569,7 +569,7 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
         .unwrap();
 
     let output_transfer = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "output-transfer")
@@ -585,7 +585,7 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
     }));
 
     let smaa = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "smaa")
@@ -600,7 +600,7 @@ fn compile_routes_output_transfer_through_smaa_terminal_input() {
             && resource.access == RenderGraphResourceAccessKind::Write
     }));
     assert!(!compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "fxaa"));
@@ -630,11 +630,11 @@ fn compile_describes_hzb_as_half_power_of_two_mip_chain() {
 
     let hzb_furthest = texture_lifetime(&compiled, PostProcessGraphResourceNames::HZB_FURTHEST);
     let hzb_indirect_args = compiled
-        .graph
+        .graph()
         .resource_lifetime_by_name("mesh.indirect-args")
         .expect("HZB occlusion indirect args external lifetime");
     let hzb_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "hzb-build")
@@ -726,7 +726,7 @@ fn graph_has_pass(
     pass_name: &str,
 ) -> bool {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == pass_name)
@@ -737,7 +737,7 @@ fn graph_pass_index(
     pass_name: &str,
 ) -> usize {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .position(|pass| pass.name == pass_name)
@@ -749,7 +749,7 @@ fn graph_pass<'a>(
     pass_name: &str,
 ) -> &'a crate::render_graph::CompiledRenderPass {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)

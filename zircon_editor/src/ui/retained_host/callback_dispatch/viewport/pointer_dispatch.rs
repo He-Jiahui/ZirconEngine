@@ -16,10 +16,9 @@ pub(crate) fn dispatch_viewport_pointer_event(
     bridge: &mut SharedViewportPointerBridge,
     event: UiPointerEvent,
 ) -> Result<UiHostEventEffects, String> {
-    let dispatcher = viewport_pointer_dispatcher();
     let dispatch = bridge
         .surface
-        .dispatch_pointer_event(&dispatcher, event)
+        .dispatch_pointer_event(&bridge.dispatcher, event)
         .map_err(|error| error.to_string())?;
 
     if dispatch.handled_by != Some(bridge.viewport_node_id)
@@ -35,7 +34,7 @@ pub(crate) fn dispatch_viewport_pointer_event(
     dispatch_viewport_event(runtime, viewport_event)
 }
 
-fn viewport_pointer_dispatcher() -> UiPointerDispatcher {
+pub(super) fn viewport_pointer_dispatcher() -> UiPointerDispatcher {
     let mut dispatcher = UiPointerDispatcher::default();
     dispatcher.register(
         VIEWPORT_SURFACE_NODE_ID,

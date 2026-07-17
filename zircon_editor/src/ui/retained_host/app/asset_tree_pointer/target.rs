@@ -33,11 +33,13 @@ impl RetainedEditorHost {
             self.set_status_line(format!("Unknown asset surface mode {surface_mode}"));
             return false;
         };
-        surface.tree_size = tree_size;
-        surface.tree_bridge.sync(
-            AssetFolderTreePointerLayout::from_snapshot(&snapshot, surface.tree_size),
-            surface.tree_state.clone(),
-        );
+        if surface.tree_size != tree_size {
+            surface.tree_size = tree_size;
+            surface.tree_bridge.sync(
+                AssetFolderTreePointerLayout::from_snapshot(snapshot.as_ref(), surface.tree_size),
+                surface.tree_state.clone(),
+            );
+        }
         true
     }
 }

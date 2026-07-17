@@ -2,6 +2,8 @@
 fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
     let session_source = include_str!("../../../dynamic_api/session.rs");
     let ffi_source = include_str!("../../../dynamic_api/session/ffi.rs");
+    let state_source = include_str!("../../../dynamic_api/session/state.rs");
+    let construction_source = include_str!("../../../dynamic_api/session/construction.rs");
     let events_source = include_str!("../../../dynamic_api/session/events.rs");
     let session_doc = include_str!("../../../../../docs/zircon_runtime/dynamic_api/session.md");
     let runtime_10_output = include_str!(
@@ -28,7 +30,6 @@ fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
         "fn handle_keyboard",
         "fn handle_ime",
         "fn handle_gamepad_axis",
-        "fn sync_orbit_target_from_selection",
     ] {
         assert!(
             !ffi_source.contains(moved_event_anchor),
@@ -37,6 +38,37 @@ fn runtime_10_dynamic_session_event_split_keeps_abi_owner_and_event_router() {
         assert!(
             events_source.contains(moved_event_anchor),
             "session/events.rs should own event helper `{moved_event_anchor}`"
+        );
+    }
+
+    for (owner, source) in [
+        ("session/state.rs", state_source),
+        ("session/construction.rs", construction_source),
+        ("session/events.rs", events_source),
+    ] {
+        for removed_editor_selection_anchor in [
+            "selected_node",
+            "selection_node",
+            "selected_entity",
+            "editor_selection",
+            "set_selected_node",
+            "sync_orbit_target_from_selection",
+        ] {
+            assert!(
+                !source.contains(removed_editor_selection_anchor),
+                "{owner} must not retain editor selection anchor `{removed_editor_selection_anchor}`"
+            );
+        }
+    }
+
+    for initial_orbit_anchor in [
+        "matches!(&node.kind, NodeKind::Cube)",
+        "node.transform.translation",
+        "camera_controller.set_orbit_target(orbit_target)",
+    ] {
+        assert!(
+            construction_source.contains(initial_orbit_anchor),
+            "session/construction.rs must retain neutral initial orbit anchor `{initial_orbit_anchor}`"
         );
     }
 

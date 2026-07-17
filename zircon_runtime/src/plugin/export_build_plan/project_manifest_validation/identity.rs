@@ -137,28 +137,34 @@ fn validate_project_plugin_feature_id(
             "project plugin feature id `{feature_id}` must be non-empty and trimmed"
         ));
     }
-    let segments = feature_id.split('.').collect::<Vec<_>>();
-    if segments.len() < 2 {
+    let mut segment_count = 0;
+    let mut has_empty_segment = false;
+    let mut has_invalid_segment = false;
+    for segment in feature_id.split('.') {
+        segment_count += 1;
+        if segment.is_empty() {
+            has_empty_segment = true;
+        } else if !is_lowercase_project_feature_segment(segment) {
+            has_invalid_segment = true;
+        }
+    }
+    if segment_count < 2 {
         diagnostics.push(format!(
             "project plugin feature id `{feature_id}` must use owner.feature dot namespace form"
         ));
     }
-    if segments.iter().any(|segment| segment.is_empty()) {
+    if has_empty_segment {
         diagnostics.push(format!(
             "project plugin feature id `{feature_id}` must not contain empty namespace segments"
         ));
     }
-    if segments
-        .iter()
-        .any(|segment| !segment.is_empty() && !is_lowercase_project_feature_segment(segment))
-    {
+    if has_invalid_segment {
         diagnostics.push(format!(
             "project plugin feature id `{feature_id}` must contain only lowercase ASCII letters, digits, underscores, and dots"
         ));
     }
     if project_plugin_package_id_is_valid(owner_plugin_id) {
-        let owner_prefix = format!("{owner_plugin_id}.");
-        if !feature_id.starts_with(&owner_prefix) {
+        if !project_feature_id_has_owner(owner_plugin_id, feature_id) {
             diagnostics.push(format!(
                 "project plugin feature id `{feature_id}` must be prefixed by project plugin `{owner_plugin_id}`"
             ));
@@ -187,5 +193,35 @@ pub(in crate::plugin::export_build_plan) fn project_plugin_feature_id_is_valid(
     project_plugin_package_id_is_valid(owner_plugin_id)
         && feature_id.trim() == feature_id
         && is_lowercase_project_feature_namespace(feature_id)
-        && feature_id.starts_with(&format!("{owner_plugin_id}."))
+        && project_feature_id_has_owner(owner_plugin_id, feature_id)
+}
+
+fn project_feature_id_has_owner(owner_plugin_id: &str, feature_id: &str) -> bool {
+    feature_id
+        .strip_prefix(owner_plugin_id)
+        .is_some_and(|suffix| suffix.starts_with('.'))
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn project_feature_identity_validation_does_not_allocate_scan_helpers() {
+        let source = include_str!("identity.rs");
+        let segment_collection = ["split('.')", ".collect::<Vec<_>>()"].concat();
+        let formatted_prefix = ["format!(\"{owner_", "plugin_id}.\")"].concat();
+        assert!(!source.contains(&segment_collection));
+        assert!(!source.contains(&formatted_prefix));
+    }
+
+    #[test]
+    fn project_feature_owner_matching_preserves_the_dot_boundary() {
+        assert!(super::project_feature_id_has_owner(
+            "rendering",
+            "rendering.deferred"
+        ));
+        assert!(!super::project_feature_id_has_owner(
+            "render",
+            "rendering.deferred"
+        ));
+    }
 }

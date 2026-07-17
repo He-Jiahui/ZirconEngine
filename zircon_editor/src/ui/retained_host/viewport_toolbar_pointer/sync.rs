@@ -14,10 +14,10 @@ impl ViewportToolbarPointerBridge {
             .layout
             .surfaces
             .iter()
-            .map(|surface| surface.key.clone())
+            .map(|surface| surface.key.as_str())
             .collect::<BTreeSet<_>>();
         self.controls_by_surface
-            .retain(|surface_key, _| valid_surface_keys.contains(surface_key));
+            .retain(|surface_key, _| valid_surface_keys.contains(surface_key.as_str()));
         self.rebuild_surface();
         true
     }

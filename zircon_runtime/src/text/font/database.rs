@@ -193,6 +193,7 @@ pub(crate) struct FontDatabase {
     asset_source_index: HashMap<FontAssetSourceKey, FontFaceId>,
     fallback_families: Vec<FontFamilyName>,
     project_composite_font: Option<CompositeFontDescriptor>,
+    default_ui_family: Option<String>,
     backend_database: fontdb::Database,
     backend_faces: BackendFaceMap,
     instances: FontInstanceRegistry,
@@ -211,6 +212,7 @@ impl Default for FontDatabase {
             asset_source_index: HashMap::new(),
             fallback_families: Vec::new(),
             project_composite_font: None,
+            default_ui_family: None,
             backend_database: fontdb::Database::new(),
             backend_faces: BackendFaceMap::default(),
             instances: FontInstanceRegistry::default(),
@@ -327,6 +329,7 @@ impl FontDatabase {
     }
 
     pub(crate) fn set_default_ui_family(&mut self, family: &str) {
+        self.default_ui_family = Some(family.to_string());
         self.backend_database
             .set_sans_serif_family(family.to_string());
         self.backend_database
@@ -926,6 +929,8 @@ fn read_decoded_font_source(source_path: &Path) -> Result<Vec<u8>, FontDatabaseE
             source,
         })
 }
+
+mod equivalence;
 
 #[cfg(test)]
 mod tests;

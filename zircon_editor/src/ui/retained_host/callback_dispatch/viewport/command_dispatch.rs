@@ -22,7 +22,6 @@ pub(crate) fn dispatch_viewport_event(
 }
 
 #[cfg(test)]
-#[cfg(test)]
 pub(crate) fn dispatch_viewport_command(
     runtime: &EditorHostEventController,
     command: ViewportCommand,

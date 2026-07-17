@@ -287,7 +287,7 @@ fn pass_resource_access<'a>(
     access: RenderGraphResourceAccessKind,
 ) -> &'a crate::render_graph::RenderGraphPassResourceAccess {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)
@@ -304,7 +304,7 @@ fn graph_resource_lifetime<'a>(
     resource_name: &str,
 ) -> &'a crate::render_graph::RenderGraphResourceLifetime {
     compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == resource_name)

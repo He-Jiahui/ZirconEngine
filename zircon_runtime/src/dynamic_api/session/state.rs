@@ -45,7 +45,6 @@ pub(super) struct RuntimeDynamicSession {
     pub(super) level: LevelSystem,
     pub(super) scene_asset_reload_queue: Option<DynamicSceneAssetReloadQueue>,
     pub(super) last_scene_asset_reload_report: Option<DynamicSceneAssetReloadFrameApplyReport>,
-    pub(super) selected_node: Option<u64>,
     pub(super) camera_controller: RuntimeCameraController,
     pub(super) extract_cache: super::extract_cache::RuntimeFrameExtractCache,
     pub(super) cursor: Vec2,

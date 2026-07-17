@@ -1,3 +1,5 @@
+use std::{collections::HashSet, sync::LazyLock};
+
 mod extensions;
 
 pub(crate) const WORKBENCH_PREVIEW_ACTION_IDS: &[&str] = &[
@@ -308,14 +310,24 @@ pub(crate) const WORKBENCH_PREVIEW_ACTION_IDS: &[&str] = &[
     "component_drawer.console_tab.select",
 ];
 
+static WORKBENCH_PREVIEW_ACTION_ID_SET: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
+    WORKBENCH_PREVIEW_ACTION_IDS
+        .iter()
+        .chain(extensions::WORKBENCH_EXTENSION_PREVIEW_ACTION_IDS.iter())
+        .copied()
+        .collect()
+});
+
 pub(crate) fn is_workbench_preview_action(action_id: &str) -> bool {
-    WORKBENCH_PREVIEW_ACTION_IDS.contains(&action_id)
-        || extensions::WORKBENCH_EXTENSION_PREVIEW_ACTION_IDS.contains(&action_id)
+    WORKBENCH_PREVIEW_ACTION_ID_SET.contains(action_id)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{extensions, is_workbench_preview_action, WORKBENCH_PREVIEW_ACTION_IDS};
+    use super::{
+        extensions, is_workbench_preview_action, WORKBENCH_PREVIEW_ACTION_IDS,
+        WORKBENCH_PREVIEW_ACTION_ID_SET,
+    };
 
     fn preview_action_ids() -> impl Iterator<Item = &'static str> {
         WORKBENCH_PREVIEW_ACTION_IDS
@@ -440,6 +452,7 @@ mod tests {
         let unique_action_count = preview_action_ids()
             .collect::<std::collections::BTreeSet<_>>()
             .len();
+        assert_eq!(WORKBENCH_PREVIEW_ACTION_ID_SET.len(), all_action_count);
         assert_eq!(
             unique_action_count, all_action_count,
             "preview action ids should remain unique"

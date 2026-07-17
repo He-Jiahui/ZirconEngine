@@ -1,6 +1,7 @@
 use super::super::super::super::data::FrameRect;
 use super::super::super::super::paint_frame::HostRgbaFrame;
-use super::super::super::super::paint_geometry::is_visible_frame;
+use super::super::super::super::paint_geometry::{is_visible_frame, PixelRect};
+use super::super::super::clip::effective_clip;
 use super::super::rects::draw_rect_clipped;
 
 pub(in crate::ui::retained_host::host_contract) fn draw_border(
@@ -17,7 +18,24 @@ pub(in crate::ui::retained_host::host_contract) fn draw_border_clipped(
     clip: Option<&FrameRect>,
     color: [u8; 4],
 ) {
-    if !is_visible_frame(&rect) {
+    if color[3] == 0 || !is_visible_frame(&rect) {
+        return;
+    }
+    if frame.record_only() {
+        let Some(effective_clip) = effective_clip(frame, clip) else {
+            return;
+        };
+        if PixelRect::from_frame(
+            &rect,
+            effective_clip.as_ref(),
+            frame.width(),
+            frame.height(),
+        )
+        .is_none()
+        {
+            return;
+        }
+        frame.record_border(rect, effective_clip, color, 1.0, 0.0);
         return;
     }
     draw_rect_clipped(frame, border_top(&rect), clip, color);

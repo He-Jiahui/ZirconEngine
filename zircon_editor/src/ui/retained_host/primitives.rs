@@ -176,7 +176,10 @@ impl<T: Clone> ModelRc<T> {
         self.values.get(row).cloned()
     }
 
-    #[cfg(test)]
+    pub(crate) fn get(&self, row: usize) -> Option<&T> {
+        self.values.get(row)
+    }
+
     pub(crate) fn iter(&self) -> std::slice::Iter<'_, T> {
         self.values.iter()
     }
@@ -184,8 +187,66 @@ impl<T: Clone> ModelRc<T> {
 
 impl<T: Clone> From<Rc<VecModel<T>>> for ModelRc<T> {
     fn from(model: Rc<VecModel<T>>) -> Self {
+        let values = match Rc::try_unwrap(model) {
+            Ok(model) => model.values,
+            Err(model) => model.values.clone(),
+        };
         Self {
-            values: Rc::new(model.values.clone()),
+            values: Rc::new(values),
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    use super::*;
+
+    struct CloneProbe(Arc<AtomicUsize>);
+
+    impl Clone for CloneProbe {
+        fn clone(&self) -> Self {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Self(Arc::clone(&self.0))
+        }
+    }
+
+    #[test]
+    fn model_rc_takes_unique_vec_model_without_cloning_rows() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let source = Rc::new(VecModel::from(vec![CloneProbe(Arc::clone(&clone_count))]));
+
+        let model = ModelRc::from(source);
+
+        assert_eq!(model.row_count(), 1);
+        assert_eq!(clone_count.load(Ordering::Relaxed), 0);
+    }
+
+    #[test]
+    fn model_rc_clones_rows_when_the_source_vec_model_is_shared() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let source = Rc::new(VecModel::from(vec![CloneProbe(Arc::clone(&clone_count))]));
+        let shared = Rc::clone(&source);
+
+        let model = ModelRc::from(source);
+
+        assert_eq!(model.row_count(), 1);
+        assert_eq!(shared.values.len(), 1);
+        assert_eq!(clone_count.load(Ordering::Relaxed), 1);
+    }
+
+    #[test]
+    fn model_rc_borrowed_row_access_does_not_clone() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let model = ModelRc {
+            values: Rc::new(vec![CloneProbe(Arc::clone(&clone_count))]),
+        };
+
+        assert!(model.get(0).is_some());
+        assert_eq!(clone_count.load(Ordering::Relaxed), 0);
     }
 }

@@ -31,7 +31,7 @@ fn assert_screen_space_ui_is_terminal(pipeline: RenderPipelineAsset) {
     assert_pass_before(&compiled, "overlay-gizmo", "runtime-ui");
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .last()
             .map(|pass| pass.name.as_str()),
@@ -71,7 +71,7 @@ fn assert_pass_before(compiled: &CompiledRenderPipeline, earlier: &str, later: &
 
 fn pass_index(compiled: &CompiledRenderPipeline, name: &str) -> usize {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .position(|pass| pass.name == name)

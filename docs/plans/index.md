@@ -26,6 +26,10 @@
 
 [`milestone-validation-policy.md`](milestone-validation-policy.md) 是所有计划集的测试调度权威：实现切片只做静态检查，Cargo 编译与测试按里程碑批量执行，工作区级回归按依赖波次收口。该政策优化验证频率，不删除回归测试或降低接受标准。
 
+## 当前执行优先级
+
+所有 Session 在推进本目录下的计划前，必须先遵循 [`minimum-viable-engine-foundation.md`](minimum-viable-engine-foundation.md)。在基础设施 MVP 验收 F0-F5 完成前，优先完成可启动、项目与资产、场景运行、持久化、基础编辑和批量产品验收；高级渲染、完整文本、AI、网络和插件扩展只允许修复这些基础门的直接阻断问题。
+
 ## 使用规则
 
 1. 进入某个子系统前，先读上表对应的 `index.md`。

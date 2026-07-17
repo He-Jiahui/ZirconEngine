@@ -28,7 +28,18 @@ pub(in crate::ui::retained_host::host_contract) fn repaint_chrome_command_stream
 }
 
 fn paint_chrome_command_stream_into_frame(frame: &mut HostRgbaFrame, stream: &ChromeCommandStream) {
-    let mut ordered = stream.commands().iter().enumerate().collect::<Vec<_>>();
+    let commands = stream.commands();
+    if commands
+        .windows(2)
+        .all(|pair| pair[0].z_index <= pair[1].z_index)
+    {
+        for command in commands {
+            paint_chrome_command(frame, command);
+        }
+        return;
+    }
+
+    let mut ordered = commands.iter().enumerate().collect::<Vec<_>>();
     ordered.sort_by_key(|(index, command)| (command.z_index, *index));
     for (_, command) in ordered {
         paint_chrome_command(frame, command);

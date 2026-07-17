@@ -31,12 +31,16 @@ implementation_files:
   - zircon_editor/src/core/project/recent_project_validation.rs
   - zircon_editor/src/core/project/stored_recent_project_entry.rs
   - zircon_editor/src/core/project/stored_startup_session.rs
+  - zircon_editor/src/ui/host/startup/create_or_open.rs
+  - zircon_editor/src/ui/host/startup/recent_projects.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - user: 2026-07-11 Plan10 M1 slice 1.2 ProjectAuthority hard cut
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md
   - docs/plans/engine-code-structure-convention.md
 tests:
+  - zircon_editor/src/ui/host/startup/create_or_open.rs::tests::opened_project_is_not_reopened_just_to_update_recents
   - zircon_editor/src/core/project/tests/template_creation.rs
   - zircon_editor/src/core/project/tests/recent_projects.rs
   - zircon_editor/src/core/project/tests/boundary.rs
@@ -74,6 +78,16 @@ Opening accepts either a project root or `zircon-project.toml`, resolves an abso
 
 Recent entries persist `ProjectManifestSummary`, path, and timestamp. The summary name is the only display-name truth. Validation is projected dynamically and is not persisted. Remembering the same path replaces its summary, sorts by timestamp, and enforces the eight-entry limit. JSON encode/decode failures retain their `serde_json::Error` sources through `ProjectAuthorityError`.
 
+After a successful interactive open, startup passes the already validated root and manifest summary
+directly to `remember_opened_project`. It no longer calls the public independent
+`update_recent_project` path, which intentionally opens and validates an arbitrary caller-provided
+path. This removes a duplicate canonicalize/read/manifest-parse from the common open-and-remember
+flow while preserving the standalone update API.
+
 ## Test status
 
 Source tests cover complete template copy, v2 name rewrite, unsafe project-name rejection, actual reopen and manifest probe, `.zircon` layout, non-empty refusal, commit failure restoration, commit-plus-restore failure backup preservation, Summary roundtrip/refresh, and the core-to-UI dependency guard. The renderable-template regression now opens and scans the created project through `ProjectManager`; Editor Manager fixtures use one `ProjectAuthority`-backed helper instead of treating document save as project creation. On 2026-07-13, a current-source Windows lib-test binary ran `tests::host::manager:: --nocapture --test-threads=1` with 83 passed and 0 failed; the focused renderable-template test passed 1/1.
+
+The 2026-07-17 no-reopen source guard and formatting/diff checks pass. A current-source startup
+Cargo rerun and file-I/O trace remain pending; the historical 2026-07-13 binary does not validate
+this new optimization.

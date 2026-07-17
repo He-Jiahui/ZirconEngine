@@ -1,0 +1,83 @@
+---
+handoff_kind: failure
+status: open
+created_at: 2026-07-17
+summary_slug: dynamic-api-owner-status-anchor-loss
+origin_plan: docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
+fixing_plan: docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+origin_child_dir: docs/plans/zircon_runtime/runtime/10
+fixing_child_dir: docs/plans/zircon_runtime/runtime/15
+related_code:
+  - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
+  - docs/plans/zircon_runtime/runtime/index.md
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy/runtime_services/dynamic_scene.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_profile.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_session_registry.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/production_file_budget/dynamic_api_shader_prewarm_tests.rs
+  - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/naming_boundary_asset_dynamic_dynamic_api_vampire.rs
+tests:
+  - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry --locked --jobs 1 -- --test-threads=1
+  - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_profile_is_child_owner --locked --jobs 1 -- --test-threads=1
+  - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_session_registry_is_child_owner --locked --jobs 1 -- --test-threads=1
+  - cargo test -p zircon_runtime --lib runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner --locked --jobs 1 -- --test-threads=1
+  - cargo test -p zircon_runtime --lib runtime_15_asset_dynamic_dynamic_api_vampire_guard_is_child_owner --locked --jobs 1 -- --test-threads=1
+---
+
+# Runtime15: Dynamic API owner status anchors were lost from current plans
+
+## 产出记录与时间
+
+| 时间 | 来源门禁 | 状态 | 失败证据 | 修复责任 |
+| --- | --- | --- | --- | --- |
+| 2026-07-17 | Runtime10 `dynamic_api` 上行门 | `待修复（open）` | Windows managed job `388b5dfbf30245328db1a66d0bb88978` / run `b1a01bc55a2d478d9067ac56a91e489f` 执行 112 项，94 passed / 8 failed / 10 ignored，exit 101。其中 5 项为 Runtime15 owner/status 镜像失败。独立 current-source 复审逐锚确认：dynamic-session lock-poison、profile owner、registry owner、shader-prewarm test 四组在 Runtime15 父计划分别缺 3/5、4/5、4/5、5/5，在 current runtime index 均缺 5/5；asset-dynamic dynamic-API vampire 组在父计划已 5/5，current index 缺 4/5。对应详细锚仍能在 Runtime15 numbered/status rows 或模块文档找到，说明生产 owner 未被证明失效，失效的是 parent/index 到 canonical child source 的可执行路由。 | Runtime15 重新建立 current parent/index 到 numbered child records 的单一可执行镜像，或同步迁移守卫到 canonical child owner；不得只补首个短路失败位置、复制生产实现、删除断言或恢复 archive 聚合为第二事实源。 |
+
+## 来源执行者
+
+- 来源计划：`docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md`
+- 来源执行切片：Editor01 M2.3 selection-state hard cut 的 Runtime10 上行 `dynamic_api` 验证
+- 修复责任计划：`docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md`
+- 交接原因：五项失败都验证 Runtime15 的模块 owner、计划状态或总索引镜像；Runtime10 不应通过放宽结构守卫来关闭自己的上行门。
+
+## 失败现象与复现证据
+
+受管命令：
+
+```text
+cargo test -p zircon_runtime --lib dynamic_api --locked --jobs 1 -- --test-threads=1
+```
+
+失败组：
+
+- `runtime_15_dynamic_api_session_lock_poison_recovery_guard_covers_session_registry`：Runtime15 父计划缺 3/5，current index 缺 5/5 lock-poison owner/status anchors。
+- `runtime_15_dynamic_api_session_profile_is_child_owner`：父计划缺 4/5，current index 缺 5/5 profile child-owner anchors。
+- `runtime_15_dynamic_api_session_registry_is_child_owner`：父计划缺 4/5，current index 缺 5/5 registry child-owner anchors。
+- `runtime_15_dynamic_api_shader_prewarm_tests_are_child_owner`：父计划缺 5/5，current index 缺 5/5 shader-prewarm test child-owner anchors。
+- `runtime_15_asset_dynamic_dynamic_api_vampire_guard_is_child_owner`：父计划 5/5 anchors 已存在，current index 缺 vampire guard child-owner anchors 中 4/5。
+
+上述五个测试都依次检查 parent 与 current index：前四个首次执行在 parent 断言处短路，vampire 测试通过 parent 后在 index 失败。修复必须按上述矩阵验证完整 required-anchor 集合，不能只补当前 panic 首报的位置。
+
+同一门中的 Runtime10 selection-state event split 结构测试通过；本交接不覆盖独立的 Render01 F2 artifact URI 失败，也不覆盖 Runtime10 自己的两个 stale test-anchor 修复。
+
+## 最低共享层根因
+
+Runtime15 父计划和 runtime index 被压缩为路由/概览时，没有把既有结构守卫仍消费的 owner/status anchors 一并迁到当前 canonical child source。结果是生产模块和 numbered/status records 仍存在，但可执行文档镜像断链。该问题属于计划 owner 路由收敛，不属于 dynamic session 生产逻辑。
+
+## 架构修复验收
+
+- 五个聚焦结构测试全部通过，并继续锁定真实 child owner、文件预算、status，以及 Runtime15 parent 与 current runtime index 的路由。
+- 五组 required anchors 在 parent 与 current index 的预期 source 上逐项通过；不得以“首个 panic 已消失”替代同一测试后续断言的验证。
+- 每组 anchor 只有一个 canonical current owner；若守卫迁向 numbered child record，必须删除对 retired aggregate wording 的依赖，不得双写父计划与 archive。
+- Runtime15 父计划继续保持概览职责，不重新堆叠完整历史正文；必要的 current status 可通过明确 child-record link/loader 读取。
+- Runtime10 上行 `dynamic_api` 重跑时，这五项不再失败；其他功能 owner 的失败仍独立交接。
+
+## 禁止临时方案
+
+- 不得删除/忽略五个测试、缩短 required anchor 列表或从 `dynamic_api` filter 排除结构守卫。
+- 不得把 archive aggregate 恢复为第二份 current truth，也不得复制 profile/registry/shader-prewarm 生产实现到计划或测试 helper。
+- 不得把 Render01 F2 或 Runtime10 headless/status 锚失败混入本记录来制造一次性批量豁免。
+
+## 修复结果与回传
+
+- 来源交接独立复审：Critical / Important / Minor = 0 / 0 / 0；逐锚矩阵与测试短路顺序已按 current source 核实。该结论只确认 failure handoff 的准确性，不声明 Runtime15 修复完成。
+
+Open state: `待修复`; no pass is claimed.

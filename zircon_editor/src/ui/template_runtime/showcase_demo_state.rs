@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
 
 use toml::Value as TomlValue;
 use zircon_runtime::ui::component::{apply_component_event, UiComponentDescriptorRegistry};
@@ -21,6 +21,7 @@ pub(crate) use events::{
 };
 
 pub(crate) const SHOWCASE_DOCUMENT_ID: &str = "res://ui/editor/component_showcase.zui";
+const SHOWCASE_EVENT_LOG_LIMIT: usize = 128;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct UiComponentShowcaseDemoLogEntry {
@@ -33,7 +34,7 @@ pub(crate) struct UiComponentShowcaseDemoLogEntry {
 pub(crate) struct UiComponentShowcaseDemoState {
     selected_category: String,
     states: BTreeMap<String, UiComponentState>,
-    event_log: Vec<UiComponentShowcaseDemoLogEntry>,
+    event_log: VecDeque<UiComponentShowcaseDemoLogEntry>,
 }
 
 impl Default for UiComponentShowcaseDemoState {
@@ -41,7 +42,7 @@ impl Default for UiComponentShowcaseDemoState {
         Self {
             selected_category: "All".to_string(),
             states: BTreeMap::new(),
-            event_log: Vec::new(),
+            event_log: VecDeque::new(),
         }
     }
 }
@@ -53,7 +54,7 @@ impl UiComponentShowcaseDemoState {
     }
 
     #[cfg(test)]
-    pub(crate) fn event_log(&self) -> &[UiComponentShowcaseDemoLogEntry] {
+    pub(crate) fn event_log(&self) -> &VecDeque<UiComponentShowcaseDemoLogEntry> {
         &self.event_log
     }
 
@@ -385,7 +386,10 @@ impl UiComponentShowcaseDemoState {
     }
 
     fn push_log(&mut self, action: &str, control_id: &str, value_text: Option<String>) {
-        self.event_log.push(UiComponentShowcaseDemoLogEntry {
+        if self.event_log.len() == SHOWCASE_EVENT_LOG_LIMIT {
+            self.event_log.pop_front();
+        }
+        self.event_log.push_back(UiComponentShowcaseDemoLogEntry {
             action: action.to_string(),
             control_id: control_id.to_string(),
             value_text,
@@ -513,5 +517,34 @@ fn toml_value(value: &UiValue) -> TomlValue {
                 .collect(),
         ),
         UiValue::Null => TomlValue::String(String::new()),
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::{UiComponentShowcaseDemoState, SHOWCASE_EVENT_LOG_LIMIT};
+
+    #[test]
+    fn showcase_event_log_retains_a_bounded_recent_window() {
+        let mut state = UiComponentShowcaseDemoState::default();
+        for index in 0..=SHOWCASE_EVENT_LOG_LIMIT {
+            state.push_log("Change", &format!("control-{index}"), None);
+        }
+
+        assert_eq!(state.event_log.len(), SHOWCASE_EVENT_LOG_LIMIT);
+        assert_eq!(
+            state
+                .event_log
+                .front()
+                .map(|entry| entry.control_id.as_str()),
+            Some("control-1")
+        );
+        assert_eq!(
+            state
+                .event_log
+                .back()
+                .map(|entry| entry.control_id.as_str()),
+            Some("control-128")
+        );
     }
 }

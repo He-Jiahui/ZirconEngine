@@ -794,16 +794,16 @@ class MilestoneWorkflowService:
 
         notification = None
         if self.notifications is not None:
-            commit_time = self._git("show", "-s", "--format=%cI", result.commit_sha)
-            commit_subject = self._git("show", "-s", "--format=%s", result.commit_sha)
-            formatted = self.notifications.format_message(
-                module=module,
-                summary=f"{milestone_key} · {milestone['title']}：{summary}",
-                commit_time=commit_time,
-                shortstat=shortstat or "0 files changed",
-                commit_content=f"{result.commit_sha} {commit_subject}",
-            )
             try:
+                commit_time = self._git("show", "-s", "--format=%cI", result.commit_sha)
+                commit_subject = self._git("show", "-s", "--format=%s", result.commit_sha)
+                formatted = self.notifications.format_message(
+                    module=module,
+                    summary=f"{milestone_key} · {milestone['title']}：{summary}",
+                    commit_time=commit_time,
+                    shortstat=shortstat or "0 files changed",
+                    commit_content=f"{result.commit_sha} {commit_subject}",
+                )
                 notification = self.notifications.notify_once(
                     commit_sha=result.commit_sha,
                     message=formatted,
@@ -812,9 +812,15 @@ class MilestoneWorkflowService:
                     node_id=milestone["node_id"],
                     action_id=action_id,
                 )
-            except CoordinatorError as error:
-                if error.code != "notification_already_attempted":
-                    raise
+            except Exception as error:
+                notification = self.notifications.record_post_commit_failure(
+                    commit_sha=result.commit_sha,
+                    error=error,
+                    run_id=run_id,
+                    topology_version_id=context.topology_version_id,
+                    node_id=milestone["node_id"],
+                    action_id=action_id,
+                )
         return MilestoneCommitResult(result, latest, notification, shortstat)
 
     @staticmethod
@@ -1834,13 +1840,18 @@ class MilestoneWorkflowService:
         action_id: str | None,
     ) -> str:
         normalized = tuple(sorted(set(paths), key=str.casefold))
-        owned = set(self.leases.owned_paths(session_id)) if self.leases is not None else set()
-        if not normalized or not set(normalized) <= owned:
+        if not normalized or self.leases is None:
             raise CoordinatorError(
                 "milestone_manifest_unleased",
                 "Every milestone manifest path must be covered by the executing Session leases",
-                details={"paths": list(normalized), "unleased": sorted(set(normalized) - owned)},
+                details={"paths": list(normalized)},
             )
+        self.leases.require_owned_live(
+            session_id,
+            normalized,
+            error_code="milestone_manifest_unleased",
+            message="Every milestone manifest path must be covered by the executing Session leases",
+        )
         with self.database.connect() as connection:
             existing = connection.execute(
                 """SELECT * FROM workflow_milestone_manifests

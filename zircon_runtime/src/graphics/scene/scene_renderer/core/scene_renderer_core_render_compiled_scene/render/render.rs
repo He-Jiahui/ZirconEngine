@@ -69,25 +69,28 @@ impl SceneRendererCore {
             runtime_features.reflection_probes_enabled,
         )?;
         let camera_layers = frame.extract.view.selected_camera_layers();
-        let irradiance_sample_positions = frame
-            .extract
-            .geometry
-            .meshes
-            .iter()
-            .filter(|mesh| mesh.render_layer_mask.intersects(camera_layers))
-            .map(|mesh| mesh.transform.translation)
-            .collect::<Vec<_>>();
-        let selected_irradiance_volume = select_irradiance_volume_for_view(
-            &frame.extract.lighting.advanced_lighting.irradiance_volumes,
-            camera_layers,
-            &irradiance_sample_positions,
-        )
-        .cloned()
-        .and_then(|volume| {
-            streamer
-                .irradiance_volume_texture(volume.voxels)
-                .map(|texture| (volume, texture))
-        });
+        let irradiance_volumes = &frame.extract.lighting.advanced_lighting.irradiance_volumes;
+        let irradiance_sample_positions = collect_irradiance_sample_positions(
+            !irradiance_volumes.is_empty(),
+            frame
+                .extract
+                .geometry
+                .meshes
+                .iter()
+                .filter(|mesh| mesh.render_layer_mask.intersects(camera_layers))
+                .map(|mesh| mesh.transform.translation),
+        );
+        let selected_irradiance_volume = irradiance_sample_positions
+            .as_deref()
+            .and_then(|positions| {
+                select_irradiance_volume_for_view(irradiance_volumes, camera_layers, positions)
+            })
+            .cloned()
+            .and_then(|volume| {
+                streamer
+                    .irradiance_volume_texture(volume.voxels)
+                    .map(|texture| (volume, texture))
+            });
         self.mesh_pipelines
             .irradiance_volume
             .prepare(queue, selected_irradiance_volume);
@@ -327,7 +330,7 @@ impl SceneRendererCore {
             environment_source_cubemap_view,
         )?;
         let materialization_report = graph_resources
-            .validate_materialized_graph_resources(&pipeline.graph)
+            .validate_materialized_graph_resources(pipeline.graph())
             .map_err(GraphicsError::Asset)?;
         let mut graph_execution_record = RenderGraphExecutionRecord::default();
         graph_execution_record.set_materialization_report(materialization_report);
@@ -409,5 +412,41 @@ impl SceneRendererCore {
             Some(report) => outputs.with_output_target_graph_import_report(report),
             None => outputs,
         })
+    }
+}
+
+fn collect_irradiance_sample_positions<T>(
+    has_irradiance_volumes: bool,
+    positions: impl Iterator<Item = T>,
+) -> Option<Vec<T>> {
+    has_irradiance_volumes.then(|| positions.collect())
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use std::cell::Cell;
+
+    use super::collect_irradiance_sample_positions;
+
+    #[test]
+    fn frame_without_irradiance_volumes_does_not_scan_mesh_positions() {
+        let visited = Cell::new(0);
+        let positions = (0..4).inspect(|_| visited.set(visited.get() + 1));
+
+        let collected = collect_irradiance_sample_positions(false, positions);
+
+        assert!(collected.is_none());
+        assert_eq!(visited.get(), 0);
+    }
+
+    #[test]
+    fn frame_with_irradiance_volumes_collects_mesh_positions_once() {
+        let visited = Cell::new(0);
+        let positions = (0..4).inspect(|_| visited.set(visited.get() + 1));
+
+        let collected = collect_irradiance_sample_positions(true, positions);
+
+        assert_eq!(collected, Some(vec![0, 1, 2, 3]));
+        assert_eq!(visited.get(), 4);
     }
 }

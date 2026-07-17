@@ -3,6 +3,8 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/mod.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs::repeated_finalize_reuses_the_bridge_table_when_registrations_are_unchanged
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs::namespace_validation_does_not_collect_split_segments
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point.rs
   - zircon_runtime/src/plugin/extension_registry/ownership.rs
   - zircon_runtime/src/plugin/extension_registry/owner.rs
@@ -16,6 +18,8 @@ related_code:
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/token.rs
   - zircon_runtime/src/plugin/extension_registry/validation/component.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/plugin_event_catalog.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/plugin_option.rs
   - zircon_runtime/src/plugin/extension_registry/validation/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
@@ -85,6 +89,8 @@ implementation_files:
   - zircon_runtime/src/plugin/extension_registry/validation.rs
   - zircon_runtime/src/plugin/extension_registry/validation/token.rs
   - zircon_runtime/src/plugin/extension_registry/validation/component.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/plugin_event_catalog.rs
+  - zircon_runtime/src/plugin/extension_registry/validation/plugin_option.rs
   - zircon_runtime/src/plugin/extension_registry/validation/scene_hook.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world.rs
   - zircon_runtime/src/plugin/extension_registry/apply_to_world/component.rs
@@ -149,11 +155,13 @@ plan_sources:
   - docs/plans/zircon_plugins/04-animation.md
   - docs/plans/zircon_plugins/08-zr-vm.md
   - docs/plans/zircon_plugins/11-plugin-call-bridge.md
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 tests:
   - tools/tests/test_frameworks_03_server_feature_boundary.py
   - tools/tests/test_plugin_extension_registry_finalize_coverage.py
   - zircon_runtime/src/plugin/extension_registry/typed_extension_point/tests.rs
   - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs
+  - zircon_runtime/src/plugin/extension_registry/runtime_extension_registry/tests.rs::namespace_validation_does_not_collect_split_segments
   - zircon_runtime/tests/runtime_plugin_world_extensions_contract.rs
   - zircon_plugins/animation/runtime/tests/runtime_physics_animation_tick_contract/state_machine_interruption.rs::pose_targets_visible_to_physics_step
   - zircon_runtime/src/tests/plugin_extensions/extension_registry_typed_points.rs
@@ -223,6 +231,8 @@ Frameworks 03 feature ownership is compile-time: graphics render features, execu
 
 The registry now has an explicit registration-epoch to runtime-read transition. `RuntimeExtensionRegistry::finalize()` moves all 20 typed extension points from writable staging storage into their frozen representation and marks the non-typed asset importer registry finalized after catalog validation and contribution merging. Keys, descriptors, owners, and slot maps move into the frozen tables instead of being cloned into a parallel cache; only the sorted key lookup index is derived for runtime reads. Catalog reports finalize before they are returned, and every public apply path finalizes idempotently before reading extension rows. Registering, sorting, mutating, or revoking typed rows, and registering or revoking asset importers, clears the finalized state; a later finalize publishes the new epoch. This is intentionally re-finalizable for owner reload while keeping the read-side storage dense.
 
+Bridge publication follows the same idempotent rule. `finalize_bridge_imports()` reuses an existing `FrozenBridgeTable` and does not rebind imports when no interface export/revocation invalidated it; `export_interface(...)` and owner revocation continue to clear the table so the next finalize rebuilds exactly once. Repeated asset/world/UI/module apply calls therefore do not repeat O(exports+imports) bridge construction or reset an unchanged table's generation/status state.
+
 `ExtensionSlot` is a stable logical id, not a dense-vector index. Each typed extension point keeps a slot-to-dense-row map: sorting or compacting surviving rows updates that map, owner revocation leaves a retired tombstone for removed slots, and new registrations receive monotonically new slots instead of reusing stale ids. This prevents an old slot from silently resolving to another plugin's extension after unload. `FrozenExtensionTable` preserves the same mapping when a typed point is consumed into a read-only table. The generic `TypedExtensionPoint` remains an internal storage owner; the public plugin façade exposes stable slot/table contracts and `RuntimeExtensionRegistry`, not the mutable storage implementation.
 
 Current Runtime 06/15 implementation status is `runtime_extension_registry_stable_slot_finalize_coremin_check_passed_tests_compile_blocked`. The module-local tests cover `frozen_table_dense_lookup_matches_registration`, `duplicate_extension_key_rejected`, stable survivor slots, retired owner slots, and sort stability. The catalog/application tests cover `runtime_extension_catalog_finalizes_dense_tables_before_apply`, `runtime_extension_apply_finalizes_dense_tables`, asset importer registration/revocation epoch invalidation, and the plan-named `owner_unload_revokes_all_slots`. The world extension tests cover finalized default state and transactional failed install. This status closes neither Runtime 06 nor Runtime 15: the core-min library check passes, while the latest focused lib-test build is blocked before the target tests by an unrelated active plugin-bridge test inference error, and the complete runtime architecture remains in progress.
@@ -236,6 +246,8 @@ Typed plugin ECS registration is the primary runtime path. Plugins intern their 
 Owner revocation is exposed through `RuntimeExtensionRegistry::revoke_owner_registrations(...)`. For typed extension points, it removes every row owned by the supplied `PluginModuleId`, rebuilds the remaining dense key/value/owner arrays, and returns an `ExtensionOwnership` summary containing the old removed slots for diagnostics and rollback reporting. Asset importers are not stored in `TypedExtensionPoint`, so they are revoked through `AssetImporterRegistry::remove_by_plugin_id(...)` using the `"<plugin_id>.runtime"` owner module suffix to recover the exact package `plugin_id`; this preserves dotted plugin ids such as `net.rpc` and prevents hot reload from leaving stale importer matchers behind.
 
 Programmatic extension metadata now follows the same package-owner identity shape. Component types, UI components, and scene hooks accept runtime package ids with dotted, non-empty lowercase segments such as `net.rpc` or `weather.layer`, while still rejecting uppercase, empty segments, trailing underscores, and repeated underscores. Manager registration intentionally stays on the legacy single-token contributor id because its plugin id is only used to intern the `"<plugin_id>.runtime"` owner for manager rows, not to mirror package-manifest package identity. The native host API adapter therefore projects `net.rpc.runtime` back to `net.rpc` and registers its component descriptor through the shared registry path without a native-host compatibility branch.
+
+Namespace validation for event catalogs, plugin options, and scene hooks streams `str::split('.')` directly after a non-allocating dot-presence check. It no longer materializes a temporary segment `Vec` for every catalog namespace, event id, payload schema, option key/capability, or scene-hook id; validation order and error contracts remain unchanged. `namespace_validation_does_not_collect_split_segments` guards the allocation-free source shape while the existing metadata/event/scene-hook behavior suites remain the semantic gate.
 
 Manifest-declared system anchors are validated against those owner-tracked ECS registrations. A runtime module row can declare `system_sets` and `system_anchors`, and the registration report accepts an anchor when either `plugin_systems()` or `plugin_runtime_systems()` contains a matching system id owned by the same interned module name. This prevents a package from satisfying `weather.runtime`'s `weather.tick` anchor by registering that system from `weather.tools`, and it avoids manifest-only anchors that would not participate in unload, hot reload, or schedule planning.
 

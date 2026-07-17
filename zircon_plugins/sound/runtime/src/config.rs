@@ -27,7 +27,9 @@ pub struct SoundConfig {
 
 impl Default for SoundConfig {
     fn default() -> Self {
-        Self::from_plugin_options(SoundPluginOptions::default())
+        let mut options = SoundPluginOptions::default();
+        options.backend = crate::kira_bridge::KIRA_CPAL_BACKEND.to_string();
+        Self::from_plugin_options(options)
     }
 }
 

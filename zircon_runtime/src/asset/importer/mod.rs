@@ -14,10 +14,10 @@ pub use contract::{
     ImportedAssetEntry,
 };
 pub use environment_ibl::{
-    stage_environment_ibl_source, stage_external_source_cubemap_texture,
-    EnvironmentIblSourceStagingError, EnvironmentIblSourceStagingReport,
-    EnvironmentIblSourceStagingStatus, ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING,
-    ENVIRONMENT_IBL_IMPORT_SETTING,
+    stage_environment_ibl_source, stage_environment_ibl_source_with_parallel_executor,
+    stage_external_source_cubemap_texture, EnvironmentIblSourceStagingError,
+    EnvironmentIblSourceStagingReport, EnvironmentIblSourceStagingStatus,
+    ENVIRONMENT_IBL_FACE_SIZE_IMPORT_SETTING, ENVIRONMENT_IBL_IMPORT_SETTING,
 };
 pub use error::AssetImportError;
 pub use image_decode::{

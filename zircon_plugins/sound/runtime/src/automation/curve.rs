@@ -11,10 +11,9 @@ pub(crate) fn sample_automation_curve(
     ensure_finite_value("automation curve time", time_seconds)?;
     validate_automation_curve(curve)?;
 
-    let first = curve
-        .keyframes
-        .first()
-        .expect("validated automation curve has at least one keyframe");
+    let first = curve.keyframes.first().ok_or_else(|| {
+        SoundError::InvalidParameter("automation curve requires at least one keyframe".to_string())
+    })?;
     if time_seconds <= first.time_seconds {
         return Ok(first.value);
     }
@@ -27,11 +26,15 @@ pub(crate) fn sample_automation_curve(
         }
     }
 
-    Ok(curve
+    curve
         .keyframes
         .last()
-        .expect("validated automation curve has at least one keyframe")
-        .value)
+        .map(|keyframe| keyframe.value)
+        .ok_or_else(|| {
+            SoundError::InvalidParameter(
+                "automation curve requires at least one keyframe".to_string(),
+            )
+        })
 }
 
 pub(crate) fn validate_automation_curve(curve: &SoundAutomationCurve) -> Result<(), SoundError> {

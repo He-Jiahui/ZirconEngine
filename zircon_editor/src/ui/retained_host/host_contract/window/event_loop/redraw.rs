@@ -16,8 +16,7 @@ impl UiHostWindowEventLoop {
         result: NativePointerDispatchResult,
     ) {
         let redraw = result.redraw();
-        if redraw.request_redraw() {
-            self.queue_redraw(redraw);
+        if self.queue_redraw(redraw) {
             if let Some(window) = self.window.as_ref() {
                 window.request_redraw();
             }
@@ -27,14 +26,19 @@ impl UiHostWindowEventLoop {
     pub(in crate::ui::retained_host::host_contract) fn queue_redraw(
         &mut self,
         redraw: HostRedrawRequest,
-    ) {
-        self.pending_redraw = self.pending_redraw.clone().merge(redraw);
+    ) -> bool {
+        if !redraw.request_redraw() {
+            return false;
+        }
+        let existing = std::mem::replace(&mut self.pending_redraw, HostRedrawRequest::None);
+        let should_schedule = !existing.request_redraw();
+        self.pending_redraw = existing.merge(redraw);
+        should_schedule
     }
 
     pub(in crate::ui::retained_host::host_contract) fn drain_external_redraw_request(&mut self) {
         let redraw = self.host.take_external_redraw();
-        if redraw.request_redraw() {
-            self.queue_redraw(redraw);
+        if self.queue_redraw(redraw) {
             if let Some(window) = self.window.as_ref() {
                 schedule_native_redraw(window.as_ref());
             }
@@ -74,4 +78,36 @@ impl UiHostWindowEventLoop {
 
 fn schedule_native_redraw(window: &dyn Window) {
     window.request_redraw();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::ui::retained_host::host_contract::data::FrameRect;
+
+    #[test]
+    fn redraw_queue_schedules_only_on_empty_to_pending_transition() {
+        let host = crate::ui::retained_host::host_contract::window::UiHostWindow::new()
+            .expect("host window");
+        let mut event_loop = UiHostWindowEventLoop::new(host);
+        let startup = event_loop.take_pending_redraw();
+        assert!(startup.request_redraw());
+
+        assert!(
+            event_loop.queue_redraw(HostRedrawRequest::region(FrameRect {
+                x: 4.0,
+                y: 8.0,
+                width: 20.0,
+                height: 16.0,
+            }))
+        );
+        assert!(
+            !event_loop.queue_redraw(HostRedrawRequest::region(FrameRect {
+                x: 40.0,
+                y: 48.0,
+                width: 12.0,
+                height: 10.0,
+            }))
+        );
+    }
 }

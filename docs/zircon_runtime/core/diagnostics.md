@@ -139,6 +139,8 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/scene_asset_reload_diagnostics.rs
   - zircon_runtime/src/diagnostic_log/diagnostics.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/performance/01/2026-07-17-time-diagnostics-static-review.md
   - user: 2026-05-22 continue M10 render diagnostics and profiling bridge checklist
   - user: 2026-06-02 PLEASE IMPLEMENT THIS PLAN - ZirconEngine WGPU 渲染主链闭环计划
   - user: 2026-06-17 implement WGPU-to-render pipeline design from docs/plans/zircon_runtime/render
@@ -157,6 +159,7 @@ plan_sources:
   - dev/bevy/crates/bevy_diagnostic/src/frame_time_diagnostics_plugin.rs
   - dev/bevy/crates/bevy_diagnostic/src/log_diagnostics_plugin.rs
 tests:
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs::tests::static_diagnostic_series_reuses_path_and_metadata_allocations
   - zircon_runtime/src/tests/runtime_diagnostics/mod.rs
   - zircon_runtime/src/core/runtime/diagnostics/devtools.rs::devtools_snapshot_recovers_poisoned_runtime_registry_locks
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/lock_poison_policy.rs::runtime_15_core_runtime_devtools_lock_poison_recovery_guard_covers_devtools_snapshot
@@ -282,7 +285,7 @@ The diagnostics store is not a global singleton. This keeps tests, runtime previ
 
 状态：`runtime_15_core_handle_time_lock_poison_recovery_static_passed_cargo_deferred`。
 
-`core/runtime/handle/time.rs` owns CoreHandle's runtime clock access, frame tick, and Bevy-style time diagnostic rows. Runtime 15 M3 extends the E9/F2 poison-safe lock rule to that access surface: `time_clocks()`, `advance_time_by(...)`, `tick_time(...)`, and virtual/fixed time configuration now use private `lock_time()` and `lock_frame_clock()` helpers. `record_time_diagnostics(...)` writes through `CoreHandle::record_diagnostic(...)`, so the diagnostics store lock remains centralized in `core/runtime/handle/diagnostics.rs`.
+`core/runtime/handle/time.rs` owns CoreHandle's runtime clock access, frame tick, and Bevy-style time diagnostic rows. Runtime 15 M3 extends the E9/F2 poison-safe lock rule to that access surface: `time_clocks()`, `advance_time_by(...)`, `tick_time(...)`, and virtual/fixed time configuration now use private `lock_time()` and `lock_frame_clock()` helpers. `record_time_diagnostics(...)` uses the poison-recovering `CoreHandle::lock_diagnostics()` helper once and writes the four stable rows through the static-series store path while that guard is held.
 
 `core_handle_time_accessors_recover_poisoned_runtime_clocks` deliberately poisons the runtime clocks, frame clock, and diagnostics store locks, then verifies time configuration, manual advance, frame tick, and time diagnostic recording still work. `structure_convention/lock_poison_policy.rs::runtime_15_core_handle_time_lock_poison_recovery_guard_covers_runtime_clocks` keeps `core/runtime/handle/time.rs`, this document, Runtime 15 status rows, and the plan mirrors synchronized.
 
@@ -352,6 +355,8 @@ Each nonzero time advance records:
 - `time.fixed_steps` in fixed-step count for that outer update.
 
 `time.frame_count` and `time.fixed_steps` are still recorded on zero-delta updates. `time.frame_time` and `time.fps` are skipped for zero deltas, matching Bevy's guard against dividing by zero.
+
+The 2026-07-17 performance slice records these four stable series under one diagnostic-store lock. `DiagnosticStore::record_static(...)` uses a borrowed path lookup and reuses existing path/unit/tag storage when metadata is unchanged; the generic `record(...)` path remains available for dynamic diagnostic definitions. The optimization is implementation-complete but Cargo- and allocation-benchmark-pending.
 
 ## Test Coverage
 

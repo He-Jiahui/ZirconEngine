@@ -40,15 +40,15 @@ pub(crate) fn to_host_contract_performance_timeline_pane_from_host_pane(
 }
 
 fn to_host_contract_frame_row(
-    row: PerformanceTimelineFrameRowViewData,
+    row: &PerformanceTimelineFrameRowViewData,
 ) -> host_contract::PerformanceTimelineFrameRowData {
     host_contract::PerformanceTimelineFrameRowData {
-        stream: row.stream,
-        name: row.name,
+        stream: row.stream.clone(),
+        name: row.name.clone(),
         frame_index: row.frame_index,
-        duration_label: row.duration_label,
-        budget_label: row.budget_label,
-        budget_usage_label: row.budget_usage_label,
+        duration_label: row.duration_label.clone(),
+        budget_label: row.budget_label.clone(),
+        budget_usage_label: row.budget_usage_label.clone(),
         duration_ratio: row.duration_ratio,
         bar_fill_ratio: row.bar_fill_ratio,
         budget_marker_ratio: row.budget_marker_ratio,
@@ -57,38 +57,38 @@ fn to_host_contract_frame_row(
 }
 
 fn to_host_contract_span_row(
-    row: PerformanceTimelineSpanRowViewData,
+    row: &PerformanceTimelineSpanRowViewData,
 ) -> host_contract::PerformanceTimelineSpanRowData {
     host_contract::PerformanceTimelineSpanRowData {
-        stream: row.stream,
-        category: row.category,
-        name: row.name,
-        path: row.path,
-        duration_label: row.duration_label,
+        stream: row.stream.clone(),
+        category: row.category.clone(),
+        name: row.name.clone(),
+        path: row.path.clone(),
+        duration_label: row.duration_label.clone(),
         depth: row.depth,
     }
 }
 
 fn to_host_contract_hotspot_row(
-    row: PerformanceTimelineHotspotRowViewData,
+    row: &PerformanceTimelineHotspotRowViewData,
 ) -> host_contract::PerformanceTimelineHotspotRowData {
     host_contract::PerformanceTimelineHotspotRowData {
-        stream: row.stream,
-        category: row.category,
-        name: row.name,
-        path: row.path,
-        total_label: row.total_label,
-        average_label: row.average_label,
-        count_label: row.count_label,
+        stream: row.stream.clone(),
+        category: row.category.clone(),
+        name: row.name.clone(),
+        path: row.path.clone(),
+        total_label: row.total_label.clone(),
+        average_label: row.average_label.clone(),
+        count_label: row.count_label.clone(),
     }
 }
 
 fn to_host_contract_capture_control(
-    control: PerformanceTimelineCaptureControlViewData,
+    control: &PerformanceTimelineCaptureControlViewData,
 ) -> host_contract::PerformanceTimelineCaptureControlData {
     host_contract::PerformanceTimelineCaptureControlData {
-        label: control.label,
-        action_id: control.action_id,
+        label: control.label.clone(),
+        action_id: control.action_id.clone(),
         enabled: control.enabled,
     }
 }
@@ -181,10 +181,7 @@ fn control_button_nodes(
             height: CONTROL_BUTTON_HEIGHT,
         });
     let mut nodes = Vec::new();
-    for row in 0..data.capture_controls.row_count() {
-        let Some(control) = data.capture_controls.row_data(row) else {
-            continue;
-        };
+    for (row, control) in data.capture_controls.iter().enumerate() {
         let mut node = timeline_node(
             format!("performance_timeline_control_{row}"),
             "PerformanceTimelineCaptureControl",
@@ -198,7 +195,7 @@ fn control_button_nodes(
             },
         );
         node.control_id = "PerformanceTimelineCaptureControl".into();
-        node.action_id = control.action_id;
+        node.action_id = control.action_id.clone();
         node.disabled = !control.enabled;
         node.surface_variant = if control.enabled { "accent" } else { "inset" }.into();
         node.text_tone = if control.enabled {
@@ -219,10 +216,7 @@ fn frame_row_nodes(
     list_width: f32,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
     let mut nodes = Vec::new();
-    for row in 0..data.frame_rows.row_count() {
-        let Some(frame) = data.frame_rows.row_data(row) else {
-            continue;
-        };
+    for (row, frame) in data.frame_rows.iter().enumerate() {
         let y = list_frame.y + row as f32 * (ROW_HEIGHT + ROW_GAP);
         let mut track = timeline_node(
             format!("performance_timeline_frame_track_{row}"),
@@ -325,10 +319,7 @@ fn span_row_nodes(
     list_width: f32,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
     let mut nodes = Vec::new();
-    for row in 0..data.span_rows.row_count() {
-        let Some(span) = data.span_rows.row_data(row) else {
-            continue;
-        };
+    for (row, span) in data.span_rows.iter().enumerate() {
         let y = start_y + row as f32 * (ROW_HEIGHT + ROW_GAP);
         let mut node = timeline_node(
             format!("performance_timeline_span_{row}"),
@@ -358,10 +349,7 @@ fn hotspot_row_nodes(
     list_width: f32,
 ) -> Vec<host_contract::TemplatePaneNodeData> {
     let mut nodes = Vec::new();
-    for row in 0..data.hotspot_rows.row_count() {
-        let Some(hotspot) = data.hotspot_rows.row_data(row) else {
-            continue;
-        };
+    for (row, hotspot) in data.hotspot_rows.iter().enumerate() {
         let y = start_y + row as f32 * (ROW_HEIGHT + ROW_GAP);
         let mut node = timeline_node(
             format!("performance_timeline_hotspot_{row}"),

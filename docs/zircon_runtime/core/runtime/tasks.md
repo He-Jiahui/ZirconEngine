@@ -34,6 +34,8 @@ implementation_files:
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/runtime_structure_audits/job_system_anchor_inventory.py
   - zircon_runtime/src/core/runtime/mod.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/performance/01/2026-07-17-task-system-static-review.md
   - docs/plans/zircon_runtime/frameworks/02-module-kernel-and-lifecycle-unification.md
   - user: 2026-06-12 runtime architecture implementation from docs/plans/zircon_runtime/runtime
   - docs/plans/zircon_runtime/runtime/02-core-spine-and-root-surface.md
@@ -41,6 +43,7 @@ plan_sources:
   - docs/plans/zircon_runtime/runtime/11/failure-2026-07-13-editor-full-harness-runtime-thread-budget.md
   - .codex/plans/Runtime 吸收层与 Editor_Scene 边界收束计划.md
 tests:
+  - zircon_runtime/src/core/runtime/tasks/job_scheduler.rs::tests::detached_spawn_counts_panicked_tasks_as_completed
   - tools/tests/test_frameworks_02_core_error_single_source.py
   - zircon_runtime/src/core/framework/render/environment/source_cubemap/tests.rs
   - tools/tests/test_runtime_job_system_audit.py
@@ -70,7 +73,7 @@ Callers that need the helper should import `core::runtime::tasks::spawn_named_th
 
 `spawn_named_thread(...)` wraps `std::thread::Builder::name(...).spawn(...)`, returns `CoreResult<JoinHandle<T>>`, and converts spawn failures to `CoreError::ThreadSpawn` with the requested thread name included in the error text. No task-local or compatibility error enum remains.
 
-`JobScheduler` is re-exported from `core::runtime` and the curated `core` root facade so scene ECS and prelude callers can continue to use the stable scheduler type while the physical implementation sits under the runtime task owner. Runtime 11 extends it with `schedule(...) -> JobHandle`, `schedule_after(...) -> JobHandle`, and `wait_all(...)`, while keeping `spawn` as the detached fire-and-forget helper. `JobSchedulerReport` exposes the scheduler's scheduled/completed counts and wait-time counters.
+`JobScheduler` is re-exported from `core::runtime` and the curated `core` root facade so scene ECS and prelude callers can continue to use the stable scheduler type while the physical implementation sits under the runtime task owner. Runtime 11 extends it with `schedule(...) -> JobHandle`, `schedule_after(...) -> JobHandle`, and `wait_all(...)`, while keeping `spawn` as the detached fire-and-forget helper. Detached work records completion through an unwind-safe guard, so a panicking fire-and-forget task cannot leave `tasks.scheduled - tasks.completed` permanently inflated. `JobSchedulerReport` exposes the scheduler's scheduled/completed counts and wait-time counters.
 
 `JobHandle` is a cheap clone over shared completion state. It supports `is_complete()`, `wait()`, and `combine(...)`. Dependency callbacks launch dependent work only when prerequisites are complete, so `schedule_after` does not occupy a worker thread while it waits. `JobScheduler::wait_all(...)` is the scheduler-owned synchronization helper for a set of handles and records the wait against the scheduler diagnostics state. `parallel_for(...)` is the blocking data-parallel slice primitive for callers that need immediate completion on a specific runtime-owned pool.
 
@@ -79,6 +82,8 @@ Callers that need the helper should import `core::runtime::tasks::spawn_named_th
 `TaskPools::default()` is the process-wide execution owner. It initializes exactly one compute/async-compute/IO set through `OnceLock<TaskPools>` and returns cheap clones thereafter. `TaskPoolOptions::create_pools()` bypasses that default only when a caller explicitly requests an isolated owner. `TaskPool::shares_execution_owner_with(...)` makes this ownership contract testable without relying on OS thread counts. The crate-private current-worker query lets executor-owned resources avoid waiting on work queued behind their own single worker.
 
 Scheduler diagnostics are recorded under `tasks.scheduled`, `tasks.completed`, `tasks.dependency_wait_ms`, and `tasks.main_thread_wait_ms`. `JobHandle::wait()` and `JobScheduler::wait_all(...)` both contribute to the explicit main-thread wait counter. `JobScheduler::record_diagnostics(...)` publishes those counters into `DiagnosticStore` using `tasks` and `job_scheduler` tags.
+
+The performance audit found that `tasks.main_thread_wait_ms` currently cannot prove caller thread identity and that queue depth, queue delay, active-worker, panic, and cancellation metrics are missing. Until Runtime 07/11 completes that diagnostic contract, reports must interpret this field as explicit handle-wait time rather than verified main-thread stall time. The detached-panic regression is implemented but remains validation-pending until the coordinated Cargo lane runs it.
 
 Current production consumers of `spawn_named_thread(...)` include asset event filtering. Asset decode no longer uses this helper: `AssetWorkerPool` submits decode jobs to its injected runtime IO pool and tracks only request lifecycle state.
 

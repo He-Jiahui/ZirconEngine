@@ -3,4 +3,5 @@ mod mute;
 mod pause;
 mod seek;
 mod speed;
-mod state_access;
+
+pub(crate) use seek::kira_slice_position_for_absolute_frame;

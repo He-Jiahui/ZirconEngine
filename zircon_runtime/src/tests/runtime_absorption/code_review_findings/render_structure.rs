@@ -20,6 +20,46 @@ fn assert_not_contains(label: &str, source: &str, anchors: &[&str]) {
 }
 
 #[test]
+fn render01_compiled_pipeline_cached_sources_are_immutable_and_frame_flags_are_precomputed() {
+    let compiled_pipeline =
+        include_str!("../../../graphics/pipeline/declarations/compiled_render_pipeline.rs");
+    let frame_context = include_str!(
+        "../../../graphics/runtime/render_framework/submit_frame_extract/build_frame_submission_context/build.rs"
+    );
+
+    assert_contains_all(
+        "compiled pipeline immutable derived sources",
+        compiled_pipeline,
+        &[
+            "enabled_features: Vec<RendererFeatureAsset>",
+            "graph: CompiledRenderGraph",
+            "pub fn enabled_features(&self) -> &[RendererFeatureAsset]",
+            "pub fn graph(&self) -> &CompiledRenderGraph",
+            "pub(crate) fn from_parts(",
+        ],
+    );
+    assert_not_contains(
+        "compiled pipeline immutable derived sources",
+        compiled_pipeline,
+        &[
+            "pub enabled_features:",
+            "pub graph:",
+            "pub(crate) runtime_metadata:",
+        ],
+    );
+    assert_contains_all(
+        "frame context precomputed feature flags",
+        frame_context,
+        &["let runtime_features = compiled_pipeline.runtime_feature_flags();"],
+    );
+    assert_not_contains(
+        "frame context precomputed feature flags",
+        frame_context,
+        &[".enabled_features", ".capability_requirements"],
+    );
+}
+
+#[test]
 fn review_f16_compiled_scene_render_path_uses_split_owners() {
     let render_mod = include_str!(
         "../../../graphics/scene/scene_renderer/core/scene_renderer_core_render_compiled_scene/render/mod.rs"
@@ -112,8 +152,13 @@ fn review_f16_compiled_scene_render_path_uses_split_owners() {
         pipeline_resource_usage,
         &[
             "pub(super) fn pipeline_writes_resource(",
-            "RenderGraphResourceAccessKind::Write",
+            "pipeline.writes_resource(resource_name)",
         ],
+    );
+    assert_not_contains(
+        "compiled-scene pipeline resource usage owner",
+        pipeline_resource_usage,
+        &["RenderGraphResourceAccessKind::Write", ".graph.passes()"],
     );
 
     assert_contains_all(

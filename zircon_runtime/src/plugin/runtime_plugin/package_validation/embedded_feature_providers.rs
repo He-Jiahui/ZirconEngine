@@ -8,11 +8,11 @@ use self::{
     uniqueness::validate_runtime_plugin_package_feature_provider_uniqueness,
 };
 
-pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_feature_provider(
+pub(in crate::plugin::runtime_plugin) fn validate_runtime_plugin_package_feature_provider<'a>(
     field_name: &str,
-    feature: &PluginFeatureBundleManifest,
-    package_manifest: &PluginPackageManifest,
-    seen_feature_providers: &mut Vec<(String, String)>,
+    feature: &'a PluginFeatureBundleManifest,
+    package_manifest: &'a PluginPackageManifest,
+    seen_feature_providers: &mut Vec<(&'a str, &'a str)>,
     diagnostics: &mut Vec<String>,
 ) {
     let provider_package_id =

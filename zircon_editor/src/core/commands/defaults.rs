@@ -20,6 +20,7 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
     commands.extend(runtime_commands());
     commands.extend(view_commands());
     commands.extend(window_commands());
+    commands.push(migrate_assets_commandlet());
     commands.push(
         EditorCommandDescriptor::operation(
             path("inspector.field.apply_batch"),
@@ -42,6 +43,18 @@ pub(super) fn default_workbench_commands() -> Vec<EditorCommandDescriptor> {
         ["help", "guide", "documentation"],
     ));
     commands
+}
+
+fn migrate_assets_commandlet() -> EditorCommandDescriptor {
+    EditorCommandDescriptor::operation(
+        path("asset.migration.migrate_assets"),
+        "Migrate Project Assets",
+    )
+    .with_category(EditorCommandCategory::Command)
+    .with_description("Migrate authoring assets through the headless migrate-assets commandlet")
+    .with_keywords(["asset", "migration", "migrate-assets", "headless"])
+    .with_payload_schema_id("editor.commandlet.migrate-assets")
+    .with_required_capabilities(["asset.migration"])
 }
 
 fn command_palette_command() -> EditorCommandDescriptor {

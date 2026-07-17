@@ -79,7 +79,7 @@ fn render_product_anti_alias_compiles_fxaa_pass_for_default_3d() {
         .unwrap();
 
     assert!(compiled
-        .enabled_features
+        .enabled_features()
         .iter()
         .any(|feature| feature.is_builtin(BuiltinRenderFeature::AntiAlias)));
     assert!(compiled
@@ -108,7 +108,7 @@ fn render_product_anti_alias_compiles_fxaa_pass_for_default_3d() {
         RenderPassStage::PostProcess
     );
     let fxaa_pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == FXAA_PASS_NAME)

@@ -15,14 +15,14 @@ pub(super) fn project_state_panel_node(
         "ComponentShowcaseLastControl" => Some(
             state
                 .event_log
-                .last()
+                .back()
                 .map(|entry| entry.control_id.clone())
                 .unwrap_or_else(|| "No component event yet".to_string()),
         ),
         "ComponentShowcaseLastAction" => Some(
             state
                 .event_log
-                .last()
+                .back()
                 .map(|entry| entry.action.clone())
                 .unwrap_or_else(|| "Waiting for Runtime UI event".to_string()),
         ),
@@ -41,7 +41,7 @@ pub(super) fn project_state_panel_node(
 }
 
 fn current_value_summary(showcase: &UiComponentShowcaseDemoState) -> String {
-    let Some(entry) = showcase.event_log.last() else {
+    let Some(entry) = showcase.event_log.back() else {
         return "Select or edit a control".to_string();
     };
     if let Some(value) = entry
@@ -65,7 +65,7 @@ fn current_value_summary(showcase: &UiComponentShowcaseDemoState) -> String {
 }
 
 fn validation_summary(showcase: &UiComponentShowcaseDemoState) -> String {
-    let Some(entry) = showcase.event_log.last() else {
+    let Some(entry) = showcase.event_log.back() else {
         return "normal".to_string();
     };
     let Some(state) = showcase.state_for_control(&entry.control_id) else {
@@ -79,7 +79,7 @@ fn validation_summary(showcase: &UiComponentShowcaseDemoState) -> String {
 }
 
 fn drag_payload_summary(showcase: &UiComponentShowcaseDemoState) -> String {
-    let Some(entry) = showcase.event_log.last() else {
+    let Some(entry) = showcase.event_log.back() else {
         return "No retained drop payload".to_string();
     };
     let Some(state) = showcase.state_for_control(&entry.control_id) else {

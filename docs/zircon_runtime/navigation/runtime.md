@@ -2,6 +2,9 @@
 related_code:
   - zircon_runtime/src/navigation/mod.rs
   - zircon_runtime/src/navigation/module.rs
+  - zircon_runtime/src/navigation/operation/mod.rs
+  - zircon_runtime/src/navigation/operation/handler.rs
+  - zircon_runtime/src/navigation/operation/registration.rs
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
@@ -19,6 +22,9 @@ related_code:
 implementation_files:
   - zircon_runtime/src/navigation/mod.rs
   - zircon_runtime/src/navigation/module.rs
+  - zircon_runtime/src/navigation/operation/mod.rs
+  - zircon_runtime/src/navigation/operation/handler.rs
+  - zircon_runtime/src/navigation/operation/registration.rs
   - zircon_runtime/src/navigation/runtime.rs
   - zircon_runtime/src/navigation/runtime/avoidance.rs
   - zircon_runtime/src/navigation/runtime/baked_mesh.rs
@@ -39,6 +45,7 @@ plan_sources:
   - dev/godot/modules/navigation_2d
   - dev/godot/modules/navigation_3d
 tests:
+  - python -m unittest tools.tests.test_runtime_module_family_boundary
   - cargo check -p zircon_runtime --lib --message-format short --color never
   - zircon_runtime/src/navigation/module.rs::tests::builtin_navigation_module_obeys_driver_manager_dependency_layers
   - cargo test -p zircon_runtime --lib builtin_host_modules_register_gameplay_capabilities --message-format short --color never
@@ -85,6 +92,14 @@ The folder-backed runtime owner split keeps those responsibilities in focused fi
 - `runtime/math.rs` owns shared navigation math helpers.
 - `runtime/tests.rs` owns focused fallback runtime behavior tests.
 
+The separate folder-backed operation integration exposes runtime-authoritative navigation authoring work through the shared operation service without moving editor state into the runtime module:
+
+- `operation/mod.rs` is the narrow feature-domain entry and exports only handler registration.
+- `operation/registration.rs` registers bake-scene, bake-surface, clear-surface, and restore-snapshot operation ids with `RuntimeOperationService`.
+- `operation/handler.rs` validates typed JSON payloads, resolves the scene navigation driver, applies bake/clear/restore work against the runtime world, and returns before/after snapshots for transaction undo/redo.
+
+These operation files are runtime integration owners, not a second editor command stack. Editor factories and retained UI routing remain in `zircon_editor` and `zircon_plugins/navigation/editor`.
+
 Gameplay calls `nav_move_towards_entity(...)`, which writes the destination agent component to the mover and invokes the navigation runtime. This keeps enemy chase behavior tied to the baked scene instead of raw per-frame translation.
 
 ## Service Registration Layers
@@ -117,7 +132,7 @@ The current runtime navigation module does not replace that plugin. It gives `zi
 
 ## Runtime 14 Boundary Judgment
 
-Runtime 14 corrected the earlier "thin navigation module" assumption. The module now has 9 Rust owner files after the folder-backed runtime owner split, and `runtime.rs` remains the manager owner for real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance.
+Runtime 14 corrected the earlier "thin navigation module" assumption. The module now has 12 Rust owner files after the folder-backed runtime and operation integration splits. `runtime.rs` remains the manager owner for real fallback behavior: baked navmesh loading, nearest-position sampling, pathfinding, raycast checks, world-agent ticking, obstacle collection, and local avoidance. `operation/{mod,handler,registration}.rs` adds the narrow shared-operation integration without moving those manager responsibilities or editor authoring state into the root wiring files.
 
 The crate-root seat remains intentional. `core::framework::navigation` owns contracts and DTOs, while `zircon_runtime::navigation` owns the built-in fallback implementation used when the external Recast-backed plugin stack is not linked into the process.
 
@@ -128,5 +143,6 @@ The Runtime 14 judgement is:
 - Keep `navigation` at crate root as a self-contained runtime fallback.
 - Do not split behavior into more root-level navigation families unless baking/editor/Recast ownership moves into `zircon_runtime`, which is currently a non-goal.
 - Keep the folder-backed runtime owner split documented whenever `runtime/avoidance.rs`, `runtime/baked_mesh.rs`, `runtime/world_scan.rs`, `runtime/state.rs`, `runtime/math.rs`, or `runtime/tests.rs` changes ownership.
+- Keep the operation integration folder-backed and document any change to `operation/mod.rs`, `operation/handler.rs`, or `operation/registration.rs`; do not fold handler behavior into `module.rs` or `runtime.rs`.
 - If future code adds new navigation behavior files, document whether they extend the fallback runtime or belong in `zircon_plugins/navigation`.
 `runtime_navigation_boundary_file_set_requires_doc_update` asserts the current file set and forces new behavior files to update this document before expanding the fallback runtime.

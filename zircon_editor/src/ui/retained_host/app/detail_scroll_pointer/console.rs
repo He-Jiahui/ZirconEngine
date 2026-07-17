@@ -11,15 +11,16 @@ impl RetainedEditorHost {
     ) {
         self.use_committed_pointer_layout();
         self.focus_callback_source_window();
-        self.console_scroll_surface
-            .set_size(self.resolve_callback_surface_size_for_kind(
-                width,
-                height,
-                self.console_scroll_surface.size(),
-                ViewContentKind::Console,
-            ));
-        let status_line = self.runtime.status_line();
-        self.sync_console_pointer_layout(&status_line);
+        let size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.console_scroll_surface.size(),
+            ViewContentKind::Console,
+        );
+        if self.console_scroll_surface.set_size(size) {
+            let status_line = self.runtime.status_line();
+            self.sync_console_pointer_layout(&status_line);
+        }
         match self
             .console_scroll_surface
             .handle_scroll(UiPoint::new(x, y), delta)

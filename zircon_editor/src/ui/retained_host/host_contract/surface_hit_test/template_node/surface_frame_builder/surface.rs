@@ -15,9 +15,7 @@ pub(in crate::ui::retained_host::host_contract) fn build_template_surface_frame(
     nodes: &ModelRc<TemplatePaneNodeData>,
     surface_size: UiSize,
 ) -> Option<UiSurfaceFrame> {
-    let has_dispatchable = (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .any(|node| is_dispatchable(&node));
+    let has_dispatchable = nodes.iter().any(is_dispatchable);
     has_dispatchable.then(|| template_nodes_surface_frame(nodes, surface_size))
 }
 
@@ -34,11 +32,8 @@ pub(in crate::ui::retained_host::host_contract) fn template_nodes_surface_frame(
     );
     surface.tree.insert_root(template_surface_root(root_frame));
 
-    for row in 0..nodes.row_count() {
-        let Some(node) = nodes.row_data(row) else {
-            continue;
-        };
-        if !is_dispatchable(&node) {
+    for (row, node) in nodes.iter().enumerate() {
+        if !is_dispatchable(node) {
             continue;
         }
         let _ = surface

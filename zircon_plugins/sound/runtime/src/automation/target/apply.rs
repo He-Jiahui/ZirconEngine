@@ -4,8 +4,8 @@ use crate::automation::values::ensure_finite_value;
 use crate::descriptor_validation::listener::validate_listener_descriptor;
 use crate::descriptor_validation::source::validate_source_descriptor;
 use crate::descriptor_validation::volume::validate_volume_descriptor;
-use crate::engine::validation::validate_graph;
 use crate::engine::SoundEngineState;
+use crate::kira_bridge::validate_graph;
 
 use super::{effect, helpers, listener, source, track, volume};
 
@@ -15,9 +15,10 @@ pub(crate) fn apply_automation_target(
     parameter: &SoundParameterId,
     value: f32,
 ) -> Result<(), SoundError> {
+    ensure_automation_execution_available(state.kira.is_active())?;
     match target {
         SoundAutomationTarget::Track(track) => {
-            let mut graph = state.graph.clone();
+            let mut graph = (*state.graph).clone();
             let track_descriptor = graph
                 .tracks
                 .iter_mut()
@@ -25,11 +26,11 @@ pub(crate) fn apply_automation_target(
                 .ok_or(SoundError::UnknownTrack { track })?;
             track::apply_track_parameter(track_descriptor, parameter, value)?;
             validate_graph(&graph)?;
-            state.graph = graph;
+            state.replace_graph(graph);
             Ok(())
         }
         SoundAutomationTarget::Effect { track, effect } => {
-            let mut graph = state.graph.clone();
+            let mut graph = (*state.graph).clone();
             let track_descriptor = graph
                 .tracks
                 .iter_mut()
@@ -42,7 +43,7 @@ pub(crate) fn apply_automation_target(
                 .ok_or(SoundError::UnknownEffect { effect })?;
             effect::apply_effect_parameter(effect_descriptor, parameter, value)?;
             validate_graph(&graph)?;
-            state.graph = graph;
+            state.replace_graph(graph);
             Ok(())
         }
         SoundAutomationTarget::Source(source_id) => {
@@ -57,7 +58,7 @@ pub(crate) fn apply_automation_target(
             state
                 .sources
                 .get_mut(&source_id)
-                .expect("validated source disappeared")
+                .ok_or(SoundError::UnknownSource { source_id })?
                 .descriptor = descriptor;
             Ok(())
         }
@@ -95,4 +96,13 @@ pub(crate) fn apply_automation_target(
             Ok(())
         }
     }
+}
+
+pub(crate) fn ensure_automation_execution_available(kira_active: bool) -> Result<(), SoundError> {
+    if kira_active {
+        return Err(SoundError::UnsupportedAdvancedFeature(
+            "active sound automation execution is enabled by Sound M5".to_string(),
+        ));
+    }
+    Ok(())
 }

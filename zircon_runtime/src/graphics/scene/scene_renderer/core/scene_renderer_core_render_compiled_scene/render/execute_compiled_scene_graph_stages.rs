@@ -379,7 +379,7 @@ mod tests {
     }
 
     fn compiled_pipeline_with_stages(stages: Vec<RenderPassStage>) -> CompiledRenderPipeline {
-        CompiledRenderPipeline {
+        CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(100),
             name: "stage-order-test".to_string(),
             renderer_name: "stage-order-test".to_string(),
@@ -393,6 +393,6 @@ mod tests {
             graph: RenderGraphBuilder::new("stage-order-test")
                 .compile()
                 .expect("stage order test graph"),
-        }
+        })
     }
 }

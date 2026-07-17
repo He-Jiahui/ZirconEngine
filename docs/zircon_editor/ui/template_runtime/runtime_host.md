@@ -136,7 +136,17 @@ plan_sources:
   - user: 2026-05-13 migrate UI Asset Editor authoring support to v2 so old schema assets can keep being removed
   - .codex/plans/Zircon Editor Demo 首屏与 .zui 组件陈列计划.md
   - .codex/plans/GPU Command Stream 接管 Editor UI 渲染计划.md
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/zircon_editor/editor_ui/05/failure-2026-07-17-template-projection-deep-copy-and-cache-generation.md
+reference_sources:
+  - dev/slint/internal/core/properties.rs
+  - dev/slint/internal/core/items/component_container.rs
+  - dev/slint/internal/core/model/repeater.rs
+  - dev/godot/core/io/resource_loader.cpp
 tests:
+  - zircon_editor/src/ui/template_runtime/retained_adapter.rs::performance_tests::retained_projection_maps_properties_once_and_reuses_parsed_options
+  - zircon_editor/src/ui/template_runtime/runtime/projection.rs::performance_tests::host_projection_indexes_bindings_by_reference
+  - zircon_editor/src/ui/template_runtime/showcase_demo_state.rs::performance_tests::showcase_event_log_retains_a_bounded_recent_window
   - rustfmt --edition 2021 --check zircon_editor\src\ui\template_runtime\runtime\build_session.rs
   - cargo check -p zircon_editor (2026-05-11: passed)
   - cargo test -p zircon_editor builtin_template_compile_cache_is_reused_across_runtime_instances -- --nocapture (2026-05-11: passed)
@@ -258,6 +268,14 @@ Pane payload injection is shared between old and v2 paths. Legacy panes still mu
 `build_shared_surface(...)` uses the same active theme registry when it materializes v2 documents into `UiSurface`. A v2 shared surface can therefore author `$theme.palette.accent`, `theme.palette.surface.1`, or `var(theme.palette.text.primary)` in static rules and runtime pseudo-state rules, and those values are resolved before `UiTemplateNodeMetadata` captures attributes and style overrides. The same build path also preserves `UiTemplateNodeMetadata.style_tokens`, so editor host diagnostics can see whether a final shared-surface color came from a document token, a normalized theme role, or a runtime pseudo-state override. Projection-only calls still use the compiled arena table and remain metadata-oriented until a shared surface is requested.
 
 Shared-surface layout failures now flow through `EditorUiHostRuntimeError::UiTree`. That keeps retained host callers such as the desktop export panel projection on the same error boundary as template parsing, v2 asset loading, and template build failures when they compute layout before building a `RetainedUiHostProjection`.
+
+## Performance and generation contract
+
+Retained projection maps document attributes and style overrides into effective host values once; style overrides retain precedence without first cloning both TOML maps. Structured `options` are parsed once and shared with their joined display text. Host-model construction indexes binding rows by borrowed id/reference, so a projection does not clone the complete binding table before it can resolve node routes. The Component Showcase diagnostic log is a 128-entry `VecDeque`; it retains recent ordering while bounding long-session memory.
+
+These local fixes do not make full-tree rebuild acceptable. Template file/prototype/compiled-document state must converge on one immutable generation owner keyed by canonical asset identity, content/compiler/schema/import generation. File I/O, hashing, parsing and compilation run outside the cache index lock; concurrent identical builds coalesce, publication validates the source generation, aliases hold stable handles, and old generations have an explicit eviction/reference policy.
+
+Pane payload, shared surface and retained host model consume that generation. Unchanged document/pane/theme/size generations reuse the same compiled document and projection; a dirty event publishes typed deltas or a new immutable snapshot and rebuilds at most once per domain/frame. A caller must not add a private cache, convert large typed payloads to TOML repeatedly, or use a background worker merely to preserve full-tree cloning. This contract is tracked by PERF-MVP-092/093 and the EditorUI05 failure handoff; EditorUI08 frame coalescing is the upstream consumer of the same generation.
 
 The workbench chrome path now benefits from that same theme-aware materialization through `editor_base.zui`. Menu, page, dock, status, and activity-rail assets still author local chrome classes, but their ordinary base aliases delegate to central palette roles. The runtime guard loads `workbench_activity_rail.zui` and `workbench_status_bar.zui` as real imported documents and checks the resulting `style_tokens`, so host diagnostics can trace chrome colors back through chains such as `token.panel_bg -> theme.palette.surface.2` instead of seeing only legacy hex literals.
 

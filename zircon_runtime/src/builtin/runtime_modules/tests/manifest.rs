@@ -57,3 +57,45 @@ fn project_manifest_can_disable_mode_baseline_plugin() {
         .enabled_for_target(RuntimeTargetMode::ClientRuntime)
         .all(|selection| selection.id != RuntimePluginId::Ui.key()));
 }
+
+#[cfg(feature = "ui")]
+#[test]
+fn project_manifest_overlay_canonicalizes_runtime_plugin_identity() {
+    let mut ui_override = ProjectPluginSelection::runtime_plugin(RuntimePluginId::Ui, true, false);
+    ui_override.id = "UI".to_string();
+
+    let manifest = manifest_with_mode_baseline(
+        RuntimeTargetMode::ClientRuntime,
+        Some(&ProjectPluginManifest {
+            selections: vec![ui_override],
+        }),
+    );
+    let ui_selections = manifest
+        .selections
+        .iter()
+        .filter(|selection| RuntimePluginId::parse_key(&selection.id) == Some(RuntimePluginId::Ui))
+        .collect::<Vec<_>>();
+
+    assert_eq!(ui_selections.len(), 1);
+    assert_eq!(ui_selections[0].id, RuntimePluginId::Ui.key());
+    assert!(!ui_selections[0].required);
+}
+
+#[test]
+fn project_manifest_overlay_preserves_non_baseline_selection_identity() {
+    let manifest = manifest_with_mode_baseline(
+        RuntimeTargetMode::ClientRuntime,
+        Some(&ProjectPluginManifest {
+            selections: vec![ProjectPluginSelection::runtime_plugin("audio", true, false)],
+        }),
+    );
+
+    assert!(manifest
+        .selections
+        .iter()
+        .any(|selection| selection.id == "audio"));
+    assert!(manifest
+        .selections
+        .iter()
+        .all(|selection| selection.id != RuntimePluginId::Sound.key()));
+}

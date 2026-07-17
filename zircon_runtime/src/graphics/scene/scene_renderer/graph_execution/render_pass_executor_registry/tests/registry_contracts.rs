@@ -100,7 +100,7 @@ fn builtin_registry_covers_compiled_pipeline_executor_ids() {
         registry
             .validate_compiled_pipeline(pipeline)
             .expect("builtin registry should cover all compiled executor ids");
-        for pass in pipeline.graph.passes() {
+        for pass in pipeline.graph().passes() {
             let executor_id = pass
                 .executor_id
                 .as_ref()
@@ -259,19 +259,21 @@ fn registry_rejects_compiled_pipeline_with_unknown_executor_id() {
         graph.add_pass_with_executor("custom-pass", QueueLane::Graphics, Some("custom.executor"));
     let output = graph.import_external_resource("custom-output");
     graph.write_external(custom_pass, output).unwrap();
-    let pipeline = CompiledRenderPipeline {
-        handle: RenderPipelineHandle::new(42),
-        name: "custom pipeline".to_string(),
-        renderer_name: "custom renderer".to_string(),
-        stages: Vec::new(),
-        pass_stages: Vec::new(),
-        enabled_features: Vec::new(),
-        required_extract_sections: Vec::new(),
-        capability_requirements: Vec::new(),
-        history_bindings: Vec::new(),
-        environment_ibl_bake_request: None,
-        graph: graph.compile().unwrap(),
-    };
+    let pipeline = CompiledRenderPipeline::from_parts(
+        crate::graphics::pipeline::CompiledRenderPipelineParts {
+            handle: RenderPipelineHandle::new(42),
+            name: "custom pipeline".to_string(),
+            renderer_name: "custom renderer".to_string(),
+            stages: Vec::new(),
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            environment_ibl_bake_request: None,
+            graph: graph.compile().unwrap(),
+        },
+    );
 
     let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)
@@ -289,19 +291,21 @@ fn registry_rejects_executable_compiled_pipeline_pass_without_executor_id() {
     let custom_pass = graph.add_pass("custom-pass", QueueLane::Graphics);
     let output = graph.import_external_resource("custom-output");
     graph.write_external(custom_pass, output).unwrap();
-    let pipeline = CompiledRenderPipeline {
-        handle: RenderPipelineHandle::new(44),
-        name: "custom pipeline".to_string(),
-        renderer_name: "custom renderer".to_string(),
-        stages: Vec::new(),
-        pass_stages: Vec::new(),
-        enabled_features: Vec::new(),
-        required_extract_sections: Vec::new(),
-        capability_requirements: Vec::new(),
-        history_bindings: Vec::new(),
-        environment_ibl_bake_request: None,
-        graph: graph.compile().unwrap(),
-    };
+    let pipeline = CompiledRenderPipeline::from_parts(
+        crate::graphics::pipeline::CompiledRenderPipelineParts {
+            handle: RenderPipelineHandle::new(44),
+            name: "custom pipeline".to_string(),
+            renderer_name: "custom renderer".to_string(),
+            stages: Vec::new(),
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            environment_ibl_bake_request: None,
+            graph: graph.compile().unwrap(),
+        },
+    );
 
     let error = RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)
@@ -338,19 +342,21 @@ fn registry_ignores_culled_pass_with_unknown_executor_id() {
             .any(|pass| pass.name == "culled-pass" && pass.culled),
         "test fixture should produce a culled pass"
     );
-    let pipeline = CompiledRenderPipeline {
-        handle: RenderPipelineHandle::new(43),
-        name: "custom pipeline".to_string(),
-        renderer_name: "custom renderer".to_string(),
-        stages: Vec::new(),
-        pass_stages: Vec::new(),
-        enabled_features: Vec::new(),
-        required_extract_sections: Vec::new(),
-        capability_requirements: Vec::new(),
-        history_bindings: Vec::new(),
-        environment_ibl_bake_request: None,
-        graph: compiled_graph,
-    };
+    let pipeline = CompiledRenderPipeline::from_parts(
+        crate::graphics::pipeline::CompiledRenderPipelineParts {
+            handle: RenderPipelineHandle::new(43),
+            name: "custom pipeline".to_string(),
+            renderer_name: "custom renderer".to_string(),
+            stages: Vec::new(),
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            environment_ibl_bake_request: None,
+            graph: compiled_graph,
+        },
+    );
 
     RenderPassExecutorRegistry::with_builtin_noop_executors()
         .validate_compiled_pipeline(&pipeline)

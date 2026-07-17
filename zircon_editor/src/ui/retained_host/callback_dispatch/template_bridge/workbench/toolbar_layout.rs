@@ -15,6 +15,9 @@ const FULL_TOOLBAR_MIN_WIDTH: f32 = 1440.0;
 const MODULE_COMMAND_GROUP_CONTROL_ID: &str = "WorkbenchModuleCommands";
 const MODULE_COMMAND_GROUP_COMPACT_WIDTH: f32 = 276.0;
 const MODULE_COMMAND_GROUP_FULL_WIDTH: f32 = 388.0;
+const RUN_GROUP_CONTROL_ID: &str = "WorkbenchToolbarRunGroup";
+const RUN_GROUP_COMPACT_WIDTH: f32 = 70.0;
+const RUN_GROUP_FULL_WIDTH: f32 = 142.0;
 
 const COMPACT_HIDDEN_MODULE_TABS: &[&str] = &[
     "WorkbenchModuleBehavior",
@@ -25,8 +28,8 @@ const COMPACT_HIDDEN_MODULE_TABS: &[&str] = &[
 ];
 
 const SECONDARY_MODULE_COMMANDS: &[&str] = &["WorkbenchModuleDiff", "WorkbenchModuleSimulate"];
-const SECONDARY_TOOLBAR_GROUPS: &[&str] =
-    &["WorkbenchToolbarToolGroup", "WorkbenchToolbarRunGroup"];
+const SECONDARY_TOOLBAR_GROUPS: &[&str] = &["WorkbenchToolbarToolGroup"];
+const SECONDARY_RUN_CONTROLS: &[&str] = &["WorkbenchLayoutGrid", "WorkbenchThemeToggle"];
 
 impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
     pub(super) fn apply_responsive_toolbar_layout(
@@ -49,6 +52,12 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
         for control_id in SECONDARY_TOOLBAR_GROUPS {
             self.set_visible(control_id, full_toolbar)?;
         }
+        // Play and Run Mode are MVP commands. Keep their group reachable at every
+        // breakpoint and collapse only the secondary Layout/Theme children.
+        self.set_visible(RUN_GROUP_CONTROL_ID, true)?;
+        for control_id in SECONDARY_RUN_CONTROLS {
+            self.set_visible(control_id, full_toolbar)?;
+        }
         apply_fixed_control_width(
             &mut self.template_surface.surface,
             MODULE_COMMAND_GROUP_CONTROL_ID,
@@ -56,6 +65,15 @@ impl BuiltinWorkbenchWindowTemplateSurfaceBridge {
                 MODULE_COMMAND_GROUP_FULL_WIDTH
             } else {
                 MODULE_COMMAND_GROUP_COMPACT_WIDTH
+            },
+        )?;
+        apply_fixed_control_width(
+            &mut self.template_surface.surface,
+            RUN_GROUP_CONTROL_ID,
+            if full_toolbar {
+                RUN_GROUP_FULL_WIDTH
+            } else {
+                RUN_GROUP_COMPACT_WIDTH
             },
         )?;
         Ok(())

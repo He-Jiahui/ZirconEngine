@@ -1,6 +1,34 @@
 use super::*;
 
 #[test]
+fn particle_extract_filters_dynamic_component_candidates_before_scene_state_queries() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("render_particles.rs"),
+    )
+    .unwrap();
+    let collector = source
+        .split("pub(super) fn collect_render_particles")
+        .nth(1)
+        .and_then(|text| text.split("#[derive(Clone").next())
+        .expect("read particle collector");
+    let candidate_lookup = collector
+        .find("let particle_values =")
+        .expect("particle collector should snapshot relevant dynamic component references first");
+    let scene_state_lookup = collector
+        .find("self.active_in_hierarchy(entity)")
+        .expect("particle collector should filter active scene entities");
+
+    assert!(
+        candidate_lookup < scene_state_lookup,
+        "entities without particle/HUD components must not pay active hierarchy and layer queries"
+    );
+}
+
+#[test]
 fn render_frame_extract_collects_dynamic_particle_sprites_by_camera_layers() {
     let mut world = World::empty();
     let camera = spawn_camera_on_layer(&mut world, 0b0010);

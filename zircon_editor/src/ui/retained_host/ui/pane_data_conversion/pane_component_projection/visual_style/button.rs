@@ -21,6 +21,6 @@ pub(super) fn projected_button_style(
             .get("button_variant")
             .and_then(value_as_string)
             .unwrap_or_default(),
-        resolved: resolve_button_style_from_values(&button_style_values),
+        resolved: resolve_button_style_from_values(button_style_values.as_ref()),
     }
 }

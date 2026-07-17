@@ -8,10 +8,6 @@ impl HostPagePointerBridge {
         }
 
         self.layout = layout;
-        self.measured_frames.resize(self.layout.items.len(), None);
-        if self.measured_frames.len() > self.layout.items.len() {
-            self.measured_frames.truncate(self.layout.items.len());
-        }
         self.rebuild_surface();
         true
     }

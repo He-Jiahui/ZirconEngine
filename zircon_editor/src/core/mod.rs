@@ -1,6 +1,7 @@
 //! Headless-safe editor contracts, state owners, and services.
 
 pub mod asset;
+pub mod commandlet;
 pub mod commands;
 pub mod context;
 pub mod editing;

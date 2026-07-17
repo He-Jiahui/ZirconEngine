@@ -153,7 +153,7 @@ pub(crate) struct BatchEditorCommand {
 
 impl BatchEditorCommand {
     fn new(commands: Vec<EditorCommand>) -> Option<EditorCommand> {
-        let mut commands = commands.into_iter().collect::<Vec<_>>();
+        let mut commands = commands;
         match commands.len() {
             0 => None,
             1 => commands.pop(),
@@ -368,12 +368,22 @@ impl UpdateNodeCommand {
         node_id: NodeId,
         after: NodeEditState,
     ) -> Result<Option<Self>, String> {
-        let after = normalize_edit_state(after)?;
         let before = NodeEditState::capture(scene, node_id)?;
+        Self::capture_with_before(scene, selected, node_id, before, after)
+    }
+
+    fn capture_with_before(
+        scene: &mut Scene,
+        selected: Option<NodeId>,
+        node_id: NodeId,
+        before: NodeEditState,
+        after: NodeEditState,
+    ) -> Result<Option<Self>, String> {
+        let after = normalize_edit_state(after)?;
         if before == after {
             return Ok(None);
         }
-        Self::apply_state(scene, node_id, &after)?;
+        Self::apply_changes(scene, node_id, &before, &after)?;
         Ok(Some(Self {
             node_id,
             before,
@@ -389,9 +399,10 @@ impl UpdateNodeCommand {
         node_id: NodeId,
         name: String,
     ) -> Result<Option<Self>, String> {
-        let mut after = NodeEditState::capture(scene, node_id)?;
+        let before = NodeEditState::capture(scene, node_id)?;
+        let mut after = before.clone();
         after.name = name;
-        Self::capture(scene, selected, node_id, after)
+        Self::capture_with_before(scene, selected, node_id, before, after)
     }
 
     fn capture_parent(
@@ -400,9 +411,10 @@ impl UpdateNodeCommand {
         node_id: NodeId,
         parent: Option<NodeId>,
     ) -> Result<Option<Self>, String> {
-        let mut after = NodeEditState::capture(scene, node_id)?;
+        let before = NodeEditState::capture(scene, node_id)?;
+        let mut after = before.clone();
         after.parent = parent;
-        Self::capture(scene, selected, node_id, after)
+        Self::capture_with_before(scene, selected, node_id, before, after)
     }
 
     fn capture_transform(
@@ -411,38 +423,46 @@ impl UpdateNodeCommand {
         node_id: NodeId,
         transform: Transform,
     ) -> Result<Option<Self>, String> {
-        let mut after = NodeEditState::capture(scene, node_id)?;
+        let before = NodeEditState::capture(scene, node_id)?;
+        let mut after = before.clone();
         after.transform = transform;
-        Self::capture(scene, selected, node_id, after)
+        Self::capture_with_before(scene, selected, node_id, before, after)
     }
 
     fn apply(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        Self::apply_state(scene, self.node_id, &self.after)?;
+        Self::apply_changes(scene, self.node_id, &self.before, &self.after)?;
         Ok(self.selection_after)
     }
 
     fn undo(&self, scene: &mut Scene) -> Result<Option<NodeId>, String> {
-        Self::apply_state(scene, self.node_id, &self.before)?;
+        Self::apply_changes(scene, self.node_id, &self.after, &self.before)?;
         Ok(self.selection_before)
     }
 
-    fn apply_state(
+    fn apply_changes(
         scene: &mut Scene,
         node_id: NodeId,
-        state: &NodeEditState,
+        before: &NodeEditState,
+        after: &NodeEditState,
     ) -> Result<(), String> {
         if scene.find_node(node_id).is_none() {
             return Err(format!("missing node {node_id}"));
         }
-        let _ = scene
-            .set_parent_checked(node_id, state.parent)
-            .map_err(|error| error.to_string())?;
-        scene
-            .rename_node(node_id, state.name.clone())
-            .map_err(|error| error.to_string())?;
-        let _ = scene
-            .update_transform(node_id, state.transform)
-            .map_err(|error| error.to_string())?;
+        if before.parent != after.parent {
+            let _ = scene
+                .set_parent_checked(node_id, after.parent)
+                .map_err(|error| error.to_string())?;
+        }
+        if before.name != after.name {
+            scene
+                .rename_node(node_id, after.name.clone())
+                .map_err(|error| error.to_string())?;
+        }
+        if before.transform != after.transform {
+            let _ = scene
+                .update_transform(node_id, after.transform)
+                .map_err(|error| error.to_string())?;
+        }
         Ok(())
     }
 
@@ -561,4 +581,16 @@ fn write_reflected_component_field(
         .reflect_write(ReflectWriteRequest::new(address, field_name, value))
         .map(|response| (response.field.value, response.changed))
         .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn editor_commands_avoid_recollecting_batches_and_reapplying_unchanged_node_fields() {
+        let source = include_str!("command.rs");
+        let batch_recollect = ["commands.into_iter()", ".collect::<Vec<_>>()"].concat();
+        let full_state_apply = ["Self::", "apply_state(scene"].concat();
+        assert!(!source.contains(&batch_recollect));
+        assert!(!source.contains(&full_state_apply));
+    }
 }

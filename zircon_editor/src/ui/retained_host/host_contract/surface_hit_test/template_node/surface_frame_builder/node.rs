@@ -7,9 +7,9 @@ use zircon_runtime_interface::ui::{
 use super::super::super::super::data::TemplatePaneNodeData;
 use super::dispatch::template_component;
 
-pub(super) fn template_surface_tree_node(row: usize, node: TemplatePaneNodeData) -> UiTreeNode {
+pub(super) fn template_surface_tree_node(row: usize, node: &TemplatePaneNodeData) -> UiTreeNode {
     let metadata = UiTemplateNodeMetadata {
-        component: template_component(&node),
+        component: template_component(node),
         control_id: Some(node.control_id.to_string()),
         ..Default::default()
     };
@@ -35,7 +35,7 @@ pub(super) fn template_surface_tree_node(row: usize, node: TemplatePaneNodeData)
     })
     .with_input_policy(UiInputPolicy::Receive)
     .with_template_metadata(metadata);
-    tree_node.layout_cache.clip_frame = template_node_clip_frame(&node);
+    tree_node.layout_cache.clip_frame = template_node_clip_frame(node);
     tree_node
 }
 

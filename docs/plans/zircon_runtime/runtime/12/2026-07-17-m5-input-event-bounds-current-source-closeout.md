@@ -30,6 +30,7 @@ tests:
   - input_stack_boundary_audit (runtime/framework/test 18/25/7, behavior anchors 21, risks empty)
   - managed Windows job d064840b0a8f40dcb405bab74b493ba1 / run 78454dffc1744c858bad697721992c7e
   - managed Windows job 586f1f84cf814180a1bc71c48a713a90 / run a101c9a710634fa386a5f50fb7f3b475
+  - managed Windows job 591948392cbb428487ff2f3908754c36 / run 6d9bc0aa6bb243d992c23988d6e35f97
 doc_type: milestone-detail
 ---
 
@@ -37,7 +38,7 @@ doc_type: milestone-detail
 
 Plan: docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
 
-Milestone: M4
+Accepted Milestone: M4
 
 Status: accepted
 
@@ -69,11 +70,13 @@ cargo test -p zircon_runtime --lib input::tests:: --locked --jobs 1 -- --nocaptu
 
 原失败作业 `54e50eb7fdf649dcb2c69e667ede841c` 的同名 plan-status 精确门在更新后 source manifest 上由 job `586f1f84cf814180a1bc71c48a713a90`（run `a101c9a710634fa386a5f50fb7f3b475`）重新执行，结果为 `1 passed; 0 failed; 8240 filtered`；`Runtime 12 输入契约/runtime/tests` 索引锚点恢复，作业 exit `0`。
 
+主提交后的 source-manifest-bound Windows canonical check 由 job `591948392cbb428487ff2f3908754c36`（run `6d9bc0aa6bb243d992c23988d6e35f97`）执行 `cargo check -p zircon_runtime --lib --locked --jobs 1`。作业自然完成并由协调器释放，exit `0`、`live_process_pids = []`，总构建 11m07s；511 条 warning 均为现有未使用项，不是本次 Runtime12 守卫修正错误。
+
 Python regression `tools.tests.test_runtime_input_stack_audit` 为 1/1；direct audit 报告 runtime/framework/test `18/25/7`、behavior anchors `21`、unexpected/missing/wiring/risk lists 全空。`git diff --check` 无 whitespace error（仅仓库既有 LF/CRLF 提示）。
 
 ## Review
 
-独立最终复审为 Critical 0 / Important 0；复审覆盖 d064 source-manifest hashes、两个 canonical fixed return、M5 状态镜像、最小 event-buffer 可见性，以及 action/event-retention 语义。
+独立最终复审为 Critical 0 / Important 0；复审覆盖 d064 source-manifest hashes、两个 canonical fixed return、M4 current-source addendum 状态镜像、最小 event-buffer 可见性，以及 action/event-retention 语义。文件名中的 `m5` 是本次执行批次的历史标识，不代表受保护主计划新增了 M5 里程碑。
 
 ## 边界与剩余范围
 

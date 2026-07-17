@@ -20,7 +20,7 @@ fn compile_preserves_report_only_external_texture_binding() {
     .unwrap();
 
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetime_by_name("history.optional-color")
         .expect("optional external texture lifetime");
 
@@ -47,7 +47,7 @@ fn compile_preserves_report_only_external_buffer_binding() {
     .unwrap();
 
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetime_by_name("history.optional-exposure")
         .expect("optional external buffer lifetime");
 

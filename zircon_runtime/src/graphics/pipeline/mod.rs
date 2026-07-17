@@ -9,7 +9,7 @@ pub(crate) use compiled_graph_cache::{
     RenderGraphCompileCameraTargetFingerprint, RenderGraphCompileTextureTargetFormat,
 };
 pub(crate) use declarations::{
-    transmission_mesh_step_index, transmission_scene_copy_step_index,
+    transmission_mesh_step_index, transmission_scene_copy_step_index, CompiledRenderPipelineParts,
     TRANSMISSION_MESH_EXECUTOR_IDS, TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
 pub use declarations::{

@@ -38,3 +38,4 @@ mod support;
 mod postprocess_context_guards;
 mod registry_contracts;
 mod renderer_context_guards;
+mod validation_cache;

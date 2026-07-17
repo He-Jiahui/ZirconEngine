@@ -34,6 +34,15 @@ impl World {
         let mut gpu_frame_builder = ParticleGpuFrameBuilder::default();
 
         for entity in self.entities.iter().copied() {
+            let particle_values = PARTICLE_COMPONENT_IDS
+                .map(|component_id| self.dynamic_component(entity, component_id));
+            let hud_bar_values = WORLD_HUD_BAR_COMPONENT_IDS
+                .map(|component_id| self.dynamic_component(entity, component_id));
+            if particle_values.iter().all(|value| value.is_none())
+                && hud_bar_values.iter().all(|value| value.is_none())
+            {
+                continue;
+            }
             if self.active_in_hierarchy(entity) != Some(true)
                 || !self.entity_intersects_camera_layers(entity, camera_layers)
             {
@@ -45,10 +54,7 @@ impl World {
             let mut entity_sprites = Vec::new();
             let mut entity_gpu_bounds = Vec::new();
             let mut has_gpu_frame = false;
-            for component_id in PARTICLE_COMPONENT_IDS {
-                let Some(value) = self.dynamic_component(entity, component_id) else {
-                    continue;
-                };
+            for value in particle_values.into_iter().flatten() {
                 collect_particle_sprites_from_value(
                     entity,
                     render_layer_mask,
@@ -63,10 +69,7 @@ impl World {
                     gpu_frame_builder.push(contribution.frame);
                 }
             }
-            for component_id in WORLD_HUD_BAR_COMPONENT_IDS {
-                let Some(value) = self.dynamic_component(entity, component_id) else {
-                    continue;
-                };
+            for value in hud_bar_values.into_iter().flatten() {
                 collect_world_hud_bar_sprites_from_value(
                     entity,
                     render_layer_mask,

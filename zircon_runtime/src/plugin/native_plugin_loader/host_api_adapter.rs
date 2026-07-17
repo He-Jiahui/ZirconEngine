@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::marker::PhantomData;
 use std::str::Utf8Error;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, OnceLock};
+use std::sync::{Arc, Mutex, OnceLock};
 
 use zircon_runtime_interface::{
     ZrByteBufferRef, ZrByteSlice, ZrComponentDescV1, ZrEventTypeId, ZrHostApiV3, ZrHostAssetApiV1,
@@ -196,7 +196,10 @@ impl NativeHostBridgeCallScope {
             .collect();
         lock_contexts().insert(
             handle.raw(),
-            NativeHostApiV3Context::BridgeCall(NativeHostBridgeCallContext { table, methods }),
+            NativeHostApiV3Context::BridgeCall(Arc::new(NativeHostBridgeCallContext {
+                table,
+                methods,
+            })),
         );
         Self { handle }
     }
@@ -268,7 +271,7 @@ struct NativeHostBridgeCallContext {
 #[derive(Clone)]
 enum NativeHostApiV3Context {
     Registration(NativeHostApiV3RegistrationContext),
-    BridgeCall(NativeHostBridgeCallContext),
+    BridgeCall(Arc<NativeHostBridgeCallContext>),
 }
 
 unsafe extern "C" fn native_host_register_system_v1(
@@ -388,10 +391,10 @@ unsafe fn native_host_bridge_call_v1_inner(
         Err(code) => return status(code),
     };
     let slot = InterfaceSlot::from_raw(interface_slot);
-    let Some(snapshot) = context.table.interface_snapshot(slot) else {
+    let Some(entry) = context.table.entry(slot) else {
         return status(ZrStatusCode::NotFound);
     };
-    if snapshot.status != BridgeInterfaceStatus::Enabled {
+    if entry.status() != BridgeInterfaceStatus::Enabled {
         context.table.record_not_enabled_call(slot);
         return status(ZrStatusCode::BridgeNotEnabled);
     }
@@ -563,7 +566,7 @@ fn context_for(handle: ZrRuntimePluginHandle) -> Option<NativeHostApiV3Registrat
 
 fn bridge_context_for(
     handle: ZrRuntimePluginHandle,
-) -> Result<NativeHostBridgeCallContext, ZrStatusCode> {
+) -> Result<Arc<NativeHostBridgeCallContext>, ZrStatusCode> {
     if !handle.is_valid() {
         return Err(ZrStatusCode::NotFound);
     }

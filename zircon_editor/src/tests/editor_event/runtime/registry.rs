@@ -85,6 +85,14 @@ fn editor_operation_path_requires_namespace_action_and_leaf_segments() {
 }
 
 #[test]
+fn editor_operation_path_validation_streams_segments_without_collecting() {
+    let source = include_str!("../../../core/editor_operation.rs");
+
+    assert!(source.contains("let mut segment_count = 0;"));
+    assert!(!source.contains("split('.').collect::<Vec<_>>()"));
+}
+
+#[test]
 fn editor_operation_path_serde_enforces_canonical_parse() {
     use crate::core::editor_operation::EditorOperationPath;
 

@@ -18,11 +18,6 @@ pub(in crate::ui::retained_host::host_contract) fn draw_rounded_border_clipped(
     }
     let border_width = border_width.ceil().max(1.0).min(8.0);
     let corner_radius = clamped_corner_radius(&rect, corner_radius);
-    if corner_radius <= 0.0 {
-        draw_square_border_stack(frame, &rect, clip, color, border_width);
-        return;
-    }
-
     let Some(effective_clip) = effective_clip(frame, clip) else {
         return;
     };
@@ -34,6 +29,14 @@ pub(in crate::ui::retained_host::host_contract) fn draw_rounded_border_clipped(
     ) else {
         return;
     };
+    if frame.record_only() {
+        frame.record_border(rect, effective_clip, color, border_width, corner_radius);
+        return;
+    }
+    if corner_radius <= 0.0 {
+        draw_square_border_stack(frame, &rect, clip, color, border_width);
+        return;
+    }
     if frame.is_recording() {
         frame.record_border(
             rect.clone(),

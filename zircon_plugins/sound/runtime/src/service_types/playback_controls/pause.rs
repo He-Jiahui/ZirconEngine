@@ -1,33 +1,66 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundPlaybackId};
 
 use super::super::DefaultSoundManager;
-use super::state_access::with_active_playback_mut;
+use crate::poison_recovery::lock_recover;
 
 impl DefaultSoundManager {
     pub(in crate::service_types) fn pause_playback_impl(
         &self,
         playback: SoundPlaybackId,
     ) -> Result<(), SoundError> {
-        with_active_playback_mut(self, playback, |active| {
-            active.paused = true;
-        })
+        let mut state = lock_recover(&self.state);
+        state.poll_kira_completions();
+        if !state.playbacks.contains_key(&playback) {
+            return Err(SoundError::UnknownPlayback { playback });
+        }
+        state.kira.pause(playback)?;
+        state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?
+            .paused = true;
+        Ok(())
     }
 
     pub(in crate::service_types) fn resume_playback_impl(
         &self,
         playback: SoundPlaybackId,
     ) -> Result<(), SoundError> {
-        with_active_playback_mut(self, playback, |active| {
-            active.paused = false;
-        })
+        let mut state = lock_recover(&self.state);
+        state.poll_kira_completions();
+        if !state.playbacks.contains_key(&playback) {
+            return Err(SoundError::UnknownPlayback { playback });
+        }
+        state.kira.resume(playback)?;
+        state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?
+            .paused = false;
+        Ok(())
     }
 
     pub(in crate::service_types) fn toggle_playback_impl(
         &self,
         playback: SoundPlaybackId,
     ) -> Result<(), SoundError> {
-        with_active_playback_mut(self, playback, |active| {
-            active.paused = !active.paused;
-        })
+        let mut state = lock_recover(&self.state);
+        state.poll_kira_completions();
+        let paused = state
+            .playbacks
+            .get(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?
+            .paused;
+        if paused {
+            state.kira.resume(playback)?;
+        } else {
+            state.kira.pause(playback)?;
+        }
+        state
+            .playbacks
+            .get_mut(&playback)
+            .ok_or(SoundError::UnknownPlayback { playback })?
+            .paused = !paused;
+        Ok(())
     }
 }

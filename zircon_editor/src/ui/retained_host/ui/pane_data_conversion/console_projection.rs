@@ -6,16 +6,16 @@ use crate::ui::retained_host as host_contract;
 use crate::ui::template_runtime::EditorUiHostRuntime;
 use zircon_runtime_interface::ui::layout::UiSize;
 
-use super::super::template_node_conversion::to_host_contract_template_node_owned;
+use super::super::template_node_conversion::to_host_contract_template_node;
 use super::pane_component_projection::host_template_node;
 use super::pane_template_runtime;
 use super::pane_value_conversion::value_as_string;
 use super::template_node_projection::project_nodes;
 
-fn to_host_contract_console_pane(data: ConsolePaneViewData) -> host_contract::ConsolePaneData {
+fn to_host_contract_console_pane(data: &ConsolePaneViewData) -> host_contract::ConsolePaneData {
     host_contract::ConsolePaneData {
         nodes: project_nodes(&data.nodes, to_host_contract_console_legacy_node),
-        status_text: data.status_text,
+        status_text: data.status_text.clone(),
     }
 }
 
@@ -24,7 +24,7 @@ pub(crate) fn to_host_contract_console_pane_from_host_pane(
     content_size: PaneContentSize,
 ) -> host_contract::ConsolePaneData {
     console_template_projection(data, content_size, None)
-        .unwrap_or_else(|| to_host_contract_console_pane(data.native_body.console.clone()))
+        .unwrap_or_else(|| to_host_contract_console_pane(&data.native_body.console))
 }
 
 pub(crate) fn to_host_contract_console_pane_from_host_pane_with_runtime(
@@ -33,7 +33,7 @@ pub(crate) fn to_host_contract_console_pane_from_host_pane_with_runtime(
     runtime: &EditorUiHostRuntime,
 ) -> host_contract::ConsolePaneData {
     console_template_projection(data, content_size, Some(runtime))
-        .unwrap_or_else(|| to_host_contract_console_pane(data.native_body.console.clone()))
+        .unwrap_or_else(|| to_host_contract_console_pane(&data.native_body.console))
 }
 
 fn console_template_projection(
@@ -84,9 +84,9 @@ fn console_template_projection(
 }
 
 fn to_host_contract_console_legacy_node(
-    data: crate::ui::layouts::views::ViewTemplateNodeData,
+    data: &crate::ui::layouts::views::ViewTemplateNodeData,
 ) -> host_contract::TemplatePaneNodeData {
-    let mut node = to_host_contract_template_node_owned(data);
+    let mut node = to_host_contract_template_node(data);
     if node.control_id == "ConsoleTextPanel" {
         node.control_id = "ConsoleBodySection".into();
     }

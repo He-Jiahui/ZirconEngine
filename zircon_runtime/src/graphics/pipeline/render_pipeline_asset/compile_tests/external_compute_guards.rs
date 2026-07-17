@@ -31,7 +31,7 @@ fn compile_preserves_required_external_texture_binding() {
 
     let compiled = pipeline.compile(&test_extract()).unwrap();
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetime_by_name("history.previous-color")
         .expect("required external texture lifetime");
 

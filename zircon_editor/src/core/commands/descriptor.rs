@@ -209,7 +209,12 @@ impl EditorCommandDescriptor {
     }
 
     pub fn is_enabled(&self, context: &CommandEvalCtx) -> bool {
-        self.effective_when().eval(context)
+        self.when.eval(context)
+            && self
+                .required_capabilities
+                .iter()
+                .all(|capability| context.has_capability(capability))
+            && (self.asset_write_target.is_none() || WhenClause::AssetWritable.eval(context))
     }
 
     pub(crate) fn missing_required_capabilities(&self, context: &CommandEvalCtx) -> Vec<String> {
@@ -310,4 +315,14 @@ impl EditorCommandCategory {
 pub enum EditorCommandAction {
     Emit(EditorEvent),
     Operation,
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn command_enablement_does_not_materialize_an_effective_when_clause() {
+        let source = include_str!("descriptor.rs");
+        let allocating_eval = ["self", ".effective_when().eval(context)"].concat();
+        assert!(!source.contains(&allocating_eval));
+    }
 }

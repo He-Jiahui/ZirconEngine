@@ -14,9 +14,7 @@ impl DefaultSoundManager {
                 parameter.as_str()
             )));
         }
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .parameters
             .insert(parameter, value);
         Ok(())
@@ -26,9 +24,7 @@ impl DefaultSoundManager {
         &self,
         parameter: &SoundParameterId,
     ) -> Result<f32, SoundError> {
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .parameters
             .get(parameter)
             .copied()

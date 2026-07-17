@@ -13,7 +13,7 @@ from .models import CoordinatorError
 from .supervision.migration import migrate_supervision_schema
 
 
-LATEST_SCHEMA_VERSION = 43
+LATEST_SCHEMA_VERSION = 48
 
 
 def _migration_1(connection: Connection) -> None:
@@ -1909,6 +1909,235 @@ def _migration_43(connection: Connection) -> None:
     )
 
 
+def _migration_44(connection: Connection) -> None:
+    """Add the admission-preserving coordinator rollover to closed action enums."""
+    action_kinds = """
+        'session.heartbeat', 'session.activate', 'lease.claim_own_scope',
+        'lease.release_own', 'patch.process_own', 'validation.start',
+        'validation.cancel', 'failure.refresh', 'topology.refresh',
+        'service.drain_preview', 'service.drain', 'service.resume',
+        'service.rollover', 'service.stop', 'service.restart', 'service.force_stop',
+        'milestone.commit', 'milestone.reconcile_accepted', 'session.complete',
+        'maintenance.cleanup', 'codex.sessions.reconcile'
+    """
+    connection.executescript(
+        f"""
+        DROP TRIGGER action_requests_kind_insert;
+        DROP TRIGGER action_requests_kind_update;
+        DROP TRIGGER action_approvals_no_update;
+        DROP TRIGGER action_approvals_no_delete;
+        DROP TRIGGER service_supervision_events_no_update;
+        DROP TRIGGER service_supervision_events_no_delete;
+        DROP INDEX action_requests_actor_created;
+        DROP INDEX action_requests_status_expiry;
+        DROP INDEX action_approvals_action;
+        DROP INDEX service_supervision_events_repository_created;
+        DROP INDEX service_lifecycle_intents_repository_status;
+        DROP INDEX service_lifecycle_one_active_reversible;
+
+        ALTER TABLE action_approvals RENAME TO action_approvals_v43;
+        ALTER TABLE service_supervision_events RENAME TO service_supervision_events_v43;
+        ALTER TABLE service_lifecycle_intents RENAME TO service_lifecycle_intents_v43;
+        ALTER TABLE action_requests RENAME TO action_requests_v43;
+
+        CREATE TABLE action_requests (
+            action_id TEXT PRIMARY KEY,
+            action_kind TEXT NOT NULL CHECK (action_kind IN ({action_kinds})),
+            risk TEXT NOT NULL CHECK (risk IN ('green', 'yellow', 'red')),
+            required_role TEXT NOT NULL CHECK (required_role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            actor TEXT NOT NULL,
+            web_session_id TEXT,
+            bound_session_id TEXT,
+            daemon_instance_id TEXT NOT NULL,
+            parameters_json TEXT NOT NULL,
+            impact_json TEXT NOT NULL,
+            warnings_json TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            confirmation_phrase_hash TEXT NOT NULL,
+            status TEXT NOT NULL CHECK (status IN (
+                'previewed', 'executing', 'succeeded', 'failed', 'cancelled',
+                'expired', 'state_changed', 'denied'
+            )),
+            reason TEXT,
+            result_json TEXT,
+            error_code TEXT,
+            created_at TEXT NOT NULL,
+            expires_at TEXT NOT NULL,
+            confirmed_at TEXT,
+            completed_at TEXT
+        );
+        CREATE TABLE action_approvals (
+            approval_id TEXT PRIMARY KEY,
+            action_id TEXT NOT NULL REFERENCES action_requests(action_id),
+            actor TEXT NOT NULL,
+            role TEXT NOT NULL CHECK (role IN (
+                'observer', 'operator', 'committer', 'maintainer'
+            )),
+            reason TEXT NOT NULL,
+            state_fingerprint TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+        CREATE TABLE service_supervision_events (
+            event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            repository_key TEXT NOT NULL,
+            sequence INTEGER NOT NULL CHECK (sequence > 0),
+            from_state TEXT CHECK (from_state IS NULL OR from_state IN (
+                'starting', 'healthy', 'degraded', 'draining', 'stopping', 'offline',
+                'recovering', 'read_only', 'identity_mismatch', 'fatal_integrity_error'
+            )),
+            to_state TEXT NOT NULL CHECK (to_state IN (
+                'starting', 'healthy', 'degraded', 'draining', 'stopping', 'offline',
+                'recovering', 'read_only', 'identity_mismatch', 'fatal_integrity_error'
+            )),
+            daemon_instance_id TEXT,
+            process_id INTEGER CHECK (process_id IS NULL OR process_id > 0),
+            process_creation_time TEXT,
+            reason_code TEXT NOT NULL,
+            actor TEXT,
+            action_id TEXT REFERENCES action_requests(action_id),
+            payload_json TEXT NOT NULL DEFAULT '{{}}',
+            created_at TEXT NOT NULL,
+            UNIQUE(repository_key, sequence)
+        );
+        CREATE TABLE service_lifecycle_intents (
+            intent_id TEXT PRIMARY KEY,
+            repository_key TEXT NOT NULL,
+            action_id TEXT UNIQUE REFERENCES action_requests(action_id),
+            kind TEXT NOT NULL CHECK (kind IN (
+                'service.drain', 'service.resume', 'service.rollover', 'service.stop',
+                'service.restart', 'service.force_stop'
+            )),
+            status TEXT NOT NULL CHECK (status IN (
+                'accepted', 'draining', 'ready', 'stopping', 'awaiting_restart',
+                'succeeded', 'failed', 'cancelled'
+            )),
+            requested_by TEXT NOT NULL,
+            source_daemon_instance_id TEXT NOT NULL,
+            successor_daemon_instance_id TEXT,
+            deadline_at TEXT,
+            error_code TEXT,
+            result_json TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            completed_at TEXT
+        );
+
+        INSERT INTO action_requests SELECT * FROM action_requests_v43;
+        INSERT INTO action_approvals SELECT * FROM action_approvals_v43;
+        INSERT INTO service_supervision_events SELECT * FROM service_supervision_events_v43;
+        INSERT INTO service_lifecycle_intents SELECT * FROM service_lifecycle_intents_v43;
+        DROP TABLE action_approvals_v43;
+        DROP TABLE service_supervision_events_v43;
+        DROP TABLE service_lifecycle_intents_v43;
+        DROP TABLE action_requests_v43;
+
+        CREATE INDEX action_requests_actor_created ON action_requests(actor, created_at);
+        CREATE INDEX action_requests_status_expiry ON action_requests(status, expires_at);
+        CREATE INDEX action_approvals_action ON action_approvals(action_id);
+        CREATE INDEX service_supervision_events_repository_created
+            ON service_supervision_events(repository_key, created_at);
+        CREATE INDEX service_lifecycle_intents_repository_status
+            ON service_lifecycle_intents(repository_key, status, updated_at);
+        CREATE UNIQUE INDEX service_lifecycle_one_active_reversible
+            ON service_lifecycle_intents(repository_key)
+            WHERE kind IN ('service.stop', 'service.restart', 'service.force_stop', 'service.rollover')
+              AND status IN ('accepted', 'draining', 'awaiting_restart');
+
+        CREATE TRIGGER action_requests_kind_insert
+        BEFORE INSERT ON action_requests
+        WHEN NEW.action_kind NOT IN ({action_kinds})
+        BEGIN SELECT RAISE(ABORT, 'invalid controlled action kind'); END;
+        CREATE TRIGGER action_requests_kind_update
+        BEFORE UPDATE OF action_kind ON action_requests
+        WHEN NEW.action_kind NOT IN ({action_kinds})
+        BEGIN SELECT RAISE(ABORT, 'invalid controlled action kind'); END;
+        CREATE TRIGGER action_approvals_no_update BEFORE UPDATE ON action_approvals
+        BEGIN SELECT RAISE(ABORT, 'action approvals are immutable'); END;
+        CREATE TRIGGER action_approvals_no_delete BEFORE DELETE ON action_approvals
+        BEGIN SELECT RAISE(ABORT, 'action approvals are immutable'); END;
+        CREATE TRIGGER service_supervision_events_no_update
+        BEFORE UPDATE ON service_supervision_events
+        BEGIN SELECT RAISE(ABORT, 'service supervision events are immutable'); END;
+        CREATE TRIGGER service_supervision_events_no_delete
+        BEFORE DELETE ON service_supervision_events
+        BEGIN SELECT RAISE(ABORT, 'service supervision events are immutable'); END;
+        """
+    )
+
+
+def _migration_45(connection: Connection) -> None:
+    """Persist failure scope metadata used by source-slice gate selection."""
+    connection.executescript(
+        """
+        ALTER TABLE failure_nodes
+            ADD COLUMN plan_link_mode TEXT NOT NULL DEFAULT '';
+        ALTER TABLE failure_nodes
+            ADD COLUMN related_code_json TEXT NOT NULL DEFAULT '[]';
+        """
+    )
+
+
+def _migration_46(connection: Connection) -> None:
+    """Allow an exact CPU successor queue while preserving GPU exclusivity."""
+    connection.executescript(
+        """
+        DROP INDEX cargo_lane_reservations_one_pending_lane;
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_active_lane
+            ON cargo_lane_reservations(lane_scope)
+            WHERE lane_scope IN ('cpu', 'gpu')
+              AND status IN ('leased', 'running', 'finished');
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_pending_gpu
+            ON cargo_lane_reservations(lane_scope)
+            WHERE lane_scope='gpu' AND status='pending';
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_pending_session_lane
+            ON cargo_lane_reservations(lane_scope, session_id)
+            WHERE status='pending';
+        CREATE INDEX cargo_lane_reservations_pending_fifo
+            ON cargo_lane_reservations(lane_scope, status, created_at, reservation_id);
+        """
+    )
+
+
+def _migration_47(connection: Connection) -> None:
+    """Retain index recovery bytes only while a finalize request is recoverable."""
+    connection.execute(
+        """
+        UPDATE finalize_requests
+        SET index_snapshot = NULL
+        WHERE status IN ('committed', 'failed')
+          AND index_snapshot IS NOT NULL
+        """
+    )
+
+
+def _migration_48(connection: Connection) -> None:
+    """Add one isolated CPU burst slot without relaxing the warm pool."""
+    connection.executescript(
+        """
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN execution_mode TEXT NOT NULL DEFAULT 'warm'
+            CHECK (execution_mode IN ('warm', 'burst'));
+        ALTER TABLE cargo_lane_reservations
+            ADD COLUMN burst_eligible INTEGER NOT NULL DEFAULT 0
+            CHECK (burst_eligible IN (0, 1));
+        DROP INDEX cargo_lane_reservations_one_active_lane;
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_active_warm
+            ON cargo_lane_reservations(lane_scope, execution_mode)
+            WHERE lane_scope IN ('cpu', 'gpu') AND execution_mode='warm'
+              AND status IN ('leased', 'running', 'finished');
+        CREATE UNIQUE INDEX cargo_lane_reservations_one_active_burst
+            ON cargo_lane_reservations(lane_scope, execution_mode)
+            WHERE lane_scope='cpu' AND execution_mode='burst'
+              AND status IN ('leased', 'running', 'finished');
+        CREATE INDEX cargo_lane_reservations_cpu_warm_fifo
+            ON cargo_lane_reservations(lane_scope, execution_mode, status, created_at, reservation_id)
+            WHERE lane_scope='cpu' AND execution_mode='warm';
+        """
+    )
+
+
 MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     1: _migration_1,
     2: _migration_2,
@@ -1953,12 +2182,18 @@ MIGRATIONS: dict[int, Callable[[Connection], None]] = {
     41: _migration_41,
     42: _migration_42,
     43: _migration_43,
+    44: _migration_44,
+    45: _migration_45,
+    46: _migration_46,
+    47: _migration_47,
+    48: _migration_48,
 }
 
 
 def migrate(database: Database) -> int:
     existing_database = False
     apply_compaction_marker = False
+    apply_terminal_snapshot_compaction = False
     with database.transaction() as connection:
         connection.execute(
             "CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)"
@@ -1977,6 +2212,7 @@ def migrate(database: Database) -> int:
             )
         existing_database = bool(applied)
         apply_compaction_marker = 25 not in applied
+        apply_terminal_snapshot_compaction = 47 not in applied
         for version in range(1, 25):
             if version in applied:
                 continue
@@ -2002,8 +2238,37 @@ def migrate(database: Database) -> int:
                 "SELECT version FROM schema_version WHERE version>=26"
             )
         }
-        for version in range(26, LATEST_SCHEMA_VERSION + 1):
+        for version in range(26, 47):
             if version in applied_after_compaction:
+                continue
+            MIGRATIONS[version](connection)
+            connection.execute(
+                "INSERT INTO schema_version(version, applied_at) VALUES (?, datetime('now'))",
+                (version,),
+            )
+    if apply_terminal_snapshot_compaction:
+        # The recovery BLOB is not evidence after a terminal transition. Apply the
+        # data cleanup before its schema marker, so a failed physical compaction is
+        # retried on the next safe startup rather than silently leaving disk debt.
+        with database.transaction() as connection:
+            _migration_47(connection)
+        if existing_database:
+            with database.connect() as connection:
+                connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                connection.execute("VACUUM")
+        with database.transaction() as connection:
+            connection.execute(
+                "INSERT INTO schema_version(version, applied_at) VALUES (47, datetime('now'))"
+            )
+    with database.transaction() as connection:
+        applied_after_terminal_compaction = {
+            int(row[0])
+            for row in connection.execute(
+                "SELECT version FROM schema_version WHERE version>=48"
+            )
+        }
+        for version in range(48, LATEST_SCHEMA_VERSION + 1):
+            if version in applied_after_terminal_compaction:
                 continue
             MIGRATIONS[version](connection)
             connection.execute(

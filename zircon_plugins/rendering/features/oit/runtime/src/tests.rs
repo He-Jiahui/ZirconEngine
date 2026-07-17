@@ -92,7 +92,7 @@ fn oit_enabled_replaces_sorted_transparency_and_sizes_buffers() {
         320 * 180 * 4
     );
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == RESOLVE_PASS)
@@ -120,8 +120,8 @@ fn oit_disabled_keeps_sorted_transparency_graph_baseline() {
         .unwrap();
 
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        disabled.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        disabled.graph().dump().to_text()
     );
 }
 
@@ -140,11 +140,11 @@ fn oit_without_camera_settings_falls_back_to_sorted_transparency() {
         .unwrap();
 
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        installed.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        installed.graph().dump().to_text()
     );
     assert!(!installed
-        .enabled_features
+        .enabled_features()
         .iter()
         .any(|feature| feature.feature_name() == FEATURE_NAME));
 }
@@ -164,7 +164,7 @@ fn oit_extract() -> RenderFrameExtract {
 
 fn pass_names(compiled: &zircon_runtime::graphics::CompiledRenderPipeline) -> Vec<&str> {
     compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -185,7 +185,7 @@ fn buffer_size(
     resource_name: &str,
 ) -> u64 {
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == resource_name)

@@ -25,7 +25,7 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
         .map(String::as_str)
         .collect::<BTreeSet<_>>();
     let expected_executed_fallback_pass_count = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| {
@@ -33,7 +33,7 @@ fn headless_wgpu_server_falls_back_async_compute_passes_to_graphics() {
         })
         .count();
     let expected_executed_compute_workload_count = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| {

@@ -146,10 +146,18 @@ fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) ->
 }
 
 #[cfg(windows)]
+const WINDOWS_ERROR_PRIVILEGE_NOT_HELD: i32 = 1314;
+
+#[cfg(windows)]
 fn create_directory_symlink(target: &std::path::Path, link: &std::path::Path) -> bool {
     match std::os::windows::fs::symlink_dir(target, link) {
         Ok(()) => true,
-        Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => false,
+        Err(error)
+            if error.kind() == std::io::ErrorKind::PermissionDenied
+                || error.raw_os_error() == Some(WINDOWS_ERROR_PRIVILEGE_NOT_HELD) =>
+        {
+            false
+        }
         Err(error) => panic!("create directory symlink fixture failed: {error}"),
     }
 }

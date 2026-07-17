@@ -82,3 +82,16 @@ fn host_page_pointer_bridge_uses_route_intent_only() {
         );
     }
 }
+
+#[test]
+fn host_page_pointer_does_not_maintain_unused_measured_frames() {
+    let bridge = source("src/ui/retained_host/host_page_pointer/host_page_pointer_bridge.rs");
+    let sync = source("src/ui/retained_host/host_page_pointer/sync.rs");
+    let click = source("src/ui/retained_host/host_page_pointer/handle_click.rs");
+
+    for candidate in [&bridge, &sync, &click] {
+        assert!(!candidate.contains("measured_frames"));
+    }
+    assert!(click.contains("let Some(callback_frame)"));
+    assert!(!click.contains("self.rebuild_surface()"));
+}

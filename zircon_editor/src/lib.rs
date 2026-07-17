@@ -17,7 +17,9 @@ pub use core::editor_plugin::{
     EditorPluginRegistrationReport,
 };
 pub use core::gateway::{
-    DetachedEditorRuntimeGateway, EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
+    DetachedEditorRuntimeGateway, EditorRuntimeFrame, EditorRuntimeGateway,
+    EditorRuntimeGatewayHandle, GatewayError, InProcessGateway, PluginActivationState,
+    PluginSummaryEntry, RuntimeCapabilities, SessionGateway, SessionProfileKind,
     SharedEditorRuntimeGateway,
 };
 pub use core::gui_startup_request::EditorGuiStartupRequest;

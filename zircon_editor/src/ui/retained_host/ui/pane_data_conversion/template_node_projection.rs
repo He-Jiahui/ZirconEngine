@@ -8,7 +8,7 @@ pub(super) fn project_nodes<T, F>(
 ) -> ModelRc<host_contract::TemplatePaneNodeData>
 where
     T: Clone + 'static,
-    F: FnMut(T) -> host_contract::TemplatePaneNodeData,
+    F: FnMut(&T) -> host_contract::TemplatePaneNodeData,
 {
     model_rc(project_node_vec(nodes, map))
 }
@@ -19,10 +19,37 @@ pub(super) fn project_node_vec<T, F>(
 ) -> Vec<host_contract::TemplatePaneNodeData>
 where
     T: Clone + 'static,
-    F: FnMut(T) -> host_contract::TemplatePaneNodeData,
+    F: FnMut(&T) -> host_contract::TemplatePaneNodeData,
 {
-    (0..nodes.row_count())
-        .filter_map(|row| nodes.row_data(row))
-        .map(&mut map)
-        .collect()
+    nodes.iter().map(&mut map).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
+    use super::*;
+
+    struct CloneProbe(Arc<AtomicUsize>);
+
+    impl Clone for CloneProbe {
+        fn clone(&self) -> Self {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Self(Arc::clone(&self.0))
+        }
+    }
+
+    #[test]
+    fn pane_template_node_projection_borrows_source_rows() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let source = model_rc(vec![CloneProbe(Arc::clone(&clone_count))]);
+
+        let projected = project_nodes(&source, |_| host_contract::TemplatePaneNodeData::default());
+
+        assert_eq!(projected.row_count(), 1);
+        assert_eq!(clone_count.load(Ordering::Relaxed), 0);
+    }
 }

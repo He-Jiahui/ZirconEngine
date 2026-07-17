@@ -1,15 +1,19 @@
 use std::fs;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use image::{DynamicImage, ImageBuffer, ImageFormat, Rgb};
 use zircon_runtime::asset::artifact::{
     IblBakeArtifactAssetDerivedRead, IblSourceCubemapStagingRead, IblSourceCubemapStagingStore,
 };
+use zircon_runtime::asset::importer::stage_environment_ibl_source_with_parallel_executor;
 use zircon_runtime::asset::{
     decode_texture_source_image_rgba32f, stage_environment_ibl_source, AssetImportContext,
     AssetUri, EnvironmentIblSourceStagingStatus,
 };
 use zircon_runtime::core::framework::render::IblBakeArtifactContents;
+use zircon_runtime::core::framework::tasks::{ParallelSliceExecutor, TaskPoolDescriptor};
+use zircon_runtime::core::runtime::tasks::TaskPool;
 
 #[test]
 fn hdr_decode_preserves_linear_radiance_above_one() {
@@ -84,6 +88,89 @@ fn hdr_equirect_import_stages_current_zcube_and_zribl_bundle() {
     assert_eq!(reused.request(), Some(&request));
 
     let _ = fs::remove_dir_all(root);
+}
+
+#[test]
+fn hdr_equirect_parallel_staging_matches_serial_bundle_and_reuses_cache() {
+    let serial_root = unique_temp_root("environment_ibl_serial_parallel_serial");
+    let parallel_root = unique_temp_root("environment_ibl_serial_parallel_parallel");
+    let counted_root = unique_temp_root("environment_ibl_serial_parallel_counted");
+    let context = hdr_context(
+        "res://textures/parallel_studio.hdr",
+        256,
+        128,
+        "environment_ibl = true\nenvironment_ibl_face_size = 128\nenvironment_ibl_pmrem_face_size = 64",
+    );
+
+    let serial = stage_environment_ibl_source(&context, &serial_root)
+        .expect("serial staging should write the source and derived bundle");
+    let pool = TaskPool::new(TaskPoolDescriptor::compute().with_worker_threads(2));
+    let parallel =
+        stage_environment_ibl_source_with_parallel_executor(&context, &parallel_root, &pool)
+            .expect("parallel staging should write the source and derived bundle");
+
+    assert_eq!(
+        parallel.status(),
+        EnvironmentIblSourceStagingStatus::Written
+    );
+    assert_eq!(parallel.request(), serial.request());
+    assert_eq!(
+        fs::read(serial.source_zcube_path().expect("serial zcube path"))
+            .expect("read serial zcube"),
+        fs::read(parallel.source_zcube_path().expect("parallel zcube path"))
+            .expect("read parallel zcube")
+    );
+    assert_eq!(
+        fs::read(serial.asset_derived_path().expect("serial derived path"))
+            .expect("read serial derived"),
+        fs::read(
+            parallel
+                .asset_derived_path()
+                .expect("parallel derived path")
+        )
+        .expect("read parallel derived")
+    );
+
+    let reused =
+        stage_environment_ibl_source_with_parallel_executor(&context, &parallel_root, &pool)
+            .expect("current parallel staging bundle should be reusable");
+    assert_eq!(reused.status(), EnvironmentIblSourceStagingStatus::Reused);
+    assert_eq!(reused.request(), parallel.request());
+
+    let counting_executor = CountingParallelSliceExecutor::default();
+    let counted = stage_environment_ibl_source_with_parallel_executor(
+        &context,
+        &counted_root,
+        &counting_executor,
+    )
+    .expect("counted parallel staging should write the source and derived bundle");
+    assert_eq!(counted.status(), EnvironmentIblSourceStagingStatus::Written);
+    assert!(
+        counting_executor.parallel_for_calls()
+            >= counted.request().expect("counted request").pmrem_mip_count() as usize,
+        "a parallel PMREM build must dispatch each PMREM mip through the supplied runtime executor"
+    );
+
+    counting_executor.reset();
+    let counted_reused = stage_environment_ibl_source_with_parallel_executor(
+        &context,
+        &counted_root,
+        &counting_executor,
+    )
+    .expect("current counted parallel staging bundle should be reusable");
+    assert_eq!(
+        counted_reused.status(),
+        EnvironmentIblSourceStagingStatus::Reused
+    );
+    assert_eq!(
+        counting_executor.parallel_for_calls(),
+        0,
+        "a cache hit must not recompute source cubemap or PMREM work"
+    );
+
+    let _ = fs::remove_dir_all(serial_root);
+    let _ = fs::remove_dir_all(parallel_root);
+    let _ = fs::remove_dir_all(counted_root);
 }
 
 #[test]
@@ -268,4 +355,32 @@ fn unique_temp_root(name: &str) -> std::path::PathBuf {
         std::process::id(),
         timestamp
     ))
+}
+
+#[derive(Default)]
+struct CountingParallelSliceExecutor {
+    parallel_for_calls: AtomicUsize,
+}
+
+impl CountingParallelSliceExecutor {
+    fn parallel_for_calls(&self) -> usize {
+        self.parallel_for_calls.load(Ordering::SeqCst)
+    }
+
+    fn reset(&self) {
+        self.parallel_for_calls.store(0, Ordering::SeqCst);
+    }
+}
+
+impl ParallelSliceExecutor for CountingParallelSliceExecutor {
+    fn parallel_for<T, F>(&self, items: &mut [T], chunk_size: usize, task: F)
+    where
+        T: Send,
+        F: Fn(&mut [T]) + Send + Sync,
+    {
+        self.parallel_for_calls.fetch_add(1, Ordering::SeqCst);
+        for chunk in items.chunks_mut(chunk_size.max(1)) {
+            task(chunk);
+        }
+    }
 }

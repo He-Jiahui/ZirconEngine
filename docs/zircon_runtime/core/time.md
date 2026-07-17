@@ -33,6 +33,8 @@ implementation_files:
   - zircon_app/src/entry/runtime_library/runtime_session.rs
   - zircon_app/src/entry/runtime_entry_app/application_handler/mod.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/performance/01/2026-07-17-time-diagnostics-static-review.md
   - user: 2026-05-16 continue Bevy-style runtime Time integration
   - .codex/plans/ZirconEngine Bevy 完成度两层路线图.md
   - .codex/plans/ZirconEngine Bevy 参照基础设施收束计划.md
@@ -42,6 +44,7 @@ plan_sources:
   - dev/bevy/crates/bevy_time/src/fixed.rs
   - dev/bevy/crates/bevy_diagnostic/src/frame_time_diagnostics_plugin.rs
 tests:
+  - zircon_runtime/src/core/runtime/diagnostics/store.rs::tests::static_diagnostic_series_reuses_path_and_metadata_allocations
   - zircon_runtime/src/tests/time.rs
   - zircon_runtime/src/tests/prelude.rs
   - zircon_runtime/src/dynamic_api/tests.rs
@@ -83,6 +86,8 @@ This keeps the app host out of concrete clock storage. `zircon_app` can choose w
 
 The diagnostic path constants are `&'static str` values rather than Bevy-style const `DiagnosticPath` values because Zircon's `DiagnosticPath` currently owns a `String`. Keeping the public constants re-exported through the curated `core` and prelude facades still gives callers a stable contract while avoiding a broader storage refactor in the diagnostics module.
 
+Time diagnostics use the runtime store's static-series fast path. The first sample establishes the owned path, unit, and tags; subsequent samples with the same metadata perform a borrowed path lookup and update only the numeric history. All four time rows are written while holding one diagnostic-store lock, avoiding four lock cycles and repeated metadata allocations per frame. Dynamic diagnostic paths continue to use the generic record API.
+
 `tick_time(max_fixed_steps)` reads the runtime-owned `FrameClock`, then delegates to the deterministic path. This keeps tests and replay-style callers able to bypass the wall clock, while real app loops still have a single runtime-owned clock path.
 
 The dynamic runtime API exposes that wall-clock path through optional `tick_frame(session)`. `zircon_app` treats the function as optional for older ABI-v1 runtimes, but the current runtime exports it and routes the call to `RuntimeDynamicSession::tick_frame`, which advances the owned `CoreRuntime` with a local fixed-step cap selected from the session profile. The default cap is deliberately local to the dynamic session because it is host-loop policy rather than a cross-crate protocol value.
@@ -108,5 +113,7 @@ Dynamic/app integration coverage now also verifies that:
 - dynamic session creation rejects unknown profile bytes before runtime bootstrap and accepts the named `dev` profile,
 - `zircon_app` loads the optional function through offset-gated table access, and
 - `RuntimeEntryApp::about_to_wait` calls `session.tick_frame()` before requesting redraw.
+
+The static-series storage-reuse regression is implemented in `core/runtime/diagnostics/store.rs`; coordinated Cargo and allocation-benchmark validation remain pending.
 
 The dev-profile continuation also guards that the dynamic `dev` session wires a `DiagnosticStoreLogSchedule` into the same `tick_frame` path, so Bevy-style time diagnostics can be emitted through `diagnostic_log` without widening the app/runtime ABI.

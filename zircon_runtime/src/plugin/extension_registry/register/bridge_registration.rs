@@ -109,6 +109,9 @@ impl RuntimeExtensionRegistry {
     }
 
     pub(crate) fn finalize_bridge_imports(&mut self) {
+        if self.bridge_table.is_some() {
+            return;
+        }
         let table = self.build_bridge_table();
         for import in self.plugin_interface_imports.values() {
             import.bind(&table);

@@ -28,11 +28,15 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_event_dispatch.rs
   - zircon_editor/src/ui/workbench/shell_state.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/zircon_editor/editor/02/failure-2026-07-17-editor-event-journal-listener-unbounded-retention.md
   - docs/plans/zircon_editor/editor/00-editor-architecture-overview.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - zircon_editor/src/core/editor_event/listener.rs::tests::listener_acceptance_does_not_normalize_prefixes_per_record
+  - zircon_editor/src/core/editor_event/listener.rs::tests::listener_filter_normalizes_operation_prefixes_once
   - zircon_editor/src/tests/editor_event/service.rs
   - zircon_editor/src/tests/editor_event/runtime/
   - zircon_editor/src/tests/editor_event/animation_runtime/
@@ -83,3 +87,15 @@ The former 3590-line event test and 1169-line animation test were replaced by fo
 ## Validation Status
 
 Recorded focused evidence is 85/85 for the split event suite and 2/2 for the hard-cut guards; the stale play-backend test imports discovered by the complete build target `core::play`. The complete editor-library gate remains non-green across shared Runtime Text, Frameworks, and Editor Layout owners. Their concrete failures now live in the corresponding numbered `2026-07-11-editor-m1-failure-handoff.md` plan records, and Plan 01 M1 remains open until the declared full command passes.
+
+## Performance review status
+
+Listener operation-path prefixes are normalized once when a descriptor/filter is created or
+updated. Per-record matching now performs only borrowed prefix and dot-boundary checks; its source
+guards completed RED-to-GREEN.
+
+The journal and listener delivery stores remain unbounded, payloads are cloned into journal and
+per-listener deliveries, and `record` performs fanout while holding the service state lock. Editor02
+owns the linked retention-class/shared-payload/lock-free-dispatch failure. Storm tests, memory
+budgets, and current-source Cargo remain pending, so the event module stays outside performance
+acceptance.

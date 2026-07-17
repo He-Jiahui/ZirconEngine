@@ -15,6 +15,14 @@ pub(in crate::ui::retained_host::menu_pointer) fn parent_path(path: &[usize]) ->
         .collect()
 }
 
+pub(in crate::ui::retained_host::menu_pointer) fn menu_item_subtree_len(
+    item: &MenuItemSpec,
+) -> usize {
+    item.children.iter().fold(1usize, |count, child| {
+        count.saturating_add(menu_item_subtree_len(child))
+    })
+}
+
 fn find_route_index(
     items: &[MenuItemSpec],
     target_path: &[usize],

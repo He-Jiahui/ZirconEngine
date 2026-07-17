@@ -1,0 +1,100 @@
+use std::cell::Cell;
+
+use zircon_runtime::core::CoreHandle;
+use zircon_runtime::scene::{LevelSystem, World};
+use zircon_runtime_interface::{
+    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
+    ZrRuntimeOperationSubmitRequestV1, ZrRuntimeSessionHandle,
+};
+
+use super::{EditorRuntimeGateway, GatewayError, RuntimeCapabilities};
+
+thread_local! {
+    static BORROWED_WORLD_CALLBACK_ACTIVE: Cell<bool> = const { Cell::new(false) };
+}
+
+struct BorrowedWorldCallbackGuard;
+
+impl BorrowedWorldCallbackGuard {
+    fn enter() -> Result<Self, GatewayError> {
+        BORROWED_WORLD_CALLBACK_ACTIVE.with(|active| {
+            if active.replace(true) {
+                Err(GatewayError::ReentrantBorrowedWorldAccess)
+            } else {
+                Ok(Self)
+            }
+        })
+    }
+}
+
+impl Drop for BorrowedWorldCallbackGuard {
+    fn drop(&mut self) {
+        BORROWED_WORLD_CALLBACK_ACTIVE.with(|active| active.set(false));
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct InProcessGateway {
+    _core: CoreHandle,
+    level: LevelSystem,
+    capabilities: RuntimeCapabilities,
+}
+
+impl InProcessGateway {
+    pub fn new(core: CoreHandle, level: LevelSystem) -> Self {
+        Self {
+            _core: core,
+            level,
+            capabilities: RuntimeCapabilities::editor_default(),
+        }
+    }
+}
+
+impl EditorRuntimeGateway for InProcessGateway {
+    fn capabilities(&self) -> RuntimeCapabilities {
+        self.capabilities.clone()
+    }
+
+    fn session_handle(&self) -> ZrRuntimeSessionHandle {
+        ZrRuntimeSessionHandle::invalid()
+    }
+
+    fn with_world(&self, read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
+        let _callback_guard = BorrowedWorldCallbackGuard::enter()?;
+        self.level.with_world(read);
+        Ok(())
+    }
+
+    fn with_world_mut(&self, write: &mut dyn FnMut(&mut World)) -> Result<(), GatewayError> {
+        let _callback_guard = BorrowedWorldCallbackGuard::enter()?;
+        self.level.with_world_mut(write);
+        Ok(())
+    }
+
+    fn submit_operation(
+        &self,
+        _request: ZrRuntimeOperationSubmitRequestV1,
+    ) -> Result<ZrRuntimeOperationHandle, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.submit",
+        })
+    }
+
+    fn poll_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationProgressV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.poll",
+        })
+    }
+
+    fn harvest_operation(
+        &self,
+        _handle: ZrRuntimeOperationHandle,
+    ) -> Result<ZrRuntimeOperationResultV1, GatewayError> {
+        Err(GatewayError::CapabilityMissing {
+            capability: "runtime.operation.harvest",
+        })
+    }
+}

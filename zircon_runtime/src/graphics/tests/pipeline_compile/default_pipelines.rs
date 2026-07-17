@@ -25,7 +25,7 @@ fn default_forward_plus_pipeline_compiles_expected_stage_order_and_passes() {
     );
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -407,7 +407,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -594,7 +594,7 @@ fn default_deferred_pipeline_compiles_expected_stage_order_and_passes() {
     );
     assert!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .flat_map(|pass| pass.resources.iter())

@@ -12,15 +12,25 @@ pub(super) fn first_string_value(
 }
 
 pub(super) fn string_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
-    attributes.get(key).and_then(string_value)
+    string_attribute_ref(attributes, key).map(str::to_string)
+}
+
+pub(super) fn string_attribute_ref<'a>(
+    attributes: &'a BTreeMap<String, Value>,
+    key: &str,
+) -> Option<&'a str> {
+    attributes.get(key).and_then(string_value_ref)
 }
 
 fn string_value(value: &Value) -> Option<String> {
+    string_value_ref(value).map(str::to_string)
+}
+
+fn string_value_ref(value: &Value) -> Option<&str> {
     value
         .as_str()
         .map(str::trim)
         .filter(|value| !value.is_empty())
-        .map(str::to_string)
 }
 
 pub(super) fn bool_value(value: &Value) -> Option<bool> {

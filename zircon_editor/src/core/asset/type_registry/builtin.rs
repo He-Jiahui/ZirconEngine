@@ -1,5 +1,6 @@
 use zircon_runtime_interface::resource::ResourceKind;
 
+use super::asset_type_id::canonical_resource_kind_id;
 use super::{
     AssetTypeContribution, AssetTypeId, AssetTypePresentation, AssetTypeRegistry,
     AssetTypeRegistryError, ThumbnailPlaceholderPalette, ThumbnailProviderDescriptor,
@@ -44,7 +45,7 @@ pub fn builtin_asset_type_definition(
     REGISTRY
         .get_or_init(|| builtin_registry().ok())
         .as_ref()?
-        .get(&AssetTypeId::from_resource_kind(kind))
+        .get_by_id(canonical_resource_kind_id(kind))
 }
 
 pub(super) fn builtin_registry() -> Result<AssetTypeRegistry, AssetTypeRegistryError> {
@@ -171,5 +172,15 @@ fn builtin_metadata(kind: ResourceKind) -> BuiltinMetadata {
         badge,
         icon_name,
         color_token: "asset.default",
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn builtin_lookup_does_not_construct_an_owned_asset_type_id() {
+        let source = include_str!("builtin.rs");
+        let owned_lookup = [".get(&AssetTypeId::", "from_resource_kind(kind))"].concat();
+        assert!(!source.contains(&owned_lookup));
     }
 }

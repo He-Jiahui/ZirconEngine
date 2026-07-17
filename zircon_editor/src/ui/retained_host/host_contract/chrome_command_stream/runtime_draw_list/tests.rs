@@ -197,3 +197,59 @@ fn runtime_draw_list_projects_editor_text_family_and_weight_to_runtime_surface()
     );
     assert_eq!(*style, UiSurfaceTextStyle::Strong);
 }
+
+#[test]
+fn owned_runtime_draw_list_moves_text_and_image_allocations() {
+    let mut stream = ChromeCommandStream::full_rebuild((64, 64));
+    stream.push_command_for_test(ChromeCommand {
+        layer: ChromeCommandLayer::Text,
+        z_index: 1,
+        frame: FrameRect::default(),
+        clip: None,
+        kind: ChromeCommandKind::Text {
+            text: "move-me".to_string(),
+            color: [255; 4],
+            size: 12.0,
+            line_height: 14.0,
+            style: UiTextRunPaintStyle::default(),
+        },
+    });
+    stream.push_image(
+        2,
+        FrameRect::default(),
+        None,
+        ChromeImagePayload {
+            resource_key: "image://move-me".to_string(),
+            width: 2,
+            height: 2,
+            upload_bytes: 16,
+            rgba: Some(vec![7; 16]),
+            atlas_uv: None,
+        },
+    );
+
+    let ChromeCommandKind::Text { text, .. } = &stream.commands()[0].kind else {
+        panic!("expected text command");
+    };
+    let text_ptr = text.as_ptr();
+    let ChromeCommandKind::Image { payload } = &stream.commands()[1].kind else {
+        panic!("expected image command");
+    };
+    let resource_key_ptr = payload.resource_key.as_ptr();
+    let rgba_ptr = payload.rgba.as_ref().expect("image bytes").as_ptr();
+
+    let draw_list = ui_surface_draw_list_from_owned_stream(stream);
+
+    let UiSurfaceCommandKind::Text { text, .. } = &draw_list.commands[0].kind else {
+        panic!("expected runtime text command");
+    };
+    assert_eq!(text.as_ptr(), text_ptr);
+    let UiSurfaceCommandKind::Image { payload } = &draw_list.commands[1].kind else {
+        panic!("expected runtime image command");
+    };
+    assert_eq!(payload.resource_key.as_ptr(), resource_key_ptr);
+    assert_eq!(
+        payload.rgba.as_ref().expect("image bytes").as_ptr(),
+        rgba_ptr
+    );
+}

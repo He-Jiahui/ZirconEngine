@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -41,6 +41,11 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages_with_cancellation(
         let mut cargo_invocations = Vec::new();
         let mut diagnostics = Vec::new();
         let mut staged_package_directories = HashSet::new();
+        let discovered_by_plugin_id = native_report
+            .discovered
+            .iter()
+            .map(|candidate| (candidate.plugin_id.as_str(), candidate))
+            .collect::<HashMap<_, _>>();
         for package_id in &plan.native_dynamic_packages {
             if cancel.is_cancelled() {
                 diagnostics.push(
@@ -49,11 +54,7 @@ pub(in crate::ui::host) fn prepare_native_dynamic_packages_with_cancellation(
                 );
                 break;
             }
-            let Some(candidate) = native_report
-                .discovered
-                .iter()
-                .find(|candidate| &candidate.plugin_id == package_id)
-            else {
+            let Some(candidate) = discovered_by_plugin_id.get(package_id.as_str()).copied() else {
                 diagnostics.push(format!(
                 "native dynamic package {package_id} has no discovered package manifest for artifact staging"
             ));
@@ -201,5 +202,24 @@ impl Drop for NativeDynamicPreparationGuard {
             return;
         }
         let _ = cleanup_native_dynamic_roots(&self.staging_root, &self.build_root);
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn native_package_preparation_indexes_discovery_once() {
+        let source = include_str!("prepare.rs");
+        let body = source
+            .split("fn prepare_native_dynamic_packages_with_cancellation")
+            .nth(1)
+            .expect("native package preparation")
+            .split("struct NativeDynamicPreparationGuard")
+            .next()
+            .expect("native package preparation body");
+        let repeated_scan = ["native_report", ".discovered", ".iter()", ".find"].concat();
+
+        assert!(body.contains("discovered_by_plugin_id"));
+        assert!(!body.contains(&repeated_scan));
     }
 }

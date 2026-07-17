@@ -314,6 +314,42 @@ class WorkflowCommitTests(unittest.TestCase):
             service._derive_milestone_paths("session-a", self.run_id, "M1"),
         )
 
+    def test_bind_manifest_allows_directory_leases_to_cover_child_files(self) -> None:
+        service = self._service()
+        paths = ["src/runtime.py", "tests/test_runtime.py"]
+        for path in paths:
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(f"content for {path}\n", encoding="utf-8")
+        record = "docs/plans/runtime/01/2026-07-17-m1-directory-lease.md"
+        output = self.repo / record
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(
+            "# M1 directory lease output\n\n"
+            "Plan: docs/plans/runtime/01-control.md\n"
+            "Milestone: M1\n"
+            "Status: completed\n"
+            f"Files: {json.dumps(paths)}\n\n"
+            "## Scope delivered\n\nDone.\n\n"
+            "## Fresh testing evidence\n\nPassed.\n\n"
+            "## Review\n\nAccepted.\n",
+            encoding="utf-8",
+        )
+        self.assertTrue(
+            self.leases.acquire("session-a", ["src", "tests", record]).acquired
+        )
+        self.baselines.attribute("session-a", [*paths, record])
+
+        manifest_id = service.bind_manifest(
+            session_id="session-a",
+            run_id=self.run_id,
+            milestone_key="M1",
+            actor="session-a",
+            action_id="directory-lease-bind",
+        )
+
+        self.assertTrue(manifest_id)
+
     def test_slice_commit_succeeds_without_accepting_parent_milestone(self) -> None:
         service = self._service()
         with self.database.connect() as connection:
@@ -500,6 +536,44 @@ class WorkflowCommitTests(unittest.TestCase):
         ).stdout.strip()
         self.assertEqual(result.finalize.commit_sha, head)
         self.assertEqual("failed", result.notification.status)
+
+    def test_notification_preparation_failure_is_recorded_after_commit(self) -> None:
+        service = self._service()
+        paths = self._prepare_change_and_gates(service)
+
+        with mock.patch.object(
+            service.notifications,
+            "format_message",
+            side_effect=CoordinatorError(
+                "notification_content_invalid", "injected format failure"
+            ),
+        ):
+            result = service.commit(
+                session_id="session-a",
+                run_id=self.run_id,
+                milestone_key="M1",
+                paths=paths,
+                summary="record post-commit notification preparation failure",
+                actor="session-a",
+            )
+
+        head = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=self.repo,
+            check=True,
+            capture_output=True,
+            text=True,
+        ).stdout.strip()
+        self.assertEqual(result.finalize.commit_sha, head)
+        self.assertEqual("unknown", result.notification.status)
+        self.assertIn("post-commit", result.notification.sanitized_error or "")
+        with self.database.connect() as connection:
+            attempt = connection.execute(
+                "SELECT status, sanitized_error FROM notification_attempts WHERE commit_sha=?",
+                (result.finalize.commit_sha,),
+            ).fetchone()
+        self.assertEqual("unknown", attempt["status"])
+        self.assertIn("post-commit", attempt["sanitized_error"])
 
     def test_commit_rejects_a_generic_milestone_completion_summary(self) -> None:
         service = self._service()

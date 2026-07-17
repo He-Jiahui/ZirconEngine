@@ -99,6 +99,15 @@ _SPECS = (
         session_bound=False,
     ),
     _spec(
+        ActionKind.SERVICE_ROLLOVER,
+        "无排空滚动重载服务",
+        ActionRisk.RED,
+        WebControlRole.MAINTAINER,
+        LifecycleParameters,
+        session_bound=False,
+        warnings=("仅在没有受管 Cargo 进程树时执行；保留未启动租约、预约和 FIFO 顺序。",),
+    ),
+    _spec(
         ActionKind.SERVICE_STOP,
         "停止服务",
         ActionRisk.RED,

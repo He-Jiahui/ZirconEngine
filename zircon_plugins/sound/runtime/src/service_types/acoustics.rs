@@ -12,16 +12,14 @@ impl DefaultSoundManager {
         &self,
         listener: SoundListenerDescriptor,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         validate_listener_descriptor(&state, &listener)?;
         state.listeners.insert(listener.id, listener);
         Ok(())
     }
 
     pub(super) fn remove_listener_impl(&self, listener: SoundListenerId) -> Result<(), SoundError> {
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .listeners
             .remove(&listener)
             .map(|_| ())
@@ -32,16 +30,14 @@ impl DefaultSoundManager {
         &self,
         volume: SoundVolumeDescriptor,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         validate_volume_descriptor(&volume)?;
         state.volumes.insert(volume.id, volume);
         Ok(())
     }
 
     pub(super) fn remove_volume_impl(&self, volume: SoundVolumeId) -> Result<(), SoundError> {
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .volumes
             .remove(&volume)
             .map(|_| ())

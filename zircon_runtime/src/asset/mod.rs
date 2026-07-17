@@ -173,3 +173,11 @@ pub use reference_resolver::{ReferenceRepair, ReferenceRepairKind};
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(crate) mod test_support {
+    pub(crate) use super::tests::support::{
+        write_checker_png, write_default_material, write_static_lit_default_scene,
+        write_triangle_obj,
+    };
+}

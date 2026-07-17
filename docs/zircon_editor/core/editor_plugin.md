@@ -17,6 +17,8 @@ implementation_files:
   - zircon_runtime_interface/src/plugin_diagnostics.rs
   - zircon_editor/src/ui/host/editor_manager_plugins_export/enablement/features.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/zircon_editor/editor/12/failure-2026-07-17-editor-plugin-catalog-rebuild-and-deep-copy.md
   - user: 2026-06-12 implement docs/plans/zircon_plugins plugin architecture code
   - docs/plans/zircon_plugins/01-plugin-architecture-core.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
@@ -57,3 +59,12 @@ An optional feature may carry an explicit `provider_package_id` distinct from it
 The split tests under `minimal_host_contract/optional_features.rs` verify the builtin path: the feature is initially blocked, dependency enablement turns on `sound`, `animation`, and `sound_timeline_animation_track`, status becomes available while the feature remains disabled, and a later explicit feature enable succeeds. `native_plugins.rs` owns native discovery/export and verifies an external native `FeatureExtension` provider. `core_contract.rs` owns the minimal host boundary; the parent/native/core/optional owners are 490/619/46/258 lines.
 
 The review-hardening changes (single projection owner, exact-key lookup, native feature-registration merge, canonical manifest lookup, and native provider regression) were rebuilt from current source in 16m49s. The native external `FeatureExtension` exact passed 1/1 in 0.13s, and the builtin external-provider exact passed 1/1 in 0.06s on the same binary. The canonical record is `docs/plans/zircon_editor/editor/01/fixed-2026-07-11-editor-m1-plugin-provider-lookup.md`; the complete Editor M1 gate remains separate and open.
+
+## Performance review status
+
+Plugin-manager consumers currently reconstruct the builtin editor catalog from runtime package
+manifests and then request owned package/capability projections repeatedly. `from_descriptors`
+linearly searches runtime manifests for every descriptor, while `editor_extensions` replays and
+clones all extension and asset contributions on every call. Editor12 owns the linked immutable
+generation projection and shared UI-row repair. Build-count, clone-byte, scale, and UI recompute
+traces remain pending; prior correctness evidence does not constitute performance acceptance.

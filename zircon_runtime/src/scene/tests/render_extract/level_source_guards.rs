@@ -53,6 +53,28 @@ fn level_system_render_extract_uses_world_direct_path_and_merges_animation_poses
 }
 
 #[test]
+fn level_system_render_extract_does_not_resort_the_ordered_animation_pose_cache() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("level_system_render_extract.rs"),
+    )
+    .unwrap();
+
+    assert!(
+        source.contains("animation_pose_entries")
+            && source.contains("cached_poses")
+            && source.contains(".into_iter()"),
+        "scene render extraction must consume one ordered Vec snapshot instead of cloning the BTreeMap before collecting another Vec"
+    );
+    assert!(
+        !source.contains("animation_poses.sort") && !source.contains("sort_by_key"),
+        "the animation-pose cache is a BTreeMap, so filtering its ordered iterator must not add an O(n log n) per-frame resort"
+    );
+}
+
+#[test]
 fn render_frame_extract_snapshot_adapters_are_not_scene_production_paths() {
     let manifest_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"));
     for relative in [

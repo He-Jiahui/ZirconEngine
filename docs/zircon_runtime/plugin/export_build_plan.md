@@ -10,6 +10,12 @@ related_code:
   - zircon_runtime/src/plugin/export_build_plan/mod.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest.rs
   - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_search_does_not_allocate_normalized_ids
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_matches_short_and_qualified_ids_without_normalizing
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs::tests::feature_namespace_validation_does_not_collect_split_segments
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_identity_validation_does_not_allocate_scan_helpers
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_owner_matching_preserves_the_dot_boundary
+  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs::tests::native_package_archive_entries_are_streamed_from_disk
   - zircon_runtime/src/plugin/export_build_plan/export_validate_report.rs
   - zircon_runtime/src/plugin/export_build_plan/library_embed_compile_plan.rs
   - zircon_runtime/src/plugin/export_build_plan/source_template_build_plan.rs
@@ -32,6 +38,12 @@ related_code:
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/catalog_projection.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan/profile_feature_matrix.rs
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_search_does_not_allocate_normalized_ids
+  - zircon_runtime/src/plugin/export_build_plan/from_project_manifest/profile_projection.rs::tests::feature_projection_matches_short_and_qualified_ids_without_normalizing
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/tokens.rs::tests::feature_namespace_validation_does_not_collect_split_segments
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_identity_validation_does_not_allocate_scan_helpers
+  - zircon_runtime/src/plugin/export_build_plan/project_manifest_validation/identity.rs::tests::project_feature_owner_matching_preserves_the_dot_boundary
+  - zircon_runtime/src/plugin/export_build_plan/materialize/archive.rs::tests::native_package_archive_entries_are_streamed_from_disk
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/browser_hosts.rs
   - zircon_runtime/src/tests/plugin_extensions/export_build_plan_platform/release_adapters.rs
@@ -115,6 +127,21 @@ doc_type: module-detail
 build-time projection used by SourceTemplate, LibraryEmbed, and NativeDynamic packaging paths. It
 owns plan-time diagnostics and generated source metadata, but does not run Cargo or package assets
 itself.
+
+Profile feature matching accepts both complete ids (`rendering.deferred`) and owner-relative ids
+(`deferred`). Diagnostics and projection compare those forms through borrowed prefix/suffix checks;
+they do not format a normalized String inside the nested selection searches. This keeps report
+semantics unchanged while removing allocation amplification for large export feature matrices.
+
+Project feature identity validation also avoids per-row helper containers: namespace checks stream
+dot-separated segments, full diagnostics accumulate count/empty/invalid flags in one pass, and
+owner qualification uses a borrowed prefix plus explicit dot boundary. These changes preserve the
+existing multi-diagnostic order while eliminating temporary segment Vecs and owner-prefix Strings.
+
+ZIP materialization streams native package files from `File` into `ZipWriter` with
+`std::io::copy`; it no longer reads each DLL, symbol file, or asset into a full temporary Vec before
+compression. Generated source contents remain in-memory plan data, while on-disk package payloads
+now have bounded copy buffering independent of the largest entry size.
 
 ## Profile Asset Shape
 

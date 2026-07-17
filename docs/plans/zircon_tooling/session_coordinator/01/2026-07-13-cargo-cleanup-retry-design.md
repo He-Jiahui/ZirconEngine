@@ -4,7 +4,7 @@
 
 | 里程碑 | 切片 | 状态 | 完成日期 | 证据 |
 |---|---|---|---|---|
-| M6 | Cargo 清理失败节流 | `designed` | 2026-07-13 | 已确认当前即时清理入口会同时拾取 `pending` 与 `failed`；设计改为 `pending` 立即处理，`failed` 由守护进程每 30 秒重试。 |
+| M6 | Cargo 清理失败节流 | `completed` | 2026-07-13 | 提交 `c6003515` 已落地：即时后台入口以 `retry_pending_jobs(include_failed=False)` 仅处理 `pending`，守护观察循环保留默认 `include_failed=True` 并按 30 秒周期重试 `pending` 与 `failed`；`test_async_cleanup_drains_release_requested_during_running_pass`、`test_failed_ephemeral_cleanup_is_retryable` 固定两条边界。 |
 
 ## 目标行为
 

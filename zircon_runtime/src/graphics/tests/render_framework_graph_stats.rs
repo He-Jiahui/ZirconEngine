@@ -27,7 +27,7 @@ fn render_framework_stats_report_transient_allocation_bytes() {
             &RenderPipelineCompileOptions::default().with_async_compute(false),
         )
         .unwrap();
-    let expected_allocation_plan = expected_pipeline.graph.transient_allocation_plan();
+    let expected_allocation_plan = expected_pipeline.graph().transient_allocation_plan();
 
     server.submit_frame_extract(viewport, extract).unwrap();
     let stats = server.query_stats().unwrap();
@@ -79,7 +79,7 @@ fn render_framework_stats_report_graph_execution_coverage() {
         )
         .unwrap();
     let planned_live_pass_count = expected_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)
@@ -182,7 +182,7 @@ fn render_graph_executed_markers_match_dump_pass_rows() {
         )
         .unwrap();
     let expected_markers = compiled
-        .graph
+        .graph()
         .dump()
         .pass_rows
         .iter()
@@ -251,7 +251,7 @@ fn live_stage_execution_report(
     let mut previous_stage = None;
 
     for pass in compiled_pipeline
-        .graph
+        .graph()
         .passes()
         .iter()
         .filter(|pass| !pass.culled)

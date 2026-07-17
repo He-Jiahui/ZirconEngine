@@ -63,12 +63,17 @@ fn apply_responsive_visibility(
 }
 
 fn parse_layout_tier(value: &str) -> Option<WorkbenchLayoutTier> {
-    match value.trim().to_ascii_lowercase().as_str() {
-        "ultra" => Some(WorkbenchLayoutTier::Ultra),
-        "narrow" => Some(WorkbenchLayoutTier::Narrow),
-        "regular" => Some(WorkbenchLayoutTier::Regular),
-        "wide" => Some(WorkbenchLayoutTier::Wide),
-        _ => None,
+    let value = value.trim();
+    if value.eq_ignore_ascii_case("ultra") {
+        Some(WorkbenchLayoutTier::Ultra)
+    } else if value.eq_ignore_ascii_case("narrow") {
+        Some(WorkbenchLayoutTier::Narrow)
+    } else if value.eq_ignore_ascii_case("regular") {
+        Some(WorkbenchLayoutTier::Regular)
+    } else if value.eq_ignore_ascii_case("wide") {
+        Some(WorkbenchLayoutTier::Wide)
+    } else {
+        None
     }
 }
 
@@ -95,5 +100,13 @@ mod tests {
             Some(WorkbenchLayoutTier::Regular)
         );
         assert_eq!(parse_layout_tier("unsupported"), None);
+    }
+
+    #[test]
+    fn responsive_tier_parsing_avoids_per_node_lowercase_allocation() {
+        let source = include_str!("responsive_layout.rs");
+        let forbidden = ["to_ascii", "_lowercase"].concat();
+
+        assert!(!source.contains(&forbidden));
     }
 }

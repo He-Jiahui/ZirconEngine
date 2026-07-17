@@ -26,13 +26,10 @@ impl RetainedEditorHost {
     pub(in crate::ui::retained_host::app) fn asset_workspace_snapshot_for_pointer(
         &self,
         surface_mode: &str,
-    ) -> Option<crate::ui::workbench::snapshot::AssetWorkspaceSnapshot> {
-        let snapshot = self.runtime.editor_snapshot();
-        match surface_mode {
-            "activity" => Some(snapshot.asset_activity),
-            "browser" => Some(snapshot.asset_browser),
-            _ => None,
-        }
+    ) -> Option<Arc<crate::ui::workbench::snapshot::AssetWorkspaceSnapshot>> {
+        self.asset_surface_pointer_state(surface_mode)?
+            .snapshot
+            .clone()
     }
 
     pub(in crate::ui::retained_host::app) fn asset_reference_layout(
@@ -51,5 +48,30 @@ impl RetainedEditorHost {
             )),
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn pointer_snapshot_reuses_the_committed_asset_projection() {
+        let source = include_str!("state.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(
+            !production.contains("self.runtime.editor_snapshot()"),
+            "pointer-frequency callbacks must not build the complete editor snapshot"
+        );
+    }
+
+    #[test]
+    fn unchanged_pointer_sizes_do_not_rebuild_list_layouts() {
+        let content = include_str!("../../asset_content_pointer/target/dispatch.rs");
+        let tree = include_str!("../../asset_tree_pointer/target.rs");
+        let reference = include_str!("../../asset_reference_pointer/target/dispatch.rs");
+
+        assert!(content.contains("if surface.content_size != target.content_size"));
+        assert!(tree.contains("if surface.tree_size != tree_size"));
+        assert!(reference.contains("if list.size != target.list_size"));
     }
 }

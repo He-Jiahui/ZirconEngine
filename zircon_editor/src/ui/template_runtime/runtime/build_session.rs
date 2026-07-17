@@ -47,7 +47,7 @@ fn load_builtin_host_templates_for_documents(
     register_builtin_template_documents(runtime, document_ids)?;
 
     for (binding_id, binding) in builtin_template_bindings() {
-        runtime.register_binding(binding_id, binding)?;
+        runtime.register_binding(binding_id.as_str(), binding.clone())?;
     }
 
     runtime.builtin_host_templates_loaded = true;

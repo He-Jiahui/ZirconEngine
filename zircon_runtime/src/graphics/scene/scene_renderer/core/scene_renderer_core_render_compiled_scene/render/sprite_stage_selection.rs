@@ -25,7 +25,7 @@ fn pipeline_has_active_sprite_stage(
         .iter()
         .filter(|stage_entry| stage_entry.stage == stage)
         .any(|stage_entry| {
-            pipeline.graph.passes().iter().any(|pass| {
+            pipeline.graph().passes().iter().any(|pass| {
                 pass.name == stage_entry.pass_name
                     && !pass.culled
                     && pass
@@ -93,7 +93,7 @@ mod tests {
             pass_stages.push(CompiledRenderPipelinePassStage::new(pass_name, stage));
         }
 
-        CompiledRenderPipeline {
+        CompiledRenderPipeline::from_parts(crate::graphics::pipeline::CompiledRenderPipelineParts {
             handle: RenderPipelineHandle::new(99),
             name: "sprite-stage-test".to_string(),
             renderer_name: "sprite-stage-test".to_string(),
@@ -105,6 +105,6 @@ mod tests {
             history_bindings: Vec::new(),
             environment_ibl_bake_request: None,
             graph: graph.compile().expect("sprite stage test graph"),
-        }
+        })
     }
 }

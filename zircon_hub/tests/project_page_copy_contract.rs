@@ -305,7 +305,7 @@ fn rust_localization_and_view_model_own_page_subtitles_status_and_quick_action_l
             "label: \"Ready\".to_string()",
             "detail: HubMessage::new(HubMessageId::Shell(ShellMessageId::HubReady))",
             "pub recovery: Option<HubMessage>",
-            "TaskStatus::success(\"Project selected\", HubMessage::legacy(\"Game\"))",
+            "TaskStatus::success(\"Project selected\", HubMessage::raw_text(\"Game\"))",
             "operation_summary",
         ],
     );

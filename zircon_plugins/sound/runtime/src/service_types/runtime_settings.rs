@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundMixBlock};
 
 use crate::automation::values::ensure_finite_value;
+use crate::poison_recovery::lock_recover;
 
 use super::DefaultSoundManager;
 
@@ -16,10 +17,10 @@ impl DefaultSoundManager {
                 "global volume gain must be non-negative".to_string(),
             ));
         }
-        self.config
-            .lock()
-            .expect("sound config mutex poisoned")
-            .master_gain = gain;
+        let mut config = lock_recover(&self.config);
+        let mut state = lock_recover(&self.state);
+        state.kira.set_global_volume(gain)?;
+        config.master_gain = gain;
         Ok(())
     }
 
@@ -34,24 +35,13 @@ impl DefaultSoundManager {
                 "default spatial scale must be non-negative".to_string(),
             ));
         }
-        self.config
-            .lock()
-            .expect("sound config mutex poisoned")
-            .default_spatial_scale = scale;
+        lock_recover(&self.config).default_spatial_scale = scale;
         Ok(())
     }
 
-    pub(super) fn render_mix_impl(&self, frames: usize) -> Result<SoundMixBlock, SoundError> {
-        let config = self.config();
-        if !config.enabled {
-            return Err(SoundError::BackendUnavailable {
-                detail: "sound playback is disabled".to_string(),
-            });
-        }
-
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
-            .render_mix(&config, frames)
+    pub(super) fn render_mix_impl(&self, _frames: usize) -> Result<SoundMixBlock, SoundError> {
+        Err(SoundError::UnsupportedAdvancedFeature(
+            "manual mix rendering was retired; Kira owns the mix graph".to_string(),
+        ))
     }
 }

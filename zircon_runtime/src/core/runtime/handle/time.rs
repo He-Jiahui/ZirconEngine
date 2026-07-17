@@ -89,37 +89,38 @@ fn record_time_diagnostics(
     let frame_index = clocks.real().frame_index();
     let fixed_steps = advance.fixed_step_plan().step_count as f64;
     let real_delta_seconds = advance.real_delta().as_secs_f64();
+    let mut diagnostics = handle.lock_diagnostics();
 
-    handle.record_diagnostic(
+    diagnostics.record_static(
         TIME_FRAME_COUNT_DIAGNOSTIC,
         frame_index,
         frame_index as f64,
         Some("frame"),
-        ["time", "frame"],
+        &["time", "frame"],
     );
-    handle.record_diagnostic(
+    diagnostics.record_static(
         TIME_FIXED_STEPS_DIAGNOSTIC,
         frame_index,
         fixed_steps,
         Some("step"),
-        ["time", "fixed"],
+        &["time", "fixed"],
     );
     if real_delta_seconds == 0.0 {
         return;
     }
-    handle.record_diagnostic(
+    diagnostics.record_static(
         TIME_FRAME_TIME_DIAGNOSTIC,
         frame_index,
         real_delta_seconds * 1_000.0,
         Some("ms"),
-        ["time", "frame"],
+        &["time", "frame"],
     );
-    handle.record_diagnostic(
+    diagnostics.record_static(
         TIME_FPS_DIAGNOSTIC,
         frame_index,
         1.0 / real_delta_seconds,
         Some("hz"),
-        ["time", "frame"],
+        &["time", "frame"],
     );
 }
 

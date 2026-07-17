@@ -17,6 +17,9 @@ related_code:
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/render.rs
   - zircon_runtime/src/text/sdf/font_bake.rs
   - zircon_runtime/src/text/sdf/font_bake/tests.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
+  - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/mod.rs
   - zircon_runtime/src/graphics/scene/scene_renderer/ui/sdf_atlas/tests/plan.rs
@@ -257,6 +260,8 @@ fn msdf_alpha(s: vec4<f32>, screen_px_range: f32) -> f32 {
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 当前概述（2026-07-14）：SM-M5 layout identity 与真实 Native/SDF 产品像素门已通过；SM2-M1 shared pure-Rust fdsm core 已验收。SM2-M2/M3 已把 authoritative face/glyph id 动态生成、mode-keyed R8/RGBA atlas、format-aware upload、typed per-glyph fallback、flat GPU decode mode、双 storage texture arrays 与显式 `UiTextRenderMode::{Msdf,Mtsdf}` 接到生产路径。当前产品门分别验证两路真实尖角像素、distinct decode 与 MSDF apex 不低于 SDF，bake-space 几何仍由 renderer-neutral fdsm 回归负责；managed current-source compile 与 exact real WGPU exporter 通过，产出 `docs/tests/runtime/text/runtime_text_multilingual_sdf_msdf_product_framebuffer_20260714.png`（1080×1690、321453 bytes、2442 colors、SHA256 `2A033D76EF5C16F99FB6B256AD8F480ACE494FB03537A9E4502DEA293BED866E`，target 同名 0）。SM3-M1/M2/M3 已实现 deterministic embedded-page `.zsdf`、feature-gated `font-sdf` target/CLI、project `.zmeta` UUID identity、runtime prefill 与 dynamic fallback；artifact/renderer exact 6/6、CLI range 1/1、独立三模式 deterministic/decode 2/2、Python 5/5 与既有 build-tool regressions 45/45 均通过。2026-07-14 按 Runtime02 failure 将 build tool 从未裁决 crate-root seat 硬切到 `zircon_runtime::graphics::text::font_sdf_build_tool`，不保留旧路径或兼容转发；feature integration 2/2、CLI check、fresh default Runtime no-run、`generated` 29/29、`core::` 705/705、structure-convention 1304/1304 通过，root audit 恢复 19/19、0 debt、0 risk。Text05 M2 当前产品证明已由协调器验收；整体 Text05 保持 `in_progress`，继续长期 atlas/fallback 完整性和 Text01–09 剩余架构审计。
+
+2026-07-17 Text MVP 稳定性切片已把 generation-sensitive SDF cache 回归拆到 `font_bake/tests/cache_generation.rs`，并用 test-only shared snapshot read guard 隔离并行全局字体发布；生产 SDF 路径不新增锁。根因修复位于 Text01/09 的共享字体发布 owner：等价 FontDatabase 不再推进 generation，因此 renderer 构造顺序不会清空 resident SDF fonts/glyphs。旧串行 SDF 20/20 证明功能本体正常；当前源码并行 20 项与真实 framebuffer 门仍在共享 Cargo 队列，故本切片记录为 `implemented / validation_pending`，不宣称 Text05 新里程碑完成。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

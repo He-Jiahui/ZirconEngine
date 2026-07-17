@@ -12,7 +12,7 @@ impl EditorUiHost {
     ) -> Result<EditorStartupSessionDocument, EditorError> {
         let document = self.open_project(&path)?;
         let status_message = project_open_status_message(&document);
-        self.update_recent_project(&document.root_path)?;
+        self.remember_opened_project(&document.root_path, document.manifest.summary())?;
         self.dismiss_welcome_page()?;
 
         Ok(EditorStartupSessionDocument {
@@ -43,4 +43,14 @@ fn project_open_status_message(document: &EditorProjectDocument) -> String {
         diagnostic.path.display(),
         diagnostic.message
     )
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn opened_project_is_not_reopened_just_to_update_recents() {
+        let source = include_str!("create_or_open.rs");
+        let reopening_call = ["self", ".update_recent_project(&document.root_path)"].concat();
+        assert!(!source.contains(&reopening_call));
+    }
 }

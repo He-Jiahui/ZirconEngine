@@ -160,3 +160,47 @@ fn menu_pointer_bridge_uses_route_intent_only() {
         );
     }
 }
+
+#[test]
+fn menu_pointer_reuses_the_committed_item_tree() {
+    let items = source("src/ui/retained_host/menu_pointer/menu_items_for_layout.rs");
+    let rebuild =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+
+    assert!(items.contains("Cow<'a, [MenuItemSpec]>"));
+    for forbidden in ["root_items.clone()", "branch_item.children.clone()"] {
+        assert!(
+            !rebuild.contains(forbidden),
+            "menu surface rebuild must borrow the committed item tree instead of `{forbidden}`"
+        );
+    }
+}
+
+#[test]
+fn menu_popup_route_indices_advance_linearly_within_each_layer() {
+    let rebuild =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_rebuild_surface.rs");
+
+    assert_eq!(
+        rebuild.matches("menu_item_route_index(").count(),
+        1,
+        "a popup layer may locate its start once, but must not rescan the root tree for every row"
+    );
+    assert!(rebuild.contains("menu_item_subtree_len(item)"));
+}
+
+#[test]
+fn menu_scroll_does_not_clone_the_owned_route_payload() {
+    let scroll =
+        source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_handle_scroll.rs");
+
+    assert!(!scroll.contains("route.clone()"));
+}
+
+#[test]
+fn closed_menu_state_does_not_rebuild_again() {
+    let popup = source("src/ui/retained_host/menu_pointer/host_menu_pointer_bridge_popup_state.rs");
+
+    assert!(popup.contains("if self.state.open_menu_index.is_none()"));
+    assert!(popup.contains("return;"));
+}

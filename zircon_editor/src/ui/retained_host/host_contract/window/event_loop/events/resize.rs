@@ -16,12 +16,14 @@ impl UiHostWindowEventLoop {
         self.host
             .window()
             .set_size(PhysicalSize::new(size.width, size.height));
-        self.queue_redraw(HostRedrawRequest::full_frame_for_scenario(
+        let should_schedule = self.queue_redraw(HostRedrawRequest::full_frame_for_scenario(
             UiPerfScenario::Startup,
             true,
         ));
-        if let Some(window) = self.window.as_ref() {
-            window.request_redraw();
+        if should_schedule {
+            if let Some(window) = self.window.as_ref() {
+                window.request_redraw();
+            }
         }
         if let Some(presenter) = self.presenter.as_mut() {
             if let Err(error) = presenter.resize((size.width, size.height)) {

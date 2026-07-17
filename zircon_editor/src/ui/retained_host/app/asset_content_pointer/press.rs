@@ -35,7 +35,7 @@ impl RetainedEditorHost {
                         asset_drag_payload::asset_drag_payload_from_snapshot(
                             surface_mode,
                             asset_uuid.as_str(),
-                            &target.snapshot,
+                            target.snapshot.as_ref(),
                         );
                     if let Some(summary) = self
                         .active_asset_drag_payload

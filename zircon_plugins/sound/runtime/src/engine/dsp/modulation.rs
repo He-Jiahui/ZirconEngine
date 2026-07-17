@@ -1,4 +1,4 @@
-use super::super::dsp_state::SoundHistoryState;
+use super::history::SoundHistoryState;
 
 pub(super) fn modulated_delay(
     buffer: &mut [f32],

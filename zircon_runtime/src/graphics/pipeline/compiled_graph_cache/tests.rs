@@ -433,19 +433,21 @@ fn test_extract() -> RenderFrameExtract {
 fn empty_compiled_pipeline(
     pipeline: &RenderPipelineAsset,
 ) -> crate::graphics::pipeline::CompiledRenderPipeline {
-    crate::graphics::pipeline::CompiledRenderPipeline {
-        handle: pipeline.handle,
-        name: pipeline.name.clone(),
-        renderer_name: pipeline.renderer.name.clone(),
-        stages: Vec::new(),
-        pass_stages: Vec::new(),
-        enabled_features: Vec::new(),
-        required_extract_sections: Vec::new(),
-        capability_requirements: Vec::new(),
-        history_bindings: Vec::new(),
-        environment_ibl_bake_request: None,
-        graph: RenderGraphBuilder::new("cache-test").compile().unwrap(),
-    }
+    crate::graphics::pipeline::CompiledRenderPipeline::from_parts(
+        crate::graphics::pipeline::CompiledRenderPipelineParts {
+            handle: pipeline.handle,
+            name: pipeline.name.clone(),
+            renderer_name: pipeline.renderer.name.clone(),
+            stages: Vec::new(),
+            pass_stages: Vec::new(),
+            enabled_features: Vec::new(),
+            required_extract_sections: Vec::new(),
+            capability_requirements: Vec::new(),
+            history_bindings: Vec::new(),
+            environment_ibl_bake_request: None,
+            graph: RenderGraphBuilder::new("cache-test").compile().unwrap(),
+        },
+    )
 }
 
 fn particle_sprite_snapshot() -> RenderParticleSpriteSnapshot {

@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::{BTreeMap, VecDeque};
 
 const DEFAULT_DIAGNOSTIC_HISTORY_LIMIT: usize = 64;
@@ -24,6 +25,12 @@ impl From<&str> for DiagnosticPath {
 impl From<String> for DiagnosticPath {
     fn from(value: String) -> Self {
         Self::new(value)
+    }
+}
+
+impl Borrow<str> for DiagnosticPath {
+    fn borrow(&self) -> &str {
+        self.as_str()
     }
 }
 
@@ -94,6 +101,28 @@ impl DiagnosticStore {
         series.record(frame_index, value, unit, subsystem_tags);
     }
 
+    pub(crate) fn record_static(
+        &mut self,
+        path: &'static str,
+        frame_index: u64,
+        value: f64,
+        unit: Option<&str>,
+        subsystem_tags: &[&str],
+    ) {
+        if let Some(series) = self.series.get_mut(path) {
+            if series.metadata_matches(unit, subsystem_tags) {
+                series.record_measurement(frame_index, value);
+            } else {
+                series.record(frame_index, value, unit, subsystem_tags.iter().copied());
+            }
+            return;
+        }
+
+        let mut series = DiagnosticSeries::new(self.history_limit);
+        series.record(frame_index, value, unit, subsystem_tags.iter().copied());
+        self.series.insert(DiagnosticPath::new(path), series);
+    }
+
     pub fn snapshot(&self) -> DiagnosticStoreSnapshot {
         DiagnosticStoreSnapshot {
             series: self
@@ -151,6 +180,28 @@ impl DiagnosticSeries {
             self.unit = Some(unit.into());
         }
         push_unique_tags(&mut self.subsystem_tags, subsystem_tags);
+        self.record_measurement(frame_index, value);
+    }
+
+    fn metadata_matches(&self, unit: Option<&str>, subsystem_tags: &[&str]) -> bool {
+        if self.unit.as_deref() != unit {
+            return false;
+        }
+
+        let unique_tag_count = subsystem_tags
+            .iter()
+            .enumerate()
+            .filter(|(index, tag)| !subsystem_tags[..*index].contains(tag))
+            .count();
+        unique_tag_count == self.subsystem_tags.len()
+            && subsystem_tags.iter().all(|tag| {
+                self.subsystem_tags
+                    .iter()
+                    .any(|existing| existing.as_str() == *tag)
+            })
+    }
+
+    fn record_measurement(&mut self, frame_index: u64, value: f64) {
         self.current = Some(value);
         self.smoothed = Some(match self.smoothed {
             Some(previous) => previous.mul_add(0.9, value * 0.1),
@@ -191,6 +242,29 @@ fn push_unique_tags(target: &mut Vec<String>, tags: impl IntoIterator<Item = imp
 #[cfg(test)]
 mod tests {
     use super::DiagnosticStore;
+
+    #[test]
+    fn static_diagnostic_series_reuses_path_and_metadata_allocations() {
+        let mut store = DiagnosticStore::new(4);
+        store.record_static("time.frame_time", 1, 16.0, Some("ms"), &["time", "frame"]);
+
+        let series = store.series.get("time.frame_time").unwrap();
+        let path_ptr = store.series.keys().next().unwrap().as_str().as_ptr();
+        let unit_ptr = series.unit.as_ref().unwrap().as_ptr();
+        let tags_ptr = series.subsystem_tags.as_ptr();
+
+        store.record_static("time.frame_time", 2, 17.0, Some("ms"), &["time", "frame"]);
+
+        let series = store.series.get("time.frame_time").unwrap();
+        assert_eq!(
+            store.series.keys().next().unwrap().as_str().as_ptr(),
+            path_ptr
+        );
+        assert_eq!(series.unit.as_ref().unwrap().as_ptr(), unit_ptr);
+        assert_eq!(series.subsystem_tags.as_ptr(), tags_ptr);
+        assert_eq!(series.history.len(), 2);
+        assert_eq!(series.current, Some(17.0));
+    }
 
     #[test]
     fn diagnostic_store_records_history_summary_and_tags() {

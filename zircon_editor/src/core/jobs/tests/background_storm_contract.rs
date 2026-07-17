@@ -10,7 +10,7 @@ use crate::core::editor_message::{
 
 use super::super::{
     test_job_system_with_bus, EditorJob, EditorJobLimits, EditorJobSpec, JobCategory, JobContext,
-    JobError, JobEventKind, JobId, JobPriority,
+    JobError, JobEventKind, JobId, JobPriority, DEFAULT_JOB_EVENT_PUMP_BUDGET,
 };
 
 const THUMBNAIL_JOB_COUNT: usize = 1_000;
@@ -84,6 +84,7 @@ fn thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline() {
         // pump call. Full UI/GPU work is intentionally excluded from this scheduler baseline.
         let tick_started = Instant::now();
         let pumped = jobs.pump_events();
+        assert!(pumped <= DEFAULT_JOB_EVENT_PUMP_BUDGET.max_events());
         let deliveries = bus.drain_deliveries(subscriber);
         let elapsed_ns = tick_started.elapsed().as_nanos();
         let delivered = deliveries.len();
@@ -167,7 +168,7 @@ fn thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline() {
          nonempty_tick_p50_ns={} nonempty_tick_p95_ns={} nonempty_tick_max_ns={} \
          batch_p50={} batch_p95={} batch_max={} pumped_total={} delivered_total={} \
          event_job_count={} release_elapsed_ns={} max_active={} final_pending={} final_running={} \
-         final_scheduled={} final_mutex_tails={} numeric_budget=undefined",
+         final_scheduled={} final_mutex_tails={} pump_count_budget={} pump_time_budget_us={}",
         THUMBNAIL_JOB_COUNT,
         THUMBNAIL_JOB_LIMIT,
         submit_total_ns,
@@ -198,6 +199,8 @@ fn thumbnail_storm_preserves_quota_and_records_main_thread_pump_baseline() {
         final_running,
         final_scheduled,
         final_mutex_tails,
+        DEFAULT_JOB_EVENT_PUMP_BUDGET.max_events(),
+        DEFAULT_JOB_EVENT_PUMP_BUDGET.max_elapsed().as_micros(),
     );
 }
 

@@ -4,10 +4,11 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
         "../../../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
     ));
     let runtime_10_plan = runtime_10_plan.as_str();
-    let runtime_index = runtime_index_with_numbered_archives(include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
-    ));
-    let runtime_index = runtime_index.as_str();
+    let runtime_10_output_record = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
+    );
+    let runtime_index =
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let dynamic_api_doc =
         include_str!("../../../../../../../docs/zircon_runtime/dynamic_api/session.md");
 
@@ -45,22 +46,35 @@ fn runtime_10_m1_3_cargo_pending_gate_stays_explicit_until_dynamic_api_validatio
     );
 
     assert_contains_all(
-        "Runtime 10 archived index evidence",
-        runtime_index,
+        "Runtime 10 canonical M1.3 output record",
+        runtime_10_output_record,
         &[
-            "M1.3 FFI panic 边界已静态落地",
-            "M1.3 rustfmt/锚点/差异检查通过",
-            "Cargo 待空闲通道",
+            "| M1 | 1.3 FFI panic 边界 |",
+            "code_static_passed_cargo_pending",
+            "Cargo 待当前 runtime 编译通道空闲后补跑 `dynamic_api`",
+            "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
         ],
     );
 
+    let runtime_10_index_route = runtime_index
+        .lines()
+        .find(|line| line.starts_with("| 10 |"))
+        .expect("Runtime index should route Runtime 10 to its current parent plan");
     assert_contains_all(
-        "Runtime index P13 archived evidence",
+        "Runtime index current Runtime 10 route",
+        runtime_10_index_route,
+        &[
+            "`10-dynamic-api-and-interface-convergence.md`",
+            "in_progress",
+            "Cargo gate pending",
+        ],
+    );
+    assert_contains_all(
+        "Runtime index current FFI panic owner route",
         runtime_index,
         &[
-            "runtime_10_ffi_panic_boundary_keeps_exports_as_only_c_abi_edge",
-            "panic-boundary、完整 app loader 与 runtime UI/editor Cargo 验证仍待活动编译通道空闲后重跑",
-            "interface package gate 已 168/168 通过",
+            "| FFI panic 安全（extern \"C\" 边界 catch_unwind 审计） |",
+            "Runtime 10 owner",
         ],
     );
 
@@ -81,14 +95,11 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         "../../../../../../../docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md"
     ));
     let runtime_10_plan = runtime_10_plan.as_str();
-    let runtime_index = runtime_index_with_numbered_archives(include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/index.md"
-    ));
-    let runtime_index = runtime_index.as_str();
-    let runtime_05_plan = runtime_plan_source_with_archive("05", include_str!(
-        "../../../../../../../docs/plans/zircon_runtime/runtime/05-scene-editor-boundary-closeout.md"
-    ));
-    let runtime_05_plan = runtime_05_plan.as_str();
+    let runtime_10_output_record = include_str!(
+        "../../../../../../../docs/plans/zircon_runtime/runtime/10/2026-07-09-dynamic-api-and-interface-convergence-output-records.md"
+    );
+    let runtime_index =
+        include_str!("../../../../../../../docs/plans/zircon_runtime/runtime/index.md");
     let convergence_doc = include_str!(
         "../../../../../../../docs/engine-architecture/runtime-interface-convergence.md"
     );
@@ -165,23 +176,9 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
     );
 
     assert_contains_all(
-        "Runtime 10 archived index evidence",
-        runtime_index,
+        "Runtime 10 canonical M2 output record",
+        runtime_10_output_record,
         &[
-            "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-            "M2 UI 镜像契约 owner/Cargo gate",
-            "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
-            "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
-            "ui_contract_duplicate_public_types = 0",
-            "ui_v2_contract_sync_anchors = 9/9",
-        ],
-    );
-
-    assert_contains_all(
-        "Runtime index P13 archived evidence",
-        runtime_index,
-        &[
-            "interface `ui/` 22 条目镜像契约",
             "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
             "runtime_10_m2_1_ui_contract_duplicate_public_types_removed_static_passed_cargo_pending",
             "runtime_10_m2_2_ui_v2_contract_sync_static_passed_cargo_pending",
@@ -190,14 +187,20 @@ fn runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff()
         ],
     );
 
+    let runtime_10_index_route = runtime_index
+        .lines()
+        .find(|line| line.starts_with("| 10 |"))
+        .expect("Runtime index should route Runtime 10 to its current parent plan");
     assert_contains_all(
-        "Runtime 05 closeout plan",
-        runtime_05_plan,
+        "Runtime index current Runtime 10 route",
+        runtime_10_index_route,
         &[
-            "runtime_10_ui_contract_m2_gate_stays_pending_until_runtime_09_owner_handoff",
-            "Runtime 10 UI 镜像契约 M2 owner/Cargo gate",
+            "`10-dynamic-api-and-interface-convergence.md`",
+            "in_progress",
+            "Cargo gate pending",
         ],
     );
+
     assert_contains_all(
         "Runtime interface convergence doc",
         convergence_doc,

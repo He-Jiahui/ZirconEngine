@@ -10,6 +10,7 @@ from pathlib import Path
 # loopback endpoint stable so the browser, tray and Codex Hook have one URL.
 # Isolated test coordinators explicitly request port 0.
 DEFAULT_COORDINATOR_PORT = 6518
+DEFAULT_SESSION_TTL_SECONDS = 3600
 
 
 def _normalize_windows_extended_path(value: str | Path) -> str | Path:
@@ -27,7 +28,9 @@ class CoordinatorConfig:
     state_root: Path
     host: str = "127.0.0.1"
     port: int = DEFAULT_COORDINATOR_PORT
-    session_ttl_seconds: int = 600
+    # Session state is an operator-workflow signal, not a short-lived resource lock.
+    # Leases and Cargo reservations retain their independent, shorter TTLs.
+    session_ttl_seconds: int = DEFAULT_SESSION_TTL_SECONDS
     lease_ttl_seconds: int = 300
     lease_grace_seconds: int = 120
     watch_interval_seconds: float = 30.0

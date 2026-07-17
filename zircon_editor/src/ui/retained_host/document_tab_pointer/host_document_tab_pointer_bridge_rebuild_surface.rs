@@ -47,15 +47,12 @@ impl HostDocumentTabPointerBridge {
                 .expect("document tab root must exist");
 
             let mut next_x = surface_layout.strip_frame.x + STRIP_X;
-            let measured = self
-                .measured_frames
-                .get(surface_layout.key.as_str())
-                .cloned()
-                .unwrap_or_else(|| vec![None; surface_layout.items.len()]);
+            let measured = self.measured_frames.get(surface_layout.key.as_str());
             for (item_index, item) in surface_layout.items.iter().enumerate() {
                 let frame = measured
-                    .get(item_index)
-                    .and_then(|frame| *frame)
+                    .and_then(|frames| frames.get(item_index))
+                    .copied()
+                    .flatten()
                     .unwrap_or_else(|| {
                         UiFrame::new(
                             next_x,

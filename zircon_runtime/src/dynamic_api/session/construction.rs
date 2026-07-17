@@ -241,7 +241,7 @@ pub(super) fn build(
     if scene_asset_reload_queue.is_some() {
         write_log("runtime_session", "runtime_scene_asset_reload_queue_ready");
     }
-    let (selected_node, orbit_target) = {
+    let orbit_target = {
         crate::profile_scope!(
             "runtime",
             "dynamic_api",
@@ -258,7 +258,7 @@ pub(super) fn build(
                 .find_node(cube)
                 .map(|node| node.transform.translation)
                 .unwrap_or_default();
-            (Some(cube), orbit_target)
+            orbit_target
         })
     };
     let mut camera_controller = {
@@ -284,7 +284,6 @@ pub(super) fn build(
         level,
         scene_asset_reload_queue,
         last_scene_asset_reload_report: None,
-        selected_node,
         camera_controller,
         extract_cache: Default::default(),
         cursor: Vec2::ZERO,

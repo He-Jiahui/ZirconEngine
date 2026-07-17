@@ -1,7 +1,5 @@
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
-use super::popup_layout::{
-    clamped_menu_bar_scroll_offset, popup_scroll_metrics, popup_viewport_extent,
-};
+use super::popup_layout::{clamped_menu_bar_scroll_offset, popup_scroll_metrics};
 
 impl HostMenuPointerBridge {
     pub(in crate::ui::retained_host::menu_pointer) fn clamp_menu_bar_scroll_offset(&mut self) {
@@ -14,8 +12,7 @@ impl HostMenuPointerBridge {
             self.state.popup_scroll_offset = 0.0;
             return;
         };
-        let (_, content_extent) = popup_scroll_metrics(&self.layout, menu_index);
-        let viewport_extent = popup_viewport_extent(&self.layout, menu_index);
+        let (viewport_extent, content_extent) = popup_scroll_metrics(&self.layout, menu_index);
         let max_offset = (content_extent - viewport_extent).max(0.0);
         self.state.popup_scroll_offset = self.state.popup_scroll_offset.clamp(0.0, max_offset);
     }

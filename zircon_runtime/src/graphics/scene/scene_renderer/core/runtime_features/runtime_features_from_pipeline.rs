@@ -1,57 +1,26 @@
-use crate::graphics::{
-    BuiltinRenderFeature, CompiledRenderPipeline, RenderFeatureCapabilityRequirement,
-};
+use crate::graphics::CompiledRenderPipeline;
 
 use super::super::super::post_process::SceneRuntimeFeatureFlags;
 
 pub(crate) fn runtime_features_from_pipeline(
     pipeline: &CompiledRenderPipeline,
 ) -> SceneRuntimeFeatureFlags {
-    let feature_enabled = |feature| {
-        pipeline
-            .enabled_features
-            .iter()
-            .any(|enabled| enabled.is_builtin(feature))
-    };
-    let capability_enabled = |requirement| {
-        pipeline
-            .enabled_features
-            .iter()
-            .any(|enabled| enabled.requires_capability(requirement))
-    };
-    let plugin_feature_enabled = |name: &str| {
-        pipeline
-            .enabled_features
-            .iter()
-            .any(|enabled| enabled.builtin_feature().is_none() && enabled.feature_name() == name)
-    };
-    let builtin_or_plugin_feature_enabled = |feature, plugin_name: &str| {
-        feature_enabled(feature) || plugin_feature_enabled(plugin_name)
-    };
-
+    let flags = pipeline.runtime_feature_flags();
     SceneRuntimeFeatureFlags {
-        deferred_lighting_enabled: feature_enabled(BuiltinRenderFeature::DeferredLighting)
-            && feature_enabled(BuiltinRenderFeature::DeferredGeometry),
-        ssao_enabled: builtin_or_plugin_feature_enabled(
-            BuiltinRenderFeature::ScreenSpaceAmbientOcclusion,
-            "screen_space_ambient_occlusion",
-        ),
-        contact_shadow_enabled: plugin_feature_enabled("contact_shadow"),
-        clustered_lighting_enabled: feature_enabled(BuiltinRenderFeature::ClusteredLighting),
-        hybrid_global_illumination_enabled: capability_enabled(
-            RenderFeatureCapabilityRequirement::HybridGlobalIllumination,
-        ),
-        temporal_history_enabled: feature_enabled(BuiltinRenderFeature::Temporal),
-        bloom_enabled: feature_enabled(BuiltinRenderFeature::Bloom),
-        color_grading_enabled: feature_enabled(BuiltinRenderFeature::ColorGrading),
-        anti_alias_enabled: feature_enabled(BuiltinRenderFeature::AntiAlias),
-        reflection_probes_enabled: plugin_feature_enabled("reflection_probes"),
-        baked_lighting_enabled: plugin_feature_enabled("baked_lighting"),
-        sprite_rendering_enabled: feature_enabled(BuiltinRenderFeature::Sprite),
-        particle_rendering_enabled: plugin_feature_enabled("particle"),
-        virtual_geometry_enabled: capability_enabled(
-            RenderFeatureCapabilityRequirement::VirtualGeometry,
-        ),
+        deferred_lighting_enabled: flags.deferred_lighting_enabled,
+        ssao_enabled: flags.ssao_enabled,
+        contact_shadow_enabled: flags.contact_shadow_enabled,
+        clustered_lighting_enabled: flags.clustered_lighting_enabled,
+        hybrid_global_illumination_enabled: flags.hybrid_global_illumination_enabled,
+        temporal_history_enabled: flags.temporal_history_enabled,
+        bloom_enabled: flags.bloom_enabled,
+        color_grading_enabled: flags.color_grading_enabled,
+        anti_alias_enabled: flags.anti_alias_enabled,
+        reflection_probes_enabled: flags.reflection_probes_enabled,
+        baked_lighting_enabled: flags.baked_lighting_enabled,
+        sprite_rendering_enabled: flags.sprite_rendering_enabled,
+        particle_rendering_enabled: flags.particle_rendering_enabled,
+        virtual_geometry_enabled: flags.virtual_geometry_enabled,
     }
 }
 
@@ -254,7 +223,7 @@ mod tests {
         let flags = runtime_features_from_pipeline(&compiled);
 
         assert!(compiled
-            .enabled_features
+            .enabled_features()
             .iter()
             .any(|feature| feature.is_builtin(BuiltinRenderFeature::ReflectionProbes)));
         assert!(compiled

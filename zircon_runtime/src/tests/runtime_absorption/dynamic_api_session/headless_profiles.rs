@@ -74,8 +74,8 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
 
     let capture_frame = slice_between(
         session_source,
-        "    fn capture_frame(",
-        "    fn bind_viewport_surface",
+        "    pub(super) fn capture_frame(",
+        "    pub(super) fn bind_viewport_surface",
     );
     for required_capture_anchor in [
         "if let Some(render_bridge) = &mut self.render_bridge",
@@ -90,16 +90,16 @@ fn runtime_10_headless_profiles_keep_render_bridge_optional_and_noop_surfaces() 
 
     for (method_start, method_end) in [
         (
-            "    fn bind_viewport_surface(",
-            "    fn unbind_viewport_surface(",
+            "    pub(super) fn bind_viewport_surface(",
+            "    pub(super) fn unbind_viewport_surface(",
         ),
         (
-            "    fn unbind_viewport_surface(",
-            "    fn present_viewport(",
+            "    pub(super) fn unbind_viewport_surface(",
+            "    pub(super) fn present_viewport(",
         ),
         (
-            "    fn present_viewport(",
-            "    fn capture_accessibility_tree(",
+            "    pub(super) fn present_viewport(",
+            "    pub(super) fn capture_accessibility_tree(",
         ),
     ] {
         let method = slice_between(session_source, method_start, method_end);

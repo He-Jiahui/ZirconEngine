@@ -197,6 +197,11 @@ class SessionService:
                 FROM sessions
                 WHERE status IN (?, ?, ?, ?, ?)
                   AND last_heartbeat_at < ?
+                  AND NOT EXISTS (
+                      SELECT 1 FROM cargo_jobs
+                      WHERE cargo_jobs.session_id = sessions.session_id
+                        AND cargo_jobs.status = 'running'
+                  )
                 ORDER BY session_id
                 """,
                 (*eligible_statuses, cutoff),
@@ -213,6 +218,11 @@ class SessionService:
                       AND status = ?
                       AND last_heartbeat_at = ?
                       AND last_heartbeat_at < ?
+                      AND NOT EXISTS (
+                          SELECT 1 FROM cargo_jobs
+                          WHERE cargo_jobs.session_id = sessions.session_id
+                            AND cargo_jobs.status = 'running'
+                      )
                     """,
                     (
                         "heartbeat expired",
@@ -269,12 +279,6 @@ class SessionService:
                        WHERE cargo_jobs.session_id = sessions.session_id
                          AND cargo_jobs.status IN ('leased', 'running')
                    )
-                   AND NOT EXISTS (
-                       SELECT 1 FROM failure_nodes
-                       WHERE failure_nodes.fixing_plan = sessions.plan_path
-                         AND failure_nodes.kind = 'failure'
-                        AND failure_nodes.status = 'open'
-                  )
                 ORDER BY session_id
                 """,
                 (cutoff,),

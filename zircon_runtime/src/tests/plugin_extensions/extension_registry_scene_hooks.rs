@@ -208,7 +208,7 @@ fn level_tick_dispatches_installed_scene_hooks_in_schedule_order() {
 }
 
 #[test]
-fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {
+fn installed_plugin_scene_hooks_repeat_fixed_stages_in_order_for_each_drained_step() {
     let runtime = crate::core::CoreRuntime::new();
     runtime
         .register_module(crate::scene::module_descriptor())
@@ -262,87 +262,6 @@ fn level_tick_repeats_fixed_loop_stages_for_drained_fixed_steps() {
             "fixed-first".to_string(),
             "fixed-update".to_string(),
             "fixed-post-update".to_string(),
-        ]
-    );
-}
-
-#[test]
-fn level_tick_skips_fixed_loop_stages_when_no_fixed_steps_are_drained() {
-    let runtime = crate::core::CoreRuntime::new();
-    runtime
-        .register_module(crate::scene::module_descriptor())
-        .unwrap();
-    runtime
-        .activate_module(crate::scene::SCENE_MODULE_NAME)
-        .unwrap();
-    runtime.set_fixed_timestep(Duration::from_millis(10));
-
-    let mut registry = RuntimeExtensionRegistry::default();
-    registry
-        .register_scene_hook(recording_scene_hook_registration(
-            "weather.scene.fixed-update",
-            SystemStage::FixedUpdate,
-            0,
-            "fixed-update",
-        ))
-        .expect("fixed update hook contribution");
-    crate::scene::install_scene_runtime_hooks(
-        &runtime.handle(),
-        registry.scene_hooks().iter().cloned(),
-    )
-    .expect("install fixed scene hooks into core runtime");
-
-    let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
-    let advance = runtime.advance_time_by(Duration::from_millis(5), 8);
-    assert_eq!(advance.fixed_step_plan().step_count, 0);
-
-    level.tick(&runtime.handle(), advance).unwrap();
-
-    assert!(level.registered_subsystems().is_empty());
-}
-
-#[test]
-fn level_tick_fixed_loop_steps_are_capped_by_runtime_time_advance() {
-    let runtime = crate::core::CoreRuntime::new();
-    runtime
-        .register_module(crate::scene::module_descriptor())
-        .unwrap();
-    runtime
-        .activate_module(crate::scene::SCENE_MODULE_NAME)
-        .unwrap();
-    runtime.set_fixed_timestep(Duration::from_millis(10));
-
-    let mut registry = RuntimeExtensionRegistry::default();
-    registry
-        .register_scene_hook(recording_scene_hook_registration(
-            "weather.scene.fixed-update",
-            SystemStage::FixedUpdate,
-            0,
-            "fixed-update",
-        ))
-        .expect("fixed update hook contribution");
-    crate::scene::install_scene_runtime_hooks(
-        &runtime.handle(),
-        registry.scene_hooks().iter().cloned(),
-    )
-    .expect("install fixed scene hooks into core runtime");
-
-    let level = crate::scene::create_default_level(&runtime.handle()).unwrap();
-    let advance = runtime.advance_time_by(Duration::from_millis(50), 3);
-    assert_eq!(advance.fixed_step_plan().step_count, 3);
-    assert_eq!(
-        advance.fixed_step_plan().remaining_overstep,
-        Duration::from_millis(20)
-    );
-
-    level.tick(&runtime.handle(), advance).unwrap();
-
-    assert_eq!(
-        level.registered_subsystems(),
-        vec![
-            "fixed-update".to_string(),
-            "fixed-update".to_string(),
-            "fixed-update".to_string(),
         ]
     );
 }

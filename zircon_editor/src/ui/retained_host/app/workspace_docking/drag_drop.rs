@@ -12,6 +12,9 @@ impl RetainedEditorHost {
             .unwrap_or_default();
         let host_shell = self.ui.global::<UiHostContext>();
         let mut drag_state = host_shell.get_drag_state();
+        if drag_state.active_drag_target_group.as_str() == value.as_str() {
+            return;
+        }
         drag_state.active_drag_target_group = value.into();
         host_shell.set_drag_state(drag_state);
     }
@@ -46,5 +49,18 @@ impl RetainedEditorHost {
             }
             Err(error) => self.set_status_line(error),
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn repeated_drag_target_group_does_not_republish_ui_state() {
+        let source = include_str!("drag_drop.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(
+            production.contains("drag_state.active_drag_target_group.as_str() == value.as_str()")
+        );
     }
 }

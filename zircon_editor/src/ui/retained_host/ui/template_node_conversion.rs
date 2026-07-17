@@ -7,14 +7,9 @@ fn map_model_rc<T, U, F>(model: &ModelRc<T>, mut map: F) -> ModelRc<U>
 where
     T: Clone + 'static,
     U: Clone + 'static,
-    F: FnMut(T) -> U,
+    F: FnMut(&T) -> U,
 {
-    model_rc(
-        (0..model.row_count())
-            .filter_map(|row| model.row_data(row))
-            .map(&mut map)
-            .collect(),
-    )
+    model_rc(model.iter().map(&mut map).collect())
 }
 
 fn to_host_contract_template_frame(
@@ -189,11 +184,14 @@ pub(crate) fn to_host_contract_template_node(
 }
 
 fn options_text(options: &ModelRc<SharedString>) -> String {
-    (0..options.row_count())
-        .filter_map(|row| options.row_data(row))
-        .map(|option| option.to_string())
-        .collect::<Vec<_>>()
-        .join(", ")
+    let mut text = String::new();
+    for option in options.iter() {
+        if !text.is_empty() {
+            text.push_str(", ");
+        }
+        text.push_str(option);
+    }
+    text
 }
 
 pub(crate) fn to_host_contract_template_node_owned(
@@ -205,12 +203,37 @@ pub(crate) fn to_host_contract_template_node_owned(
 pub(crate) fn to_host_contract_template_nodes(
     data: &ModelRc<ViewTemplateNodeData>,
 ) -> ModelRc<host_contract::TemplatePaneNodeData> {
-    map_model_rc(data, |node| to_host_contract_template_node(&node))
+    map_model_rc(data, to_host_contract_template_node)
 }
 
 #[cfg(test)]
 mod tests {
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
+
     use super::*;
+
+    struct CloneProbe(Arc<AtomicUsize>);
+
+    impl Clone for CloneProbe {
+        fn clone(&self) -> Self {
+            self.0.fetch_add(1, Ordering::Relaxed);
+            Self(Arc::clone(&self.0))
+        }
+    }
+
+    #[test]
+    fn model_mapping_borrows_source_rows() {
+        let clone_count = Arc::new(AtomicUsize::new(0));
+        let source = model_rc(vec![CloneProbe(Arc::clone(&clone_count))]);
+
+        let mapped = map_model_rc(&source, |_| 7_u8);
+
+        assert_eq!(mapped.row_data(0), Some(7));
+        assert_eq!(clone_count.load(Ordering::Relaxed), 0);
+    }
 
     #[test]
     fn view_template_node_conversion_preserves_v2_interaction_metadata() {

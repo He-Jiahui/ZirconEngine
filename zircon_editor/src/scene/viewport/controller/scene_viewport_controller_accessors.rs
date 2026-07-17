@@ -9,10 +9,6 @@ impl SceneViewportController {
         &self.state.viewport
     }
 
-    pub(crate) fn clone_for_render(&self) -> Self {
-        self.clone()
-    }
-
     pub(crate) fn hovered_axis(&self) -> Option<GizmoAxis> {
         self.state.hover.hovered_axis
     }

@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 
 use crate::ui::layouts::common::model_rc;
 use crate::ui::layouts::views::load_preview_image;
@@ -21,10 +21,13 @@ use super::template_layout_context::apply_table_layout_context_variant;
 
 #[path = "workbench_window_projection/host_value_toml.rs"]
 mod host_value_toml;
+#[path = "workbench_window_projection/node_index.rs"]
+mod node_index;
 #[path = "workbench_window_projection/typed_canvas.rs"]
 mod typed_canvas;
 
 use host_value_toml::toml_values_from_host_properties;
+use node_index::ProjectionNodeIndex;
 use typed_canvas::projected_typed_canvas_data;
 
 const WORKBENCH_STATUS_RIGHT_OFFSET_Y: f64 = -0.5;
@@ -45,18 +48,14 @@ pub(crate) fn to_host_contract_workbench_window_nodes(
         return ModelRc::default();
     };
 
-    let nodes_by_id = projection
-        .nodes
-        .iter()
-        .map(|node| (node.node_id.as_str(), node))
-        .collect::<BTreeMap<_, _>>();
+    let node_index = ProjectionNodeIndex::new(&projection.nodes);
     let layout_context_width = projection_layout_context_width(projection);
     model_rc(
         projection
             .nodes
             .iter()
-            .filter(|node| host_projection_node_render_visible(node, &nodes_by_id))
-            .filter_map(|node| to_host_contract_workbench_window_node(node, &nodes_by_id))
+            .filter(|node| node_index.render_visible(node))
+            .filter_map(|node| to_host_contract_workbench_window_node(node, &node_index))
             .map(|node| apply_table_layout_context_variant(node, layout_context_width))
             .collect(),
     )
@@ -71,48 +70,9 @@ fn projection_layout_context_width(projection: &RetainedUiHostProjection) -> f32
         .unwrap_or(0.0)
 }
 
-fn host_projection_node_render_visible(
-    node: &RetainedUiHostNodeModel,
-    nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
-) -> bool {
-    let mut current = Some(node);
-    while let Some(current_node) = current {
-        if !node_properties_render_visible(current_node) {
-            return false;
-        }
-        current = current_node
-            .parent_id
-            .as_deref()
-            .and_then(|parent_id| nodes_by_id.get(parent_id).copied());
-    }
-    true
-}
-
-fn node_properties_render_visible(node: &RetainedUiHostNodeModel) -> bool {
-    let visibility = string_property(&node.properties, "visibility")
-        .unwrap_or_else(|| "visible".to_string())
-        .replace('_', "")
-        .to_ascii_lowercase();
-    if !legacy_visible_property(&node.properties) && visibility != "collapsed" {
-        return false;
-    }
-    matches!(
-        visibility.as_str(),
-        "visible" | "hittestinvisible" | "selfhittestinvisible"
-    )
-}
-
-fn legacy_visible_property(properties: &BTreeMap<String, RetainedUiHostValue>) -> bool {
-    match properties.get("visible") {
-        Some(RetainedUiHostValue::Bool(value)) => *value,
-        Some(RetainedUiHostValue::String(value)) => value.parse().unwrap_or(true),
-        _ => true,
-    }
-}
-
 fn to_host_contract_workbench_window_node(
     node: &RetainedUiHostNodeModel,
-    nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
+    node_index: &ProjectionNodeIndex<'_>,
 ) -> Option<host_contract::TemplatePaneNodeData> {
     let control_id = node.control_id.clone()?;
     let mut component_role = node
@@ -182,6 +142,7 @@ fn to_host_contract_workbench_window_node(
                 )
             })
             .unwrap_or_else(|| structured_options_for_node(&option_values, &button_style_values));
+    let structured_menu_item_values = structured_menu_items(&menu_item_values);
     let surface_variant = first_string_property(&node.properties, &["surface_variant"])
         .or_else(|| default_workbench_surface_variant(&node.component, &component_role))
         .unwrap_or_default();
@@ -199,7 +160,7 @@ fn to_host_contract_workbench_window_node(
         .or_else(|| color_property(&node.properties, "icon_fill"))
         .or_else(|| color_property(&node.properties, "status_mark_color"))
         .or_else(|| {
-            inherited_status_right_color_property(node, nodes_by_id, "status_right_label_color")
+            inherited_status_right_color_property(node, node_index, "status_right_label_color")
         })
         .unwrap_or_default();
     let icon_color = color_property(&node.properties, "icon_color")
@@ -217,7 +178,7 @@ fn to_host_contract_workbench_window_node(
         numeric_property(&node.properties, "layout_offset_x").unwrap_or(0.0) as f32;
     let layout_offset_y = numeric_property(&node.properties, "layout_offset_y")
         .or_else(|| {
-            inherited_status_right_numeric_property(node, nodes_by_id, "status_right_offset_y")
+            inherited_status_right_numeric_property(node, node_index, "status_right_offset_y")
         })
         .unwrap_or(0.0) as f32;
     let layout_icon_size = numeric_property(&node.properties, "layout_icon_size")
@@ -259,7 +220,10 @@ fn to_host_contract_workbench_window_node(
 
     Some(host_contract::TemplatePaneNodeData {
         node_id: node.node_id.clone().into(),
-        parent_node_id: projected_parent_node_id(node, nodes_by_id).into(),
+        parent_node_id: node_index
+            .projected_parent_node_id(node)
+            .unwrap_or_default()
+            .into(),
         control_id: control_id.into(),
         role: resolve_workbench_role(node.component.as_str()).into(),
         text: projected_workbench_text(node, component_role.as_str()).into(),
@@ -332,8 +296,8 @@ fn to_host_contract_workbench_window_node(
         options: shared_string_list(option_values),
         structured_options: model_rc(structured_options),
         collection_items: shared_string_list(collection_item_values),
-        menu_items: shared_string_list(menu_item_values.clone()),
-        structured_menu_items: model_rc(structured_menu_items(&menu_item_values)),
+        menu_items: shared_string_list(menu_item_values),
+        structured_menu_items: model_rc(structured_menu_item_values),
         checked: node.checked,
         expanded: node.expanded,
         focused: node.focused,
@@ -389,33 +353,12 @@ fn to_host_contract_workbench_window_node(
     })
 }
 
-fn projected_parent_node_id(
-    node: &RetainedUiHostNodeModel,
-    nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
-) -> String {
-    let mut parent_node_id = node.parent_id.as_deref();
-    let mut visited_node_ids = BTreeSet::new();
-    while let Some(candidate_id) = parent_node_id {
-        if !visited_node_ids.insert(candidate_id) {
-            break;
-        }
-        let Some(candidate) = nodes_by_id.get(candidate_id).copied() else {
-            break;
-        };
-        if candidate.control_id.is_some() {
-            return candidate.node_id.clone();
-        }
-        parent_node_id = candidate.parent_id.as_deref();
-    }
-    String::new()
-}
-
 fn inherited_status_right_numeric_property(
     node: &RetainedUiHostNodeModel,
-    nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
+    node_index: &ProjectionNodeIndex<'_>,
     property: &str,
 ) -> Option<f64> {
-    inherited_status_right_parent(node, nodes_by_id)
+    inherited_status_right_parent(node, node_index)
         .and_then(|parent| numeric_property(&parent.properties, property))
         .or_else(|| {
             (property == "status_right_offset_y" && is_status_right_control(node))
@@ -425,10 +368,10 @@ fn inherited_status_right_numeric_property(
 
 fn inherited_status_right_color_property(
     node: &RetainedUiHostNodeModel,
-    nodes_by_id: &BTreeMap<&str, &RetainedUiHostNodeModel>,
+    node_index: &ProjectionNodeIndex<'_>,
     property: &str,
 ) -> Option<host_contract::primitives::Color> {
-    inherited_status_right_parent(node, nodes_by_id)
+    inherited_status_right_parent(node, node_index)
         .and_then(|parent| color_property(&parent.properties, property))
         .or_else(|| {
             (property == "status_right_label_color" && is_status_right_control(node))
@@ -438,7 +381,7 @@ fn inherited_status_right_color_property(
 
 fn inherited_status_right_parent<'a>(
     node: &RetainedUiHostNodeModel,
-    nodes_by_id: &'a BTreeMap<&str, &RetainedUiHostNodeModel>,
+    node_index: &ProjectionNodeIndex<'a>,
 ) -> Option<&'a RetainedUiHostNodeModel> {
     if !is_status_right_control(node) {
         return None;
@@ -446,7 +389,7 @@ fn inherited_status_right_parent<'a>(
 
     let mut parent_id = node.parent_id.as_deref();
     while let Some(current_parent_id) = parent_id {
-        let parent = nodes_by_id.get(current_parent_id).copied()?;
+        let parent = node_index.node(current_parent_id)?;
         if parent.control_id.as_deref() == Some("WorkbenchWindowStatusBar") {
             return Some(parent);
         }

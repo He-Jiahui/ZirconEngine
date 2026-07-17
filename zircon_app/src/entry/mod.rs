@@ -1,4 +1,6 @@
 mod builtin_modules;
+#[cfg(feature = "target-editor-host")]
+pub(crate) mod cli;
 mod engine_entry;
 mod entry_config;
 mod entry_profile;

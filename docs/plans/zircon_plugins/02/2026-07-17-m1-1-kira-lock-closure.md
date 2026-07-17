@@ -16,6 +16,7 @@ Files: ["Cargo.lock", "zircon_plugins/Cargo.lock", "zircon_plugins/sound/runtime
 - Windows canonical rustc 1.94.1 managed job `a0f2c2945eb7431fab6ff12650f41266`：`cargo +1.94.1 metadata --locked --format-version 1`，exit 0。
 - Windows canonical rustc 1.94.1 managed job `736bb82d6ace4c5aa55ce6595f269c3c`：`cargo +1.94.1 metadata --manifest-path zircon_plugins/Cargo.toml --locked --format-version 1`，exit 0。
 - Render01 launch-window job `d57cb5f09ee24b9685c36e63fd445457` 在根锁 SHA-256 `FED7DA1BF408C9FD58D37768ECC4F92CF72571B51E957C40ADE880CC460822A5` 下执行 `--locked` directional parity，1/1 passed、8178 filtered、exit 0；根锁在整个运行窗口保持不变。
+- Sound package managed job `63a9a9d2f7794d488b61b530e5436fd2` / run `7c05366c20554ea7a1a8f9ae68fb5faa` 已在相同双 lockfile 下完成 `--locked` 依赖解析并编译到 `zircon_plugin_sound_runtime`；随后因父 M1 尚未完成的 Kira 0.12.2 API 接线以 18 个 Sound 源码错误终止。该结果证明 M1.1 lock closure 不再阻断 Cargo，同时保留父 M1 源码验收为未完成。
 - 最终 SHA-256：根 `Cargo.lock` 为 `FED7DA1BF408C9FD58D37768ECC4F92CF72571B51E957C40ADE880CC460822A5`，`zircon_plugins/Cargo.lock` 为 `9CF31E50ABCC41EC77EDBEA7A18E37950595A1442224821C482CB7D95C202169`，Sound manifest 为 `72A8A1E86301871183C088DF8278C013E8BE6904616436524913201818D36234`。
 - Exact scope `git diff --check` 通过，共 3 files changed、683 insertions、395 deletions；共享 Git index staged count 为 0。
 

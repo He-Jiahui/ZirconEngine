@@ -190,3 +190,13 @@ fn shared_viewport_pointer_bridge_respects_updated_viewport_frame_bounds() {
         record_count_before
     );
 }
+
+#[test]
+fn shared_viewport_pointer_bridge_skips_unchanged_frame_rebuilds() {
+    let frame = UiFrame::new(0.0, 0.0, 160.0, 90.0);
+    let mut bridge = SharedViewportPointerBridge::new(frame);
+
+    assert!(!bridge.update_viewport_frame(frame));
+    assert!(bridge.update_viewport_frame(UiFrame::new(0.0, 0.0, 80.0, 60.0)));
+    assert!(!bridge.update_viewport_frame(UiFrame::new(0.0, 0.0, 80.0, 60.0)));
+}

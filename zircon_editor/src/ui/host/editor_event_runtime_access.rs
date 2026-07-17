@@ -114,6 +114,10 @@ impl EditorHostEventController {
         self.context().jobs().progress().snapshot()
     }
 
+    pub fn primary_job_progress_snapshot(&self) -> Option<EditorJobProgressSnapshot> {
+        self.context().jobs().progress().primary_snapshot()
+    }
+
     pub(crate) fn dispatch_ui_component_adapter_event(
         &self,
         envelope: &UiComponentEventEnvelope,
@@ -160,8 +164,7 @@ impl EditorHostEventController {
         keyboard: &UiKeyboardInputEvent,
         source: EditorEventSource,
     ) -> Result<Option<EditorEventRecord>, String> {
-        let keymap = crate::core::commands::EditorKeymap::default_workbench();
-        let Some(command_id) = keymap.resolve_keyboard_input(keyboard) else {
+        let Some(command_id) = self.keymap().resolve_keyboard_input(keyboard) else {
             return Ok(None);
         };
         self.dispatch_keymap_command_id(command_id, source)
@@ -578,4 +581,15 @@ fn projected_asset_type_for_kind(
     registry
         .get(&AssetTypeId::from_resource_kind(kind))
         .map(AssetTypeProjectionSnapshot::from_definition)
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn keyboard_dispatch_reuses_the_controller_keymap() {
+        let source = include_str!("editor_event_runtime_access.rs");
+        let reparsing = ["EditorKeymap::", "default_workbench()"].concat();
+
+        assert!(!source.contains(&reparsing));
+    }
 }

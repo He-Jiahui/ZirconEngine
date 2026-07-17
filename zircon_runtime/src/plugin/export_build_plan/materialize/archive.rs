@@ -152,8 +152,7 @@ fn write_native_package_entries<W: Write + std::io::Seek>(
                 ));
                 continue;
             }
-            let contents = fs::read(&entry.source_path)?;
-            write_zip_entry(writer, &archive_path, &contents)?;
+            write_zip_file_entry(writer, &archive_path, &entry.source_path)?;
         }
 
         let package_export = native_dynamic_package_export(plan, package_id)
@@ -217,6 +216,18 @@ fn write_zip_entry<W: Write + std::io::Seek>(
     Ok(())
 }
 
+fn write_zip_file_entry<W: Write + std::io::Seek>(
+    writer: &mut ZipWriter<W>,
+    entry_name: &str,
+    source_path: &Path,
+) -> Result<(), std::io::Error> {
+    let options = zip_file_options();
+    writer.start_file(entry_name, options)?;
+    let mut source = File::open(source_path)?;
+    std::io::copy(&mut source, writer)?;
+    Ok(())
+}
+
 fn zip_file_options() -> SimpleFileOptions {
     SimpleFileOptions::default()
         .compression_method(CompressionMethod::Deflated)
@@ -251,5 +262,18 @@ fn blocked_archive_report(
         copied_packages: Vec::new(),
         diagnostics,
         fatal_diagnostics,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn native_package_archive_entries_are_streamed_from_disk() {
+        let source = include_str!("archive.rs");
+        let whole_file_read = ["fs::", "read(&entry.source_path)"].concat();
+        assert!(
+            !source.contains(&whole_file_read),
+            "native package files should stream into ZipWriter without a full-file Vec"
+        );
     }
 }

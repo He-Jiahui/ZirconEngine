@@ -5,11 +5,11 @@ import os
 import threading
 import uuid
 from collections.abc import Callable, Iterable
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from sqlite3 import Connection
 
 from ..database import Database
-from ..models import CoordinatorError, SupervisionState, utc_text
+from ..models import CoordinatorError, SupervisionState, parse_utc, utc_now, utc_text
 from .models import (
     BlockerKind,
     LifecycleKind,
@@ -117,6 +117,10 @@ _DRAIN_ALLOWED_OPERATIONS = frozenset(
         "supervision.recovery_record",
     }
 )
+
+# A successor needs a short quiet period so concurrent local monitors cannot
+# turn one requested rollover into repeated service replacements.
+ROLLOVER_STABILIZATION_SECONDS = 60
 
 _MAINTENANCE_SESSION_OPERATIONS = frozenset(
     {
@@ -623,14 +627,15 @@ class SupervisionService:
                 LifecycleKind.STOP,
                 LifecycleKind.RESTART,
                 LifecycleKind.FORCE_STOP,
+                LifecycleKind.ROLLOVER,
             }:
                 active = connection.execute(
                     """
                     SELECT intent_id, action_id, kind
                     FROM service_lifecycle_intents
                     WHERE repository_key=?
-                      AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
-                      AND status IN ('accepted', 'draining')
+                      AND kind IN ('service.stop', 'service.restart', 'service.force_stop', 'service.rollover')
+                      AND status IN ('accepted', 'draining', 'awaiting_restart')
                     LIMIT 1
                     """,
                     (self.repository_key,),
@@ -665,6 +670,129 @@ class SupervisionService:
                 ),
             )
         return intent_id
+
+    def recent_rollover_successor(self) -> dict[str, object] | None:
+        """Return the healthy current successor while its rollover is stabilizing."""
+        with self.database.connect() as connection:
+            state = self._state_row(connection)
+            row = connection.execute(
+                """
+                SELECT intent_id, action_id, successor_daemon_instance_id, completed_at
+                FROM service_lifecycle_intents
+                WHERE repository_key=? AND kind='service.rollover' AND status='succeeded'
+                  AND successor_daemon_instance_id=? AND completed_at IS NOT NULL
+                ORDER BY completed_at DESC, intent_id DESC
+                LIMIT 1
+                """,
+                (self.repository_key, self.daemon_instance_id),
+            ).fetchone()
+        if (
+            state is None
+            or state["state"] != SupervisionState.HEALTHY.value
+            or bool(state["maintenance_hold"])
+            or row is None
+            or utc_now() - parse_utc(row["completed_at"])
+            > timedelta(seconds=ROLLOVER_STABILIZATION_SECONDS)
+        ):
+            return None
+        return {
+            "state": SupervisionState.HEALTHY.value,
+            "admissionOpen": True,
+            "coalesced": True,
+            "coalescedIntentId": row["intent_id"],
+            "coalescedActionId": row["action_id"],
+            "successorInstanceId": row["successor_daemon_instance_id"],
+        }
+
+    def arm_rollover(self, intent_id: str, *, action_id: str, actor: str) -> dict[str, object]:
+        """Persist a short reload handoff without closing general task admission.
+
+        A rollover is safe only when the process monitor reports no live Cargo
+        descendants.  Leased-but-unstarted jobs intentionally remain in SQLite
+        so the successor can continue their exact reservation and FIFO state.
+        """
+        with self._transition_lock, self.database.transaction() as connection:
+            intent = connection.execute(
+                """
+                SELECT intent_id, status, kind
+                FROM service_lifecycle_intents
+                WHERE repository_key=? AND intent_id=? AND action_id=?
+                """,
+                (self.repository_key, intent_id, action_id),
+            ).fetchone()
+            action = connection.execute(
+                "SELECT status FROM action_requests WHERE action_id=?", (action_id,)
+            ).fetchone()
+            if (
+                intent is None
+                or intent["kind"] != LifecycleKind.ROLLOVER.value
+                or intent["status"] != LifecycleStatus.ACCEPTED.value
+                or action is None
+                or action["status"] != "executing"
+            ):
+                raise CoordinatorError(
+                    "lifecycle_rollover_invalid",
+                    "Rollover requires an accepted intent and executing controlled action",
+                )
+            live_jobs: list[dict[str, object]] = []
+            for row in connection.execute(
+                """
+                SELECT job_id, session_id, status, process_tree_live_pids_json
+                FROM cargo_jobs
+                WHERE status IN ('leased', 'running', 'orphaned')
+                ORDER BY job_id
+                """
+            ):
+                try:
+                    pids = [int(value) for value in json.loads(row["process_tree_live_pids_json"] or "[]")]
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    pids = []
+                if pids:
+                    live_jobs.append(
+                        {
+                            "jobId": row["job_id"],
+                            "sessionId": row["session_id"],
+                            "status": row["status"],
+                            "liveProcessPids": pids,
+                        }
+                    )
+            if live_jobs:
+                raise CoordinatorError(
+                    "lifecycle_rollover_live_cargo",
+                    "Rollover cannot interrupt a live managed Cargo process tree",
+                    details={"jobs": live_jobs},
+                )
+            now = utc_text()
+            result = {
+                "intentId": intent_id,
+                "state": "healthy",
+                "admissionOpen": True,
+                "successorPending": True,
+            }
+            connection.execute(
+                """
+                UPDATE service_lifecycle_intents
+                SET status='awaiting_restart', result_json=?, updated_at=?
+                WHERE intent_id=? AND status='accepted'
+                """,
+                (json.dumps(result, sort_keys=True), now, intent_id),
+            )
+            connection.execute(
+                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                (
+                    "lifecycle.rollover_armed",
+                    json.dumps(
+                        {
+                            "actionId": action_id,
+                            "intentId": intent_id,
+                            "requestedBy": actor,
+                        },
+                        sort_keys=True,
+                    ),
+                    now,
+                ),
+            )
+        return result
 
     def cancel_lifecycle(
         self, action_id: str, *, actor: str, reason: str
@@ -750,6 +878,7 @@ class SupervisionService:
             if row is None or row["intent_status"] not in {
                 LifecycleStatus.ACCEPTED.value,
                 LifecycleStatus.DRAINING.value,
+                LifecycleStatus.AWAITING_RESTART.value,
             }:
                 return None
             recovery_state = self._state_row(connection)
@@ -768,7 +897,7 @@ class SupervisionService:
                 UPDATE service_lifecycle_intents
                 SET status='failed', error_code=?, result_json=?,
                     updated_at=?, completed_at=?
-                WHERE intent_id=? AND status IN ('accepted', 'draining')
+                WHERE intent_id=? AND status IN ('accepted', 'draining', 'awaiting_restart')
                 """,
                 (error_code, encoded, now, now, row["intent_id"]),
             )

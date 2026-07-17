@@ -11,16 +11,19 @@ impl RetainedEditorHost {
     ) {
         self.use_committed_pointer_layout();
         self.focus_callback_source_window();
-        self.browser_asset_details_scroll_surface.set_size(
-            self.resolve_callback_surface_size_for_kind(
-                width,
-                height,
-                self.browser_asset_details_scroll_surface.size(),
-                ViewContentKind::AssetBrowser,
-            ),
+        let size = self.resolve_callback_surface_size_for_kind(
+            width,
+            height,
+            self.browser_asset_details_scroll_surface.size(),
+            ViewContentKind::AssetBrowser,
         );
-        let snapshot = self.runtime.editor_snapshot().asset_browser;
-        self.sync_browser_asset_details_pointer_layout(&snapshot);
+        if self.browser_asset_details_scroll_surface.set_size(size) {
+            let Some(snapshot) = self.asset_workspace_snapshot_for_pointer("browser") else {
+                self.set_status_line("Asset Browser pointer projection is not ready");
+                return;
+            };
+            self.sync_browser_asset_details_pointer_layout(snapshot.as_ref());
+        }
         match self
             .browser_asset_details_scroll_surface
             .handle_scroll(UiPoint::new(x, y), delta)
@@ -30,5 +33,16 @@ impl RetainedEditorHost {
             }
             Err(error) => self.set_status_line(error),
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn asset_details_scroll_reuses_the_committed_browser_projection() {
+        let source = include_str!("asset_browser.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(!production.contains("self.runtime.editor_snapshot()"));
     }
 }

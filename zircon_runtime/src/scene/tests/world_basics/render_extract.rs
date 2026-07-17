@@ -115,6 +115,40 @@ fn mesh_renderer_sort_fields_feed_geometry_phase_queue() {
 }
 
 #[test]
+fn render_mesh_phase_projection_consumes_entries_without_cloning_snapshots() {
+    let source = std::fs::read_to_string(
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("src")
+            .join("scene")
+            .join("world")
+            .join("render.rs"),
+    )
+    .unwrap();
+    let projection = source
+        .split("fn collect_render_meshes_and_phase_inputs")
+        .nth(1)
+        .and_then(|text| {
+            text.split("fn material_property_overrides_for_meshes")
+                .next()
+        })
+        .expect("read mesh/phase projection helper");
+
+    assert!(
+        !projection.contains("(*mesh).clone()"),
+        "per-frame mesh/phase projection must consume each prepared snapshot instead of deep-cloning it into a second Vec"
+    );
+    assert!(
+        source.contains("visit_render_mesh_snapshots_for_camera")
+            && !source.contains("fn render_mesh_snapshots_for_camera"),
+        "mesh extraction must push snapshots directly into caller-owned buffers instead of allocating a temporary Vec per entity"
+    );
+    assert!(
+        !source.contains("fn material_property_overrides_for_meshes"),
+        "visible mesh overrides must be captured once while their MeshRenderer is already borrowed, not re-looked-up and cloned once per primitive"
+    );
+}
+
+#[test]
 fn render_extract_separates_directional_point_and_spot_lights() {
     let mut world = World::new();
     let point = world.spawn_node(NodeKind::PointLight);

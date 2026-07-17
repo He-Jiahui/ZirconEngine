@@ -515,7 +515,6 @@ class LegacyMigrationService:
             self._database_activity_reasons(
                 connection,
                 note.session_id,
-                plan_path=note.plan_path,
                 now=now,
             )
         )
@@ -546,7 +545,7 @@ class LegacyMigrationService:
         plan_path = self._plan_path(metadata)
         modified_at = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC)
         activity_reasons = self._activity_reasons(
-            session_id, plan_path=plan_path, pid=pid, modified_at=modified_at, now=now
+            session_id, pid=pid, modified_at=modified_at, now=now
         )
         alias = STATUS_ALIASES.get((source_status or "").strip().casefold())
         status_reason = None if alias is not None else source_status
@@ -589,7 +588,6 @@ class LegacyMigrationService:
         self,
         session_id: str,
         *,
-        plan_path: str | None,
         pid: int | None,
         modified_at: datetime,
         now: datetime,
@@ -602,7 +600,7 @@ class LegacyMigrationService:
         with self.database.connect() as connection:
             reasons.extend(
                 self._database_activity_reasons(
-                    connection, session_id, plan_path=plan_path, now=now
+                    connection, session_id, now=now
                 )
             )
         return tuple(reasons)
@@ -612,7 +610,6 @@ class LegacyMigrationService:
         connection: sqlite3.Connection,
         session_id: str,
         *,
-        plan_path: str | None,
         now: datetime,
     ) -> list[str]:
         reasons: list[str] = []
@@ -641,15 +638,8 @@ class LegacyMigrationService:
             (session_id,),
         ).fetchone():
             reasons.append("pending_patch")
-        if plan_path and connection.execute(
-            """
-            SELECT 1 FROM failure_nodes
-            WHERE fixing_plan = ? AND kind = 'failure' AND status = 'open'
-            LIMIT 1
-            """,
-            (plan_path,),
-        ).fetchone():
-            reasons.append("open_failure")
+        # Failure priority belongs to the Failure graph. It must never become
+        # a synthetic legacy-session heartbeat that prevents stale collection.
         return reasons
 
     def _active_notes(self) -> list[Path]:

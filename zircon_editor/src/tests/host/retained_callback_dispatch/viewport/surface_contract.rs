@@ -24,3 +24,13 @@ fn shared_viewport_surface_uses_unified_rust_pointer_dispatch() {
         );
     }
 }
+
+#[test]
+fn shared_viewport_surface_reuses_one_pointer_dispatcher() {
+    let bridge = source("src/ui/retained_host/callback_dispatch/viewport/bridge.rs");
+    let dispatch = source("src/ui/retained_host/callback_dispatch/viewport/pointer_dispatch.rs");
+
+    assert!(bridge.contains("dispatcher: UiPointerDispatcher"));
+    assert!(bridge.contains("dispatcher: viewport_pointer_dispatcher()"));
+    assert!(!dispatch.contains("let dispatcher = viewport_pointer_dispatcher();"));
+}

@@ -42,13 +42,24 @@ impl EditorCapabilitySnapshot {
 
     pub fn is_enabled(&self, capability: &str) -> bool {
         self.enabled_capabilities
-            .iter()
-            .any(|enabled| enabled == capability)
+            .binary_search_by(|enabled| enabled.as_str().cmp(capability))
+            .is_ok()
     }
 
     pub(crate) fn allows_all(&self, capabilities: &[String]) -> bool {
         capabilities
             .iter()
             .all(|capability| self.is_enabled(capability))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn enabled_capability_lookup_uses_the_sorted_snapshot() {
+        let source = include_str!("editor_capabilities.rs");
+        let sorted_lookup = ["binary", "_search_by"].concat();
+
+        assert!(source.contains(&sorted_lookup));
     }
 }

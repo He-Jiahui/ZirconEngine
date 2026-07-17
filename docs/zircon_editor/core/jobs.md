@@ -68,6 +68,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/viewport/render_framework_resolve_job.rs
   - zircon_editor/src/ui/retained_host/viewport/viewport_state_drop.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/performance/01/2026-07-17-editor-jobs-messaging-static-review.md
   - docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
   - docs/plans/zircon_editor/editor/01-editor-kernel-and-runtime-interaction.md
   - docs/plans/engine-code-structure-convention.md
@@ -77,6 +79,7 @@ plan_sources:
   - user: 2026-07-11 Plan 14 M2.1 export wizard controller hard cutover
   - user: 2026-07-11 Plan 14 M2.2 export worker and pipe-reader hard cutover
 tests:
+  - zircon_editor/src/core/jobs/progress.rs::tests::primary_snapshot_clones_only_the_smallest_visible_job
   - zircon_editor/src/core/jobs/test_support.rs
   - zircon_editor/src/core/jobs/tests/scheduling_contract.rs
   - zircon_editor/src/core/jobs/tests/pump_contract.rs
@@ -134,7 +137,7 @@ worker 把 `Started/Progress/Completed/Failed/Cancelled` 写入 MPSC，不直接
 
 terminal 事件先把条目标记为 UI 不可见，因此状态栏和任务面板不会展示已完成、失败或取消的任务；条目仍保留到 Runtime handle、类别许可、mutex tail 与 scheduler record 真正清理完成，随后 `complete(JobId)` 才物理移除。这个“终态可见性”与“生命周期完成”分离保证 `shutdown(deadline)` 不会因为 terminal event 先于资源收尾而提前返回。
 
-`EditorHostEventController::job_progress_snapshot()` 是 retained UI 的公开只读任务数据入口。状态栏每帧从该入口选择最小 `JobId` 的 active job，消息为空时回退到类别名；百分比使用 `u64` 中间值计算、总量为 0 时保持不确定态并钳制到 100。旧 Export queue 的 `sync_desktop_export_status_task` / `desktop_export_status_task_from_queue` 事实源及文件已硬删除，Export 只通过 `JobContext::report_progress` 进入统一中心；任务面板外观继续由 Editor Layout 负责。
+`EditorHostEventController::job_progress_snapshot()` 保留完整只读任务列表入口。状态栏每帧只需要最小 `JobId` 的 active job，因此走 `primary_job_progress_snapshot()` / `EditorJobProgressSource::primary_snapshot()`，直接从有序事实源找到首个非 terminal entry 并只克隆这一项；消息为空时回退到类别名，百分比使用 `u64` 中间值计算、总量为 0 时保持不确定态并钳制到 100。旧 Export queue 的 `sync_desktop_export_status_task` / `desktop_export_status_task_from_queue` 事实源及文件已硬删除，Export 只通过 `JobContext::report_progress` 进入统一中心；任务面板外观继续由 Editor Layout 负责。
 
 ## 关停协议
 

@@ -35,7 +35,8 @@ impl RetainedEditorHost {
                     .editor_manager
                     .update_ui_asset_editor_palette_drag_target(&instance_id, surface_x, surface_y)
                 {
-                    Ok(_) => self.mark_presentation_dirty(),
+                    Ok(true) => self.mark_presentation_dirty(),
+                    Ok(false) => {}
                     Err(error) => self.set_status_line(error.to_string()),
                 }
             }
@@ -43,5 +44,17 @@ impl RetainedEditorHost {
                 self.set_status_line(format!("Unknown UI asset palette drag action {other}"));
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn unchanged_palette_drag_hover_does_not_dirty_presentation() {
+        let source = include_str!("palette.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap_or(source);
+
+        assert!(production.contains("Ok(true) => self.mark_presentation_dirty()"));
+        assert!(production.contains("Ok(false) => {}"));
     }
 }

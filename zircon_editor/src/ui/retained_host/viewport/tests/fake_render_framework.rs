@@ -27,6 +27,7 @@ pub(super) struct FakeRenderFrameworkState {
     pub(super) submitted_hybrid_gi_settings:
         Vec<Option<crate::scene::viewport::RenderHybridGiExtract>>,
     pub(super) capture_requests: usize,
+    pub(super) capture_error: Option<String>,
     pub(super) captures: HashMap<RenderViewportHandle, CapturedFrame>,
 }
 
@@ -151,6 +152,9 @@ impl RenderFramework for FakeRenderFramework {
     ) -> Result<Option<CapturedFrame>, RenderFrameworkError> {
         let mut state = self.state.lock().unwrap();
         state.capture_requests += 1;
+        if let Some(error) = &state.capture_error {
+            return Err(RenderFrameworkError::Backend(error.clone()));
+        }
         Ok(state.captures.get(&viewport).cloned())
     }
 

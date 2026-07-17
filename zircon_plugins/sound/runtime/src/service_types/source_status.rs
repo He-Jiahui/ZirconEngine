@@ -4,11 +4,12 @@ use zircon_runtime::core::framework::sound::{
 
 use crate::engine::{SoundEngineState, SourceVoice};
 
-use super::DefaultSoundManager;
+use super::{absolute_position_from_kira_slice, DefaultSoundManager};
 
 impl DefaultSoundManager {
     pub(super) fn source_empty_impl(&self, source: SoundSourceId) -> Result<bool, SoundError> {
-        let state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.poll_kira_completions();
         if state.sources.contains_key(&source) {
             return Ok(false);
         }
@@ -26,12 +27,13 @@ impl DefaultSoundManager {
         &self,
         source: SoundSourceId,
     ) -> Result<SoundSourceStatus, SoundError> {
-        let state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.poll_kira_completions();
         let voice = state
             .sources
             .get(&source)
             .ok_or(SoundError::UnknownSource { source_id: source })?;
-        let (range_start_frame, range_end_frame, cursor_seconds) =
+        let (range_start_frame, range_end_frame, cursor_frame, cursor_seconds) =
             source_status_range_and_cursor_seconds(&state, voice);
         Ok(SoundSourceStatus {
             source,
@@ -44,7 +46,7 @@ impl DefaultSoundManager {
             speed: voice.descriptor.speed,
             range_start_frame,
             range_end_frame,
-            cursor_frame: voice.cursor_frame,
+            cursor_frame,
             cursor_seconds,
             output_track: voice.descriptor.output_track,
         })
@@ -53,24 +55,20 @@ impl DefaultSoundManager {
     pub(super) fn drain_finished_sources_impl(
         &self,
     ) -> Result<Vec<SoundSourceFinished>, SoundError> {
-        Ok(std::mem::take(
-            &mut self
-                .state
-                .lock()
-                .expect("sound state mutex poisoned")
-                .finished_sources,
-        ))
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
+        state.poll_kira_completions();
+        Ok(std::mem::take(&mut state.finished_sources))
     }
 }
 
 fn source_status_range_and_cursor_seconds(
     state: &SoundEngineState,
     voice: &SourceVoice,
-) -> (usize, Option<usize>, f32) {
+) -> (usize, Option<usize>, usize, f32) {
     match &voice.descriptor.input {
         SoundSourceInput::Clip(clip_id) => {
             let Some(clip) = state.clips.get(clip_id) else {
-                return (0, None, 0.0);
+                return (0, None, 0, 0.0);
             };
             let sample_rate = clip.asset.sample_rate_hz.max(1) as f32;
             let frame_count = clip.asset.frame_count();
@@ -84,11 +82,24 @@ fn source_status_range_and_cursor_seconds(
                 let duration_frames = (seconds * sample_rate).round().max(0.0) as usize;
                 start_frame.saturating_add(duration_frames).min(frame_count)
             });
-            (
-                start_frame,
-                end_frame,
-                voice.cursor_position as f32 / sample_rate,
-            )
+            let (cursor_frame, cursor_seconds) = voice
+                .kira_playback
+                .and_then(|playback| state.kira.playback_position(playback).ok())
+                .map(|seconds| {
+                    absolute_position_from_kira_slice(
+                        seconds,
+                        start_frame,
+                        end_frame,
+                        clip.asset.sample_rate_hz.max(1),
+                    )
+                })
+                .unwrap_or_else(|| {
+                    (
+                        voice.cursor_frame,
+                        voice.cursor_position as f32 / sample_rate,
+                    )
+                });
+            (start_frame, end_frame, cursor_frame, cursor_seconds)
         }
         SoundSourceInput::External(handle) => {
             let sample_rate = state
@@ -96,8 +107,13 @@ fn source_status_range_and_cursor_seconds(
                 .get(handle)
                 .map(|block| block.sample_rate_hz.max(1) as f32)
                 .unwrap_or(1.0);
-            (0, None, voice.cursor_position as f32 / sample_rate)
+            (
+                0,
+                None,
+                voice.cursor_frame,
+                voice.cursor_position as f32 / sample_rate,
+            )
         }
-        SoundSourceInput::SynthParameter { .. } | SoundSourceInput::Silence => (0, None, 0.0),
+        SoundSourceInput::SynthParameter { .. } | SoundSourceInput::Silence => (0, None, 0, 0.0),
     }
 }

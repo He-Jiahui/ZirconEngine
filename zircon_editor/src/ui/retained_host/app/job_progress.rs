@@ -5,8 +5,8 @@ use super::RetainedEditorHost;
 
 impl RetainedEditorHost {
     pub(super) fn sync_editor_job_progress(&mut self) {
-        let active = self.runtime.job_progress_snapshot();
-        self.set_status_task_progress(status_task_progress_from_jobs(&active));
+        let primary = self.runtime.primary_job_progress_snapshot();
+        self.set_status_task_progress(status_task_progress_from_jobs(primary.as_slice()));
     }
 }
 
@@ -109,6 +109,10 @@ mod tests {
         assert!(source
             .contains("pub fn job_progress_snapshot(&self) -> Vec<EditorJobProgressSnapshot>"));
         assert!(source.contains("self.context().jobs().progress().snapshot()"));
+        assert!(source.contains("self.context().jobs().progress().primary_snapshot()"));
+        let production_source = include_str!("job_progress.rs");
+        assert!(production_source.contains("primary_job_progress_snapshot()"));
+        assert!(!production_source.contains("let active = self.runtime.job_progress_snapshot()"));
     }
 
     #[test]

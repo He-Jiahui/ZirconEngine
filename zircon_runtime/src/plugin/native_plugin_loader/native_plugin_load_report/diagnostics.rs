@@ -138,6 +138,50 @@ fn sorted_deduped(mut diagnostics: Vec<String>) -> Vec<String> {
 }
 
 fn diagnostic_mentions_plugin(message: &str, plugin_id: &str) -> bool {
-    message.contains(&format!("native plugin {plugin_id} "))
-        || message.contains(&format!("native plugin {plugin_id}:"))
+    const NATIVE_PLUGIN_PREFIX: &str = "native plugin ";
+
+    message
+        .match_indices(NATIVE_PLUGIN_PREFIX)
+        .any(|(offset, _)| {
+            message[offset + NATIVE_PLUGIN_PREFIX.len()..]
+                .strip_prefix(plugin_id)
+                .is_some_and(|suffix| {
+                    matches!(suffix.as_bytes().first().copied(), Some(b' ' | b':'))
+                })
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::diagnostic_mentions_plugin;
+
+    #[test]
+    fn plugin_diagnostic_matching_preserves_boundaries_and_embedded_prefixes() {
+        assert!(diagnostic_mentions_plugin(
+            "load failed: native plugin physics: invalid ABI",
+            "physics"
+        ));
+        assert!(diagnostic_mentions_plugin(
+            "native plugin physics skipped",
+            "physics"
+        ));
+        assert!(!diagnostic_mentions_plugin(
+            "native plugin physics2 skipped",
+            "physics"
+        ));
+    }
+
+    #[test]
+    fn plugin_diagnostic_matching_does_not_format_needles_per_message() {
+        let source = include_str!("diagnostics.rs");
+        let function = source
+            .split_once("fn diagnostic_mentions_plugin")
+            .expect("diagnostic matcher should exist")
+            .1
+            .split_once("#[cfg(test)]")
+            .expect("tests should follow the matcher")
+            .0;
+
+        assert!(!function.contains("format!"));
+    }
 }

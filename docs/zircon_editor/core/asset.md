@@ -36,6 +36,8 @@ implementation_files:
   - zircon_editor/src/ui/layouts/views/assets_activity/
   - zircon_plugins/ui_asset_authoring/editor/src/plugin.rs
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+  - docs/plans/zircon_editor/editor/09/failure-2026-07-17-asset-type-registry-clone-on-augment.md
   - docs/plans/zircon_editor/editor/09-editor-asset-management.md
   - docs/plans/zircon_editor/editor/09/2026-07-13-m1-current-state-and-hard-cutover-audit.md
   - docs/plans/zircon_editor/editor/09/2026-07-13-m1-approved-asset-type-registry-design.md
@@ -47,6 +49,7 @@ plan_sources:
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
 tests:
+  - zircon_editor/src/core/asset/type_registry/builtin.rs::tests::builtin_lookup_does_not_construct_an_owned_asset_type_id
   - zircon_editor/src/tests/editor_asset_type_registry/asset_type_id.rs
   - zircon_editor/src/tests/editor_asset_type_registry/builtins.rs
   - zircon_editor/src/tests/editor_asset_type_registry/extension_registry.rs
@@ -195,3 +198,14 @@ suffix-rejection passed 2/2. The full package run compiled successfully but late
 without a test summary, so its resource-lifecycle gap remains with the existing Runtime11/Editor14
 handoffs; this focused evidence completes the route correction without claiming the complete Editor09
 M1 or the full package suite green.
+
+## Performance review status
+
+The 2026-07-17 performance pass changed built-in lookup to use the canonical static
+`ResourceKind` id and `BTreeMap`'s borrowed `str` lookup, so a query no longer constructs an owned
+`AssetTypeId(String)`. The source guard is green and formatting/diff checks pass; current-source
+Cargo remains pending.
+
+`apply_contribution` still clones the complete materialized entry before every augmentation and
+sorts growing descriptor vectors after each delta. The validate-then-commit/generation-finalize
+repair is owned by Editor09's linked failure record; this module is not performance-accepted yet.

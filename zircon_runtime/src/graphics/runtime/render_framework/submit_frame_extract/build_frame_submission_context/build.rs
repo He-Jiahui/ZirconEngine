@@ -6,7 +6,6 @@ use crate::core::framework::render::{
     RenderVirtualGeometryPayloadSource,
 };
 use crate::graphics::runtime::FrameHistoryValidationKey;
-use crate::graphics::RenderFeatureCapabilityRequirement;
 use crate::graphics::ViewportRenderOutputTarget;
 use std::sync::Arc;
 use zircon_runtime_interface::ui::surface::{UiRenderCommandKind, UiRenderExtract};
@@ -121,25 +120,12 @@ fn build_frame_submission_context_from_source(
     let solari_runtime_report = viewport_state.solari_runtime_report().clone();
     let (hybrid_gi_enabled, virtual_geometry_enabled) =
         resolve_enabled_features(&compiled_pipeline, &advanced_runtime_plan);
-    let bloom_enabled = compiled_pipeline
-        .enabled_features
-        .iter()
-        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::Bloom));
-    let color_grading_enabled = compiled_pipeline
-        .enabled_features
-        .iter()
-        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::ColorGrading));
-    let temporal_history_enabled = compiled_pipeline
-        .enabled_features
-        .iter()
-        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::Temporal));
-    let anti_alias_feature_enabled = compiled_pipeline
-        .enabled_features
-        .iter()
-        .any(|feature| feature.is_builtin(crate::graphics::BuiltinRenderFeature::AntiAlias))
-        || compiled_pipeline
-            .capability_requirements
-            .contains(&RenderFeatureCapabilityRequirement::ScreenSpaceAntiAlias);
+    let runtime_features = compiled_pipeline.runtime_feature_flags();
+    let bloom_enabled = runtime_features.bloom_enabled;
+    let color_grading_enabled = runtime_features.color_grading_enabled;
+    let temporal_history_enabled = runtime_features.temporal_history_enabled;
+    let anti_alias_feature_enabled = runtime_features.anti_alias_enabled
+        || runtime_features.screen_space_anti_alias_capability_enabled;
     let resolved_post_process = sized_extract
         .post_process
         .resolved_settings_for_camera(

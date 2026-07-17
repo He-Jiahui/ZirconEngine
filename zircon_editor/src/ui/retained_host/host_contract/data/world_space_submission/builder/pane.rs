@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use super::super::super::PaneData;
 use super::super::model::WorldSpaceUiSurfaceSubmission;
 use super::node::build_world_space_ui_surface_submissions;
@@ -8,9 +10,9 @@ pub(super) fn extend_world_space_pane_submissions(
     submissions: &mut Vec<WorldSpaceUiSurfaceSubmission>,
 ) {
     let pane_surface_id = if pane.id.is_empty() {
-        surface_id.to_string()
+        Cow::Borrowed(surface_id)
     } else {
-        format!("{surface_id}:{}", pane.id)
+        Cow::Owned(format!("{surface_id}:{}", pane.id))
     };
 
     for nodes in [
@@ -25,7 +27,7 @@ pub(super) fn extend_world_space_pane_submissions(
         &pane.animation.nodes,
     ] {
         submissions.extend(build_world_space_ui_surface_submissions(
-            pane_surface_id.clone(),
+            pane_surface_id.as_ref(),
             nodes,
         ));
     }

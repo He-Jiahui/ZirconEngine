@@ -100,6 +100,46 @@ class LegacyMigrationTests(unittest.TestCase):
         self.service.import_notes(now=NOW)
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("live-session").status)
 
+    def test_open_failure_does_not_keep_expired_note_active_or_unarchivable(self) -> None:
+        source = self._note(
+            "failure-owner.md", status="resolving_failure", age=timedelta(days=2)
+        )
+        self._open_failure("docs/plans/runtime/01-runtime.md")
+
+        record = self.service.report(now=NOW).notes[0]
+
+        self.assertEqual(SessionStatus.STALE, record.mapped_status)
+        self.assertNotIn("open_failure", record.activity_reasons)
+        self.assertTrue(record.archive_eligible)
+
+        self.service.import_notes(now=NOW)
+        archived = self.service.archive_notes(now=NOW, apply=True)
+
+        self.assertEqual((".codex/sessions/failure-owner.md",), archived.candidates)
+        self.assertFalse(source.exists())
+        self.assertTrue((self.session_root / "archive/failure-owner.md").exists())
+        self.assertEqual(SessionStatus.ARCHIVED, self.sessions.get("failure-owner").status)
+        with self.database.connect() as connection:
+            failure_status = connection.execute(
+                "SELECT status FROM failure_nodes WHERE summary_slug='legacy-liveness'"
+            ).fetchone()[0]
+        self.assertEqual("open", failure_status)
+
+    def test_open_failure_does_not_hide_real_pid_liveness(self) -> None:
+        self._note(
+            "live-failure-owner.md",
+            status="completed",
+            age=timedelta(days=3),
+            pid=4242,
+        )
+        self._open_failure("docs/plans/runtime/01-runtime.md")
+
+        record = self.service.report(now=NOW).notes[0]
+
+        self.assertEqual(SessionStatus.ACTIVE, record.mapped_status)
+        self.assertIn("live_pid", record.activity_reasons)
+        self.assertNotIn("open_failure", record.activity_reasons)
+
     def test_apply_imports_idempotently_without_moving_note(self) -> None:
         note = self._note(
             "import-session.md", status="mystery-state", age=timedelta(hours=2)
@@ -242,6 +282,30 @@ class LegacyMigrationTests(unittest.TestCase):
         self.assertTrue(source.exists())
         self.assertFalse(destination.exists())
         self.assertEqual(before_hash, self._sha(source))
+
+    def _open_failure(self, fixing_plan: str) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO failure_nodes(
+                    lifecycle_key, artifact_path, kind, status, created_at,
+                    resolved_at, summary_slug, origin_plan, fixing_plan,
+                    origin_child_dir, fixing_child_dir, priority, imported_at
+                ) VALUES (?, ?, 'failure', 'open', ?, NULL, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    f"origin|{fixing_plan}|legacy-liveness",
+                    "docs/plans/runtime/01/failure-legacy-liveness.md",
+                    "2026-07-16",
+                    "legacy-liveness",
+                    "docs/plans/runtime/01-origin.md",
+                    fixing_plan,
+                    "docs/plans/runtime/01",
+                    "docs/plans/runtime/01",
+                    0,
+                    NOW.isoformat(),
+                ),
+            )
 
     @staticmethod
     def _sha(path: Path) -> str:

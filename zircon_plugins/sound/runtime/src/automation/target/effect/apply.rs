@@ -2,7 +2,7 @@ use zircon_runtime::core::framework::sound::{
     SoundEffectDescriptor, SoundEffectKind, SoundError, SoundParameterId,
 };
 
-use crate::engine::validation::validate_effect;
+use crate::kira_bridge::validate_effect;
 
 use super::{common, delay, dynamics, filter, gain, modulation, reverb, shaper, stereo};
 

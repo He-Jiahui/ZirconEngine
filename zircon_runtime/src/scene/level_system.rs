@@ -166,8 +166,12 @@ impl LevelSystem {
             .cloned()
     }
 
-    pub(crate) fn animation_poses(&self) -> BTreeMap<EntityId, AnimationPoseOutput> {
-        self.lock_runtime_state().animation_poses.clone()
+    pub(crate) fn animation_pose_entries(&self) -> Vec<(EntityId, AnimationPoseOutput)> {
+        self.lock_runtime_state()
+            .animation_poses
+            .iter()
+            .map(|(&entity, pose)| (entity, pose.clone()))
+            .collect()
     }
 
     pub fn animation_playback_times(

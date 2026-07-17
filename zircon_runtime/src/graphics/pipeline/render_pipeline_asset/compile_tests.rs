@@ -38,7 +38,7 @@ fn assert_pass_reads(
     resource_name: &str,
 ) {
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)
@@ -57,7 +57,7 @@ fn assert_pass_does_not_read(
     resource_name: &str,
 ) {
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)
@@ -76,7 +76,7 @@ fn assert_pass_writes(
     resource_name: &str,
 ) {
     let pass = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == pass_name)
@@ -95,7 +95,7 @@ fn texture_lifetime<'a>(
     name: &str,
 ) -> &'a crate::rhi::TextureDesc {
     let lifetime = compiled
-        .graph
+        .graph()
         .resource_lifetimes()
         .iter()
         .find(|lifetime| lifetime.name == name)

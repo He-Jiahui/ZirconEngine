@@ -36,7 +36,7 @@ fn default_forward_plus_pipeline_keeps_m5_flagship_features_opted_out() {
         .compile(&test_extract())
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -69,7 +69,7 @@ fn compile_options_can_opt_in_linked_virtual_geometry_and_hybrid_gi_features() {
         )
         .unwrap();
     let pass_names = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .map(|pass| pass.name.as_str())
@@ -82,11 +82,11 @@ fn compile_options_can_opt_in_linked_virtual_geometry_and_hybrid_gi_features() {
         .contains(&FrameHistoryBinding::read_write(
             FrameHistorySlot::GlobalIllumination,
         )));
-    assert!(compiled.graph.passes().iter().any(|pass| {
+    assert!(compiled.graph().passes().iter().any(|pass| {
         pass.name == "virtual-geometry-prepare" && pass.queue == QueueLane::Graphics
     }));
     assert!(compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .any(|pass| pass.name == "hybrid-gi-resolve" && pass.queue == QueueLane::Graphics));

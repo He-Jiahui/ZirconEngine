@@ -1,4 +1,6 @@
-use super::super::super::paint_frame::HostRecordedPaintKind;
+use super::super::super::paint_frame::{
+    HostPaintAtlasImage, HostPaintImageUvRect, HostRecordedPaintKind,
+};
 use super::*;
 use crate::ui::retained_host::host_contract::data::FrameRect;
 use crate::ui::retained_host::host_contract::paint_frame::HostRgbaFrame;
@@ -109,6 +111,44 @@ fn draw_rgba_image_clipped_records_content_scoped_resource_keys() {
     assert!(resource_keys
         .iter()
         .all(|key| key.as_str().starts_with("rgba:1x1:")));
+}
+
+#[test]
+fn atlas_recording_keeps_one_copy_of_atlas_pixels() {
+    let mut frame = HostRgbaFrame::recording_only(1, 1);
+    let source_rgba = vec![255, 0, 0, 255];
+    let atlas = HostPaintAtlasImage {
+        resource_key: "atlas://editor/icons".to_string(),
+        width: 2,
+        height: 2,
+        rgba: Some(vec![7; 16]),
+        uv: HostPaintImageUvRect {
+            min: [0.0, 0.0],
+            max: [0.5, 0.5],
+        },
+    };
+
+    assert!(draw_rgba_image_clipped_with_atlas(
+        &mut frame,
+        FrameRect {
+            x: 0.0,
+            y: 0.0,
+            width: 1.0,
+            height: 1.0,
+        },
+        None,
+        1,
+        1,
+        &source_rgba,
+        &atlas,
+    ));
+
+    let command = frame.into_recorded_commands().pop().expect("image command");
+    let HostRecordedPaintKind::Image { rgba, atlas, .. } = command.kind else {
+        panic!("expected recorded image");
+    };
+    assert!(rgba.is_none(), "atlas bytes must not be duplicated");
+    assert_eq!(atlas.and_then(|atlas| atlas.rgba), Some(vec![7; 16]));
 }
 
 #[test]

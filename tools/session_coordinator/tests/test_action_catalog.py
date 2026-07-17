@@ -22,6 +22,7 @@ class ActionCatalogTests(unittest.TestCase):
             {
                 ActionKind.MILESTONE_COMMIT,
                 ActionKind.SESSION_COMPLETE,
+                ActionKind.SERVICE_ROLLOVER,
                 ActionKind.SERVICE_STOP,
                 ActionKind.SERVICE_RESTART,
                 ActionKind.SERVICE_FORCE_STOP,
@@ -130,6 +131,7 @@ class ActionCatalogTests(unittest.TestCase):
         for kind in (
             ActionKind.SERVICE_DRAIN,
             ActionKind.SERVICE_RESUME,
+            ActionKind.SERVICE_ROLLOVER,
             ActionKind.SERVICE_STOP,
             ActionKind.SERVICE_RESTART,
             ActionKind.SERVICE_FORCE_STOP,

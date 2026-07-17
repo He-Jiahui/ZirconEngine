@@ -77,15 +77,17 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
         .map(|(module_index, descriptor)| (descriptor.name.as_str(), module_index))
         .collect::<HashMap<_, _>>();
     let mut ordered_registration_indices = Vec::with_capacity(registrations.len());
+    let mut registration_seen = vec![false; registrations.len()];
     for module_name in module_names {
         let module_index = by_name[&module_name.as_str()];
         let registration_index = registration_indices[module_index];
-        if !ordered_registration_indices.contains(&registration_index) {
+        if !registration_seen[registration_index] {
+            registration_seen[registration_index] = true;
             ordered_registration_indices.push(registration_index);
         }
     }
     let metadata_only_registration_indices = (0..registrations.len())
-        .filter(|registration_index| !ordered_registration_indices.contains(registration_index))
+        .filter(|registration_index| !registration_seen[*registration_index])
         .collect::<Vec<_>>();
     ordered_registration_indices.extend(metadata_only_registration_indices);
 
@@ -93,4 +95,14 @@ pub(in crate::plugin::runtime_plugin::runtime_plugin_catalog) fn order_runtime_p
         .into_iter()
         .map(|registration_index| registrations[registration_index])
         .collect())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn registration_order_uses_constant_time_seen_membership() {
+        let source = include_str!("order.rs");
+        let linear_membership = ["ordered_registration_indices", ".contains("].concat();
+        assert!(!source.contains(&linear_membership));
+    }
 }

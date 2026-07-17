@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 use crate::graphics::scene::anti_alias::fxaa::FXAA_EXECUTOR_ID;
@@ -35,9 +36,45 @@ use super::{RenderPassExecutionContext, RenderPassExecutorId, RenderPassExecutor
 
 pub type RenderPassExecutorFn = fn(&mut RenderPassExecutionContext<'_>) -> Result<(), String>;
 
-#[derive(Clone, Default)]
 pub struct RenderPassExecutorRegistry {
     executors: BTreeMap<RenderPassExecutorId, Arc<dyn RenderPassExecutor>>,
+    generation: u64,
+    last_validated_pipeline_generation: AtomicU64,
+    last_validated_registry_generation: AtomicU64,
+    #[cfg(test)]
+    full_validation_scan_count: AtomicU64,
+    #[cfg(test)]
+    full_validation_scanned_pass_count: AtomicU64,
+}
+
+impl Clone for RenderPassExecutorRegistry {
+    fn clone(&self) -> Self {
+        Self {
+            executors: self.executors.clone(),
+            generation: self.generation,
+            last_validated_pipeline_generation: AtomicU64::new(0),
+            last_validated_registry_generation: AtomicU64::new(0),
+            #[cfg(test)]
+            full_validation_scan_count: AtomicU64::new(0),
+            #[cfg(test)]
+            full_validation_scanned_pass_count: AtomicU64::new(0),
+        }
+    }
+}
+
+impl Default for RenderPassExecutorRegistry {
+    fn default() -> Self {
+        Self {
+            executors: BTreeMap::new(),
+            generation: 1,
+            last_validated_pipeline_generation: AtomicU64::new(0),
+            last_validated_registry_generation: AtomicU64::new(0),
+            #[cfg(test)]
+            full_validation_scan_count: AtomicU64::new(0),
+            #[cfg(test)]
+            full_validation_scanned_pass_count: AtomicU64::new(0),
+        }
+    }
 }
 
 impl RenderPassExecutorRegistry {
@@ -214,7 +251,20 @@ impl RenderPassExecutorRegistry {
         id: RenderPassExecutorId,
         executor: Arc<dyn RenderPassExecutor>,
     ) -> Option<Arc<dyn RenderPassExecutor>> {
-        self.executors.insert(id, executor)
+        let previous = self.executors.insert(id, executor);
+        self.advance_generation();
+        previous
+    }
+
+    pub fn unregister_executor(
+        &mut self,
+        id: &RenderPassExecutorId,
+    ) -> Option<Arc<dyn RenderPassExecutor>> {
+        let removed = self.executors.remove(id);
+        if removed.is_some() {
+            self.advance_generation();
+        }
+        removed
     }
 
     pub fn register_explicit_executors(
@@ -245,19 +295,65 @@ impl RenderPassExecutorRegistry {
         &self,
         pipeline: &CompiledRenderPipeline,
     ) -> Result<(), String> {
-        for pass in pipeline.graph.passes().iter().filter(|pass| !pass.culled) {
+        let pipeline_generation = pipeline.executor_validation_generation();
+        if self
+            .last_validated_registry_generation
+            .load(Ordering::Acquire)
+            == self.generation
+            && self
+                .last_validated_pipeline_generation
+                .load(Ordering::Relaxed)
+                == pipeline_generation
+        {
+            return Ok(());
+        }
+
+        #[cfg(test)]
+        self.full_validation_scan_count
+            .fetch_add(1, Ordering::Relaxed);
+        for pass in pipeline.graph().passes().iter().filter(|pass| !pass.culled) {
+            #[cfg(test)]
+            self.full_validation_scanned_pass_count
+                .fetch_add(1, Ordering::Relaxed);
             let Some(executor_id) = pass.executor_id.as_ref() else {
                 return Err(format!("render pass `{}` has no executor id", pass.name));
             };
-            let executor_id = RenderPassExecutorId::new(executor_id.clone());
-            if !self.executors.contains_key(&executor_id) {
+            if !self.executors.contains_key(executor_id.as_str()) {
                 return Err(format!(
                     "render pass `{}` references unregistered executor `{executor_id}`",
                     pass.name
                 ));
             }
         }
+        self.last_validated_pipeline_generation
+            .store(pipeline_generation, Ordering::Relaxed);
+        self.last_validated_registry_generation
+            .store(self.generation, Ordering::Release);
         Ok(())
+    }
+
+    fn advance_generation(&mut self) {
+        self.generation = self.generation.wrapping_add(1).max(1);
+        self.last_validated_pipeline_generation
+            .store(0, Ordering::Relaxed);
+        self.last_validated_registry_generation
+            .store(0, Ordering::Release);
+    }
+
+    #[cfg(test)]
+    fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    #[cfg(test)]
+    fn full_validation_scan_count(&self) -> u64 {
+        self.full_validation_scan_count.load(Ordering::Relaxed)
+    }
+
+    #[cfg(test)]
+    fn full_validation_scanned_pass_count(&self) -> u64 {
+        self.full_validation_scanned_pass_count
+            .load(Ordering::Relaxed)
     }
 }
 

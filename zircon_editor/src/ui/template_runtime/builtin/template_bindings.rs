@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, sync::LazyLock};
 
 use super::material_lab_template_bindings::material_lab_template_bindings;
 use super::showcase_template_bindings::showcase_template_bindings;
@@ -16,7 +16,13 @@ use zircon_runtime_interface::ui::binding::UiBindingValue;
 const DYNAMIC_DOCUMENT_TAB_INSTANCE_ID: &str = "$document_tab_instance";
 const DYNAMIC_MAIN_PAGE_ID: &str = "$main_page_id";
 
-pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
+pub(crate) fn builtin_template_bindings() -> &'static BTreeMap<String, EditorUiBinding> {
+    static BINDINGS: LazyLock<BTreeMap<String, EditorUiBinding>> =
+        LazyLock::new(build_builtin_template_bindings);
+    &BINDINGS
+}
+
+fn build_builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
     let mut bindings = BTreeMap::from([
         (
             "WorkbenchMenuBar/OpenProject".to_string(),
@@ -636,4 +642,18 @@ pub(crate) fn builtin_template_bindings() -> BTreeMap<String, EditorUiBinding> {
     bindings.extend(showcase_template_bindings());
     bindings.extend(material_lab_template_bindings());
     bindings
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::builtin_template_bindings;
+
+    #[test]
+    fn builtin_template_binding_registry_is_process_cached() {
+        let first = builtin_template_bindings();
+        let second = builtin_template_bindings();
+
+        assert!(std::ptr::eq(first, second));
+        assert!(first.contains_key("WorkbenchMenuBar/OpenProject"));
+    }
 }

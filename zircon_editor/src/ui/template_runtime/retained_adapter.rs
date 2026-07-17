@@ -153,6 +153,12 @@ impl RetainedUiHostAdapter {
                     let popup_anchor_x = float_attribute(&node.attributes, "popup_anchor_x");
                     let popup_anchor_y = float_attribute(&node.attributes, "popup_anchor_y");
                     let has_popup_anchor = popup_anchor_x.is_some() && popup_anchor_y.is_some();
+                    let options = options_attribute(&node.attributes, "options");
+                    let options_text = if options.is_empty() {
+                        None
+                    } else {
+                        Some(options.join(", "))
+                    };
                     RetainedUiHostNodeModel {
                         node_id: node.node_id.clone(),
                         parent_id: node.parent_id.clone(),
@@ -202,8 +208,8 @@ impl RetainedUiHostAdapter {
                                     }
                                 })
                             }),
-                        options_text: options_text_attribute(&node.attributes, "options"),
-                        options: options_attribute(&node.attributes, "options"),
+                        options_text,
+                        options,
                         collection_items: string_array_attribute(
                             &node.attributes,
                             "collection_items",
@@ -256,12 +262,17 @@ impl RetainedUiHostAdapter {
 fn retained_properties(
     node: &super::RetainedUiHostNodeProjection,
 ) -> BTreeMap<String, RetainedUiHostValue> {
-    let mut values = node.attributes.clone();
-    values.extend(node.style_overrides.clone());
-    values
+    let mut values = node
+        .attributes
         .iter()
         .map(|(key, value)| (key.clone(), map_value(value)))
-        .collect()
+        .collect::<BTreeMap<_, _>>();
+    values.extend(
+        node.style_overrides
+            .iter()
+            .map(|(key, value)| (key.clone(), map_value(value))),
+    );
+    values
 }
 
 fn string_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
@@ -277,15 +288,6 @@ fn bool_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<boo
 
 fn float_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<f64> {
     attributes.get(key).and_then(Value::as_float)
-}
-
-fn options_text_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Option<String> {
-    let options = options_attribute(attributes, key);
-    if options.is_empty() {
-        None
-    } else {
-        Some(options.join(", "))
-    }
 }
 
 fn options_attribute(attributes: &BTreeMap<String, Value>, key: &str) -> Vec<String> {
@@ -357,5 +359,18 @@ fn map_value(value: &Value) -> RetainedUiHostValue {
                 .map(|(key, value)| (key.clone(), map_value(value)))
                 .collect(),
         ),
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn retained_projection_maps_properties_once_and_reuses_parsed_options() {
+        let source = include_str!("retained_adapter.rs");
+        let cloned_attributes = ["node", ".attributes", ".clone()"].concat();
+        let duplicated_options = ["options_text_", "attribute(&node.attributes"].concat();
+
+        assert!(!source.contains(&cloned_attributes));
+        assert!(!source.contains(&duplicated_options));
     }
 }

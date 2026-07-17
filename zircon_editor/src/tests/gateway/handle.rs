@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use zircon_runtime_interface::{
@@ -7,13 +8,41 @@ use zircon_runtime_interface::{
 
 use crate::core::gateway::{
     DetachedEditorRuntimeGateway, EditorRuntimeGateway, EditorRuntimeGatewayHandle, GatewayError,
+    RuntimeCapabilities, SessionProfileKind,
 };
 
-struct SessionOnlyGateway(u64);
+struct SessionOnlyGateway {
+    session: u64,
+    capabilities: RuntimeCapabilities,
+    tick_calls: Arc<AtomicUsize>,
+}
+
+impl SessionOnlyGateway {
+    fn new(session: u64, tick_calls: Arc<AtomicUsize>) -> Self {
+        Self {
+            session,
+            capabilities: RuntimeCapabilities::new(
+                SessionProfileKind::Editor,
+                ["editor.host.ui_shell"],
+                [],
+            ),
+            tick_calls,
+        }
+    }
+}
 
 impl EditorRuntimeGateway for SessionOnlyGateway {
+    fn capabilities(&self) -> RuntimeCapabilities {
+        self.capabilities.clone()
+    }
+
     fn session_handle(&self) -> ZrRuntimeSessionHandle {
-        ZrRuntimeSessionHandle::new(self.0)
+        ZrRuntimeSessionHandle::new(self.session)
+    }
+
+    fn tick_frame(&self) -> Result<bool, GatewayError> {
+        self.tick_calls.fetch_add(1, Ordering::SeqCst);
+        Ok(true)
     }
 
     fn submit_operation(
@@ -48,12 +77,25 @@ impl EditorRuntimeGateway for SessionOnlyGateway {
 fn gateway_handle_replaces_detached_transport_without_changing_owner_identity() {
     let handle = EditorRuntimeGatewayHandle::detached();
     let clone = handle.clone();
+    let tick_calls = Arc::new(AtomicUsize::new(0));
     assert_eq!(handle.session_handle(), ZrRuntimeSessionHandle::invalid());
 
-    handle.replace(Arc::new(SessionOnlyGateway(41)));
+    handle.replace(Arc::new(SessionOnlyGateway::new(41, tick_calls.clone())));
 
     assert_eq!(handle.session_handle(), ZrRuntimeSessionHandle::new(41));
     assert_eq!(clone.session_handle(), ZrRuntimeSessionHandle::new(41));
+    assert_eq!(
+        clone.capabilities().session_profile(),
+        SessionProfileKind::Editor
+    );
+    assert_eq!(
+        clone.capabilities().core_capabilities(),
+        &["editor.host.ui_shell"]
+    );
+    assert!(clone
+        .tick_frame()
+        .expect("forward tick through stable handle"));
+    assert_eq!(tick_calls.load(Ordering::SeqCst), 1);
 }
 
 #[test]

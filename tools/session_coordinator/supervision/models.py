@@ -9,6 +9,7 @@ from ..models import SupervisionState
 class LifecycleKind(StrEnum):
     DRAIN = "service.drain"
     RESUME = "service.resume"
+    ROLLOVER = "service.rollover"
     STOP = "service.stop"
     RESTART = "service.restart"
     FORCE_STOP = "service.force_stop"

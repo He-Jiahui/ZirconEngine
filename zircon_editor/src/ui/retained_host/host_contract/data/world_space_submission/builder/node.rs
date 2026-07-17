@@ -4,14 +4,13 @@ use super::super::super::TemplatePaneNodeData;
 use super::super::model::WorldSpaceUiSurfaceSubmission;
 
 pub(crate) fn build_world_space_ui_surface_submissions(
-    surface_id: impl Into<String>,
+    surface_id: &str,
     nodes: &ModelRc<TemplatePaneNodeData>,
 ) -> Vec<WorldSpaceUiSurfaceSubmission> {
-    let surface_id = surface_id.into();
-    let mut submissions = (0..nodes.row_count())
-        .filter_map(|index| nodes.row_data(index))
+    let mut submissions = nodes
+        .iter()
         .filter(|node| node.world_space_enabled)
-        .filter_map(|node| world_space_submission_for_node(&surface_id, node))
+        .filter_map(|node| world_space_submission_for_node(surface_id, node))
         .collect::<Vec<_>>();
 
     submissions.sort_by(|left, right| {
@@ -25,7 +24,7 @@ pub(crate) fn build_world_space_ui_surface_submissions(
 
 fn world_space_submission_for_node(
     surface_id: &str,
-    node: TemplatePaneNodeData,
+    node: &TemplatePaneNodeData,
 ) -> Option<WorldSpaceUiSurfaceSubmission> {
     let pixels_per_meter = node.world_pixels_per_meter.max(0.0);
     let world_width =

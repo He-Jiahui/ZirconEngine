@@ -7,3 +7,5 @@ mod track;
 mod volume;
 
 pub(crate) use apply::apply_automation_target;
+#[cfg(test)]
+pub(crate) use apply::ensure_automation_execution_available;

@@ -320,12 +320,12 @@ fn validate_menu_path(
     descriptor: &EditorCommandDescriptor,
 ) -> Result<(), EditorCommandRegistryError> {
     if let Some(menu_path) = descriptor.menu_path() {
-        let segments = menu_path.split('/').collect::<Vec<_>>();
-        if segments.len() < MIN_MENU_PATH_SEGMENTS
-            || segments
-                .iter()
-                .any(|segment| segment.trim().is_empty() || segment.trim() != *segment)
-        {
+        let mut segment_count = 0;
+        let invalid_segment = menu_path.split('/').any(|segment| {
+            segment_count += 1;
+            segment.trim().is_empty() || segment.trim() != segment
+        });
+        if invalid_segment || segment_count < MIN_MENU_PATH_SEGMENTS {
             return Err(EditorCommandRegistryError::InvalidCommandMenuPath(
                 menu_path.to_string(),
             ));
@@ -338,14 +338,15 @@ fn validate_payload_schema_id(
     descriptor: &EditorCommandDescriptor,
 ) -> Result<(), EditorCommandRegistryError> {
     if let Some(schema_id) = descriptor.payload_schema_id() {
-        let segments = schema_id.split('.').collect::<Vec<_>>();
-        let valid = segments.iter().all(|segment| {
+        let mut segment_count = 0;
+        let valid = schema_id.split('.').all(|segment| {
+            segment_count += 1;
             !segment.is_empty()
                 && segment
                     .chars()
                     .all(|value| value.is_ascii_alphanumeric() || value == '_' || value == '-')
         });
-        if !valid || segments.len() < MIN_PAYLOAD_SCHEMA_SEGMENTS {
+        if !valid || segment_count < MIN_PAYLOAD_SCHEMA_SEGMENTS {
             return Err(EditorCommandRegistryError::InvalidCommandPayloadSchemaId(
                 schema_id.to_string(),
             ));
@@ -378,4 +379,16 @@ fn validate_asset_write_target(
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn command_descriptor_validation_streams_path_segments() {
+        let source = include_str!("registry.rs");
+        let menu_collect = ["split('/')", ".collect::<Vec<_>>()"].concat();
+        let schema_collect = ["split('.')", ".collect::<Vec<_>>()"].concat();
+        assert!(!source.contains(&menu_collect));
+        assert!(!source.contains(&schema_collect));
+    }
 }

@@ -8,7 +8,7 @@ fn rendering_plugin_default_features_restore_legacy_forward_plus_pass_order() {
 
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -120,7 +120,7 @@ fn rendering_plugin_post_process_routes_output_transfer_through_terminal_anti_al
         RenderGraphResourceAccessKind::Write,
     );
     let output_transfer = compiled
-        .graph
+        .graph()
         .passes()
         .iter()
         .find(|pass| pass.name == "output-transfer")
@@ -139,7 +139,7 @@ fn rendering_plugin_default_features_restore_legacy_deferred_pass_order() {
 
     assert_eq!(
         compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -191,6 +191,11 @@ fn plugin_feature_buffer_minimum_size_survives_graph_resource_planning() {
             QueueLane::AsyncCompute,
         )
         .with_executor_id("test.fixed-size-plugin-packet")
+        .with_compute_workload(RenderGraphComputeWorkload::fixed(
+            "test-fixed-size-plugin-packet",
+            [1, 1, 1],
+            [1, 1, 1],
+        ))
         .with_side_effects()
         .write_buffer_with_minimum_size("fixed-size-plugin-packet", PLUGIN_PACKET_SIZE_BYTES)],
     );

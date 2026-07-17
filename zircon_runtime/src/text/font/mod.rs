@@ -29,6 +29,8 @@ pub(crate) use handle_registry::{
     register_font_face_handle, register_font_instance_handle, resolve_font_face_handle,
     resolve_font_instance_handle,
 };
+#[cfg(test)]
+pub(crate) use shared::shared_font_database_test_read_guard;
 pub(crate) use shared::{
     publish_shared_font_database, shared_font_database_generation, shared_font_database_snapshot,
 };

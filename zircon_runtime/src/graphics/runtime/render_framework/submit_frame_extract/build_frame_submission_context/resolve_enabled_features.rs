@@ -1,20 +1,17 @@
 use crate::core::framework::render::AdvancedProfileRuntimePlan;
-use crate::graphics::{CompiledRenderPipeline, RenderFeatureCapabilityRequirement};
+use crate::graphics::CompiledRenderPipeline;
 
 pub(super) fn resolve_enabled_features(
     compiled_pipeline: &CompiledRenderPipeline,
     advanced_runtime_plan: &AdvancedProfileRuntimePlan,
 ) -> (bool, bool) {
-    let hybrid_gi_requested = compiled_pipeline.enabled_features.iter().any(|feature| {
-        feature.requires_capability(RenderFeatureCapabilityRequirement::HybridGlobalIllumination)
-    });
-    let virtual_geometry_requested = compiled_pipeline.enabled_features.iter().any(|feature| {
-        feature.requires_capability(RenderFeatureCapabilityRequirement::VirtualGeometry)
-    });
+    let runtime_features = compiled_pipeline.runtime_feature_flags();
 
     (
-        hybrid_gi_requested && advanced_runtime_plan.hybrid_global_illumination_enabled(),
-        virtual_geometry_requested && advanced_runtime_plan.virtual_geometry_enabled(),
+        runtime_features.hybrid_global_illumination_enabled
+            && advanced_runtime_plan.hybrid_global_illumination_enabled(),
+        runtime_features.virtual_geometry_enabled
+            && advanced_runtime_plan.virtual_geometry_enabled(),
     )
 }
 

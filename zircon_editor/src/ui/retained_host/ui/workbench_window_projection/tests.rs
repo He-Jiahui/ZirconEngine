@@ -2,6 +2,49 @@ use super::*;
 use crate::ui::template_runtime::RetainedUiHostComponentKind;
 
 #[test]
+fn workbench_projection_uses_a_memoized_node_index() {
+    let source = include_str!("../workbench_window_projection.rs");
+
+    assert!(source.contains("mod node_index;"));
+    assert!(source.contains("ProjectionNodeIndex::new"));
+    assert!(!source.contains("fn host_projection_node_render_visible("));
+    assert!(!source.contains("fn projected_parent_node_id("));
+}
+
+#[test]
+fn workbench_projection_memoizes_collapsed_ancestor_visibility() {
+    let mut parent = test_host_node("Panel", "panel", None, []);
+    parent.node_id = "collapsed-parent".to_string();
+    parent.properties.insert(
+        "visibility".to_string(),
+        RetainedUiHostValue::String("Collapsed".to_string()),
+    );
+    let mut child = test_host_node("Label", "label", Some("hidden"), []);
+    child.node_id = "hidden-child".to_string();
+    child.parent_id = Some(parent.node_id.clone());
+
+    let node_index = ProjectionNodeIndex::new([&parent, &child]);
+
+    assert!(!node_index.render_visible(&parent));
+    assert!(!node_index.render_visible(&child));
+}
+
+#[test]
+fn workbench_projection_treats_parent_cycles_as_not_render_visible() {
+    let mut first = test_host_node("Panel", "panel", None, []);
+    first.node_id = "cycle-first".to_string();
+    first.parent_id = Some("cycle-second".to_string());
+    let mut second = test_host_node("Panel", "panel", None, []);
+    second.node_id = "cycle-second".to_string();
+    second.parent_id = Some("cycle-first".to_string());
+
+    let node_index = ProjectionNodeIndex::new([&first, &second]);
+
+    assert!(!node_index.render_visible(&first));
+    assert!(!node_index.render_visible(&second));
+}
+
+#[test]
 fn workbench_button_text_prefers_authored_label_over_value_render_text() {
     let node = test_host_node(
         "Button",
@@ -33,9 +76,9 @@ fn search_field_projection_preserves_placeholder_and_text_input_identity() {
         None,
         [("placeholder", "Search samples"), ("query", "")],
     );
-    let nodes_by_id = BTreeMap::from([(node.node_id.as_str(), &node)]);
+    let node_index = ProjectionNodeIndex::new([&node]);
 
-    let projected = to_host_contract_workbench_window_node(&node, &nodes_by_id)
+    let projected = to_host_contract_workbench_window_node(&node, &node_index)
         .expect("SearchField should project into the native host contract");
 
     assert_eq!(projected.role.as_str(), "SearchField");
@@ -69,13 +112,13 @@ fn workbench_property_row_projects_authored_value_into_runtime_text_contract() {
         Some("Horizontal"),
         [("value", "Speed 0 - 620")],
     );
-    let nodes_by_id = BTreeMap::from([(node.node_id.as_str(), &node)]);
+    let node_index = ProjectionNodeIndex::new([&node]);
 
     assert_eq!(
         projected_workbench_value_text(&node, "property-row", &BTreeMap::new()),
         "Speed 0 - 620"
     );
-    let projected = to_host_contract_workbench_window_node(&node, &nodes_by_id)
+    let projected = to_host_contract_workbench_window_node(&node, &node_index)
         .expect("PropertyRow should project into the native host contract");
     assert_eq!(projected.text.as_str(), "Horizontal");
     assert_eq!(projected.value_text.as_str(), "Speed 0 - 620");
@@ -87,12 +130,9 @@ fn workbench_node_projection_preserves_retained_parent_identity() {
     parent.node_id = "generated-parent-17".to_string();
     let mut node = test_host_node("Panel", "panel", None, []);
     node.parent_id = Some(parent.node_id.clone());
-    let nodes_by_id = BTreeMap::from([
-        (node.node_id.as_str(), &node),
-        (parent.node_id.as_str(), &parent),
-    ]);
+    let node_index = ProjectionNodeIndex::new([&node, &parent]);
 
-    let projected = to_host_contract_workbench_window_node(&node, &nodes_by_id)
+    let projected = to_host_contract_workbench_window_node(&node, &node_index)
         .expect("a controlled retained node should project into the host contract");
 
     assert_eq!(projected.parent_node_id.as_str(), "generated-parent-17");
@@ -109,13 +149,9 @@ fn workbench_node_projection_skips_control_less_component_expansion_parents() {
     let mut leaf = test_host_node("Label", "label", None, []);
     leaf.node_id = "generated-caption".to_string();
     leaf.parent_id = Some(component_expansion.node_id.clone());
-    let nodes_by_id = BTreeMap::from([
-        (host.node_id.as_str(), &host),
-        (component_expansion.node_id.as_str(), &component_expansion),
-        (leaf.node_id.as_str(), &leaf),
-    ]);
+    let node_index = ProjectionNodeIndex::new([&host, &component_expansion, &leaf]);
 
-    let projected = to_host_contract_workbench_window_node(&leaf, &nodes_by_id)
+    let projected = to_host_contract_workbench_window_node(&leaf, &node_index)
         .expect("a controlled leaf should project into the host contract");
 
     assert_eq!(

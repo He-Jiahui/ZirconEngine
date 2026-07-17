@@ -1,6 +1,7 @@
 use zircon_runtime::core::framework::sound::{SoundBackendState, SoundBackendStatus};
 
 use super::super::DefaultSoundManager;
+use crate::poison_recovery::lock_recover;
 
 impl DefaultSoundManager {
     pub(in crate::service_types) fn backend_name_impl(&self) -> String {
@@ -9,7 +10,7 @@ impl DefaultSoundManager {
             return "disabled".to_string();
         }
         let unavailable_backend = {
-            let state = self.state.lock().expect("sound state mutex poisoned");
+            let state = lock_recover(&self.state);
             state
                 .output_device
                 .unavailable_backend_status()
@@ -33,7 +34,7 @@ impl DefaultSoundManager {
         }
 
         let unavailable_backend = {
-            let state = self.state.lock().expect("sound state mutex poisoned");
+            let state = lock_recover(&self.state);
             state
                 .output_device
                 .unavailable_backend_status()
@@ -51,11 +52,12 @@ impl DefaultSoundManager {
             };
         }
 
+        let active = lock_recover(&self.state).kira.is_active();
         SoundBackendStatus {
             requested_backend: config.backend.clone(),
-            active_backend: Some(config.backend),
+            active_backend: active.then_some(config.backend),
             state: SoundBackendState::Ready,
-            detail: None,
+            detail: (!active).then(|| "Kira output is stopped".to_string()),
             sample_rate_hz: config.sample_rate_hz,
             channel_count: config.channel_count,
             channel_layout: config.channel_layout,

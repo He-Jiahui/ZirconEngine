@@ -10,9 +10,20 @@ pub fn manifest_with_mode_baseline(
     manifest_override: Option<&ProjectPluginManifest>,
 ) -> ProjectPluginManifest {
     let mut manifest = default_manifest_for_target(target);
+    let baseline_runtime_ids = manifest
+        .selections
+        .iter()
+        .filter_map(|selection| RuntimePluginId::parse_key(&selection.id))
+        .collect::<Vec<_>>();
     if let Some(override_manifest) = manifest_override {
         for selection in &override_manifest.selections {
-            manifest.set_enabled(selection.clone());
+            let mut selection = selection.clone();
+            if let Some(runtime_id) = RuntimePluginId::parse_key(&selection.id)
+                .filter(|runtime_id| baseline_runtime_ids.contains(runtime_id))
+            {
+                selection.id = runtime_id.key().to_string();
+            }
+            manifest.set_enabled(selection);
         }
     }
     manifest

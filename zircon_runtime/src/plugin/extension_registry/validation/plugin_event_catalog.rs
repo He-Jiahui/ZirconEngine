@@ -62,13 +62,12 @@ fn validate_dot_namespaced_event_id(
     field_name: &str,
     value: &str,
 ) -> Result<(), RuntimeExtensionRegistryError> {
-    let segments: Vec<_> = value.split('.').collect();
-    if segments.len() < 2 {
+    if !value.contains('.') {
         return invalid_plugin_event_catalog(format!(
             "{context} {field_name} `{value}` must use at least two dot-separated namespace segments"
         ));
     }
-    for segment in segments {
+    for segment in value.split('.') {
         if segment.is_empty()
             || !segment
                 .bytes()

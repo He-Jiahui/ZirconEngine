@@ -68,3 +68,10 @@ fn shared_content_name_compaction_preserves_the_file_extension_at_runtime_width(
     assert!(compact.ends_with(".zui"));
     assert!(measure_runtime_text_width(&compact, font_size) <= max_width + 0.01);
 }
+
+#[test]
+fn shared_content_name_compaction_does_not_linearly_shape_every_prefix() {
+    let source = include_str!("text.rs");
+    assert!(!source.contains("for prefix_count in"));
+    assert!(source.contains("largest_fitting_candidate"));
+}

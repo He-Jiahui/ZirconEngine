@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 use zircon_runtime_interface::ui::{event_ui::UiTreeId, layout::UiFrame};
 
@@ -24,7 +24,7 @@ pub(crate) struct FloatingWindowProjectionFrames {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct FloatingWindowProjectionBundle {
-    frames_by_window_id: BTreeMap<MainPageId, FloatingWindowProjectionFrames>,
+    frames_by_window_id: HashMap<MainPageId, FloatingWindowProjectionFrames>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
@@ -71,16 +71,21 @@ pub(crate) fn build_floating_window_projection_bundle_from_windows_with_shared_s
     metrics: &WorkbenchChromeMetrics,
     native_window_hosts: &[NativeWindowHostState],
 ) -> FloatingWindowProjectionBundle {
+    let mut native_hosts_by_window_id = HashMap::with_capacity(native_window_hosts.len());
+    for host in native_window_hosts {
+        native_hosts_by_window_id
+            .entry(host.window_id.0.as_str())
+            .or_insert(host);
+    }
     let frames_by_window_id = floating_windows
         .iter()
         .enumerate()
         .map(|(window_index, window)| {
-            let native_host = native_window_hosts
-                .iter()
-                .find(|host| host.window_id == window.window_id);
+            let native_host = native_hosts_by_window_id
+                .get(window.window_id.0.as_str())
+                .copied();
             let native_host_present = native_host.is_some();
-            let host_frame =
-                resolve_native_floating_window_host_frame(native_window_hosts, &window.window_id);
+            let host_frame = native_host.and_then(native_floating_window_host_frame);
             let outer_frame = resolve_floating_window_projected_outer_frame_with_host_frame(
                 window,
                 window_index,
@@ -182,14 +187,16 @@ pub(crate) fn resolve_native_floating_window_host_frame(
     native_window_hosts
         .iter()
         .find(|host| &host.window_id == window_id)
-        .and_then(|host| {
-            (host.bounds[2] > 0.0 && host.bounds[3] > 0.0).then_some(ShellFrame::new(
-                host.bounds[0],
-                host.bounds[1],
-                host.bounds[2],
-                host.bounds[3],
-            ))
-        })
+        .and_then(native_floating_window_host_frame)
+}
+
+fn native_floating_window_host_frame(host: &NativeWindowHostState) -> Option<ShellFrame> {
+    (host.bounds[2] > 0.0 && host.bounds[3] > 0.0).then_some(ShellFrame::new(
+        host.bounds[0],
+        host.bounds[1],
+        host.bounds[2],
+        host.bounds[3],
+    ))
 }
 
 #[cfg(test)]
@@ -289,6 +296,17 @@ mod tests {
         resolve_floating_window_projection_content_frame, FloatingWindowProjectionFrames,
         FloatingWindowProjectionSharedSource,
     };
+
+    #[test]
+    fn floating_window_projection_indexes_native_hosts_once() {
+        let source = include_str!("floating_window_projection.rs");
+        let implementation = source.split("#[cfg(test)]").next().unwrap();
+
+        assert!(implementation.contains("HashMap<MainPageId, FloatingWindowProjectionFrames>"));
+        assert!(implementation.contains("native_hosts_by_window_id"));
+        assert!(implementation.contains(".or_insert(host)"));
+        assert!(!implementation.contains("BTreeMap<MainPageId, FloatingWindowProjectionFrames>"));
+    }
 
     #[test]
     fn floating_window_projection_splits_outer_frame_into_strip_and_content() {
@@ -405,6 +423,45 @@ mod tests {
                 Some("zircon.editor.native_window.window:bundle-hosted"),
             ))
         );
+    }
+
+    #[test]
+    fn floating_window_projection_preserves_first_native_host_for_duplicate_window_ids() {
+        let window_id = MainPageId::new("window:duplicate-host");
+        let metrics = WorkbenchChromeMetrics::default();
+        let first_frame = ShellFrame::new(10.0, 20.0, 300.0, 200.0);
+        let second_frame = ShellFrame::new(40.0, 50.0, 600.0, 400.0);
+        let hosts = [
+            NativeWindowHostState::new_for_test(
+                window_id.clone(),
+                Some(7),
+                [
+                    first_frame.x,
+                    first_frame.y,
+                    first_frame.width,
+                    first_frame.height,
+                ],
+            ),
+            NativeWindowHostState::new_for_test(
+                window_id.clone(),
+                Some(8),
+                [
+                    second_frame.x,
+                    second_frame.y,
+                    second_frame.width,
+                    second_frame.height,
+                ],
+            ),
+        ];
+
+        let bundle = build_floating_window_projection_bundle(
+            &floating_window_projection_model(window_id.clone(), ShellFrame::default()),
+            Some(shared_source()),
+            &metrics,
+            &hosts,
+        );
+
+        assert_eq!(bundle.outer_frame(&window_id), Some(first_frame));
     }
 
     #[test]

@@ -31,6 +31,7 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/registry.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
+  - zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
@@ -66,6 +67,8 @@ related_code:
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime/src/asset/project/manifest.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/tests/support.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/handle.rs
   - zircon_runtime/src/core/manager/service.rs
@@ -125,6 +128,7 @@ implementation_files:
   - zircon_runtime/src/dynamic_api/session/profile.rs
   - zircon_runtime/src/dynamic_api/session/registry.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
+  - zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
@@ -157,6 +161,8 @@ implementation_files:
   - zircon_runtime_interface/src/ui/template/asset/component_contract/api_version.rs
   - zircon_runtime/src/ui/template/asset/component_contract/validation.rs
   - zircon_runtime/src/asset/project/manifest.rs
+  - zircon_runtime/src/asset/mod.rs
+  - zircon_runtime/src/asset/tests/support.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/handle.rs
   - zircon_runtime/src/core/manager/service.rs
@@ -202,6 +208,8 @@ plan_sources:
   - .codex/plans/全系统重构方案.md
   - docs/plans/zircon_runtime/frameworks/05-subsystem-decoupling-contracts.md
   - docs/plans/zircon_runtime/runtime/10-dynamic-api-and-interface-convergence.md
+  - docs/plans/minimum-viable-engine-foundation.md
+  - docs/plans/zircon_runtime/render/01-render-graph-rdg-alignment.md
   - user: 2026-06-10 vampire screen-space HUD, buff particles, shader lighting, and no model health bars
   - user: 2026-06-11 vampire readable ground, start menu, game-over menu, Start/Retry buttons, and screenshot validation
   - user: 2026-06-12 remove runtime Vampire fallback backend
@@ -219,6 +227,7 @@ tests:
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/structure.rs
   - zircon_runtime/src/dynamic_api/session/tests/mod.rs
+  - zircon_runtime/src/dynamic_api/session/tests/foundation_render.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_runtime_support.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_gameplay.rs
   - zircon_runtime/src/dynamic_api/session/tests/vampire_menu.rs
@@ -437,6 +446,10 @@ The 2026-06-14 event split moved the private event router and input handlers out
 The 2026-06-14 test split replaces the removed `session/tests.rs` monolith with `session/tests/{mod,vampire_runtime_support,vampire_gameplay,vampire_menu,vampire_hud,frame_diagnostics,runtime_errors,lock_poison}.rs`. `mod.rs` is only the navigation surface. `vampire_runtime_support.rs` owns shared vampire project-session setup, entity/component inspection, capture export, diagnostics lookup, and frame-request support. Gameplay, menu, HUD, frame-diagnostic, error-format, and lock-poison recovery assertions now live in separate owner modules so new dynamic-session coverage can grow by feature without reopening an unrelated thousand-line test file.
 
 `frame_diagnostics.rs` is also the Runtime 07 evidence owner for `headless_session_capture_records_frame_extract_diagnostics`, `frame_extract_rebuild_skips_unchanged_entities`, `frame_extract_rebuilds_after_scene_change`, and `vampire_project_session_reports_runtime_fps_and_render_work`. The performance-hotpath audit therefore points at that file rather than the removed monolithic test module. `runtime_10_dynamic_session_test_owner_split_keeps_focused_modules` rejects recreating `session/tests.rs`, requires the folder-backed declarations, and keeps the module docs, Runtime 10 plan, and runtime index aligned with this owner split.
+
+`foundation_render.rs` owns the F2 minimum-engine product contract. It builds a persisted temporary project with one camera, one static mesh primitive, and one static directional light, then enters through `RuntimeDynamicSession::new(Runtime, project)` rather than a renderer-only fixture. The test routes viewport, pointer, mouse-button, and keyboard ABI events into the real input manager before capturing a 640x360 frame through `RuntimeRenderBridge` and WGPU. Green primitive pixels plus RenderGraph, mesh-draw, light-extract, and material-validation counters prove that the visible result is not a static file or an empty/background-only capture.
+
+The same product test captures an unchanged second frame and uses deterministic counters for performance acceptance: compiled-graph misses and cache entries stay fixed, one cache hit is added, the draw set stays fixed, and GPUScene reports zero dirty entries and zero uploaded bytes. It then drops the first session, creates a second session from the same persisted project, and requires matching mesh/light counts. `ZR_F2_BASIC_SCENE_CAPTURE_PNG` exports the accepted current-source frame to `docs/tests/runtime/render/f2_basic_scene_render_input_exit_wgpu_20260717.png`. The implementation is present; managed WGPU execution and PNG inspection remain pending until recorded in the Plan 01 child output.
 
 On 2026-07-04, `runtime_10_dynamic_session_test_owner_split_keeps_focused_modules` was refreshed to pin the current `runtime_session_error_preserves_step_and_typed_source` behavior anchor and passed 1/1. A later broad `--lib session` recheck passed with 161 passed / 0 failed / 10 ignored after the remaining Vampire project-session real-backend behavior tests were gated under default features.
 

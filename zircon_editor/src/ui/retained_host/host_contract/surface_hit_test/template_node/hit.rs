@@ -22,24 +22,24 @@ pub(super) fn hit_test_template_nodes(
 
     let hit = hit_test_host_surface_frame(surface_frame, origin, x, y)?;
     let row = hit.node_id.0.checked_sub(2)? as usize;
-    let node = nodes.row_data(row)?;
+    let node = nodes.get(row)?;
     let frame = FrameRect {
         x: origin.x + node.frame.x,
         y: origin.y + node.frame.y,
         width: node.frame.width,
         height: node.frame.height,
     };
-    let component_family = template_component_family(&node);
+    let component_family = template_component_family(node);
     Some(TemplateNodePointerHit {
-        control_id: node.control_id,
-        action_id: node.action_id,
-        binding_id: node.binding_id,
-        dispatch_kind: node.dispatch_kind,
-        component_role: node.component_role,
+        control_id: node.control_id.clone(),
+        action_id: node.action_id.clone(),
+        binding_id: node.binding_id.clone(),
+        dispatch_kind: node.dispatch_kind.clone(),
+        component_role: node.component_role.clone(),
         component_family,
-        value_text: node.value_text,
-        edit_action_id: node.edit_action_id,
-        commit_action_id: node.commit_action_id,
+        value_text: node.value_text.clone(),
+        edit_action_id: node.edit_action_id.clone(),
+        commit_action_id: node.commit_action_id.clone(),
         frame,
     })
 }

@@ -19,7 +19,7 @@ MODULE_FAMILY_ROOTS = {
     "navigation": {
         "root_module": "navigation",
         "doc": "docs/zircon_runtime/navigation/runtime.md",
-        "expected_file_count": 9,
+        "expected_file_count": 12,
         "required_doc_anchors": (
             "built-in fallback implementation",
             "folder-backed runtime owner split",

@@ -10,7 +10,7 @@ pub(crate) fn dispatch_builtin_template_binding(
     runtime: &EditorHostEventController,
     binding_id: &str,
 ) -> Option<Result<UiHostEventEffects, String>> {
-    let binding = builtin_template_bindings().remove(binding_id)?;
+    let binding = builtin_template_bindings().get(binding_id)?.clone();
     Some(dispatch_editor_binding(runtime, binding))
 }
 
@@ -19,7 +19,7 @@ pub(crate) fn dispatch_builtin_template_binding_with_arguments(
     binding_id: &str,
     arguments: Vec<UiBindingValue>,
 ) -> Option<Result<UiHostEventEffects, String>> {
-    let binding = builtin_template_bindings().remove(binding_id)?;
+    let binding = builtin_template_bindings().get(binding_id)?.clone();
     Some(dispatch_template_binding_with_arguments(
         runtime, binding, arguments,
     ))

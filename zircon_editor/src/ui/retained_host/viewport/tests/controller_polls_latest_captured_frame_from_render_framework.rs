@@ -50,3 +50,21 @@ fn controller_does_not_republish_cached_image_when_no_new_frame_is_available() {
     assert!(controller.poll_image().is_none());
     assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
 }
+
+#[test]
+fn controller_does_not_republish_cached_image_when_capture_fails() {
+    let framework = Arc::new(FakeRenderFramework::default());
+    let controller = RetainedViewportController::new_with_framework(framework.clone());
+
+    controller
+        .submit_extract(test_extract(), UVec2::new(160, 90))
+        .unwrap();
+    assert!(controller.poll_image().is_some());
+    framework.state.lock().unwrap().capture_error = Some("planned capture failure".to_string());
+
+    assert!(controller.poll_image().is_none());
+    assert!(controller
+        .take_error()
+        .is_some_and(|error| error.contains("planned capture failure")));
+    assert_eq!(framework.state.lock().unwrap().capture_requests, 2);
+}

@@ -45,14 +45,12 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
                 ..FolderBuilder::default()
             });
 
-        let path_segments = asset_path.split('/').collect::<Vec<_>>();
-        let folder_segments = if path_segments.len() > 1 {
-            &path_segments[..path_segments.len() - 1]
-        } else {
-            &[][..]
-        };
+        let folder_path = asset_path
+            .rsplit_once('/')
+            .map(|(folder_path, _)| folder_path)
+            .unwrap_or_default();
         let mut parent_id = root_id;
-        for segment in folder_segments {
+        for segment in folder_path.split('/').filter(|segment| !segment.is_empty()) {
             let folder_id = if parent_id == "res://" {
                 format!("res://{segment}")
             } else {
@@ -63,7 +61,7 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
                 .or_insert_with(|| FolderBuilder {
                     parent_folder_id: Some(parent_id.clone()),
                     locator_prefix: folder_id.clone(),
-                    display_name: (*segment).to_string(),
+                    display_name: segment.to_string(),
                     ..FolderBuilder::default()
                 });
             if let Some(parent) = folders.get_mut(&parent_id) {
@@ -118,8 +116,14 @@ pub(super) fn build_folder_records(state: &EditorAssetState) -> Vec<EditorAssetF
                 .then(left.cmp(right))
         });
         folder.direct_asset_uuids.sort_by(|left, right| {
-            let left_key = asset_names.get(left).cloned().unwrap_or_default();
-            let right_key = asset_names.get(right).cloned().unwrap_or_default();
+            let left_key = asset_names
+                .get(left)
+                .map(String::as_str)
+                .unwrap_or_default();
+            let right_key = asset_names
+                .get(right)
+                .map(String::as_str)
+                .unwrap_or_default();
             left_key.cmp(&right_key).then(left.cmp(right))
         });
     }
@@ -157,5 +161,18 @@ fn folder_root_for_record(
             ))
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn folder_sort_borrows_display_names() {
+        let source = include_str!("folder_projection.rs");
+        let cloned_sort_key = ["asset_names.get(", ").cloned().unwrap_or_default()"].concat();
+        let collected_segments = ["asset_path.split('/')", ".collect::<Vec<_>>()"].concat();
+
+        assert!(!source.contains(&cloned_sort_key));
+        assert!(!source.contains(&collected_segments));
     }
 }

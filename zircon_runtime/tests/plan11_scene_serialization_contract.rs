@@ -1,7 +1,7 @@
 use serde_json::json;
 use zircon_runtime::scene::{
-    DynamicScene, DynamicSceneError, NodeKind, RuntimeSessionArchive, RuntimeSessionArchiveError,
-    RuntimeSessionSlot, World, json_from_reflected, reflected_from_json,
+    json_from_reflected, reflected_from_json, DynamicScene, DynamicSceneError, NodeKind,
+    RuntimeSessionArchive, RuntimeSessionArchiveError, RuntimeSessionSlot, World,
 };
 use zircon_runtime_interface::reflect::ReflectedValue;
 use zircon_runtime_interface::serialization::{LoadError, MigrateError};
@@ -31,11 +31,9 @@ fn v0_dynamic_fixture_resaves_byte_identically() {
     let migrated = DynamicScene::from_versioned_json(V0_DYNAMIC_SCENE_JSON).unwrap();
     let first = migrated.to_versioned_json_pretty().unwrap();
     let current: serde_json::Value = serde_json::from_str(&first).unwrap();
-    assert!(
-        current["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(current["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
     let reloaded = DynamicScene::from_versioned_json(&first).unwrap();
     let second = reloaded.to_versioned_json_pretty().unwrap();
     assert_eq!(second.as_bytes(), first.as_bytes());
@@ -58,11 +56,9 @@ fn project_world_v0_migrates_without_a_legacy_dto() {
     assert_eq!(scene.entities[0].record.kind, NodeKind::Mesh);
     let current: serde_json::Value =
         serde_json::from_str(&scene.to_versioned_json_pretty().unwrap()).unwrap();
-    assert!(
-        current["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(current["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
 }
 
 #[test]
@@ -76,11 +72,9 @@ fn archive_embeds_scene_envelope_without_inner_version() {
         document["slots"][0]["scene"]["$zircon"]["header"]["schema_version"],
         2
     );
-    assert!(
-        document["slots"][0]["scene"]["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(document["slots"][0]["scene"]["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
 }
 
 #[test]
@@ -108,11 +102,9 @@ fn v1_envelope_migrates_to_versionless_v2_payload() {
     let current: serde_json::Value =
         serde_json::from_str(&migrated.to_versioned_json_pretty().unwrap()).unwrap();
     assert_eq!(current["$zircon"]["header"]["schema_version"], 2);
-    assert!(
-        current["$zircon"]["payload"]
-            .get("format_version")
-            .is_none()
-    );
+    assert!(current["$zircon"]["payload"]
+        .get("format_version")
+        .is_none());
 }
 
 #[test]

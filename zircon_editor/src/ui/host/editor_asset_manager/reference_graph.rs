@@ -13,7 +13,7 @@ pub struct ReferenceGraph {
 impl ReferenceGraph {
     pub fn rebuild<'a>(records: impl Iterator<Item = &'a AssetCatalogRecord>) -> Self {
         let mut graph = Self::default();
-        let records = records.cloned().collect::<Vec<_>>();
+        let records = records.collect::<Vec<_>>();
         let known_by_uuid = records
             .iter()
             .map(|record| (record.asset_uuid, record.asset_uuid))
@@ -52,5 +52,16 @@ impl ReferenceGraph {
             .get(&uuid)
             .map(|uuids| uuids.iter().copied().collect())
             .unwrap_or_default()
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn reference_graph_borrows_catalog_records_during_rebuild() {
+        let source = include_str!("reference_graph.rs");
+        let cloned_records = ["records", ".cloned()", ".collect"].concat();
+
+        assert!(!source.contains(&cloned_records));
     }
 }

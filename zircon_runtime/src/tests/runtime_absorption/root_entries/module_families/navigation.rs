@@ -12,7 +12,7 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
                 .unwrap_or_else(|name| panic!("non-utf8 navigation entry name: {name:?}"))
         })
         .collect::<std::collections::BTreeSet<_>>();
-    let expected_entries = ["mod.rs", "module.rs", "runtime", "runtime.rs"]
+    let expected_entries = ["mod.rs", "module.rs", "operation", "runtime", "runtime.rs"]
         .into_iter()
         .map(String::from)
         .collect::<std::collections::BTreeSet<_>>();
@@ -50,6 +50,29 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
         "runtime navigation fallback changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
     );
 
+    let operation_dir = navigation_dir.join("operation");
+    let actual_operation_entries = std::fs::read_dir(&operation_dir)
+        .unwrap_or_else(|error| panic!("failed to read {}: {error}", operation_dir.display()))
+        .map(|entry| {
+            entry
+                .unwrap_or_else(|error| {
+                    panic!("failed to read navigation operation entry: {error}")
+                })
+                .file_name()
+                .into_string()
+                .unwrap_or_else(|name| panic!("non-utf8 navigation operation entry name: {name:?}"))
+        })
+        .collect::<std::collections::BTreeSet<_>>();
+    let expected_operation_entries = ["handler.rs", "mod.rs", "registration.rs"]
+        .into_iter()
+        .map(String::from)
+        .collect::<std::collections::BTreeSet<_>>();
+
+    assert_eq!(
+        actual_operation_entries, expected_operation_entries,
+        "runtime navigation operation integration changed owner modules; update docs/zircon_runtime/navigation/runtime.md and Runtime 14 before adding behavior files"
+    );
+
     let module_source = include_str!("../../../../navigation/module.rs");
     assert!(
         module_source
@@ -65,6 +88,8 @@ fn runtime_navigation_boundary_file_set_requires_doc_update() {
         "runtime/avoidance.rs",
         "runtime/baked_mesh.rs",
         "runtime/world_scan.rs",
+        "operation/handler.rs",
+        "operation/registration.rs",
         "zircon_plugins/navigation",
         "runtime_navigation_boundary_file_set_requires_doc_update",
     ] {

@@ -82,10 +82,11 @@ class CodexSessionStore:
                         now,
                     )
                 else:
-                    changed = self._changed(existing, values) or int(
+                    visible_changed = self._visible_changed(existing, values)
+                    metadata_changed = self._metadata_changed(existing, values) or int(
                         existing["missing_scan_count"]
                     ) != 0
-                    if changed:
+                    if visible_changed or metadata_changed:
                         connection.execute(
                             """
                             UPDATE codex_sessions SET
@@ -98,14 +99,17 @@ class CodexSessionStore:
                             """,
                             (*values, item.thread_id),
                         )
-                        changed_count += 1
-                        event_type = self._change_event(existing, item.source_location, item.state)
-                        self._event(
-                            connection,
-                            event_type,
-                            {"state": item.state.value, "threadId": item.thread_id},
-                            now,
-                        )
+                        if visible_changed:
+                            changed_count += 1
+                            event_type = self._change_event(
+                                existing, item.source_location, item.state
+                            )
+                            self._event(
+                                connection,
+                                event_type,
+                                {"state": item.state.value, "threadId": item.thread_id},
+                                now,
+                            )
 
             if discovery.membership_complete:
                 rows = connection.execute(
@@ -174,18 +178,27 @@ class CodexSessionStore:
                     now,
                 ),
             )
-            self._event(
-                connection,
-                "codex.sync.completed",
-                {
-                    "changedCount": changed_count,
-                    "diagnosticCount": len(discovery.diagnostics),
-                    "runId": run_id,
-                    "scannedCount": discovery.scanned_count,
-                    "status": status,
-                },
-                now,
-            )
+            # Periodic source metadata refreshes are telemetry, not operator work.
+            # Keep their compact run row for diagnostics, but reserve the live audit
+            # stream for a visible lifecycle change, a diagnostic, or an explicit sync.
+            if (
+                trigger is not CodexSyncTrigger.PERIODIC
+                or changed_count
+                or discovery.diagnostics
+                or unavailable_count
+            ):
+                self._event(
+                    connection,
+                    "codex.sync.completed",
+                    {
+                        "changedCount": changed_count,
+                        "diagnosticCount": len(discovery.diagnostics),
+                        "runId": run_id,
+                        "scannedCount": discovery.scanned_count,
+                        "status": status,
+                    },
+                    now,
+                )
         return CodexReconcileResult(
             run_id=run_id,
             scanned_count=discovery.scanned_count,
@@ -195,7 +208,7 @@ class CodexSessionStore:
         )
 
     @staticmethod
-    def _changed(existing, values: tuple[object, ...]) -> bool:
+    def _visible_changed(existing, values: tuple[object, ...]) -> bool:
         columns = (
             "rollout_path",
             "source_location",
@@ -209,16 +222,20 @@ class CodexSessionStore:
             "bound_session_id",
             "diagnostic_code",
             "first_seen_at",
-            "last_activity_at",
-            "last_synced_at",
-            "source_mtime_ns",
-            "source_size",
         )
         return any(
             existing[column] != value
-            for column, value in zip(columns, values, strict=True)
-            if column != "last_synced_at"
+            for column, value in zip(columns, values, strict=False)
         )
+
+    @staticmethod
+    def _metadata_changed(existing, values: tuple[object, ...]) -> bool:
+        metadata = {
+            "last_activity_at": values[12],
+            "source_mtime_ns": values[14],
+            "source_size": values[15],
+        }
+        return any(existing[column] != value for column, value in metadata.items())
 
     @staticmethod
     def _change_event(existing, location: CodexSourceLocation, state: CodexSessionState) -> str:

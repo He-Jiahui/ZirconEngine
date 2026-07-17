@@ -84,16 +84,20 @@ pub(crate) fn apply_transient_projection(
     transient: &EditorTransientUiState,
 ) {
     for node in snapshot.nodes.values_mut() {
-        let node_path = node.node_path.0.clone();
-        let hovered = transient.is_node_hovered(&node_path);
-        let focused = transient.is_node_focused(&node_path);
-        let pressed = transient.is_node_pressed(&node_path);
-        let resizing = drawer_id_from_path(&node_path)
-            .is_some_and(|drawer_id| transient.is_drawer_resizing(drawer_id));
-        let dragging = node_path
-            .rsplit('/')
-            .next()
-            .is_some_and(|segment| transient.is_view_dragging(segment));
+        let (hovered, focused, pressed, resizing, dragging) = {
+            let node_path = node.node_path.0.as_str();
+            (
+                transient.is_node_hovered(node_path),
+                transient.is_node_focused(node_path),
+                transient.is_node_pressed(node_path),
+                drawer_id_from_path(node_path)
+                    .is_some_and(|drawer_id| transient.is_drawer_resizing(drawer_id)),
+                node_path
+                    .rsplit('/')
+                    .next()
+                    .is_some_and(|segment| transient.is_view_dragging(segment)),
+            )
+        };
 
         node.state_flags.pressed = pressed;
         upsert_property(node, "transient.hovered", hovered);
@@ -104,10 +108,28 @@ pub(crate) fn apply_transient_projection(
 }
 
 fn upsert_property(node: &mut UiNodeDescriptor, name: &str, value: bool) {
+    if let Some(property) = node.properties.get_mut(name) {
+        let value = serde_json::Value::Bool(value);
+        if property.reflected_value != value {
+            property.reflected_value = value;
+        }
+        return;
+    }
     node.properties.insert(
         name.to_string(),
         UiPropertyDescriptor::new(name, UiValueType::Bool, json!(value)),
     );
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn transient_projection_borrows_paths_and_reuses_properties() {
+        let source = include_str!("transient_ui_state.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+        assert!(!implementation.contains("node.node_path.0.clone()"));
+        assert!(implementation.contains("node.properties.get_mut(name)"));
+    }
 }
 
 fn drawer_id_from_path(node_path: &str) -> Option<&str> {

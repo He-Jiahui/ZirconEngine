@@ -108,7 +108,7 @@ fn neural_compute_builtin_slot_compiles_only_with_explicit_feature_opt_in() {
         .contains(&RenderFeatureCapabilityRequirement::NeuralCompute));
     assert!(
         !enabled_compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name.contains("neural")),
@@ -131,7 +131,7 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
         let feature = slot.feature();
         assert!(
             !default_compiled
-                .enabled_features
+                .enabled_features()
                 .iter()
                 .any(|asset| asset.is_builtin(feature)),
             "{feature:?} should not compile until explicitly opted in"
@@ -172,7 +172,7 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
         let feature = slot.feature();
         assert!(
             enabled_compiled
-                .enabled_features
+                .enabled_features()
                 .iter()
                 .any(|asset| asset.is_builtin(feature)),
             "{feature:?} should compile when explicitly opted in"
@@ -196,13 +196,13 @@ fn advanced_followup_builtin_slots_compile_only_with_explicit_feature_opt_in() {
     }
     assert_eq!(
         enabled_compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
             .collect::<Vec<_>>(),
         default_compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .map(|pass| pass.name.as_str())
@@ -245,7 +245,7 @@ fn sparse_texture_builtin_slot_requires_feature_and_capability_opt_in() {
         .unwrap();
     assert!(
         !feature_only
-            .enabled_features
+            .enabled_features()
             .iter()
             .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture)),
         "feature opt-in without the sparse texture capability should keep the slot out of the graph"
@@ -263,7 +263,7 @@ fn sparse_texture_builtin_slot_requires_feature_and_capability_opt_in() {
         )
         .unwrap();
     assert!(capability_enabled
-        .enabled_features
+        .enabled_features()
         .iter()
         .any(|feature| feature.is_builtin(BuiltinRenderFeature::SparseTexture)));
     assert!(capability_enabled
@@ -274,7 +274,7 @@ fn sparse_texture_builtin_slot_requires_feature_and_capability_opt_in() {
         .contains(&RenderFeatureCapabilityRequirement::SparseTexture));
     assert!(
         !capability_enabled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|pass| pass.name.contains("sparse")),

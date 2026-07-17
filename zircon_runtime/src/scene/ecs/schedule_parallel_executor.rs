@@ -21,7 +21,7 @@ type ScheduleParallelBatchResult<E> = Result<(), ScheduleParallelExecutorError<E
 type ScheduleParallelBatchSlot<E> = Arc<Mutex<Option<ScheduleParallelBatchResult<E>>>>;
 
 pub struct ScheduleParallelTaskRegistry<E> {
-    tasks: HashMap<String, ScheduleParallelTask<E>>,
+    tasks: Arc<HashMap<String, ScheduleParallelTask<E>>>,
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -188,7 +188,7 @@ impl ScheduleParallelExecutionReport {
 impl<E> Default for ScheduleParallelTaskRegistry<E> {
     fn default() -> Self {
         Self {
-            tasks: HashMap::new(),
+            tasks: Arc::new(HashMap::new()),
         }
     }
 }
@@ -196,7 +196,7 @@ impl<E> Default for ScheduleParallelTaskRegistry<E> {
 impl<E> Clone for ScheduleParallelTaskRegistry<E> {
     fn clone(&self) -> Self {
         Self {
-            tasks: self.tasks.clone(),
+            tasks: Arc::clone(&self.tasks),
         }
     }
 }
@@ -211,7 +211,7 @@ impl<E: 'static> ScheduleParallelTaskRegistry<E> {
         system_id: impl Into<String>,
         task: impl Fn() -> Result<(), E> + Send + Sync + 'static,
     ) -> Option<Arc<dyn Fn() -> Result<(), E> + Send + Sync + 'static>> {
-        self.tasks.insert(system_id.into(), Arc::new(task))
+        Arc::make_mut(&mut self.tasks).insert(system_id.into(), Arc::new(task))
     }
 
     pub fn contains(&self, system_id: &str) -> bool {
@@ -455,6 +455,22 @@ mod tests {
     use std::panic::{catch_unwind, AssertUnwindSafe};
 
     use super::*;
+
+    #[test]
+    fn cloned_task_registry_shares_frozen_task_map_until_mutated() {
+        let mut registry = ScheduleParallelTaskRegistry::<()>::new();
+        registry.register("system.alpha", || Ok(()));
+
+        let snapshot = registry.clone();
+        assert!(Arc::ptr_eq(&registry.tasks, &snapshot.tasks));
+
+        registry.register("system.beta", || Ok(()));
+
+        assert!(!Arc::ptr_eq(&registry.tasks, &snapshot.tasks));
+        assert!(snapshot.contains("system.alpha"));
+        assert!(!snapshot.contains("system.beta"));
+        assert!(registry.contains("system.beta"));
+    }
 
     #[test]
     fn schedule_parallel_executor_batch_result_slot_recovers_poisoned_lock() {

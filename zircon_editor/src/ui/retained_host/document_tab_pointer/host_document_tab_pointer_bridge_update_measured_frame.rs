@@ -26,12 +26,16 @@ impl HostDocumentTabPointerBridge {
                 "Document tab index {item_index} is outside surface {surface_key}"
             ));
         }
-        frames[item_index] = Some(UiFrame::new(
+        let measured_frame = UiFrame::new(
             surface.strip_frame.x + tab_x,
             surface.strip_frame.y + STRIP_Y,
             tab_width.max(tab_min_width(surface, item_index)),
             TAB_HEIGHT,
-        ));
+        );
+        if frames[item_index] == Some(measured_frame) {
+            return Ok(());
+        }
+        frames[item_index] = Some(measured_frame);
         self.rebuild_surface();
         Ok(())
     }

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use zircon_runtime::ui::{dispatch::UiPointerDispatcher, surface::UiSurface};
 use zircon_runtime_interface::ui::{
@@ -239,12 +239,12 @@ pub(super) fn build_drag_surface(
         document_edge_frame,
     );
 
-    let drag_frames = Arc::new(Mutex::new(DragTargetFrames {
+    let drag_frames = Arc::new(DragTargetFrames {
         left: left_drag_frame.unwrap_or_default(),
         right: right_drag_frame.unwrap_or_default(),
         bottom: bottom_drag_frame.unwrap_or_default(),
         document: document_edge_frame.unwrap_or_default(),
-    }));
+    });
     let mut drag_dispatcher = UiPointerDispatcher::default();
 
     let left_frames = Arc::clone(&drag_frames);

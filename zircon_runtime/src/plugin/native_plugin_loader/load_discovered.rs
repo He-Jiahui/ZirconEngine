@@ -39,7 +39,8 @@ impl NativePluginLoader {
         mut report: NativePluginLoadReport,
         module_kinds: &[PluginModuleKind],
     ) -> NativePluginLoadReport {
-        for candidate in report.discovered.clone() {
+        let discovered = std::mem::take(&mut report.discovered);
+        for candidate in &discovered {
             if !package_matches_module_kinds(&candidate.package_manifest, module_kinds) {
                 continue;
             }
@@ -61,6 +62,7 @@ impl NativePluginLoader {
                 );
             }
         }
+        report.discovered = discovered;
         report
     }
 }
@@ -235,5 +237,14 @@ mod tests {
             .diagnostics
             .iter()
             .any(|diagnostic| diagnostic.contains("library is missing")));
+    }
+
+    #[test]
+    fn candidate_loading_preserves_discovery_without_cloning_the_report() {
+        let source = include_str!("load_discovered.rs");
+        let deep_clone = ["report.discovered", ".clone()"].concat();
+
+        assert!(!source.contains(&deep_clone));
+        assert!(source.contains("std::mem::take(&mut report.discovered)"));
     }
 }

@@ -7,6 +7,7 @@ use super::super::super::super::template_popup_layout::{
     template_option_popup_frame_within, template_option_row_frame_within,
 };
 use super::hit::{template_popup_row_hit, TemplatePopupRowHit};
+use super::{next_uniform_popup_row_at_boundary, uniform_popup_row_at_y};
 
 pub(super) fn hit_test_template_option_rows(
     node: &TemplatePaneNodeData,
@@ -31,24 +32,36 @@ pub(super) fn hit_test_template_option_rows(
         height: local.height,
     };
     let popup_frame = template_option_popup_frame_within(node, &control_frame, row_count, origin)?;
-    for row in 0..row_count {
-        let option = node.structured_options.row_data(row)?;
-        if option.disabled {
-            continue;
-        }
-        let row_frame =
-            template_option_row_frame_within(node, &control_frame, row_count, row, origin)?;
-        if contains_point(&row_frame, x, y) {
+    if contains_point(&popup_frame, x, y) {
+        let row_height =
+            template_option_row_frame_within(node, &control_frame, row_count, 0, origin)?.height;
+        let row = uniform_popup_row_at_y(y, popup_frame.y, row_height, row_count)?;
+        for candidate in [
+            Some(row),
+            next_uniform_popup_row_at_boundary(y, popup_frame.y, row_height, row, row_count),
+        ]
+        .into_iter()
+        .flatten()
+        {
+            let option = node.structured_options.get(candidate)?;
+            if option.disabled {
+                continue;
+            }
+            let row_frame = template_option_row_frame_within(
+                node,
+                &control_frame,
+                row_count,
+                candidate,
+                origin,
+            )?;
             return Some(TemplatePopupRowHit::Hit(template_popup_row_hit(
                 node,
                 row_frame,
                 "workbench_option",
-                action_id,
-                option.id,
+                action_id.clone(),
+                option.id.clone(),
             )));
         }
-    }
-    if contains_point(&popup_frame, x, y) {
         return Some(TemplatePopupRowHit::Blocked);
     }
     None

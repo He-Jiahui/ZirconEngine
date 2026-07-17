@@ -6,6 +6,10 @@ related_code:
   - zircon_runtime/src/text/cache/measure_cache.rs
   - zircon_runtime/src/text/cache/shaped_cache.rs
   - zircon_runtime/src/text/cache/tests.rs
+  - zircon_runtime/src/text/font/shared.rs
+  - zircon_runtime/src/text/font/shared/tests.rs
+  - zircon_runtime/src/text/font/database/equivalence.rs
+  - zircon_runtime/src/text/sdf/font_bake/tests/cache_generation.rs
   - zircon_runtime/src/text/parallel/mod.rs
   - zircon_runtime/src/text/parallel/shape_pool.rs
   - zircon_runtime/src/text/parallel/raster_pool.rs
@@ -266,6 +270,8 @@ status: in_progress
 ## 8. 状态与产出记录
 
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
+
+当前概述（2026-07-17）：Text MVP 的共享 FontDatabase 发布已从“每次调用均推进 generation”收敛为 render-input 语义变化才推进。等价 renderer 初始化保留 shaped-run、locale FontSystem 与 SDF bake resident cache；face 顺序、source、fallback、CompositeFont 或默认 UI family 变化仍执行一次完整 lineage invalidation。比较与替换只发生在低频 publish 写锁路径，普通 generation probe 与 shaping/raster 热路径不增加锁或字体字节扫描。test-only force publish 保留失效测试语义，test-only read guard 只隔离并行 SDF fixture。旧 shared focused batch 2/2 已绿；新增 default-family guard、并行 SDF 20 项、default/UI、graphics-only 与真实产品帧仍待里程碑测试阶段，因此状态为 `implemented / validation_pending`，PF/Text09 整体继续 `in_progress`。
 
 本子计划产出记录已超过 10 条，具体记录已迁入编号子目录。
 

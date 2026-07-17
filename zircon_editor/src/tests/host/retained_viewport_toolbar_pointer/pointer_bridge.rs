@@ -45,6 +45,18 @@ fn shared_viewport_toolbar_pointer_bridge_routes_controls_from_shared_hit_test()
             surface_key: "scene.main".to_string(),
         })
     );
+
+    let scale_again = bridge
+        .handle_click_at_point("scene.main", UiPoint::new(132.0, 10.0))
+        .unwrap();
+    assert_eq!(
+        scale_again.route,
+        Some(ViewportToolbarPointerRoute::SetTool {
+            surface_key: "scene.main".to_string(),
+            tool: "Scale".to_string(),
+        }),
+        "syncing one clicked control must not discard the other committed toolbar controls"
+    );
 }
 
 #[test]

@@ -5,6 +5,7 @@ impl RetainedEditorHost {
         &mut self,
         scene_entries: &[crate::ui::workbench::snapshot::SceneEntry],
     ) {
+        self.hierarchy_scene_entries = Arc::from(scene_entries);
         if self.hierarchy_pointer_size.width <= 0.0 || self.hierarchy_pointer_size.height <= 0.0 {
             self.apply_hierarchy_pointer_state_to_ui();
             return;

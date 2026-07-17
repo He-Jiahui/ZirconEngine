@@ -1,15 +1,72 @@
+use zircon_runtime::scene::World;
 use zircon_runtime_interface::{
-    ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeFrameV1,
-    ZrRuntimeOperationHandle, ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1,
-    ZrRuntimeOperationSubmitRequestV1, ZrRuntimePluginEventDeliveryV1,
-    ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle, ZrRuntimeViewportHandle,
-    ZrRuntimeViewportSizeV1,
+    ProfileControlRequest, ProfileControlResponse, ZrRuntimeEventV1, ZrRuntimeOperationHandle,
+    ZrRuntimeOperationProgressV1, ZrRuntimeOperationResultV1, ZrRuntimeOperationSubmitRequestV1,
+    ZrRuntimePluginEventDeliveryV1, ZrRuntimePluginEventSubscriptionHandle, ZrRuntimeSessionHandle,
+    ZrRuntimeViewportHandle, ZrRuntimeViewportSizeV1,
 };
 
-use super::GatewayError;
+use super::{GatewayError, RuntimeCapabilities};
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct EditorRuntimeFrame {
+    abi_version: u32,
+    width: u32,
+    height: u32,
+    generation: u64,
+    rgba: Vec<u8>,
+}
+
+impl EditorRuntimeFrame {
+    pub fn new(abi_version: u32, width: u32, height: u32, generation: u64, rgba: Vec<u8>) -> Self {
+        Self {
+            abi_version,
+            width,
+            height,
+            generation,
+            rgba,
+        }
+    }
+
+    pub fn empty(abi_version: u32) -> Self {
+        Self::new(abi_version, 0, 0, 0, Vec::new())
+    }
+
+    pub fn abi_version(&self) -> u32 {
+        self.abi_version
+    }
+
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn generation(&self) -> u64 {
+        self.generation
+    }
+
+    pub fn rgba(&self) -> &[u8] {
+        &self.rgba
+    }
+}
 
 pub trait EditorRuntimeGateway: Send + Sync {
+    fn capabilities(&self) -> RuntimeCapabilities {
+        RuntimeCapabilities::unavailable().clone()
+    }
+
     fn session_handle(&self) -> ZrRuntimeSessionHandle;
+
+    fn with_world(&self, _read: &mut dyn FnMut(&World)) -> Result<(), GatewayError> {
+        Err(GatewayError::RequiresSerializedAccess)
+    }
+
+    fn with_world_mut(&self, _write: &mut dyn FnMut(&mut World)) -> Result<(), GatewayError> {
+        Err(GatewayError::RequiresSerializedAccess)
+    }
 
     fn tick_frame(&self) -> Result<bool, GatewayError> {
         Err(GatewayError::CapabilityMissing {
@@ -27,7 +84,7 @@ pub trait EditorRuntimeGateway: Send + Sync {
         &self,
         _viewport: ZrRuntimeViewportHandle,
         _size: ZrRuntimeViewportSizeV1,
-    ) -> Result<ZrRuntimeFrameV1, GatewayError> {
+    ) -> Result<EditorRuntimeFrame, GatewayError> {
         Err(GatewayError::CapabilityMissing {
             capability: "runtime.frame.capture",
         })

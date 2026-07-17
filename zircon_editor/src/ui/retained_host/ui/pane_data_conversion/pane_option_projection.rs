@@ -128,13 +128,23 @@ fn option_matches_query(option: &ProjectedOption, query: Option<&str>) -> bool {
     let Some(query) = query else {
         return false;
     };
-    option.id.to_ascii_lowercase().contains(query)
-        || option.label.to_ascii_lowercase().contains(query)
-        || option.raw.to_ascii_lowercase().contains(query)
+    contains_ascii_case_insensitive(&option.id, query)
+        || contains_ascii_case_insensitive(&option.label, query)
+        || contains_ascii_case_insensitive(&option.raw, query)
 }
 
 fn option_matches_set(option: &ProjectedOption, values: &BTreeSet<String>) -> bool {
-    values.iter().any(|value| option.matches_id(value))
+    values.contains(option.id.as_str())
+        || values.contains(option.label.as_str())
+        || values.contains(option.raw.as_str())
+}
+
+fn contains_ascii_case_insensitive(haystack: &str, needle: &str) -> bool {
+    !needle.is_empty()
+        && haystack
+            .as_bytes()
+            .windows(needle.len())
+            .any(|candidate| candidate.eq_ignore_ascii_case(needle.as_bytes()))
 }
 
 fn option_id_set(value: Option<&toml::Value>) -> BTreeSet<String> {
@@ -142,6 +152,7 @@ fn option_id_set(value: Option<&toml::Value>) -> BTreeSet<String> {
         .and_then(value_as_options)
         .unwrap_or_default()
         .into_iter()
+        .filter_map(normalized_option_id)
         .collect()
 }
 
@@ -150,7 +161,13 @@ fn selected_option_ids(attributes: &BTreeMap<String, toml::Value>) -> BTreeSet<S
         .into_iter()
         .filter_map(|key| attributes.get(key))
         .flat_map(|value| selected_option_ids_from_value(value).into_iter())
+        .filter_map(normalized_option_id)
         .collect()
+}
+
+fn normalized_option_id(value: String) -> Option<String> {
+    let value = value.trim();
+    (!value.is_empty()).then(|| value.to_owned())
 }
 
 fn selected_option_ids_from_value(value: &toml::Value) -> BTreeSet<String> {
@@ -185,4 +202,29 @@ fn option_id(value: Option<&toml::Value>) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn option_query_matching_is_ascii_case_insensitive_without_normalized_row_strings() {
+        assert!(contains_ascii_case_insensitive("Open Project", "open pro"));
+        assert!(!contains_ascii_case_insensitive("Open Project", "save"));
+    }
+
+    #[test]
+    fn option_set_matching_checks_id_label_and_raw_keys() {
+        let option = structured_option("file.open|label=Open Project,focused");
+
+        assert!(option_matches_set(
+            &option,
+            &BTreeSet::from(["Open Project".to_string()])
+        ));
+        assert!(!option_matches_set(
+            &option,
+            &BTreeSet::from(["file.save".to_string()])
+        ));
+    }
 }

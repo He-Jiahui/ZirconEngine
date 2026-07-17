@@ -14,7 +14,7 @@ use super::constants::{DISMISS_NODE_ID, POPUP_ROW_HEIGHT, ROOT_NODE_ID};
 use super::host_menu_pointer_bridge::HostMenuPointerBridge;
 use super::host_menu_pointer_route_intent::HostMenuPointerRouteIntent;
 use super::menu_item_spec::MenuItemSpec;
-use super::menu_item_tree::menu_item_route_index;
+use super::menu_item_tree::{menu_item_route_index, menu_item_subtree_len};
 use super::menu_items_for_layout::menu_items_for_layout;
 use super::node_ids::{
     dismiss_route_id, menu_button_node_id, menu_button_route_id, menu_item_node_id,
@@ -97,14 +97,15 @@ impl HostMenuPointerBridge {
                 EditorRouteIntent::Menu(HostMenuPointerRouteIntent::DismissOverlay),
             );
 
-            let root_items = menu_items_for_layout(&self.layout, menu_index);
+            let root_items_owner = menu_items_for_layout(&self.layout, menu_index);
+            let root_items = root_items_owner.as_ref();
             let root_grid = popup_grid_layout(
                 &self.layout,
                 menu_index,
                 self.state.popup_scroll_offset,
                 self.state.menu_bar_scroll_offset,
             );
-            let mut visible_items = root_items.clone();
+            let mut visible_items = root_items;
             let mut popup_path = Vec::new();
             let mut row_frames = insert_popup_layer(PopupLayerInsert {
                 surface: &mut surface,
@@ -113,8 +114,8 @@ impl HostMenuPointerBridge {
                 menu_index,
                 level: 0,
                 popup_path: &popup_path,
-                root_items: &root_items,
-                items: &visible_items,
+                root_items,
+                items: visible_items,
                 grid: root_grid,
                 root_scroll_metrics: Some(popup_scroll_metrics(&self.layout, menu_index)),
                 root_scroll_offset: self.state.popup_scroll_offset,
@@ -133,7 +134,7 @@ impl HostMenuPointerBridge {
                 };
 
                 popup_path.push(selected_index);
-                visible_items = branch_item.children.clone();
+                visible_items = branch_item.children.as_slice();
                 let child_grid =
                     submenu_popup_grid_layout(&self.layout, anchor_frame, visible_items.len());
                 row_frames = insert_popup_layer(PopupLayerInsert {
@@ -143,8 +144,8 @@ impl HostMenuPointerBridge {
                     menu_index,
                     level: level + 1,
                     popup_path: &popup_path,
-                    root_items: &root_items,
-                    items: &visible_items,
+                    root_items,
+                    items: visible_items,
                     grid: child_grid,
                     root_scroll_metrics: None,
                     root_scroll_offset: 0.0,
@@ -217,18 +218,20 @@ fn insert_popup_layer(args: PopupLayerInsert<'_>) -> Vec<UiFrame> {
     );
 
     let mut row_frames = Vec::with_capacity(args.items.len());
+    let mut item_index = if args.popup_path.is_empty() {
+        0
+    } else {
+        menu_item_route_index(args.root_items, args.popup_path)
+            .map(|index| index.saturating_add(1))
+            .unwrap_or(0)
+    };
     for (visible_index, item) in args.items.iter().enumerate() {
-        let node_id = menu_item_node_id(
-            args.level,
-            menu_item_route_index(args.root_items, &item_path(args.popup_path, visible_index))
-                .unwrap_or(visible_index),
-        );
+        let node_id = menu_item_node_id(args.level, item_index);
         let frame = popup_item_frame(args.grid, visible_index);
         row_frames.push(frame);
 
         let mut path = args.popup_path.to_vec();
         path.push(visible_index);
-        let item_index = menu_item_route_index(args.root_items, &path).unwrap_or(visible_index);
         let is_branch = item.enabled && item.has_children();
         let is_leaf = item.enabled && item.action_id.is_some();
         let interactive = is_branch || is_leaf;
@@ -282,14 +285,9 @@ fn insert_popup_layer(args: PopupLayerInsert<'_>) -> Vec<UiFrame> {
                 }),
             );
         }
+        item_index = item_index.saturating_add(menu_item_subtree_len(item));
     }
     row_frames
-}
-
-fn item_path(parent_path: &[usize], visible_index: usize) -> Vec<usize> {
-    let mut path = parent_path.to_vec();
-    path.push(visible_index);
-    path
 }
 
 fn popup_item_frame(grid: super::popup_layout::PopupGridLayout, item_index: usize) -> UiFrame {

@@ -100,6 +100,18 @@ class SupervisionActionTests(unittest.TestCase):
             reason=f"test {kind.value}",
         )
 
+    def _insert_cargo_job(self, job_id: str, *, status: str, live_pids: list[int]) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_jobs(
+                    job_id, session_id, lane_kind, target_dir, status, command_json,
+                    created_at, last_heartbeat_at, process_tree_live_pids_json
+                ) VALUES (?, 'executor-session', 'test', ?, ?, '[]', 'now', 'now', ?)
+                """,
+                (job_id, f"D:/cargo-targets/{job_id}", status, json.dumps(live_pids)),
+            )
+
     def test_drain_records_blockers_without_closing_admission(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN)
 
@@ -329,6 +341,162 @@ class SupervisionActionTests(unittest.TestCase):
                 ("production-stop",),
             ).fetchone()[0]
         self.assertEqual(0, intent_count)
+
+    def test_rollover_preserves_admission_and_unstarted_work_for_successor(self) -> None:
+        """A code reload must not turn an empty process window into a global drain."""
+        self._insert_cargo_job("leased-job", status="leased", live_pids=[])
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
+
+        self.assertEqual("executing", rolling.status.value)
+        self.assertTrue(self.shutdown.wait(2))
+        snapshot = self.supervision.snapshot()
+        self.assertEqual("healthy", snapshot.state.value)
+        self.assertFalse(snapshot.maintenance_hold)
+        self.assertFalse(snapshot.explicit_stop)
+        with self.database.connect() as connection:
+            intent = connection.execute(
+                "SELECT status FROM service_lifecycle_intents WHERE action_id=?",
+                (rolling.action_id,),
+            ).fetchone()
+        self.assertEqual("awaiting_restart", intent["status"])
+
+        successor = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-b",
+            process_creation_time="created-b",
+        )
+        successor.initialize()
+        successor.mark_healthy()
+        recovered = LifecycleService(successor, poll_seconds=0.01)
+        self.addCleanup(recovered.close)
+        successor_actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-b",
+                supervision=successor,
+            ),
+            self.actions.executor,
+            daemon_instance_id="daemon-b",
+            mutation_gate=successor.require_mutation_allowed,
+        )
+
+        self.assertEqual(0, successor_actions.recover_interrupted_actions())
+        self.assertEqual(1, recovered.recover_restart_intents())
+        with self.database.connect() as connection:
+            completed = connection.execute(
+                "SELECT status, result_json, error_code FROM action_requests WHERE action_id=?",
+                (rolling.action_id,),
+            ).fetchone()
+        self.assertEqual("succeeded", completed["status"], completed["error_code"])
+        self.assertEqual("daemon-b", json.loads(completed["result_json"])["successorInstanceId"])
+        with self.database.connect() as connection:
+            job = connection.execute(
+                "SELECT status, process_tree_live_pids_json FROM cargo_jobs WHERE job_id='leased-job'"
+            ).fetchone()
+        self.assertEqual("leased", job["status"])
+        self.assertEqual([], json.loads(job["process_tree_live_pids_json"]))
+        successor_snapshot = successor.snapshot()
+        self.assertEqual("healthy", successor_snapshot.state.value)
+        self.assertFalse(successor_snapshot.maintenance_hold)
+
+    def test_successor_coalesces_a_recent_rollover_without_a_second_shutdown(self) -> None:
+        first = self._confirm(ActionKind.SERVICE_ROLLOVER)
+        self.assertTrue(self.shutdown.wait(2))
+
+        successor = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-b",
+            process_creation_time="created-b",
+        )
+        successor.initialize()
+        successor.mark_healthy()
+        second_shutdown = threading.Event()
+        successor_lifecycle = LifecycleService(
+            successor,
+            shutdown=lambda _kind: second_shutdown.set(),
+            poll_seconds=0.01,
+            allow_global_shutdown=True,
+        )
+        self.addCleanup(successor_lifecycle.close)
+        successor_actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-b",
+                supervision=successor,
+            ),
+            ActionExecutor(
+                sessions=self.sessions,
+                leases=None,
+                patches=None,
+                failures=None,
+                workspace_copy=None,
+                workflows=None,
+                lifecycle=successor_lifecycle,
+            ),
+            daemon_instance_id="daemon-b",
+            mutation_gate=successor.require_mutation_allowed,
+        )
+        successor_context = ActionContext(
+            actor="second-local-executor",
+            role=WebControlRole.MAINTAINER,
+            web_session_id=None,
+            bound_session_id=None,
+            daemon_instance_id="daemon-b",
+        )
+        self.assertEqual(1, successor_lifecycle.recover_restart_intents())
+
+        preview = successor_actions.preview(
+            successor_context,
+            ActionKind.SERVICE_ROLLOVER.value,
+            {"timeoutSeconds": 5},
+        )
+        coalesced = successor_actions.confirm(
+            successor_context,
+            preview.action_id,
+            phrase=preview.confirmation_phrase or "",
+            reason="a second local monitor raced the successor startup",
+        )
+
+        self.assertEqual("succeeded", coalesced.status.value)
+        self.assertEqual(True, coalesced.result["coalesced"])
+        self.assertEqual("daemon-b", coalesced.result["successorInstanceId"])
+        self.assertFalse(second_shutdown.wait(0.1))
+        with self.database.connect() as connection:
+            rollover_count = connection.execute(
+                "SELECT COUNT(*) FROM service_lifecycle_intents WHERE kind='service.rollover'"
+            ).fetchone()[0]
+        self.assertEqual(1, rollover_count)
+
+    def test_rollover_rejects_a_live_managed_cargo_tree_without_draining(self) -> None:
+        self._insert_cargo_job("running-job", status="running", live_pids=[4242])
+        preview = self.actions.preview(
+            self.context,
+            ActionKind.SERVICE_ROLLOVER.value,
+            {"timeoutSeconds": 5},
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.actions.confirm(
+                self.context,
+                preview.action_id,
+                phrase=preview.confirmation_phrase or "",
+                reason="test service.rollover live Cargo rejection",
+            )
+
+        self.assertEqual("lifecycle_rollover_live_cargo", rejected.exception.code)
+        rolling = self.actions.get(self.context, preview.action_id)
+        self.assertEqual("failed", rolling.status.value)
+        self.assertEqual("lifecycle_rollover_live_cargo", rolling.error_code)
+        self.assertFalse(self.shutdown.wait(0.1))
+        snapshot = self.supervision.snapshot()
+        self.assertEqual("healthy", snapshot.state.value)
+        self.assertFalse(snapshot.maintenance_hold)
 
     def test_stop_remains_executing_until_critical_sections_drain(self) -> None:
         self.maintenance_active.set()
@@ -584,9 +752,15 @@ class SupervisionActionTests(unittest.TestCase):
             self._confirm(ActionKind.SERVICE_RESTART)
 
         self.assertEqual("lifecycle_already_active", rejected.exception.code)
-        resumed = self._confirm(ActionKind.SERVICE_RESUME)
+        with self.assertRaises(CoordinatorError) as resumed:
+            self._confirm(ActionKind.SERVICE_RESUME)
+        self.assertEqual("lifecycle_restart_draining", resumed.exception.code)
+        self.actions.cancel(
+            self.context,
+            stopping.action_id,
+            reason="test cleanup of reversible stop",
+        )
         self.maintenance_active.clear()
-        self.assertEqual("succeeded", resumed.status.value)
         self.assertEqual(
             "cancelled", self.actions.get(self.context, stopping.action_id).status.value
         )
@@ -627,10 +801,16 @@ class SupervisionActionTests(unittest.TestCase):
 
         self.maintenance_active.set()
         replacement = self._confirm(ActionKind.SERVICE_STOP)
-        resumed = self._confirm(ActionKind.SERVICE_RESUME)
-        self.maintenance_active.clear()
+        with self.assertRaises(CoordinatorError) as resumed:
+            self._confirm(ActionKind.SERVICE_RESUME)
         self.assertEqual("executing", replacement.status.value)
-        self.assertEqual("succeeded", resumed.status.value)
+        self.assertEqual("lifecycle_restart_draining", resumed.exception.code)
+        self.actions.cancel(
+            self.context,
+            replacement.action_id,
+            reason="test cleanup of reversible stop",
+        )
+        self.maintenance_active.clear()
 
     def test_resume_reconciles_active_intent_whose_action_is_already_terminal(self) -> None:
         orphan = self.actions.preview(
@@ -655,9 +835,14 @@ class SupervisionActionTests(unittest.TestCase):
             action_id=orphan.action_id,
         )
 
-        resumed = self._confirm(ActionKind.SERVICE_RESUME)
-
-        self.assertEqual("succeeded", resumed.status.value)
+        with self.assertRaises(CoordinatorError) as resumed:
+            self._confirm(ActionKind.SERVICE_RESUME)
+        self.assertEqual("lifecycle_restart_draining", resumed.exception.code)
+        self.supervision.fail_lifecycle(
+            orphan.action_id,
+            actor="test",
+            error_code="lifecycle_orphan_reconciled",
+        )
         with self.database.connect() as connection:
             status = connection.execute(
                 "SELECT status, error_code FROM service_lifecycle_intents WHERE action_id=?",

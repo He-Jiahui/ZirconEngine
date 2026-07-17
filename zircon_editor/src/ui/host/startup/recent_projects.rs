@@ -2,6 +2,7 @@ use std::path::Path;
 
 use crate::core::project::{ProjectAuthority, RecentProjectEntry};
 use crate::ui::workbench::startup::now_unix_ms;
+use zircon_runtime_interface::project::ProjectManifestSummary;
 
 use super::super::editor_error::EditorError;
 use super::super::editor_ui_host::EditorUiHost;
@@ -23,12 +24,20 @@ impl EditorUiHost {
 
     pub fn update_recent_project(&self, path: impl AsRef<Path>) -> Result<(), EditorError> {
         let opened = ProjectAuthority::default().open_project(path)?;
-        let path = opened.root.to_string_lossy().into_owned();
+        self.remember_opened_project(&opened.root, opened.summary)
+    }
+
+    pub(super) fn remember_opened_project(
+        &self,
+        path: &Path,
+        summary: ProjectManifestSummary,
+    ) -> Result<(), EditorError> {
+        let path = path.to_string_lossy().into_owned();
         let mut stored = self.load_startup_session()?;
         ProjectAuthority::default().remember_recent_project(
             &mut stored,
             &path,
-            opened.summary,
+            summary,
             now_unix_ms(),
         );
         self.save_startup_session(&stored)

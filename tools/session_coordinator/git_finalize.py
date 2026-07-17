@@ -11,7 +11,7 @@ from pathlib import Path
 from sqlite3 import IntegrityError
 from typing import Callable, Iterator
 
-from .baselines import BaselineHealth, BaselineService, hash_file
+from .baselines import BaselineService, hash_file
 from .database import Database
 from .failures import WORKFLOW_NODE_ID
 from .models import CoordinatorError, SessionStatus, parse_utc, utc_now, utc_text
@@ -122,14 +122,11 @@ class GitFinalizeService:
             baseline = self.baselines.current()
         else:
             self._require_index_scope(normalized)
-            unattributed = self.baselines.scan()
+            # Baseline health summarizes the whole shared worktree.  Its
+            # degraded state can be caused by unrelated preserved work, while
+            # the scoped ownership and index guards below prove this commit.
+            # Do not rehash or turn that observation into a global gate here.
             baseline = self.baselines.current()
-            if baseline.health is BaselineHealth.DEGRADED:
-                raise CoordinatorError(
-                    "finalize_baseline_degraded",
-                    "Workspace baseline is degraded",
-                    details={"paths": [change.path for change in unattributed]},
-                )
         if baseline.head_commit != self._git("rev-parse", "HEAD"):
             raise CoordinatorError(
                 "finalize_baseline_head_changed",
@@ -271,7 +268,8 @@ class GitFinalizeService:
                     connection.execute(
                         """
                         UPDATE finalize_requests
-                        SET status = 'committed', commit_sha = ?, completed_at = ?
+                        SET status = 'committed', commit_sha = ?, completed_at = ?,
+                            index_snapshot = NULL
                         WHERE request_id = ?
                         """,
                         (commit_sha, utc_text(), preview.request_id),
@@ -464,7 +462,8 @@ class GitFinalizeService:
                 with self.database.transaction() as connection:
                     connection.execute(
                         """UPDATE finalize_requests
-                           SET status = 'committed', commit_sha = ?, ref_updated_sha = ?, completed_at = ?
+                           SET status = 'committed', commit_sha = ?, ref_updated_sha = ?, completed_at = ?,
+                               index_snapshot = NULL
                            WHERE request_id = ?""",
                         (commit_sha, commit_sha, utc_text(), request_id),
                     )
@@ -605,7 +604,8 @@ class GitFinalizeService:
                 connection.execute(
                     """UPDATE finalize_requests
                        SET status='committed', commit_sha=?, ref_updated_sha=?,
-                           error_text=NULL, completed_at=COALESCE(completed_at, ?)
+                           error_text=NULL, completed_at=COALESCE(completed_at, ?),
+                           index_snapshot=NULL
                        WHERE request_id=?""",
                     (commit_sha, commit_sha, utc_text(), request_id),
                 )
@@ -668,7 +668,8 @@ class GitFinalizeService:
                     connection.execute(
                         """
                         UPDATE finalize_requests
-                        SET status = 'committed', commit_sha = ?, error_text = NULL, completed_at = ?
+                        SET status = 'committed', commit_sha = ?, error_text = NULL, completed_at = ?,
+                            index_snapshot = NULL
                         WHERE request_id = ?
                         """,
                         (current_head, utc_text(), request_id),
@@ -683,7 +684,8 @@ class GitFinalizeService:
                     connection.execute(
                         """
                         UPDATE finalize_requests
-                        SET status = 'failed', error_text = ?, completed_at = ?
+                        SET status = 'failed', error_text = ?, completed_at = ?,
+                            index_snapshot = NULL
                         WHERE request_id = ?
                         """,
                         ("service restarted during finalize", utc_text(), request_id),
@@ -703,11 +705,6 @@ class GitFinalizeService:
     def _require_finalize_guards_under_mutex(
         self, session, preview: FinalizePreview
     ) -> None:
-        if (
-            not preview.maintenance
-            and self.baselines.current().health is BaselineHealth.DEGRADED
-        ):
-            raise CoordinatorError("finalize_baseline_degraded", "Workspace baseline is degraded")
         if self.baselines.current().head_commit != self._git("rev-parse", "HEAD"):
             raise CoordinatorError(
                 "finalize_baseline_head_changed",
@@ -1468,7 +1465,8 @@ class GitFinalizeService:
             connection.execute(
                 """
                 UPDATE finalize_requests
-                SET status = 'failed', error_text = ?, completed_at = ?
+                SET status = 'failed', error_text = ?, completed_at = ?,
+                    index_snapshot = NULL
                 WHERE request_id = ? AND status <> 'committed'
                 """,
                 (error, utc_text(), request_id),

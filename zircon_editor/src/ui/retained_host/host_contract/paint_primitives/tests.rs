@@ -1,6 +1,6 @@
 use super::super::data::FrameRect;
-use super::super::paint_frame::HostRgbaFrame;
-use super::draw_rect_clipped;
+use super::super::paint_frame::{HostRecordedPaintKind, HostRgbaFrame};
+use super::{draw_border_clipped, draw_rect_clipped, draw_rounded_border_clipped};
 
 #[test]
 fn draw_rect_clipped_fills_only_clipped_span() {
@@ -78,4 +78,52 @@ fn draw_rect_clipped_skips_disjoint_active_and_explicit_clips() {
         .as_bytes()
         .chunks_exact(4)
         .all(|pixel| pixel == [0, 0, 0, 255]));
+}
+
+#[test]
+fn recording_only_square_borders_emit_one_border_command() {
+    let mut frame = HostRgbaFrame::recording_only(64, 64);
+    let rect = FrameRect {
+        x: 4.0,
+        y: 6.0,
+        width: 24.0,
+        height: 18.0,
+    };
+
+    draw_border_clipped(&mut frame, rect, None, [10, 20, 30, 255]);
+
+    let commands = frame.into_recorded_commands();
+    assert_eq!(commands.len(), 1);
+    assert!(matches!(
+        commands[0].kind,
+        HostRecordedPaintKind::Border {
+            width: 1.0,
+            corner_radius: 0.0,
+            ..
+        }
+    ));
+}
+
+#[test]
+fn recording_only_wide_square_borders_emit_one_border_command() {
+    let mut frame = HostRgbaFrame::recording_only(64, 64);
+    let rect = FrameRect {
+        x: 4.0,
+        y: 6.0,
+        width: 24.0,
+        height: 18.0,
+    };
+
+    draw_rounded_border_clipped(&mut frame, rect, None, [10, 20, 30, 255], 3.0, 0.0);
+
+    let commands = frame.into_recorded_commands();
+    assert_eq!(commands.len(), 1);
+    assert!(matches!(
+        commands[0].kind,
+        HostRecordedPaintKind::Border {
+            width: 3.0,
+            corner_radius: 0.0,
+            ..
+        }
+    ));
 }

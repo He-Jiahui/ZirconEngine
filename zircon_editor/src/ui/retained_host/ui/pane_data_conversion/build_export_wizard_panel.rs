@@ -92,15 +92,12 @@ fn build_export_wizard_panel_view_model(
 
 fn build_export_wizard_panel_first_target(
     data: &BuildExportPaneViewData,
-) -> Option<crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData> {
-    (0..data.targets.row_count())
-        .filter_map(|row| data.targets.row_data(row))
-        .next()
+) -> Option<&crate::ui::layouts::windows::workbench_host_window::BuildExportTargetViewData> {
+    data.targets.iter().next()
 }
 
 fn build_export_wizard_panel_profile_name(data: &BuildExportPaneViewData) -> String {
     build_export_wizard_panel_first_target(data)
-        .as_ref()
         .map(|target| target.preset_name.to_string())
         .filter(|profile| !profile.is_empty())
         .unwrap_or_else(|| "desktop_windows".to_string())
@@ -155,13 +152,10 @@ fn retained_template_node(
         ""
     };
     let actions = primary_route
-        .map(|route| {
+        .map(|_| {
             vec![host_contract::TemplatePaneActionData {
                 label: SharedString::from(text.clone()),
-                action_id: SharedString::from(
-                    build_export_wizard_panel_action_id(&control_id, profile_name)
-                        .unwrap_or_else(|| route.action_id.clone()),
-                ),
+                action_id: SharedString::from(action_id.clone()),
             }]
         })
         .unwrap_or_default();
@@ -255,26 +249,43 @@ fn retained_surface_variant(node: &RetainedUiHostNodeModel) -> String {
 }
 
 fn retained_text_tone(node: &RetainedUiHostNodeModel) -> String {
-    let severity = retained_string_property(&node.properties, "severity")
-        .or_else(|| node.validation_level.clone())
-        .unwrap_or_default()
-        .to_ascii_lowercase();
-    match severity.as_str() {
-        "danger" | "error" | "fatal" => "danger".to_string(),
-        "warning" => "warning".to_string(),
-        "success" => "success".to_string(),
-        "info" => "info".to_string(),
-        "disabled" => "muted".to_string(),
-        _ => retained_string_property(&node.properties, "text_tone").unwrap_or_default(),
+    let severity = retained_string_property_ref(&node.properties, "severity")
+        .or(node.validation_level.as_deref())
+        .unwrap_or_default();
+    if matches_ignore_ascii_case(severity, &["danger", "error", "fatal"]) {
+        "danger".to_string()
+    } else if severity.eq_ignore_ascii_case("warning") {
+        "warning".to_string()
+    } else if severity.eq_ignore_ascii_case("success") {
+        "success".to_string()
+    } else if severity.eq_ignore_ascii_case("info") {
+        "info".to_string()
+    } else if severity.eq_ignore_ascii_case("disabled") {
+        "muted".to_string()
+    } else {
+        retained_string_property(&node.properties, "text_tone").unwrap_or_default()
     }
+}
+
+fn matches_ignore_ascii_case(value: &str, candidates: &[&str]) -> bool {
+    candidates
+        .iter()
+        .any(|candidate| value.eq_ignore_ascii_case(candidate))
 }
 
 fn retained_string_property(
     properties: &BTreeMap<String, RetainedUiHostValue>,
     key: &str,
 ) -> Option<String> {
+    retained_string_property_ref(properties, key).map(str::to_owned)
+}
+
+fn retained_string_property_ref<'a>(
+    properties: &'a BTreeMap<String, RetainedUiHostValue>,
+    key: &str,
+) -> Option<&'a str> {
     match properties.get(key) {
-        Some(RetainedUiHostValue::String(value)) => Some(value.clone()),
+        Some(RetainedUiHostValue::String(value)) => Some(value),
         _ => None,
     }
 }

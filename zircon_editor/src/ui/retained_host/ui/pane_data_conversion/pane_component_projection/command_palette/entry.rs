@@ -27,8 +27,15 @@ impl CommandProjectionEntry {
         let Some(query) = query.map(str::trim).filter(|query| !query.is_empty()) else {
             return false;
         };
-        let query = query.to_ascii_lowercase();
-        self.id.to_ascii_lowercase().contains(query.as_str())
-            || self.label.to_ascii_lowercase().contains(query.as_str())
+        contains_ascii_case_insensitive(&self.id, query)
+            || contains_ascii_case_insensitive(&self.label, query)
     }
+}
+
+fn contains_ascii_case_insensitive(value: &str, expected: &str) -> bool {
+    expected.is_empty()
+        || value
+            .as_bytes()
+            .windows(expected.len())
+            .any(|window| window.eq_ignore_ascii_case(expected.as_bytes()))
 }

@@ -10,6 +10,7 @@ from ..event_payloads import (
     project_control_event_payload,
 )
 from ..workflows.projections import WorkflowProjectionService
+from ..work_continuations import WorkContinuationService
 
 
 class ControlSnapshotService:
@@ -23,10 +24,13 @@ class ControlSnapshotService:
         database: Database,
         workflows: WorkflowProjectionService,
         service_state: Callable[[object], dict[str, object]],
+        *,
+        repo_root: str | Path | None = None,
     ):
         self.database = database
         self.workflows = workflows
         self.service_state = service_state
+        self.continuations = WorkContinuationService(repo_root)
 
     def build(self) -> dict[str, object]:
         with self.database.connect() as connection:
@@ -48,6 +52,10 @@ class ControlSnapshotService:
                     "failures": self._failures(connection),
                     "collaboration": self._collaboration(connection),
                     "validation": self._validation(connection),
+                    "experience": {
+                        **self._experience(connection),
+                        "continuations": self.continuations.project(connection),
+                    },
                     "git": self._git(connection),
                     "audit": self._audit(connection),
                 }
@@ -250,16 +258,17 @@ class ControlSnapshotService:
                 WHERE status NOT IN ('leased', 'running')
                 ORDER BY created_at DESC, job_id DESC LIMIT ?
             )
-            SELECT * FROM cargo_jobs
+            SELECT job_id, session_id, lane_kind, status, created_at,
+                   started_at, finished_at, released_at, cleanup_policy, cleanup_status,
+                   process_tree_observed_at, process_tree_exited_at
+            FROM cargo_jobs
             WHERE status IN ('leased', 'running')
                OR job_id IN (SELECT job_id FROM recent_terminal)
             ORDER BY created_at DESC, job_id DESC
             """,
             (ControlSnapshotService._TERMINAL_HISTORY_LIMIT,),
         ):
-            item = dict(row)
-            item["command"] = json.loads(item.pop("command_json"))
-            jobs.append(item)
+            jobs.append(ControlSnapshotService._cargo_lane_projection(row))
         copies = []
         for row in connection.execute(
             """
@@ -285,11 +294,110 @@ class ControlSnapshotService:
         ):
             copies.append(dict(row))
         current_targets = ControlSnapshotService._current_cargo_targets(connection)
+        cpu_burst = connection.execute(
+            """
+            SELECT
+                CASE WHEN EXISTS(
+                    SELECT 1 FROM cargo_lane_reservations
+                    WHERE lane_scope='cpu' AND execution_mode='burst'
+                      AND status IN ('leased', 'running', 'finished')
+                ) THEN 1 ELSE 0 END AS active,
+                COALESCE(SUM(CASE
+                    WHEN lane_scope='cpu' AND execution_mode='warm'
+                     AND burst_eligible=1 AND status='pending' THEN 1
+                    ELSE 0
+                END), 0) AS eligible_pending
+            FROM cargo_lane_reservations
+            """
+        ).fetchone()
+        reservations = []
+        for row in connection.execute(
+            """
+            WITH active_reservations AS (
+                SELECT reservation_id, session_id, lane_scope, execution_mode, burst_eligible,
+                       status, created_at, expires_at,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY lane_scope, execution_mode
+                           ORDER BY created_at, reservation_id
+                       ) AS queue_position
+                FROM cargo_lane_reservations
+                WHERE status IN ('pending', 'leased', 'running')
+            )
+            SELECT reservation_id, session_id, lane_scope, execution_mode, burst_eligible,
+                   status, queue_position,
+                   created_at, expires_at
+            FROM active_reservations
+            ORDER BY CASE lane_scope WHEN 'cpu' THEN 0 ELSE 1 END,
+                     CASE execution_mode WHEN 'warm' THEN 0 ELSE 1 END,
+                     queue_position, reservation_id
+            LIMIT 20
+            """
+        ):
+            reservations.append(
+                {
+                    "reservationId": row["reservation_id"],
+                    "sessionId": row["session_id"],
+                    "laneScope": row["lane_scope"],
+                    "executionMode": row["execution_mode"],
+                    "burstEligible": bool(row["burst_eligible"]),
+                    "status": row["status"],
+                    "queuePosition": int(row["queue_position"]),
+                    "createdAt": row["created_at"],
+                    "expiresAt": row["expires_at"],
+                }
+            )
         return {
             "cargoJobs": jobs,
             "validationCopies": copies,
             "currentCargoTargets": current_targets,
+            "cargoReservations": reservations,
+            "cpuBurst": {
+                "capacity": 1,
+                "active": int(cpu_burst["active"]),
+                "eligiblePending": int(cpu_burst["eligible_pending"]),
+            },
             "artifactLifecycle": ControlSnapshotService._artifact_lifecycle(current_targets),
+        }
+
+    @staticmethod
+    def _experience(connection) -> dict[str, object]:
+        """Project small operator-facing flow metrics without exposing raw history."""
+        sync = connection.execute(
+            """
+            SELECT COUNT(*) AS runs,
+                   COALESCE(SUM(CASE WHEN changed_count=0 THEN 1 ELSE 0 END), 0) AS quiet_runs,
+                   COALESCE(SUM(changed_count), 0) AS visible_changes,
+                   COALESCE(ROUND(AVG(duration_ms)), 0) AS average_duration_ms
+            FROM codex_sync_runs
+            WHERE julianday(created_at) >= julianday('now', '-1 day')
+            """,
+        ).fetchone()
+        blockers = [
+            {
+                "kind": "cargo",
+                "ownerSessionId": row["session_id"],
+                "laneKind": row["lane_kind"],
+                "status": row["status"],
+                "createdAt": row["created_at"],
+            }
+            for row in connection.execute(
+                """
+                SELECT session_id, lane_kind, status, created_at
+                FROM cargo_jobs
+                WHERE status IN ('leased', 'running')
+                ORDER BY CASE status WHEN 'running' THEN 0 ELSE 1 END, created_at, job_id
+                LIMIT 20
+                """
+            )
+        ]
+        return {
+            "sync": {
+                "runs": int(sync["runs"]),
+                "quietRuns": int(sync["quiet_runs"]),
+                "visibleChanges": int(sync["visible_changes"]),
+                "averageDurationMs": int(sync["average_duration_ms"]),
+            },
+            "blockers": blockers,
         }
 
     @staticmethod
@@ -306,7 +414,9 @@ class ControlSnapshotService:
                 FROM cargo_jobs
                 WHERE target_dir <> ''
             )
-            SELECT *
+            SELECT job_id, session_id, lane_kind, status, created_at,
+                   started_at, finished_at, released_at, cleanup_policy, cleanup_status,
+                   process_tree_observed_at, process_tree_exited_at, target_dir
             FROM latest_target
             WHERE row_number=1 AND cleanup_status <> 'deleted'
             ORDER BY created_at DESC, job_id DESC
@@ -320,11 +430,33 @@ class ControlSnapshotService:
                 exists = False
             if not exists:
                 continue
-            item = dict(row)
-            item.pop("row_number")
-            item["command"] = json.loads(item.pop("command_json"))
-            targets.append(item)
+            targets.append(ControlSnapshotService._cargo_lane_projection(row))
         return targets
+
+    @staticmethod
+    def _cargo_lane_projection(row) -> dict[str, object]:
+        """Expose only the lane state needed to explain a local validation wait."""
+        process_observation = "not_applicable"
+        if row["status"] == "running":
+            if row["process_tree_exited_at"] is not None:
+                process_observation = "reconciling"
+            elif row["process_tree_observed_at"] is not None:
+                process_observation = "observed"
+            else:
+                process_observation = "awaiting_observation"
+        return {
+            "job_id": row["job_id"],
+            "session_id": row["session_id"],
+            "lane_kind": row["lane_kind"],
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "started_at": row["started_at"],
+            "finished_at": row["finished_at"],
+            "released_at": row["released_at"],
+            "cleanup_policy": row["cleanup_policy"],
+            "cleanup_status": row["cleanup_status"],
+            "process_observation": process_observation,
+        }
 
     @staticmethod
     def _artifact_lifecycle(current_targets: list[dict[str, object]]) -> dict[str, int]:

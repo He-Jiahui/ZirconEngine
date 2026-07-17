@@ -77,6 +77,9 @@ class LifecycleService:
             )
         if kind is LifecycleKind.RESUME:
             self._require_resume_not_restarting()
+        if kind is LifecycleKind.ROLLOVER:
+            if coalesced := self.supervision.recent_rollover_successor():
+                return coalesced
         deadline = utc_now() + timedelta(seconds=timeout_seconds)
         intent_id = self.supervision.create_intent(
             kind,
@@ -94,6 +97,15 @@ class LifecycleService:
                 release_maintenance_hold=release_maintenance_hold,
                 maintenance_hold_action_id=maintenance_hold_action_id,
             )
+        except CoordinatorError as error:
+            with self._lock:
+                self._workers.pop(intent_id, None)
+            self.supervision.fail_lifecycle(
+                action_id,
+                actor=actor,
+                error_code=error.code,
+            )
+            raise
         except BaseException:
             with self._lock:
                 self._workers.pop(intent_id, None)
@@ -112,8 +124,8 @@ class LifecycleService:
                 SELECT action_id
                 FROM service_lifecycle_intents
                 WHERE repository_key=?
-                  AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
-                  AND status IN ('accepted', 'draining')
+                  AND kind IN ('service.stop', 'service.restart', 'service.force_stop', 'service.rollover')
+                  AND status IN ('accepted', 'draining', 'awaiting_restart')
                 ORDER BY created_at
                 LIMIT 1
                 """,
@@ -239,6 +251,22 @@ class LifecycleService:
                 "admissionOpen": True,
                 "blockers": [item.to_dict() for item in blockers],
             }
+        if kind is LifecycleKind.ROLLOVER:
+            result = self.supervision.arm_rollover(
+                intent_id,
+                action_id=action_id,
+                actor=actor,
+            )
+            worker = threading.Thread(
+                target=self._shutdown_after_commit,
+                args=(kind, action_id),
+                name=f"zircon-lifecycle-rollover-{intent_id[:8]}",
+                daemon=True,
+            )
+            with self._lock:
+                self._workers[intent_id] = worker
+            worker.start()
+            return {**result, "deferred": True}
         self.supervision.transition(
             SupervisionState.DRAINING,
             reason_code=f"lifecycle.{kind.name.lower()}.accepted",
@@ -319,7 +347,7 @@ class LifecycleService:
                 SELECT action_id
                 FROM service_lifecycle_intents
                 WHERE repository_key=?
-                  AND kind IN ('service.stop', 'service.restart', 'service.force_stop')
+                  AND kind IN ('service.stop', 'service.restart', 'service.force_stop', 'service.rollover')
                   AND status IN ('accepted', 'draining')
                   AND source_daemon_instance_id<>?
                 ORDER BY created_at
@@ -361,7 +389,7 @@ class LifecycleService:
             rows = connection.execute(
                 """
                 SELECT intent_id, action_id FROM service_lifecycle_intents
-                WHERE repository_key=? AND kind='service.restart'
+                WHERE repository_key=? AND kind IN ('service.restart', 'service.rollover')
                   AND status='awaiting_restart'
                 ORDER BY created_at
                 """,

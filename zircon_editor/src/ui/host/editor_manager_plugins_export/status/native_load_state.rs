@@ -1,12 +1,11 @@
 use zircon_runtime::plugin::native::NativePluginLoadReport;
 
 pub(super) fn native_load_state(report: &NativePluginLoadReport, plugin_id: &str) -> String {
-    let loaded_plugins = report
+    let has_loaded_plugin = report
         .loaded
         .iter()
-        .filter(|plugin| plugin.plugin_id == plugin_id)
-        .collect::<Vec<_>>();
-    if !loaded_plugins.is_empty() {
+        .any(|plugin| plugin.plugin_id == plugin_id);
+    if has_loaded_plugin {
         let diagnostics = report.diagnostics_for_plugin(plugin_id);
         if diagnostics
             .iter()
@@ -14,9 +13,10 @@ pub(super) fn native_load_state(report: &NativePluginLoadReport, plugin_id: &str
         {
             return "entry failed".to_string();
         }
-        if loaded_plugins
+        if report
+            .loaded
             .iter()
-            .any(|plugin| plugin.descriptor.is_none())
+            .any(|plugin| plugin.plugin_id == plugin_id && plugin.descriptor.is_none())
         {
             return "loaded without descriptor".to_string();
         }
@@ -39,4 +39,15 @@ pub(super) fn native_load_state(report: &NativePluginLoadReport, plugin_id: &str
         return "load failed".to_string();
     }
     "manifest only".to_string()
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn native_load_state_streams_loaded_plugin_checks() {
+        let source = include_str!("native_load_state.rs");
+        let temporary_vector = [".collect::<", "Vec<_>>", "()"].concat();
+
+        assert!(!source.contains(&temporary_vector));
+    }
 }

@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock};
 
@@ -10,15 +10,15 @@ use crate::ui::retained_host::primitives::{Image, Rgba8Pixel, SharedPixelBuffer}
 const ICON_PREVIEW_PLACEHOLDER_SIZE: u32 = 24;
 
 pub(crate) fn load_preview_image(source: &str, icon_name: &str) -> Image {
-    let key = PreviewImageCacheKey::new(source, icon_name);
     {
         zircon_runtime::profile_scope!("editor", "retained_host", "preview_image_cache_lookup");
-        if let Some(image) = preview_image_cache()
-            .lock()
-            .expect("preview image cache mutex should not be poisoned")
-            .get(&key)
-            .cloned()
-        {
+        if let Some(image) = cached_preview_image(
+            &preview_image_cache()
+                .lock()
+                .expect("preview image cache mutex should not be poisoned"),
+            source,
+            icon_name,
+        ) {
             return image;
         }
     }
@@ -30,7 +30,9 @@ pub(crate) fn load_preview_image(source: &str, icon_name: &str) -> Image {
     preview_image_cache()
         .lock()
         .expect("preview image cache mutex should not be poisoned")
-        .insert(key, image.clone());
+        .entry(source.to_owned())
+        .or_default()
+        .insert(icon_name.to_owned(), image.clone());
     image
 }
 
@@ -75,24 +77,18 @@ fn icon_preview_placeholder() -> Image {
         .clone()
 }
 
-#[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
-struct PreviewImageCacheKey {
-    source: String,
-    icon_name: String,
+type PreviewImageCache = HashMap<String, HashMap<String, Image>>;
+
+fn cached_preview_image(cache: &PreviewImageCache, source: &str, icon_name: &str) -> Option<Image> {
+    cache
+        .get(source)
+        .and_then(|icons| icons.get(icon_name))
+        .cloned()
 }
 
-impl PreviewImageCacheKey {
-    fn new(source: &str, icon_name: &str) -> Self {
-        Self {
-            source: source.to_string(),
-            icon_name: icon_name.to_string(),
-        }
-    }
-}
-
-fn preview_image_cache() -> &'static Mutex<BTreeMap<PreviewImageCacheKey, Image>> {
-    static CACHE: OnceLock<Mutex<BTreeMap<PreviewImageCacheKey, Image>>> = OnceLock::new();
-    CACHE.get_or_init(|| Mutex::new(BTreeMap::new()))
+fn preview_image_cache() -> &'static Mutex<PreviewImageCache> {
+    static CACHE: OnceLock<Mutex<PreviewImageCache>> = OnceLock::new();
+    CACHE.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 #[cfg(test)]
@@ -108,7 +104,9 @@ fn preview_image_cache_len() -> usize {
     preview_image_cache()
         .lock()
         .expect("preview image cache mutex should not be poisoned")
-        .len()
+        .values()
+        .map(HashMap::len)
+        .sum()
 }
 
 fn load_preview_image_from_path(path: &Path) -> Option<Image> {
@@ -287,6 +285,17 @@ mod tests {
         assert_eq!(len_after_first, 1);
         assert_eq!(len_after_second, 1);
         assert_eq!(first.size(), second.size());
+    }
+
+    #[test]
+    fn preview_cache_hit_accepts_borrowed_key_components() {
+        let mut cache = PreviewImageCache::new();
+        cache
+            .entry("res://icons/close.svg".to_owned())
+            .or_default()
+            .insert("close".to_owned(), Image::default());
+
+        assert!(cached_preview_image(&cache, "res://icons/close.svg", "close").is_some());
     }
 
     #[test]

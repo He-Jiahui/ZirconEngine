@@ -28,10 +28,11 @@ impl DefaultSoundManager {
 
     #[cfg(test)]
     pub(crate) fn insert_clip_for_test(&self, asset: SoundAsset) -> SoundClipId {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let loaded = LoadedClip::new(asset).expect("test sound asset must map to Kira M1 data");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         state.next_clip_id += 1;
         let clip_id = SoundClipId::new(state.next_clip_id);
-        state.clips.insert(clip_id, LoadedClip { asset });
+        state.clips.insert(clip_id, loaded);
         clip_id
     }
 
@@ -49,8 +50,9 @@ impl DefaultSoundManager {
         let asset = asset_manager
             .load_sound_asset(asset_id)
             .map_err(|error| SoundError::Decode(error.to_string()))?;
+        let loaded = LoadedClip::new(asset)?;
 
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         if let Some(existing) = state.clip_ids_by_locator.get(locator).copied() {
             return Ok(existing);
         }
@@ -60,12 +62,12 @@ impl DefaultSoundManager {
         state
             .clip_ids_by_locator
             .insert(locator.to_string(), clip_id);
-        state.clips.insert(clip_id, LoadedClip { asset });
+        state.clips.insert(clip_id, loaded);
         Ok(clip_id)
     }
 
     pub(super) fn clip_info_impl(&self, clip: SoundClipId) -> Result<SoundClipInfo, SoundError> {
-        let state = self.state.lock().expect("sound state mutex poisoned");
+        let state = crate::poison_recovery::lock_recover(&self.state);
         let clip = state
             .clips
             .get(&clip)

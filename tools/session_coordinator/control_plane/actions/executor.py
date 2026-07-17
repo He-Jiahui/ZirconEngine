@@ -71,7 +71,10 @@ class ActionExecutor:
         kind = spec.kind
         if kind is ActionKind.SESSION_HEARTBEAT:
             value = self._session(parameters)
-            return {"session": self.sessions.heartbeat(value.session_id).to_dict()}
+            return {
+                "session": self.sessions.heartbeat(value.session_id).to_dict(),
+                "leases": {"renewed": self.leases.heartbeat(value.session_id)},
+            }
         if kind is ActionKind.SESSION_ACTIVATE:
             value = self._session(parameters)
             try:
@@ -248,6 +251,7 @@ class ActionExecutor:
         if kind in {
             ActionKind.SERVICE_DRAIN,
             ActionKind.SERVICE_RESUME,
+            ActionKind.SERVICE_ROLLOVER,
             ActionKind.SERVICE_STOP,
             ActionKind.SERVICE_RESTART,
             ActionKind.SERVICE_FORCE_STOP,

@@ -1,0 +1,57 @@
+---
+handoff_kind: failure
+status: open
+created_at: 2026-07-17
+summary_slug: job-pump-budget-and-pending-scan
+origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
+fixing_plan: docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md
+origin_child_dir: docs/plans/performance/01
+fixing_child_dir: docs/plans/zircon_editor/editor/14
+plan_link_mode: child_record_only
+related_code:
+  - zircon_editor/src/core/jobs/pump.rs
+  - zircon_editor/src/core/jobs/system/mod.rs
+  - zircon_editor/src/core/jobs/system/state.rs
+  - zircon_editor/src/core/jobs/tests/background_storm_contract.rs
+tests:
+  - 1000/10000 job promotion complexity benchmark
+  - count/time-budgeted main-thread pump storm
+  - progress coalescing preserves started and terminal edges
+---
+
+# Editor14：job pump 无帧配额且 pending admission 接近 O(n²)
+
+## 来源执行者
+
+- 来源计划：`docs/plans/performance/01-mvp-performance-audit-and-optimization.md`
+- 来源执行者：`20260717-0515-performance-mvp-audit`
+- 来源执行切片：Editor jobs 19 个生产 Rust 文件静态审查与 1,000-job storm 合同复核
+- 修复责任计划：`docs/plans/zircon_editor/editor/14-threading-and-job-scheduling.md`
+- 交接原因：job admission、worker→main 回流配额与 progress 合并属于 Editor14 调度契约。
+
+## 失败现象与复现证据
+
+`JobEventPump::pump` 对 unbounded MPSC 一直 drain 到空，并逐事件同步发布；retained host 每 tick 调用它。现有 1,000-job storm 明确输出 `numeric_budget=undefined`，未设置每帧 count/time SLA。
+
+pending 使用 `Vec`；每次 promote 全量 `filter/min_by_key`，再 `remove(index)`，每个 job 完成又重跑。长队列累计扫描/搬移接近 O(n²)。
+
+## 最低共享层根因
+
+Editor job model 只有 active-category 并发配额，没有主线程 delivery 配额、queue age/peak 或按 priority/category 可增量准入的数据结构。上层 retained tick 无法安全决定何时停止 drain。
+
+## 架构修复验收
+
+- 1,000/10,000 job 分离测 submit、promotion、completion 和 pump p50/p95/allocations。
+- 定义 count 与 time 双预算；Started/terminal 保序不可丢，Progress 可按 JobId latest-value 合并。
+- 选择 priority/category/dependency-aware ready queues 或索引，证明大队列不再二次增长。
+- 当前源码 editor WPR 验证主线程帧预算、worker 利用率、shutdown 和公平性。
+
+## 禁止临时方案
+
+- 不得通过降低 worker 并发掩盖主线程 pump；不得丢 terminal/cancel/error 事件。
+- 不得把 wall-clock 观察值当通过阈值，必须冻结可复现预算。
+
+## 修复结果与回传
+
+Open state: `待 Editor14 建立 pump SLA、progress 合并与可扩展 admission`。
+

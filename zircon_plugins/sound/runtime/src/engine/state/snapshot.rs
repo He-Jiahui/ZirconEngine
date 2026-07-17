@@ -4,7 +4,7 @@ use super::SoundEngineState;
 
 impl SoundEngineState {
     pub(crate) fn snapshot(&self) -> SoundMixerSnapshot {
-        let mut graph = self.graph.clone();
+        let mut graph = (*self.graph).clone();
         graph.sources = self
             .sources
             .values()

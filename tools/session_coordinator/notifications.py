@@ -187,6 +187,80 @@ class WeComNotificationService:
                 self._sanitize(str(error)),
             )
 
+    def record_post_commit_failure(
+        self,
+        *,
+        commit_sha: str,
+        error: Exception,
+        run_id: str | None = None,
+        topology_version_id: str | None = None,
+        node_id: str | None = None,
+        action_id: str | None = None,
+    ) -> NotificationAttemptRecord:
+        """Persist a non-delivery outcome without ever re-opening a committed milestone."""
+        attempt_id = uuid.uuid4().hex
+        completed_at = utc_text()
+        sanitized_error = self._sanitize(
+            f"post-commit notification preparation failed: {error}"
+        )
+        try:
+            with self.database.transaction() as connection:
+                existing = connection.execute(
+                    """SELECT * FROM notification_attempts
+                       WHERE commit_sha=? AND channel='wecom'""",
+                    (commit_sha,),
+                ).fetchone()
+                if existing is not None:
+                    return self._record(existing)
+                connection.execute(
+                    """INSERT INTO notification_attempts(
+                           notification_attempt_id, run_id, topology_version_id,
+                           node_id, action_id, commit_sha, channel, status,
+                           message_hash, attempted_at, completed_at, sanitized_error
+                       ) VALUES (?, ?, ?, ?, ?, ?, 'wecom', 'unknown', ?, ?, ?, ?)""",
+                    (
+                        attempt_id,
+                        run_id,
+                        topology_version_id,
+                        node_id,
+                        action_id,
+                        commit_sha,
+                        hashlib.sha256(
+                            b"post-commit notification preparation failure"
+                        ).hexdigest(),
+                        completed_at,
+                        completed_at,
+                        sanitized_error,
+                    ),
+                )
+                row = connection.execute(
+                    "SELECT * FROM notification_attempts WHERE notification_attempt_id=?",
+                    (attempt_id,),
+                ).fetchone()
+            return self._record(row)
+        except Exception:
+            try:
+                with self.database.connect() as connection:
+                    existing = connection.execute(
+                        """SELECT * FROM notification_attempts
+                           WHERE commit_sha=? AND channel='wecom'""",
+                        (commit_sha,),
+                    ).fetchone()
+                if existing is not None:
+                    return self._record(existing)
+            except Exception:
+                pass
+            return NotificationAttemptRecord(
+                attempt_id,
+                commit_sha,
+                "unknown",
+                completed_at,
+                completed_at,
+                None,
+                None,
+                sanitized_error,
+            )
+
     def recover_reserved(self) -> tuple[str, ...]:
         """Fail closed after a crash: delivery may have happened, so never retry."""
         now = utc_text()

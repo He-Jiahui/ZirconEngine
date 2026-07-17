@@ -67,7 +67,7 @@ fn runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_ow
         &[
             "pub(super) fn project_nodes<T, F>(",
             "pub(super) fn project_node_vec<T, F>(",
-            ".filter_map(|row| nodes.row_data(row))",
+            "nodes.iter()",
             ".map(&mut map)",
         ],
     );
@@ -78,7 +78,7 @@ fn runtime_15_editor_retained_host_pane_data_conversion_uses_child_projection_ow
             "fn animation_template_projection(",
             "PanePayload::AnimationSequenceV1",
             "PanePayload::AnimationGraphV1",
-            "project_nodes(&data.nodes, to_host_contract_template_node_owned)",
+            "project_nodes(&data.nodes, to_host_contract_template_node)",
         ],
     );
     assert_contains_all(

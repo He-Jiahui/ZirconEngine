@@ -1,5 +1,6 @@
 ---
 related_code:
+  - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
@@ -31,6 +32,7 @@ related_code:
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/theme/editor_base.zui
 implementation_files:
+  - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/layouts/views/view_projection.rs
   - zircon_editor/src/ui/layouts/views/view_projection/tests.rs
   - zircon_editor/src/ui/asset_editor/node_projection.rs
@@ -62,10 +64,13 @@ implementation_files:
   - zircon_editor/assets/ui/theme/editor_material.zui
   - zircon_editor/assets/ui/theme/editor_base.zui
 plan_sources:
+  - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - user: 2026-05-11 hard-cut editor first screen and core panes to UI v2 schema
   - user: 2026-05-12 continue removing old schema fallback from editor UI v2 projection
   - user: 2026-06-24 implement editor_layout visual architecture and screenshot acceptance
 tests:
+  - preview_cache_hit_accepts_borrowed_key_components (2026-07-17: current-source coordinated Cargo pending)
+  - preview_loader_reuses_cached_svg_icons (2026-07-17: current-source coordinated Cargo pending)
   - cargo check -p zircon_editor (2026-05-11: passed)
   - cargo test -p zircon_editor asset_browser -- --nocapture (2026-05-11: passed, 6 passed)
   - cargo test -p zircon_editor template_assets -- --nocapture (2026-05-11: passed, 9 passed)
@@ -195,3 +200,9 @@ The 2026-07-04 runtime badge-measure pass keeps compact Asset Browser metadata f
 The 2026-07-04 file-name compaction pass applies the same rule to Asset Browser row, tile, and selected-summary names. `asset_browser/name_compaction.rs` is the shared owner for extension-preserving `prefix...tail.ext` truncation, and `table_nodes.rs`, `thumbnail_nodes.rs`, and `summary_nodes.rs` now choose the compacted text by `measure_runtime_text_width(...)` instead of visible-character budgets. This directly addresses file labels such as `editor base.zui` and `folder-open-line.svg`, where same-length narrow and wide glyph strings need different visual treatment under the resolved UI font.
 
 The focused Asset Browser tests assert these frames directly: compact toolbar/search/kind/view/import strip geometry, utility content height 0, all duplicate Preview utility projections collapsed in short viewports, details width 0, sources width 0, the content panel expanded across the reclaimed columns, one visible content panel, one visible table panel, compact header geometry, table closure on the fourth asset row, and the selected-preview card staying inside the content panel. The M3 screenshot harness refreshes `docs/tests/editor/editor-window-m3-workbench-900x620.png` and `docs/tests/editor/editor-window-m3-asset-browser-900x620.png`.
+
+## Retained Host Consumption Performance
+
+The 2026-07-17 pane conversion audit keeps v2 projection outputs borrowed until the host contract requires owned fields. Animation, Console, Hierarchy, and Inspector native fallbacks no longer clone their complete pane DTO before conversion. Command Palette and Notification Center parse specialized entries once and derive both plain and structured option rows from that one typed list; filtered command lookup uses a first-entry-preserving hash index rather than scanning every command for each filter id.
+
+Component metadata conversion now borrows unchanged button attribute maps, variant and color strings, and fixed world-transform components. Virtual collection windows stop iteration after the visible range plus overscan. UI Asset detail conversion borrows inspector prop/state rows. These are consumer-side reductions only: compiled template/property generations and changed-section indexes remain owned by EditorUI05/08, and current-source Cargo plus scale evidence is required before dynamic acceptance.

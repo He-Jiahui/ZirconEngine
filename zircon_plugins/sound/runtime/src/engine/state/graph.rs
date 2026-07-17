@@ -1,56 +1,38 @@
-use zircon_runtime::core::framework::sound::{SoundError, SoundTrackDescriptor, SoundTrackId};
+use std::sync::Arc;
+
+use zircon_runtime::core::framework::sound::SoundMixerGraph;
 
 use super::SoundEngineState;
 
+#[derive(Clone)]
+pub(crate) struct SoundGraphSnapshot {
+    pub(crate) revision: u64,
+    pub(crate) graph: Arc<SoundMixerGraph>,
+}
+
 impl SoundEngineState {
-    pub(crate) fn add_or_replace_track(
-        &mut self,
-        track: SoundTrackDescriptor,
-    ) -> Result<(), SoundError> {
-        if track.id == SoundTrackId::master() && track.parent.is_some() {
-            return Err(SoundError::InvalidMixerGraph(
-                "master track cannot have a parent track".to_string(),
-            ));
+    pub(crate) fn graph_snapshot(&self) -> SoundGraphSnapshot {
+        SoundGraphSnapshot {
+            revision: self.graph_revision,
+            graph: Arc::clone(&self.graph),
         }
-        let mut graph = self.graph.clone();
-        if let Some(existing) = graph
-            .tracks
-            .iter_mut()
-            .find(|existing| existing.id == track.id)
-        {
-            *existing = track;
-        } else {
-            graph.tracks.push(track);
-        }
-        super::super::validation::validate_graph(&graph)?;
-        self.graph = graph;
-        Ok(())
     }
 
-    pub(crate) fn remove_track(&mut self, track: SoundTrackId) -> Result<(), SoundError> {
-        if track == SoundTrackId::master() {
-            return Err(SoundError::InvalidMixerGraph(
-                "master track cannot be removed".to_string(),
-            ));
-        }
-        let mut graph = self.graph.clone();
-        let before = graph.tracks.len();
-        graph.tracks.retain(|existing| existing.id != track);
-        if before == graph.tracks.len() {
-            return Err(SoundError::UnknownTrack { track });
-        }
-        super::super::validation::validate_graph(&graph)?;
-        self.graph = graph;
-        for playback in self.playbacks.values_mut() {
-            if playback.output_track == track {
-                playback.output_track = SoundTrackId::master();
-            }
-        }
-        for source in self.sources.values_mut() {
-            if source.descriptor.output_track == track {
-                source.descriptor.output_track = SoundTrackId::master();
-            }
-        }
-        Ok(())
+    pub(crate) fn replace_graph(&mut self, graph: SoundMixerGraph) {
+        self.graph = Arc::new(graph);
+        self.graph_revision = self.graph_revision.wrapping_add(1);
+    }
+
+    pub(crate) fn update_graph_format(
+        &mut self,
+        sample_rate_hz: u32,
+        channel_count: u16,
+        channel_layout: zircon_runtime::core::framework::audio::AudioChannelLayout,
+    ) {
+        let graph = Arc::make_mut(&mut self.graph);
+        graph.sample_rate_hz = sample_rate_hz;
+        graph.channel_count = channel_count;
+        graph.channel_layout = channel_layout;
+        self.graph_revision = self.graph_revision.wrapping_add(1);
     }
 }

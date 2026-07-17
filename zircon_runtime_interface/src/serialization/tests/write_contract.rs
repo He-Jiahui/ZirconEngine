@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use super::super::binary::{MAX_BINARY_BODY_BYTES, MAX_BINARY_STRING_BYTES};
 use super::super::{
-    Format, MigrationChain, SchemaId, VersionedSchema, WriteError, load_versioned, write_versioned,
-    write_versioned_text,
+    load_versioned, write_versioned, write_versioned_text, Format, MigrationChain, SchemaId,
+    VersionedSchema, WriteError,
 };
 use super::FixtureDocument;
 

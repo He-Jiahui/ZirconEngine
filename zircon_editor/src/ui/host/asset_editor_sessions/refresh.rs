@@ -228,8 +228,7 @@ impl EditorUiHost {
                                 .map(|reference| (reference, UiAssetKind::Style)),
                         )
                         .filter(|(reference, _)| {
-                            changed_asset_ids
-                                .contains(&normalize_ui_asset_asset_id(reference).to_string())
+                            changed_asset_ids.contains(normalize_ui_asset_asset_id(reference))
                         })
                         .collect::<Vec<_>>();
                     (!matching.is_empty()).then(|| (instance_id.clone(), matching))
@@ -342,4 +341,19 @@ fn rebuild_ui_asset_session_from_source(
     let preview_size = preview_size_for_preset(route.preview_preset);
     build_ui_asset_editor_session_from_source(route, source, preview_size)
         .map_err(|error| EditorError::UiAsset(error.to_string()))
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn changed_import_lookup_borrows_the_normalized_asset_id() {
+        let source = include_str!("refresh.rs");
+        let owned_lookup = [
+            "contains(&normalize_ui_asset_asset_id(reference)",
+            ".to_string())",
+        ]
+        .concat();
+
+        assert!(!source.contains(&owned_lookup));
+    }
 }

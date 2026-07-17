@@ -26,3 +26,12 @@ mod sources;
 mod timeline_sequences;
 
 pub use manager_state::{DefaultSoundManager, SoundDriver};
+
+pub(crate) use playback_controls::kira_slice_position_for_absolute_frame;
+pub(crate) use playback_status::absolute_position_from_kira_slice;
+pub(crate) use source_controls::{
+    mute_bound_source, pause_bound_source, resume_bound_source, set_bound_source_gain,
+    set_bound_source_speed,
+};
+pub(crate) use source_seek::seek_bound_source;
+pub(crate) use sources::{stop_bound_source, sync_source_voice};

@@ -118,8 +118,12 @@ impl LayoutManager {
                 else {
                     return Err(LayoutCommandError::TargetPathIsNotSplitNode { workspace, path });
                 };
-                *current_ratio = ratio.clamp(0.1, 0.9);
-                Ok(LayoutDiff { changed: true })
+                let ratio = ratio.clamp(0.1, 0.9);
+                let changed = *current_ratio != ratio;
+                if changed {
+                    *current_ratio = ratio;
+                }
+                Ok(LayoutDiff { changed })
             }
             LayoutCommand::SetDrawerMode { slot, mode } => {
                 let slot = slot.canonical();
@@ -127,12 +131,18 @@ impl LayoutManager {
                     .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or(LayoutCommandError::MissingDrawer { slot })?;
+                let changed = drawer.mode != mode
+                    || (mode == ActivityDrawerMode::Collapsed
+                        && (drawer.tab_stack.active_tab.is_some() || drawer.active_view.is_some()));
+                if !changed {
+                    return Ok(LayoutDiff { changed: false });
+                }
                 drawer.mode = mode;
                 if mode == ActivityDrawerMode::Collapsed {
                     drawer.tab_stack.active_tab = None;
                     drawer.active_view = None;
                 }
-                Ok(LayoutDiff { changed: true })
+                Ok(LayoutDiff { changed })
             }
             LayoutCommand::SetDrawerExtent { slot, extent } => {
                 let slot = slot.canonical();
@@ -141,8 +151,11 @@ impl LayoutManager {
                     .active_activity_window_mut()
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or(LayoutCommandError::MissingDrawer { slot })?;
-                drawer.extent = extent;
-                Ok(LayoutDiff { changed: true })
+                let changed = drawer.extent != extent;
+                if changed {
+                    drawer.extent = extent;
+                }
+                Ok(LayoutDiff { changed })
             }
             LayoutCommand::ActivateDrawerTab { slot, instance_id } => {
                 let slot = slot.canonical();
@@ -151,19 +164,25 @@ impl LayoutManager {
                     .and_then(|window| window.activity_drawers.get_mut(&slot))
                     .ok_or(LayoutCommandError::MissingDrawer { slot })?;
                 if drawer.tab_stack.tabs.contains(&instance_id) {
+                    let changed = drawer.tab_stack.active_tab.as_ref() != Some(&instance_id)
+                        || drawer.active_view.as_ref() != Some(&instance_id)
+                        || drawer.mode == ActivityDrawerMode::Collapsed;
                     drawer.tab_stack.active_tab = Some(instance_id.clone());
                     drawer.active_view = Some(instance_id);
                     if drawer.mode == ActivityDrawerMode::Collapsed {
                         drawer.mode = ActivityDrawerMode::Pinned;
                     }
-                    Ok(LayoutDiff { changed: true })
+                    Ok(LayoutDiff { changed })
                 } else {
                     Err(LayoutCommandError::DrawerMissingTab { slot, instance_id })
                 }
             }
             LayoutCommand::ActivateMainPage { page_id } => {
-                layout.active_main_page = page_id;
-                Ok(LayoutDiff { changed: true })
+                let changed = layout.active_main_page != page_id;
+                if changed {
+                    layout.active_main_page = page_id;
+                }
+                Ok(LayoutDiff { changed })
             }
             LayoutCommand::SavePreset { .. } | LayoutCommand::LoadPreset { .. } => {
                 Ok(LayoutDiff { changed: false })
@@ -218,5 +237,73 @@ fn normalize_drawer_active_selection(layout: &mut WorkbenchLayout) {
             drawer.tab_stack.active_tab = active.clone();
             drawer.active_view = active;
         }
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::*;
+    use crate::ui::workbench::layout::{
+        ActivityDrawerSlot, LayoutCommand, LayoutManager, MainPageId, WorkbenchLayout,
+    };
+    use crate::ui::workbench::view::{ViewHost, ViewInstanceId};
+
+    #[test]
+    fn repeated_layout_commands_report_unchanged() {
+        let manager = LayoutManager::default();
+        let mut layout = WorkbenchLayout::default();
+
+        assert!(
+            !manager
+                .apply(
+                    &mut layout,
+                    LayoutCommand::SetDrawerMode {
+                        slot: ActivityDrawerSlot::LeftTop,
+                        mode: ActivityDrawerMode::Pinned,
+                    },
+                )
+                .expect("drawer mode")
+                .changed
+        );
+        assert!(
+            !manager
+                .apply(
+                    &mut layout,
+                    LayoutCommand::SetDrawerExtent {
+                        slot: ActivityDrawerSlot::LeftTop,
+                        extent: 260.0,
+                    },
+                )
+                .expect("drawer extent")
+                .changed
+        );
+        assert!(
+            !manager
+                .apply(
+                    &mut layout,
+                    LayoutCommand::ActivateMainPage {
+                        page_id: MainPageId::workbench(),
+                    },
+                )
+                .expect("main page")
+                .changed
+        );
+
+        let instance_id = ViewInstanceId::new("editor.scene#performance");
+        manager
+            .apply(
+                &mut layout,
+                LayoutCommand::OpenView {
+                    instance_id: instance_id.clone(),
+                    target: ViewHost::Document(MainPageId::workbench(), Vec::new()),
+                },
+            )
+            .expect("open view");
+        assert!(
+            !manager
+                .apply(&mut layout, LayoutCommand::FocusView { instance_id },)
+                .expect("repeat focus")
+                .changed
+        );
     }
 }

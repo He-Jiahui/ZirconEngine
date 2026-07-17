@@ -46,7 +46,10 @@ pub(super) fn normalized_value_percent(value: f64, min: Option<f64>, max: Option
 }
 
 pub(super) fn value_as_color(value: &Value) -> Option<crate::ui::retained_host::primitives::Color> {
-    parse_hex_color(value_as_string(value)?.as_str())
+    let Value::String(value) = value else {
+        return None;
+    };
+    parse_hex_color(value)
 }
 
 fn parse_hex_color(value: &str) -> Option<crate::ui::retained_host::primitives::Color> {

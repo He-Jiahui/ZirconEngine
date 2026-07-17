@@ -80,7 +80,7 @@ status: planned
 切片：
 1. 落 `HubMessageId` 枚举与双语模板表（按领域分模块：shell / project / engine / build / delivery / process / settings / learn，避免单文件再造 800 行巨表；相对原拟六域增加 shell 与 process 两域：payload/action 通用错误与进程启动消息在现表中各占一组，无法归并进既有六域）。
 2. `TaskStatus.detail` / `recovery` 与 `HubActionRecord.detail` / `log_excerpt` / `recovery`、`SourceBuildRecord.detail` / `log_excerpt` 改持 `HubMessage`；ViewModel 投影点统一渲染；删除 `strip_prefix` 链、常量词条表与 4 个解析 helper。
-3. 旧 `hub.toml` 历史的字符串 detail 走 `HubMessage::Legacy(String)` 只读分支。
+3. 旧 `hub.toml` 历史的字符串 detail 走 `HubMessage::RawText(String)` 只读分支。
 
 #### 目标代码形状
 
@@ -105,7 +105,7 @@ mod hub_message;
 pub use hub_message::{HubMessage, HubMessageId};
 ```
 
-`message.rs` 完整形状（serde 用 Repr 中转而非直接 untagged：保证未知 id 的新旧混合文件降级为 `Legacy` 可读，而不是整个 `hub.toml` 反序列化失败）：
+`message.rs` 完整形状（serde 用 Repr 中转而非直接 untagged：保证未知 id 的新旧混合文件降级为 `RawText` 可读，而不是整个 `hub.toml` 反序列化失败）：
 
 ```rust
 use serde::{Deserialize, Serialize, Serializer};
@@ -115,7 +115,7 @@ use crate::settings::HubLanguage;
 use super::id::HubMessageId;
 
 /// 结构化本地化消息：持久化与内存状态只存 id + 参数，渲染推迟到投影期。
-/// Legacy 分支承载两类内容：旧 hub.toml 的已渲染英文字符串（只读兼容），
+/// RawText 分支承载两类内容：旧 hub.toml 的已渲染英文字符串（只读兼容），
 /// 以及刻意不翻译的逐字内容（cargo 日志摘录、项目/引擎显示名、io 错误原文）。
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize)]
 #[serde(from = "HubMessageRepr")]
@@ -124,7 +124,7 @@ pub enum HubMessage {
         id: HubMessageId,
         params: Vec<String>,
     },
-    Legacy(String),
+    RawText(String),
 }
 
 impl HubMessage {
@@ -138,24 +138,24 @@ impl HubMessage {
 
     /// 逐字内容入口；刻意不提供 From<String>/From<&str>，
     /// 迫使每个产点显式选择"结构化变体"或"逐字"，杜绝静默双轨。
-    pub fn legacy(text: impl Into<String>) -> Self {
-        Self::Legacy(text.into())
+    pub fn raw_text(text: impl Into<String>) -> Self {
+        Self::RawText(text.into())
     }
 
     pub fn empty() -> Self {
-        Self::Legacy(String::new())
+        Self::RawText(String::new())
     }
 
     pub fn is_empty(&self) -> bool {
         match self {
-            Self::Legacy(text) => text.trim().is_empty(),
+            Self::RawText(text) => text.trim().is_empty(),
             Self::Structured { .. } => false,
         }
     }
 
     pub fn render(&self, language: HubLanguage) -> String {
         match self {
-            Self::Legacy(text) => text.clone(),
+            Self::RawText(text) => text.clone(),
             Self::Structured { id, params } => {
                 let mut rendered = id.template(language).to_string();
                 for (index, param) in params.iter().enumerate() {
@@ -168,7 +168,7 @@ impl HubMessage {
 }
 
 /// serde 中转表示：Structured 先按 raw 字符串 id 读入，
-/// 解析失败（未来删除/改名变体后读旧文件）降级为 Legacy，整个文件仍可读。
+/// 解析失败（未来删除/改名变体后读旧文件）降级为 RawText，整个文件仍可读。
 #[derive(Deserialize)]
 #[serde(untagged)]
 enum HubMessageRepr {
@@ -177,16 +177,16 @@ enum HubMessageRepr {
         #[serde(default)]
         params: Vec<String>,
     },
-    Legacy(String),
+    ArchivedRawText(String),
 }
 
 impl From<HubMessageRepr> for HubMessage {
     fn from(repr: HubMessageRepr) -> Self {
         match repr {
-            HubMessageRepr::Legacy(text) => Self::Legacy(text),
+            HubMessageRepr::ArchivedRawText(text) => Self::RawText(text),
             HubMessageRepr::Structured { id, params } => match HubMessageId::from_str_id(&id) {
                 Some(id) => Self::Structured { id, params },
-                None => Self::Legacy(if params.is_empty() { id } else { format!("{id}: {}", params.join(", ")) }),
+                None => Self::RawText(if params.is_empty() { id } else { format!("{id}: {}", params.join(", ")) }),
             },
         }
     }
@@ -196,7 +196,7 @@ impl Serialize for HubMessage {
     fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         use serde::ser::SerializeStruct;
         match self {
-            Self::Legacy(text) => serializer.serialize_str(text),
+            Self::RawText(text) => serializer.serialize_str(text),
             Self::Structured { id, params } => {
                 let mut row = serializer.serialize_struct("HubMessage", 2)?;
                 row.serialize_field("id", id.as_str())?;
@@ -364,7 +364,7 @@ finished_unix_ms = 9
 action = "open-editor"
 status = "success"
 target = "Game"
-detail = { id = "process.started-process", params = ["42"] }   # 旧文件此处为字符串，读取走 Legacy
+detail = { id = "process.started-process", params = ["42"] }   # 旧文件此处为字符串，读取走 RawText
 ```
 
 （c）错误链贯通。`src/error.rs` 的 `HubError`（1-15 行）追加一个携带结构化消息的变体，使"validation 失败先写好 task_status、再沿 `Err` 冒泡到 `record_background_action_error` 重写状态"的既有路径（`action_tasks.rs:42/51/75/122/274/279` 全部 `error.to_string()`）不丢失结构与 recovery：
@@ -377,7 +377,7 @@ Status {
 },
 ```
 
-`record_background_action_error`（`action_tasks.rs:300-328`）签名 `detail: impl Into<String>` → `detail: HubMessage, recovery: Option<HubMessage>`（或收 `&HubError` 自行拆解）：`HubError::Status` 取结构化 detail/recovery；其余错误取 `HubMessage::legacy(error.to_string())` + 既有默认 recovery 变体 `Shell::RecoveryReviewActionTarget`（现 323 行字符串）。`record_background_worker_panic`（330-337 行）改发 `HubMessage::with_params(Shell(BackgroundTaskPanicked), [detail])`。
+`record_background_action_error`（`action_tasks.rs:300-328`）签名 `detail: impl Into<String>` → `detail: HubMessage, recovery: Option<HubMessage>`（或收 `&HubError` 自行拆解）：`HubError::Status` 取结构化 detail/recovery；其余错误取 `HubMessage::raw_text(error.to_string())` + 既有默认 recovery 变体 `Shell::RecoveryReviewActionTarget`（现 323 行字符串）。`record_background_worker_panic`（330-337 行）改发 `HubMessage::with_params(Shell(BackgroundTaskPanicked), [detail])`。
 
 （d）投影点统一渲染。`view_model/localized.rs` 增（`status_label` 之后）：
 
@@ -472,7 +472,7 @@ pub(crate) fn render_message(self, message: &HubMessage) -> String {
 | `runtime_state/settings_actions.rs` | 110、119、163、171、185、198 | — |
 | `tauri_app/action_request.rs` | —（错误产点 363、389、479 改发 `HubError::Status`） | — |
 
-迁移规则（产点逐处适用，无需再做设计决策）：detail/recovery 字符串在 e/f 清单有对应变体的→构造该变体；是项目名/引擎显示名/路径/外部命令日志/`io::Error` 原文等逐字内容的→`HubMessage::legacy(...)`（已知逐字位点：`runtime_state.rs:397` 的 `display_name`、`runtime_state.rs:440` 的 `engine.display_name`、`runtime_state.rs:563` 的 `"Visual verification success state"` 视觉 fixture 文案、build/delivery 的 `log_excerpt` 真实日志行）；`format!` 拼接的→拆为变体 + params。
+迁移规则（产点逐处适用，无需再做设计决策）：detail/recovery 字符串在 e/f 清单有对应变体的→构造该变体；是项目名/引擎显示名/路径/外部命令日志/`io::Error` 原文等逐字内容的→`HubMessage::raw_text(...)`（已知逐字位点：`runtime_state.rs:397` 的 `display_name`、`runtime_state.rs:440` 的 `engine.display_name`、`runtime_state.rs:563` 的 `"Visual verification success state"` 视觉 fixture 文案、build/delivery 的 `log_excerpt` 真实日志行）；`format!` 拼接的→拆为变体 + params。
 
 #### 文件变更清单
 
@@ -500,7 +500,7 @@ pub(crate) fn render_message(self, message: &HubMessage) -> String {
 
 前置：02/03/04 已收口（index.md §2 阶段 D）；开工时重新 `rg` 核对 h 表行号漂移。步骤 3-4 构成一个逻辑上的硬切换变更（中间提交允许新旧并存以保持可编译，但本里程碑合入时 `status_detail` 必须已删净，不留跨里程碑双轨）。
 
-1. 新建 `src/state/hub_message/` 全部文件（形状 a + e/f/g 清单），`state/mod.rs` 挂接；自带单测：完备性、id round-trip、`toml` 内嵌结构序列化/旧字符串反序列化、未知 id 降级 Legacy。此步纯增量，无消费方。
+1. 新建 `src/state/hub_message/` 全部文件（形状 a + e/f/g 清单），`state/mod.rs` 挂接；自带单测：完备性、id round-trip、`toml` 内嵌结构序列化/旧字符串反序列化、未知 id 降级 RawText。此步纯增量，无消费方。
    验证：`cargo test -p zircon_hub --lib hub_message --locked`（注意 `[lib] test = false`，必须显式 `--lib`）；`cargo check -p zircon_hub --locked`。
 2. `view_model/localized.rs` 增 `render_message`（形状 d 第一段，旧链暂存，本里程碑内删除）。
    验证：`cargo test -p zircon_hub --lib localized --locked`。
@@ -508,7 +508,7 @@ pub(crate) fn render_message(self, message: &HubMessage) -> String {
    验证：`cargo check -p zircon_hub --locked` 零错误；`cargo test -p zircon_hub --lib --locked`。
 4. 删除旧链 + 契约刷新（与步骤 3 同 PR）：删 `status_detail` 与 4 个 helper 及 `localized.rs` 测试区对它们的断言（断言全量迁移为 `render_message` 形式、期望中文逐字保留作渲染等价锚）；按"契约联动"表刷新 6 个契约文件 snippet。终检 `rg -n "status_detail|strip_prefix" zircon_hub/src/tauri_app/view_model zircon_hub/tests` 零命中（`learn/`、`projects/` 下的 `Path::strip_prefix` 是路径运算，不在删除面）。
    验证：`cargo test -p zircon_hub --locked && cargo test -p zircon_hub --lib --locked && cargo fmt --all --check`。
-5. 兼容与跟随验收：`hub_config.rs` 新增混合文件测试（fixture 内同一 `action_history` 数组混排字符串 detail 与 `{ id, params }` detail，断言整体可读、Legacy 原文保留）；`view_model/action_history.rs` 新增语言跟随测试（同一持久化 record 分别以中英投影，断言两种渲染）。手工：`npm run tauri:dev`（在 `zircon_hub/` 目录，`package.json` 位于 `zircon_hub/` 而非 `web/`）跑一次 build/package 动作后切换语言，确认历史记录与状态横幅即时跟随、旧 `hub.toml` 历史按英文原文显示。
+5. 兼容与跟随验收：`hub_config.rs` 新增混合文件测试（fixture 内同一 `action_history` 数组混排字符串 detail 与 `{ id, params }` detail，断言整体可读、RawText 原文保留）；`view_model/action_history.rs` 新增语言跟随测试（同一持久化 record 分别以中英投影，断言两种渲染）。手工：`npm run tauri:dev`（在 `zircon_hub/` 目录，`package.json` 位于 `zircon_hub/` 而非 `web/`）跑一次 build/package 动作后切换语言，确认历史记录与状态横幅即时跟随、旧 `hub.toml` 历史按英文原文显示。
    验证：`cargo test -p zircon_hub --lib hub_config --locked`；全量回归同步骤 4。
 
 #### 契约联动
@@ -526,7 +526,7 @@ pub(crate) fn render_message(self, message: &HubMessage) -> String {
 
 - 必须保持不变（中文渲染期望是等价锚）：`localized.rs` 测试区 552-774 行全部期望中文字符串、`view_model/action_history.rs` 测试区 179-298 行期望中文、`source_engines.rs:118-123` 期望中文——断言输入侧改为构造 `HubMessage`，期望值逐字不动。
 - 必须保持不变：`status_label` 表（70-135 行）与其契约（`project_page_copy_contract.rs:108-113`）——label 不进本里程碑。
-- 新增测试：`hub_message::id::tests::every_message_id_has_bilingual_templates_with_matching_placeholders`（目标 3）；`hub_message::id::tests::message_id_round_trips_through_stable_string_ids`；`hub_message::message::tests::legacy_string_deserializes_into_legacy_branch`；`hub_message::message::tests::unknown_id_degrades_to_legacy_instead_of_failing_file_load`；`hub_config::tests::loads_legacy_string_action_history_alongside_structured_messages`（风险章节的混合文件测试）；`view_model::action_history::tests::action_history_rows_render_persisted_message_ids_in_current_language`（目标 2）。
+- 新增测试：`hub_message::id::tests::every_message_id_has_bilingual_templates_with_matching_placeholders`（目标 3）；`hub_message::id::tests::message_id_round_trips_through_stable_string_ids`；`hub_message::message::tests::archived_string_deserializes_into_raw_text_branch`；`hub_message::message::tests::unknown_id_degrades_to_raw_text_instead_of_failing_file_load`；`hub_config::tests::loads_archived_string_action_history_alongside_structured_messages`（风险章节的混合文件测试）；`view_model::action_history::tests::action_history_rows_render_persisted_message_ids_in_current_language`（目标 2）。
 - 02 计划承诺的 `persist_failure_sets_recoverable_status_and_recovers_after_retry` 等若已落仓：其断言面是 label（`"Save Hub state failed"`），不受本里程碑影响；若其断言了 detail 英文原文，按渲染等价改为 `HubMessage` 构造断言。
 
 ### M2 coming-soon 目录填充
@@ -747,7 +747,7 @@ fn collect_empty_string_keys(value: &serde_json::Value, path: String, out: &mut 
 ## 风险与协调
 
 - 必须在 02/03/04 之后执行 M1：消息产生点先收敛（persist 单点、生命周期失败口径定稿、settings 规则表），否则 `HubMessageId` 枚举刚建即返工。2026-06-12 终核：01-04 由并行进程持续落地中，本文档引用的行号（尤其 `localized.rs` / `runtime_state/*` 产点表）随时漂移，实施前逐文件重新 `rg` 盘点，以实仓为准。
-- `HubMessage` 进入持久化层会改 `hub.toml` 中 history（及 `engines.build_history`）的序列化形状：serde 上用 Repr 中转兼容枚举确保旧文件可读、未知 id 降级 Legacy 而非整文件失败，并补新旧混合文件的读取测试。toml crate 对"标量键 + 表值键混排"的自动后置排序由 round-trip 测试锚定。
+- `HubMessage` 进入持久化层会改 `hub.toml` 中 history（及 `engines.build_history`）的序列化形状：serde 上用 Repr 中转兼容枚举确保旧文件可读、未知 id 降级 RawText 而非整文件失败，并补新旧混合文件的读取测试。toml crate 对"标量键 + 表值键混排"的自动后置排序由 round-trip 测试锚定。
 - 文案契约（`project_page_copy_contract` 等）断言具体中文字符串：M1 重构渲染路径时保持渲染结果不变（先机械迁移，措辞优化单独切片），降低契约红面。M1 的"新增翻译"位点（`Background task panicked` 等现状英文回落项）与 M2 的 shell 双源收敛（通知/sign-out tooltip 换为目录措辞）是仅有的两类刻意渲染变化，均已在对应契约联动中列明。
 - 事实修正注记（2026-06-12 实仓核对）：原"现状与证据"所记 `localized.rs` 684 行 / 23 处 `strip_prefix`、`coming_soon.rs` 164 行 / 10 条均已漂移（现 818 行 / 37 处、193 行 / 13 条），原 M2"缺三条"中的三条已由并行进程落地——现状章节与 M2 已按实仓改写为盘点补缺/验收口径；目标 1 的删除面数字同步修正。
 - M2 的 shell 双源收敛会删除 `ui_text.rs` 两个 key 并刷新 `ui_shell_header_contract.rs` 四处断言：该契约同时被 05/06 计划触碰（TopBar 组件化、布局修正），实施前先 `git log`/工作树核对该文件最新形态，只做本计划行内的最小刷新，避免与 05/06 双写冲突。

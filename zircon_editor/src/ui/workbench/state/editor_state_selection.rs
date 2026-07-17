@@ -133,14 +133,13 @@ impl EditorState {
         &self,
         node_id: NodeId,
     ) -> Result<Vec<ReflectedInspectorUpdate>, String> {
-        let updates = self.inspector_dynamic_fields.clone();
+        let updates = &self.inspector_dynamic_fields;
         self.world
             .try_with_world(|scene| {
                 updates
-                    .into_iter()
+                    .iter()
                     .map(|(field_id, value)| {
-                        let (component_type_path, field_name) =
-                            split_reflected_field_id(&field_id)?;
+                        let (component_type_path, field_name) = split_reflected_field_id(field_id)?;
                         let current = scene
                             .reflect_read(ReflectReadRequest::new(
                                 ReflectObjectAddress::component(node_id, &component_type_path)
@@ -150,7 +149,7 @@ impl EditorState {
                             .map_err(|error| error.to_string())?
                             .field
                             .value;
-                        let value = reflected_value_from_text(&value, &current)?;
+                        let value = reflected_value_from_text(value, &current)?;
                         Ok(ReflectedInspectorUpdate {
                             component_type_path,
                             field_name,
@@ -359,4 +358,15 @@ fn parse_entity_value(value: &str) -> Result<Option<NodeId>, String> {
         .parse::<NodeId>()
         .map(Some)
         .map_err(|_| format!("Inspector property value `{value}` must be an entity id or none"))
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn reflected_inspector_updates_borrow_the_draft_map() {
+        let source = include_str!("editor_state_selection.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+        assert!(!implementation.contains("self.inspector_dynamic_fields.clone()"));
+        assert!(implementation.contains("let updates = &self.inspector_dynamic_fields"));
+    }
 }

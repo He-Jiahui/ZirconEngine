@@ -1,14 +1,13 @@
+use super::super::support::assert_contains_all_exact;
 use super::{assert_contains_all, read_repo, read_runtime_src};
 
 #[test]
 fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
     let parent = read_runtime_src("asset/assets/texture/descriptor.rs");
     let settings = read_runtime_src("asset/assets/texture/descriptor/settings.rs");
-    let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+    let current_anchor_owner = read_repo(
+        "docs/plans/zircon_runtime/runtime/15/2026-07-17-descriptor-filter-plan-anchor-current-owner.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
     let importer_doc = read_repo("docs/zircon_runtime/asset/importer.md");
     let render_assets_doc = read_repo("docs/zircon_runtime/asset/render-assets.md");
@@ -81,17 +80,25 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
         );
     }
 
+    assert_contains_all_exact(
+        "Runtime 15 descriptor-filter current child owner",
+        &current_anchor_owner,
+        &[
+            "Runtime 15 M4 texture descriptor settings parser owner split",
+            "runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred",
+            "asset/assets/texture/descriptor.rs",
+            "asset/assets/texture/descriptor/settings.rs",
+            "runtime_15_texture_descriptor_settings_parser_is_child_owner",
+            "2026-06-24",
+        ],
+    );
     for (label, source) in [
-        ("Runtime 15 plan", runtime_15_plan.as_str()),
-        ("Runtime index", runtime_index.as_str()),
-        ("review findings", review_findings.as_str()),
-        ("structure convention", structure_convention.as_str()),
         ("module convention doc", module_doc.as_str()),
         ("importer doc", importer_doc.as_str()),
         ("render assets doc", render_assets_doc.as_str()),
         ("status-output row data", status_rows.as_str()),
     ] {
-        assert_contains_all(
+        assert_contains_all_exact(
             label,
             source,
             &[
@@ -103,7 +110,7 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
             ],
         );
     }
-    assert_contains_all(
+    assert_contains_all_exact(
         "status-output status map",
         &status_map,
         &[
@@ -111,7 +118,7 @@ fn runtime_15_texture_descriptor_settings_parser_is_child_owner() {
             "runtime_15_texture_descriptor_settings_parser_owner_split_static_passed_cargo_deferred",
         ],
     );
-    assert_contains_all(
+    assert_contains_all_exact(
         "status-output date map",
         &date_map,
         &[

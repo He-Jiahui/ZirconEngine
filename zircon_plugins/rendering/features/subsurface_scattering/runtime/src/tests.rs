@@ -27,7 +27,7 @@ fn sss_graph_requires_deferred_pipeline_and_non_empty_profile_table() {
         .expect("deferred SSS graph should compile");
     for pass in [SETUP_PASS, SCATTER_PASS, RECOMBINE_PASS] {
         assert!(compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .any(|found| found.name == pass));
@@ -52,8 +52,8 @@ fn explicitly_disabled_sss_feature_is_exact_graph_baseline() {
         )
         .unwrap();
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        disabled.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        disabled.graph().dump().to_text()
     );
 }
 
@@ -71,7 +71,7 @@ fn sss_graph_is_removed_for_msaa_instead_of_creating_invalid_wgpu_bindings() {
     assert!([SETUP_PASS, SCATTER_PASS, RECOMBINE_PASS]
         .iter()
         .all(|pass| compiled
-            .graph
+            .graph()
             .passes()
             .iter()
             .all(|found| found.name != *pass)));
@@ -98,8 +98,8 @@ fn assert_exact_baseline(pipeline: RenderPipelineAsset, extract: &RenderFrameExt
         .compile(extract)
         .unwrap();
     assert_eq!(
-        baseline.graph.dump().to_text(),
-        installed.graph.dump().to_text()
+        baseline.graph().dump().to_text(),
+        installed.graph().dump().to_text()
     );
 }
 

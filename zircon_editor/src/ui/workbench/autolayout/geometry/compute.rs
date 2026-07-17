@@ -25,9 +25,9 @@ pub fn compute_workbench_shell_geometry(
     metrics: &WorkbenchChromeMetrics,
     transient_region_preferred: Option<&BTreeMap<ShellRegionId, f32>>,
 ) -> WorkbenchShellGeometry {
-    let descriptor_map: HashMap<_, _> = descriptors
+    let descriptor_map: HashMap<&str, &ViewDescriptor> = descriptors
         .iter()
-        .map(|descriptor| (descriptor.descriptor_id.clone(), descriptor))
+        .map(|descriptor| (descriptor.descriptor_id.0.as_str(), descriptor))
         .collect();
     let size = ShellSizePx::new(shell_size.width.max(1.0), shell_size.height.max(1.0));
     let collapse_right_drawer =
@@ -108,5 +108,16 @@ pub fn compute_workbench_shell_geometry(
         splitter_frames,
         floating_window_frames,
         viewport_content_frame,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    #[test]
+    fn geometry_indexes_descriptor_rows_by_borrowed_id() {
+        let source = include_str!("compute.rs");
+        let implementation = source.split("#[cfg(test)]").next().expect("implementation");
+        assert!(!implementation.contains("descriptor.descriptor_id.clone()"));
+        assert!(implementation.contains("HashMap<&str, &ViewDescriptor>"));
     }
 }

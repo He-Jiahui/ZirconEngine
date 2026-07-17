@@ -14,9 +14,7 @@ impl DefaultSoundManager {
         binding: SoundAutomationBinding,
     ) -> Result<(), SoundError> {
         let binding = normalized_automation_binding(binding)?;
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .automation_bindings
             .insert(binding.id, binding);
         Ok(())
@@ -27,7 +25,7 @@ impl DefaultSoundManager {
         binding: SoundAutomationBindingId,
         value: f32,
     ) -> Result<(), SoundError> {
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         let binding_descriptor = state
             .automation_bindings
             .get(&binding)
@@ -48,7 +46,7 @@ impl DefaultSoundManager {
         time_seconds: f32,
     ) -> Result<f32, SoundError> {
         let value = sample_automation_curve(curve, time_seconds)?;
-        let mut state = self.state.lock().expect("sound state mutex poisoned");
+        let mut state = crate::poison_recovery::lock_recover(&self.state);
         let binding_descriptor = state
             .automation_bindings
             .get(&binding)
@@ -67,9 +65,7 @@ impl DefaultSoundManager {
         &self,
         binding: SoundAutomationBindingId,
     ) -> Result<(), SoundError> {
-        self.state
-            .lock()
-            .expect("sound state mutex poisoned")
+        crate::poison_recovery::lock_recover(&self.state)
             .automation_bindings
             .remove(&binding)
             .map(|_| ())

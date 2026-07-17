@@ -165,6 +165,7 @@ impl AssetWorkspaceState {
             };
         };
 
+        let normalized_search_query = self.search_query.to_ascii_lowercase();
         let folder_tree = build_folder_tree(&catalog.folders, &self.selected_folder_id);
         let visible_folders = catalog
             .folders
@@ -172,7 +173,7 @@ impl AssetWorkspaceState {
             .filter(|folder| {
                 folder.parent_folder_id.as_deref() == Some(self.selected_folder_id.as_str())
             })
-            .filter(|folder| folder_matches_search(folder, &self.search_query))
+            .filter(|folder| folder_matches_search(folder, &normalized_search_query))
             .map(|folder| AssetFolderSnapshot {
                 folder_id: folder.folder_id.clone(),
                 parent_folder_id: folder.parent_folder_id.clone(),
@@ -186,7 +187,9 @@ impl AssetWorkspaceState {
             .assets
             .iter()
             .filter(|asset| asset_belongs_to_folder(asset, &self.selected_folder_id))
-            .filter(|asset| asset_matches_filters(asset, &self.search_query, self.kind_filter))
+            .filter(|asset| {
+                asset_matches_filters(asset, &normalized_search_query, self.kind_filter)
+            })
             .map(|asset| self.asset_item_snapshot(asset))
             .collect::<Vec<_>>();
 
@@ -210,6 +213,17 @@ impl AssetWorkspaceState {
             selected_asset_uuid: self.selected_asset_uuid.clone(),
             selection: self.selection_snapshot(),
         }
+    }
+
+    pub(crate) fn build_surface_snapshots(
+        &self,
+    ) -> (AssetWorkspaceSnapshot, AssetWorkspaceSnapshot) {
+        let activity = self.build_snapshot(AssetSurfaceMode::Activity);
+        let mut explorer = activity.clone();
+        explorer.surface_mode = AssetSurfaceMode::Explorer;
+        explorer.view_mode = self.view_mode(AssetSurfaceMode::Explorer);
+        explorer.utility_tab = self.utility_tab(AssetSurfaceMode::Explorer);
+        (activity, explorer)
     }
 
     pub fn project_overview(&self) -> ProjectOverviewSnapshot {
@@ -387,19 +401,15 @@ fn build_folder_tree(
     }
 
     let mut tree = Vec::new();
-    append_folder_branch(
-        &mut tree,
-        folders_by_parent
-            .get(&None)
-            .into_iter()
-            .flatten()
-            .copied()
-            .collect::<Vec<_>>()
-            .as_slice(),
-        &folders_by_parent,
-        selected_folder_id,
-        0,
-    );
+    if let Some(root_folders) = folders_by_parent.get(&None) {
+        append_folder_branch(
+            &mut tree,
+            root_folders,
+            &folders_by_parent,
+            selected_folder_id,
+            0,
+        );
+    }
     tree
 }
 
@@ -437,49 +447,49 @@ fn asset_belongs_to_folder(asset: &EditorAssetCatalogRecord, folder_id: &str) ->
 
 fn parent_folder_id_for_locator(locator: &str) -> String {
     if let Some(package_path) = locator.strip_prefix("package://") {
-        let mut segments = package_path.split('/').collect::<Vec<_>>();
-        if segments.len() <= 1 {
-            return locator.to_string();
-        }
-        let package_id = segments.remove(0);
-        if segments.len() <= 1 {
-            return format!("package://{package_id}");
-        }
-        segments.pop();
-        return format!("package://{package_id}/{}", segments.join("/"));
+        return package_path
+            .rsplit_once('/')
+            .map(|(parent, _)| format!("package://{parent}"))
+            .unwrap_or_else(|| locator.to_string());
     }
 
     let locator_path = locator.strip_prefix("res://").unwrap_or(locator);
-    let mut segments = locator_path.split('/').collect::<Vec<_>>();
-    if segments.len() <= 1 {
-        return "res://".to_string();
-    }
-    segments.pop();
-    format!("res://{}", segments.join("/"))
+    locator_path
+        .rsplit_once('/')
+        .map(|(parent, _)| format!("res://{parent}"))
+        .unwrap_or_else(|| "res://".to_string())
 }
 
-fn folder_matches_search(folder: &EditorAssetFolderRecord, search_query: &str) -> bool {
-    if search_query.is_empty() {
+fn folder_matches_search(folder: &EditorAssetFolderRecord, normalized_search_query: &str) -> bool {
+    if normalized_search_query.is_empty() {
         return true;
     }
     folder
         .display_name
         .to_ascii_lowercase()
-        .contains(&search_query.to_ascii_lowercase())
+        .contains(normalized_search_query)
 }
 
 fn asset_matches_filters(
     asset: &EditorAssetCatalogRecord,
-    search_query: &str,
+    normalized_search_query: &str,
     kind_filter: Option<ResourceKind>,
 ) -> bool {
-    let search_matches = if search_query.is_empty() {
+    let search_matches = if normalized_search_query.is_empty() {
         true
     } else {
-        let needle = search_query.to_ascii_lowercase();
-        asset.display_name.to_ascii_lowercase().contains(&needle)
-            || asset.file_name.to_ascii_lowercase().contains(&needle)
-            || asset.locator.to_ascii_lowercase().contains(&needle)
+        asset
+            .display_name
+            .to_ascii_lowercase()
+            .contains(normalized_search_query)
+            || asset
+                .file_name
+                .to_ascii_lowercase()
+                .contains(normalized_search_query)
+            || asset
+                .locator
+                .to_ascii_lowercase()
+                .contains(normalized_search_query)
     };
     let kind_matches = kind_filter.is_none_or(|kind| asset.kind == kind);
     search_matches && kind_matches
@@ -495,5 +505,45 @@ fn reference_snapshot(
         kind: reference.kind,
         asset_type: reference.kind.map(asset_type_projection),
         known_project_asset: reference.known_project_asset,
+    }
+}
+
+#[cfg(test)]
+mod performance_tests {
+    use super::parent_folder_id_for_locator;
+
+    #[test]
+    fn asset_snapshot_normalizes_search_once_and_streams_parent_paths() {
+        let source = include_str!("asset_workspace_state.rs");
+        let test_module = source.rfind("#[cfg(test)]").expect("performance test module");
+        let implementation = &source[..test_module];
+        assert_eq!(
+            implementation
+                .matches("self.search_query.to_ascii_lowercase()")
+                .count(),
+            1
+        );
+        assert!(!implementation.contains("split('/').collect"));
+
+        assert_eq!(parent_folder_id_for_locator("res://mesh.glb"), "res://");
+        assert_eq!(
+            parent_folder_id_for_locator("res://models/props/mesh.glb"),
+            "res://models/props"
+        );
+        assert_eq!(
+            parent_folder_id_for_locator("package://tools/mesh.glb"),
+            "package://tools"
+        );
+        assert_eq!(
+            parent_folder_id_for_locator("package://tools/models/mesh.glb"),
+            "package://tools/models"
+        );
+    }
+
+    #[test]
+    fn dual_asset_surfaces_share_one_projection_build() {
+        let source = include_str!("../snapshot/data/editor_state_snapshot_build.rs");
+        assert!(source.contains("build_surface_snapshots()"));
+        assert!(!source.contains(".build_snapshot(AssetSurfaceMode::"));
     }
 }

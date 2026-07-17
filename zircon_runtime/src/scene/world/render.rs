@@ -49,15 +49,7 @@ impl World {
     }
 
     pub fn render_camera_order_report(&self) -> RenderCameraOrderReport {
-        sort_render_cameras(
-            self.scene_camera_descriptors()
-                .into_iter()
-                .filter_map(|camera| {
-                    camera
-                        .entity
-                        .map(|entity| RenderCameraOrderInput::from_descriptor(entity, camera))
-                }),
-        )
+        render_camera_order_report_from_descriptors(&self.scene_camera_descriptors())
     }
 
     pub(crate) fn build_prepared_viewport_render_packet(
@@ -82,18 +74,16 @@ impl World {
 
         let camera_layers = camera_descriptor.culling_mask.clone();
         let camera_position = camera.transform.translation;
-        let mut meshes = self
-            .mesh_renderers
-            .iter()
-            .flat_map(|(entity, mesh)| {
-                self.render_mesh_snapshots_for_camera(
-                    *entity,
-                    mesh,
-                    &camera_layers,
-                    camera_position,
-                )
-            })
-            .collect::<Vec<_>>();
+        let mut meshes = Vec::with_capacity(self.mesh_renderers.len());
+        for (entity, mesh) in &self.mesh_renderers {
+            self.visit_render_mesh_snapshots_for_camera(
+                *entity,
+                mesh,
+                &camera_layers,
+                camera_position,
+                |snapshot| meshes.push(snapshot),
+            );
+        }
         meshes.sort_by_key(|mesh| mesh.node_id);
 
         let ambient_lights = self.collect_ambient_lights(&camera_layers);
@@ -136,11 +126,11 @@ impl World {
         if !view.camera.is_active {
             return inactive_camera_frame_extract(world, view, request);
         }
-        let (meshes, phase_inputs) = self.collect_render_meshes_and_phase_inputs(
-            &extract_layers,
-            view.camera.transform.translation,
-        );
-        let material_property_overrides = self.material_property_overrides_for_meshes(&meshes);
+        let (meshes, phase_inputs, material_property_overrides) = self
+            .collect_render_meshes_and_phase_inputs(
+                &extract_layers,
+                view.camera.transform.translation,
+            );
         let sprites = self.collect_render_sprites(&extract_layers);
         let particles =
             self.collect_render_particles(&camera_layers, view.camera.transform.translation);
@@ -214,91 +204,81 @@ impl World {
         &self,
         camera_layers: &RenderLayerSet,
         camera_position: Vec3,
-    ) -> (Vec<RenderMeshSnapshot>, Vec<GeometryPhaseInput>) {
-        let mut mesh_entries = self
-            .mesh_renderers
-            .iter()
-            .flat_map(|(entity, mesh)| {
-                self.render_mesh_snapshots_for_camera(*entity, mesh, camera_layers, camera_position)
-                    .into_iter()
-                    .map(|snapshot| {
-                        (
-                            snapshot,
-                            mesh.material_alpha_mode,
-                            mesh.render_queue,
-                            mesh.material_queue,
-                            mesh.order_in_layer,
-                            mesh.depth_bias,
-                        )
-                    })
-            })
-            .collect::<Vec<_>>();
+    ) -> (
+        Vec<RenderMeshSnapshot>,
+        Vec<GeometryPhaseInput>,
+        BTreeMap<crate::scene::EntityId, MaterialPropertyOverrideBlock>,
+    ) {
+        let mut mesh_entries = Vec::with_capacity(self.mesh_renderers.len());
+        let mut material_property_overrides = BTreeMap::new();
+        for (entity, mesh) in &self.mesh_renderers {
+            let first_entry_index = mesh_entries.len();
+            self.visit_render_mesh_snapshots_for_camera(
+                *entity,
+                mesh,
+                camera_layers,
+                camera_position,
+                |snapshot| {
+                    mesh_entries.push((
+                        snapshot,
+                        mesh.material_alpha_mode,
+                        mesh.render_queue,
+                        mesh.material_queue,
+                        mesh.order_in_layer,
+                        mesh.depth_bias,
+                    ));
+                },
+            );
+            if mesh_entries.len() > first_entry_index
+                && !mesh.material_property_overrides.is_empty()
+            {
+                material_property_overrides
+                    .insert(*entity, mesh.material_property_overrides.clone());
+            }
+        }
         mesh_entries.sort_by_key(|(mesh, ..)| mesh.node_id);
 
-        let meshes = mesh_entries
-            .iter()
-            .map(|(mesh, ..)| (*mesh).clone())
-            .collect::<Vec<_>>();
-        let phase_inputs = mesh_entries
-            .iter()
-            .enumerate()
-            .map(|(mesh_index, entry)| {
-                let (
-                    mesh,
-                    material_alpha_mode,
-                    render_queue,
-                    material_queue,
-                    order_in_layer,
-                    depth_bias,
-                ) = entry;
+        let mut meshes = Vec::with_capacity(mesh_entries.len());
+        let mut phase_inputs = Vec::with_capacity(mesh_entries.len());
+        for (mesh, material_alpha_mode, render_queue, material_queue, order_in_layer, depth_bias) in
+            mesh_entries
+        {
+            let mesh_index = meshes.len();
+            phase_inputs.push(
                 GeometryPhaseInput::new(
                     mesh.node_id,
                     mesh_index,
-                    *material_alpha_mode,
+                    material_alpha_mode,
                     mesh.transform.translation.z,
                 )
-                .with_render_queue(*render_queue)
-                .with_material_queue(*material_queue)
-                .with_order_in_layer(*order_in_layer)
-                .with_depth_bias(*depth_bias)
-            })
-            .collect::<Vec<_>>();
+                .with_render_queue(render_queue)
+                .with_material_queue(material_queue)
+                .with_order_in_layer(order_in_layer)
+                .with_depth_bias(depth_bias),
+            );
+            meshes.push(mesh);
+        }
 
-        (meshes, phase_inputs)
+        (meshes, phase_inputs, material_property_overrides)
     }
 
-    fn material_property_overrides_for_meshes(
-        &self,
-        meshes: &[RenderMeshSnapshot],
-    ) -> BTreeMap<crate::scene::EntityId, MaterialPropertyOverrideBlock> {
-        meshes
-            .iter()
-            .filter_map(|mesh| {
-                let overrides = &self
-                    .mesh_renderers
-                    .get(&mesh.node_id)?
-                    .material_property_overrides;
-                (!overrides.is_empty()).then(|| (mesh.node_id, overrides.clone()))
-            })
-            .collect()
-    }
-
-    fn render_mesh_snapshots_for_camera(
+    fn visit_render_mesh_snapshots_for_camera(
         &self,
         entity: crate::scene::EntityId,
         mesh: &MeshRenderer,
         camera_layers: &RenderLayerSet,
         camera_position: Vec3,
-    ) -> Vec<RenderMeshSnapshot> {
+        mut visit: impl FnMut(RenderMeshSnapshot),
+    ) {
         if self.active_in_hierarchy(entity) != Some(true) {
-            return Vec::new();
+            return;
         }
         let render_layer_mask = self
             .render_layer_mask(entity)
             .unwrap_or(default_render_layer_mask());
         let render_layer_mask = RenderLayerSet::from_scene_schema_v1_mask(render_layer_mask);
         if !camera_layers.intersects(&render_layer_mask) {
-            return Vec::new();
+            return;
         }
 
         let transform = self.world_transform(entity).unwrap_or_default();
@@ -307,11 +287,8 @@ impl World {
             RenderMeshStaticState::from_transform_static(mobility == Mobility::Static);
         let source = mesh_render_source_for_camera(mesh, transform, camera_position);
         if !source.primitives.is_empty() {
-            return source
-                .primitives
-                .iter()
-                .enumerate()
-                .map(|(primitive_ordinal, primitive)| RenderMeshSnapshot {
+            for (primitive_ordinal, primitive) in source.primitives.iter().enumerate() {
+                visit(RenderMeshSnapshot {
                     node_id: entity,
                     stable_instance_key: render_mesh_stable_instance_key(
                         entity,
@@ -328,11 +305,12 @@ impl World {
                     mobility,
                     static_state,
                     render_layer_mask: render_layer_mask.clone(),
-                })
-                .collect();
+                });
+            }
+            return;
         }
 
-        vec![RenderMeshSnapshot {
+        visit(RenderMeshSnapshot {
             node_id: entity,
             stable_instance_key: render_mesh_stable_instance_key(entity, 0),
             transform_revision: render_mesh_transform_revision(&transform),
@@ -346,7 +324,7 @@ impl World {
             mobility,
             static_state,
             render_layer_mask,
-        }]
+        });
     }
 
     fn collect_render_sprites(&self, camera_layers: &RenderLayerSet) -> Vec<RenderSpriteSnapshot> {
@@ -452,17 +430,10 @@ impl World {
     ) -> RenderViewExtract {
         let view = match scene_camera_entity {
             Some(entity) => RenderViewExtract::from_camera(camera.camera.clone()).with_cameras(
-                self.scene_camera_descriptors()
+                self.scene_camera_descriptors_with_override(Some((entity, &camera)))
                     .into_iter()
                     .filter(|descriptor| {
                         descriptor.entity == Some(entity) || descriptor.is_active()
-                    })
-                    .map(|descriptor| {
-                        if descriptor.entity == Some(entity) {
-                            camera.clone()
-                        } else {
-                            descriptor
-                        }
                     })
                     .collect(),
             ),
@@ -471,7 +442,8 @@ impl World {
             }
         };
         if let Some(entity) = scene_camera_entity {
-            view.with_scene_camera_order_report(entity, self.render_camera_order_report())
+            let report = render_camera_order_report_from_descriptors(&view.cameras);
+            view.with_scene_camera_order_report(entity, report)
         } else {
             view
         }
@@ -508,11 +480,23 @@ impl World {
     }
 
     fn scene_camera_descriptors(&self) -> Vec<CameraRenderDescriptor> {
+        self.scene_camera_descriptors_with_override(None)
+    }
+
+    fn scene_camera_descriptors_with_override(
+        &self,
+        selected_override: Option<(crate::scene::EntityId, &CameraRenderDescriptor)>,
+    ) -> Vec<CameraRenderDescriptor> {
         let mut cameras = self
             .cameras
             .keys()
             .copied()
-            .map(|entity| self.build_render_camera_for_entity(entity))
+            .map(|entity| match selected_override {
+                Some((selected_entity, descriptor)) if entity == selected_entity => {
+                    descriptor.clone()
+                }
+                _ => self.build_render_camera_for_entity(entity),
+            })
             .collect::<Vec<_>>();
         cameras.sort_by(|left, right| {
             (
@@ -581,6 +565,16 @@ impl World {
         }
         descriptor
     }
+}
+
+fn render_camera_order_report_from_descriptors(
+    cameras: &[CameraRenderDescriptor],
+) -> RenderCameraOrderReport {
+    sort_render_cameras(cameras.iter().filter_map(|camera| {
+        camera
+            .entity
+            .map(|entity| RenderCameraOrderInput::from_descriptor(entity, camera.clone()))
+    }))
 }
 
 fn fallback_render_camera(request: &SceneViewportExtractRequest) -> CameraRenderDescriptor {

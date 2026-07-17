@@ -16,9 +16,9 @@ use crate::graphics::feature::{
 };
 use crate::graphics::pipeline::declarations::{
     transmission_mesh_pass_name, transmission_scene_copy_pass_name, CompiledRenderPipeline,
-    RenderPassStage, RenderPipelineAsset, RenderPipelineCompileOptions,
-    ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME, TRANSMISSION_MESH_EXECUTOR_IDS,
-    TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
+    CompiledRenderPipelineParts, RenderPassStage, RenderPipelineAsset,
+    RenderPipelineCompileOptions, ADVANCED_PBR_OPAQUE_EXECUTOR_ID, ADVANCED_PBR_OPAQUE_PASS_NAME,
+    TRANSMISSION_MESH_EXECUTOR_IDS, TRANSMISSION_SCENE_COPY_EXECUTOR_IDS,
 };
 
 use super::super::validation::validate_renderer_asset;
@@ -161,19 +161,21 @@ impl RenderPipelineAsset {
             options,
         )?;
 
-        Ok(CompiledRenderPipeline {
-            handle: self.handle,
-            name: self.name.clone(),
-            renderer_name: self.renderer.name.clone(),
-            stages: self.renderer.stages.clone(),
-            pass_stages: authored_graph.pass_stages,
-            enabled_features,
-            required_extract_sections: required_extract_sections.into_iter().collect(),
-            capability_requirements,
-            history_bindings,
-            environment_ibl_bake_request: options.environment_ibl_bake_request,
-            graph: authored_graph.graph,
-        })
+        Ok(CompiledRenderPipeline::from_parts(
+            CompiledRenderPipelineParts {
+                handle: self.handle,
+                name: self.name.clone(),
+                renderer_name: self.renderer.name.clone(),
+                stages: self.renderer.stages.clone(),
+                pass_stages: authored_graph.pass_stages,
+                enabled_features,
+                required_extract_sections: required_extract_sections.into_iter().collect(),
+                capability_requirements,
+                history_bindings,
+                environment_ibl_bake_request: options.environment_ibl_bake_request,
+                graph: authored_graph.graph,
+            },
+        ))
     }
 }
 

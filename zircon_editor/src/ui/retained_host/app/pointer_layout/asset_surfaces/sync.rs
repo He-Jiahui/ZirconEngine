@@ -25,6 +25,7 @@ impl RetainedEditorHost {
             return;
         };
 
+        surface.snapshot = Some(Arc::new(snapshot.clone()));
         surface.tree_bridge.sync(
             AssetFolderTreePointerLayout::from_snapshot(snapshot, surface.tree_size),
             surface.tree_state.clone(),
