@@ -3,6 +3,7 @@ mod redraw;
 
 use super::super::UiHostWindow;
 use crate::ui::retained_host::host_contract::redraw::NativePointerDispatchResult;
+use crate::ui::retained_host::primitives::SharedString;
 use dispatch::dispatch_text_focus_value;
 
 impl UiHostWindow {
@@ -11,10 +12,6 @@ impl UiHostWindow {
     }
 
     pub(crate) fn dispatch_focused_text_insert(&self, text: &str) -> NativePointerDispatchResult {
-        let text: String = text.chars().filter(|ch| !ch.is_control()).collect();
-        if text.is_empty() {
-            return NativePointerDispatchResult::idle();
-        }
         let (focus, value) = {
             let mut state = self.state.borrow_mut();
             let focus = state.text_input_focus.clone();
@@ -22,11 +19,17 @@ impl UiHostWindow {
                 return NativePointerDispatchResult::idle();
             }
             let mut value = focus.value_text.to_string();
-            value.push_str(&text);
-            state.text_input_focus.value_text = value.clone().into();
+            let previous_len = value.len();
+            value.extend(text.chars().filter(|ch| !ch.is_control()));
+            if value.len() == previous_len {
+                return NativePointerDispatchResult::idle();
+            }
+            let value: SharedString = value.into();
+            state.text_input_focus.value_text = value.clone();
             (focus, value)
         };
-        dispatch_text_focus_value(self, focus.clone(), focus.edit_target_id(), value)
+        let target_id = focus.edit_target_id();
+        dispatch_text_focus_value(self, focus, target_id, value)
     }
 
     pub(crate) fn dispatch_focused_text_backspace(&self) -> NativePointerDispatchResult {
@@ -40,10 +43,12 @@ impl UiHostWindow {
             if value.pop().is_none() {
                 return NativePointerDispatchResult::idle();
             }
-            state.text_input_focus.value_text = value.clone().into();
+            let value: SharedString = value.into();
+            state.text_input_focus.value_text = value.clone();
             (focus, value)
         };
-        dispatch_text_focus_value(self, focus.clone(), focus.edit_target_id(), value)
+        let target_id = focus.edit_target_id();
+        dispatch_text_focus_value(self, focus, target_id, value)
     }
 
     pub(in crate::ui::retained_host::host_contract) fn dispatch_focused_text_commit(
@@ -53,11 +58,8 @@ impl UiHostWindow {
         if !focus.is_active() || focus.commit_action_id.is_empty() {
             return NativePointerDispatchResult::idle();
         }
-        dispatch_text_focus_value(
-            self,
-            focus.clone(),
-            focus.commit_target_id(),
-            focus.value_text.to_string(),
-        )
+        let target_id = focus.commit_target_id();
+        let value = focus.value_text.clone();
+        dispatch_text_focus_value(self, focus, target_id, value)
     }
 }
