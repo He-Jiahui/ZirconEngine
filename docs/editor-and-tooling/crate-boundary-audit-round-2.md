@@ -34,7 +34,7 @@ related_code:
   - zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_editor/src/tests/host/asset_manager_boundary/mod.rs
   - zircon_editor/src/tests/host/manager/mod.rs
   - zircon_runtime/src/asset/tests/pipeline/manager.rs
@@ -129,7 +129,7 @@ implementation_files:
   - zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/input/mod.rs
   - zircon_runtime/src/input/module/descriptor.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
@@ -347,24 +347,16 @@ doc_type: module-detail
 
 因此暂不作为下一批主候选。
 
-### Watchlist Review: Keep `service_names` In `zircon_manager`
+### Implemented Batch: Versioned Manager Service Identity
 
-这次继续往 watchlist 深挖后，我把 `zircon_manager::service_names` 从“待观察”降到了“明确保留”。
+Manager façade 已硬切到 runtime 内部的 versioned service identity，不再依赖外部 `zircon_manager` crate 或跨域 concrete manager handle：
 
-原因不是它看起来更像某个实现 crate 的字符串，而是它现在已经承担了 façade 契约的一部分：
+- [core/manager/service.rs](../../zircon_runtime/src/core/manager/service.rs) 唯一拥有 `ManagerServiceHandle<T>`、`manager_service_handle` 与 `resolve_manager_service`；handle 携带 index、generation 与 canonical service name，具体服务只在 use point 解析。
+- [core/manager/resolver.rs](../../zircon_runtime/src/core/manager/resolver.rs) 只为 runtime-wide generic services 提供 typed handle 入口与 `ManagerResolver` 聚合；它不重新吸收 asset-specific resolver。
+- Asset service identity 由 [asset registration service names](../../zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs) 和 [asset manager handle](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs) 共同拥有；`asset_manager_handle` 返回 `ManagerServiceHandle<dyn AssetManager>`，调用方统一走 `resolve_manager_service`。
+- 具体域不再 alias 外部 manager crate 的常量，不再长期保存 `Arc<具体类型>` / `Arc<dyn Trait>`，也不保留 asset-specific resolver 或 concrete handle wrapper 作为兼容面。
 
-- [zircon_manager/src/resolver.rs](../../zircon_manager/src/resolver.rs) 的 `resolve_asset_manager` / `resolve_resource_manager` / `resolve_rendering_manager` / `resolve_level_manager` / `resolve_input_manager` 直接把这些常量作为解析协议使用
-- `ManagerResolver::{asset, resource, rendering, level, input}` 这些稳定入口也直接绑定到同一组常量
-- [zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs](../../zircon_runtime/src/asset/pipeline/manager/registration/service_names.rs)、[zircon_scene/src/module/service_names.rs](../../zircon_scene/src/module/service_names.rs)、[zircon_runtime/src/graphics/host/module_host/module_registration/service_names.rs](../../zircon_runtime/src/graphics/host/module_host/module_registration/service_names.rs) 当前都不是自定义一份新名字，而是主动 alias `zircon_manager::*_MANAGER_NAME`
-- 上层调用方如 [zircon_app/src/entry/tests/mod.rs](../../zircon_app/src/entry/tests/mod.rs) 直接通过 `zircon_manager::resolve_*` / `ManagerResolver` 消费这组 façade 入口，而不是绕到实现 crate 私有名字上
-
-这意味着如果现在把这些常量“迁回实现域”，真正要改的不是 import 路径，而是：
-
-- `zircon_manager` resolver 的公开契约
-- 各实现 crate 对 façade manager 名称的 alias 关系
-- 上层启动与测试对 `resolve_*` / `ManagerResolver` 的假设
-
-在当前证据下，这组名字已经更接近“façade registry contract”，而不是“实现细节误挂在 manager crate”。所以严格边界标准下，它们应该留在 `zircon_manager`，不再列为下一批迁移候选。
+因此当前边界不是“把 service names 留在旧 façade crate”，而是把 generic identity/resolve protocol 固定在 `core::manager`，把具体 service name 和 typed handle constructor 留在各自实现域。
 
 ### Implemented Batch: Input Protocol Types
 
@@ -424,13 +416,13 @@ doc_type: module-detail
 继续往下扫后，`AssetPipelineInfo` / `ProjectInfo` 并不是“仍应保留在 façade 层的剩余 record”；真正的强候选其实是整条 generic `AssetManager` protocol boundary：
 
 - `AssetManager` trait 只有 `zircon_asset` 一处真实实现
-- `AssetManagerHandle` 与 `resolve_asset_manager` 都只是 asset 子系统公共入口；而 `ASSET_MANAGER_NAME` 属于后续继续下沉到 `zircon_runtime::asset` 的 module-registration surface，并不属于 generic manager service contract 自己的领域模型
+- `asset_manager_handle` 是 asset 子系统的 versioned service-handle 入口；`ASSET_MANAGER_NAME` 属于 `zircon_runtime::asset` 的 module-registration surface，具体服务解析统一由 `core::manager::resolve_manager_service` 承担，不再保留 asset-specific resolver 或 concrete handle wrapper
 - `AssetChangeRecord` / `AssetChangeKind` 只是 `zircon_asset::watch::AssetChange` 的镜像投影，增加了无意义 DTO 层
 
 因此这批最终不是只搬 DTO，而是整条协议线一起迁回 `zircon_asset`：
 
-- 新增 [zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs)，并把 trait/handle/resolver 继续下沉到 [zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs)、[zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs](../../zircon_asset/src/pipeline/manager/asset_manager/asset_manager_handle.rs) 与 [zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs)
-- [zircon_asset/src/pipeline/manager/mod.rs](../../zircon_asset/src/pipeline/manager/mod.rs) 与 [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 现在直接拥有 `AssetManager`、`AssetManagerHandle`、`resolve_asset_manager`、`AssetPipelineInfo` 与 `ProjectInfo`
+- [zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs) 只挂载当前 trait 与 versioned handle owner：[asset_manager.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs) 和 [handle.rs](../../zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs)；旧 `zircon_asset` 路径、asset-specific resolver 与 concrete handle wrapper 均已物理删除
+- [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 直接拥有 `AssetManager`、`asset_manager_handle`、`AssetPipelineInfo` 与 `ProjectInfo`；跨域解析使用核心 `ManagerServiceHandle`/`resolve_manager_service` 单一路径
 - [zircon_runtime/src/asset/mod.rs](../../zircon_runtime/src/asset/mod.rs) 与 [zircon_runtime/src/asset/module.rs](../../zircon_runtime/src/asset/module.rs) 继续持有 `AssetModule`、`ASSET_MODULE_NAME`、`ASSET_MANAGER_NAME`、`RESOURCE_MANAGER_NAME`、`PROJECT_ASSET_MANAGER_NAME` 与 `EDITOR_ASSET_MANAGER_NAME`
 - [zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs](../../zircon_runtime/src/asset/pipeline/manager/service_contracts/asset_manager_contract.rs) 的 `subscribe_asset_changes()` 已统一返回 `ChannelReceiver<zircon_asset::watch::AssetChange>`
 - `zircon_manager` 已删除 `AssetManager` trait、asset/project records、handle、resolver 和 service-name surface；旧的 [zircon_runtime/src/asset/pipeline/manager/records](../../zircon_runtime/src/asset/pipeline/manager/records) 与 [zircon_manager/src/records/project.rs](../../zircon_manager/src/records/project.rs) 已删除
@@ -553,7 +545,7 @@ doc_type: module-detail
 16. `zircon_manager::ResourceChangeKind` / `ResourceChangeRecord` 已删除，`ResourceManager::subscribe_resource_changes` 统一改成 `ChannelReceiver<zircon_resource::ResourceEvent>`
 17. `zircon_asset` 不再把 `ResourceEvent` 桥接成字符串化 contract DTO；resource contract 直接转发资源子系统原生事件流
 18. `zircon_editor` host refresh planner、retained asset refresh 测试和边界测试已切到 typed `ResourceEvent` / `ResourceEventKind`
-19. generic `AssetManager` trait、`AssetManagerHandle` 与 `resolve_asset_manager` 已从 `zircon_manager` 迁回 `zircon_asset`；对应的 `AssetModule` / `ASSET_MANAGER_NAME` module-registration surface 则继续收口到 `zircon_runtime::asset`
+19. generic `AssetManager` trait 与 `asset_manager_handle` 已收口到 `zircon_runtime::asset`；跨域持有 `ManagerServiceHandle<dyn AssetManager>` 并在 use point 通过 `resolve_manager_service` 解析，旧 `zircon_manager`/`zircon_asset` owner、concrete handle wrapper 与 asset-specific resolver 均不保留
 20. `AssetPipelineInfo` / `ProjectInfo` 已随 `AssetManager` 协议线回到 `zircon_asset`，不再作为 façade 残留 record 保留在 `zircon_manager`
 21. `AssetManager::subscribe_asset_changes` 已统一改成 `ChannelReceiver<zircon_asset::watch::AssetChange>`，`AssetChangeRecord` / `AssetChangeKind` 镜像已删除
 22. `zircon_editor`、`zircon_app` 与 `zircon_graphics` 相关消费者已切到 asset-owned handle / resolver / change stream

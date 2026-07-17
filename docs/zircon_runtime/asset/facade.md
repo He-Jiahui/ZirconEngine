@@ -24,8 +24,7 @@ related_code:
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
@@ -69,8 +68,7 @@ implementation_files:
   - zircon_runtime/src/asset/importer/native.rs
   - zircon_runtime/src/asset/importer/error.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/construction.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/management.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
@@ -201,7 +199,7 @@ Runtime plan 04 uses this table as the authority for what Zircon intentionally k
 
 Loading and status queries are split across manager/facade/service surfaces. `ProjectAssetManager` owns project-aware typed loading and state queries, `Assets<TAsset>` owns typed resource-store reads for callers that already hold the resource manager, and the object-safe `AssetManager` service trait owns project/tooling status queries across the core service boundary.
 
-Runtime 10 F18 keeps manager resolution shape consistent with the generic core service path. `resolve_asset_manager(core)` returns `Result<Arc<AssetManagerHandle>, CoreError>` and leaves object-safe access to `AssetManagerHandle::shared()`, so callers choose the trait-object boundary explicitly. The status anchor is `runtime_10_asset_manager_resolution_handle_shape_coremin_check_passed`, guarded by `review_f18_asset_manager_resolution_returns_registered_handle`.
+Runtime manager resolution now uses the versioned core service path directly. `asset_manager_handle(core)` returns `Result<ManagerServiceHandle<dyn AssetManager>, CoreError>`; callers resolve that handle through `core::manager::resolve_manager_service` at the use point and do not retain a cross-domain `Arc<dyn AssetManager>`. The former asset-specific resolver owner and concrete `AssetManagerHandle` wrapper are deleted rather than preserved as compatibility surfaces.
 
 Keep `manager` / `facade` naming. Runtime 04 intentionally does not introduce an asset server vocabulary, even though Bevy uses `server/` as the reference package name. `runtime_04_asset_facade_query_surface_stays_manager_owned_and_server_free` locks this split by checking the current query methods and rejecting `AssetServer` / `asset_server` source reintroductions.
 

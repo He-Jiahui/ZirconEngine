@@ -51,12 +51,11 @@ related_code:
   - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/reference_analysis.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/resolver.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/asset_io_driver.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
@@ -211,12 +210,11 @@ implementation_files:
   - zircon_editor/src/ui/host/editor_asset_manager/reference_graph.rs
   - zircon_editor/src/ui/host/editor_asset_manager/preview.rs
   - zircon_editor/src/ui/host/editor_asset_manager/manager/mod.rs
-  - zircon_editor/src/ui/host/editor_asset_manager/resolver.rs
+  - zircon_editor/src/ui/host/editor_asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/asset_manager_handle.rs
-  - zircon_runtime/src/asset/pipeline/manager/asset_manager/resolve_asset_manager.rs
+  - zircon_runtime/src/asset/pipeline/manager/asset_manager/handle.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/mod.rs
   - zircon_runtime/src/asset/pipeline/manager/driver/asset_io_driver.rs
   - zircon_runtime/src/asset/pipeline/manager/project_asset_manager/mod.rs
