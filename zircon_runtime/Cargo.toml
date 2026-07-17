@@ -73,6 +73,7 @@ text = [
     "dep:nalgebra",
     "dep:rustybuzz",
     "dep:swash",
+    "dep:sys-locale",
     "dep:ttf-parser",
     "dep:unicode-linebreak",
     "dep:unicode-bidi",
@@ -179,6 +180,7 @@ rustybuzz = { version = "0.20.1", optional = true }
 serde.workspace = true
 serde_json = "1.0.149"
 swash = { version = "0.2.7", optional = true }
+sys-locale = { version = "0.3.2", optional = true }
 taffy = { version = "0.10", default-features = false, features = ["std", "block_layout", "flexbox", "grid", "content_size", "taffy_tree"], optional = true }
 tobj.workspace = true
 thiserror.workspace = true

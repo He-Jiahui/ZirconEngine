@@ -25,16 +25,12 @@ pub(crate) const TEXT_RASTER_WORKER_FRAME_FAILED_DIAGNOSTIC: &str =
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash)]
 pub(crate) struct TextRasterWorkId(u64);
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct TextRasterWorkTarget {
-    pub(crate) page_generation: u64,
-    pub(crate) face_epoch: u64,
-}
-
 #[derive(Clone, Debug)]
 pub(crate) struct TextRasterWorkItem {
     pub(crate) id: TextRasterWorkId,
-    pub(crate) target: TextRasterWorkTarget,
+    // Raster output enters the face-owned source cache before atlas allocation. Page generations
+    // are therefore validated later by atlas staging/upload, not by this worker boundary.
+    pub(crate) face_epoch: u64,
     pub(crate) font_data: Arc<[u8]>,
     pub(crate) request: SwashRasterRequest,
 }
@@ -42,7 +38,8 @@ pub(crate) struct TextRasterWorkItem {
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct TextRasterWorkResult {
     pub(crate) id: TextRasterWorkId,
-    pub(crate) target: TextRasterWorkTarget,
+    // A font-face change invalidates raster bytes; atlas page churn does not.
+    pub(crate) face_epoch: u64,
     pub(crate) result: Result<GlyphBitmap, SwashRasterError>,
 }
 
@@ -88,16 +85,13 @@ pub(crate) struct TextRasterWorkerPoolFrameSampler {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum TextRasterWorkDisposition {
     Accepted,
-    StalePageGeneration,
     InvalidatedFace,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct TextRasterCompletionDrain {
     pub(crate) accepted: Vec<TextRasterWorkResult>,
-    pub(crate) stale_page_generation_ids: Vec<TextRasterWorkId>,
     pub(crate) face_invalidated_ids: Vec<TextRasterWorkId>,
-    pub(crate) stale_page_generation_count: usize,
     pub(crate) face_invalidated_count: usize,
 }
 
@@ -119,25 +113,16 @@ impl TextRasterWorkId {
     }
 }
 
-impl TextRasterWorkTarget {
-    pub(crate) const fn new(page_generation: u64, face_epoch: u64) -> Self {
-        Self {
-            page_generation,
-            face_epoch,
-        }
-    }
-}
-
 impl TextRasterWorkItem {
     pub(crate) fn new(
         id: TextRasterWorkId,
-        target: TextRasterWorkTarget,
+        face_epoch: u64,
         font_data: Arc<[u8]>,
         request: SwashRasterRequest,
     ) -> Self {
         Self {
             id,
-            target,
+            face_epoch,
             font_data,
             request,
         }
@@ -145,13 +130,11 @@ impl TextRasterWorkItem {
 }
 
 impl TextRasterWorkResult {
-    pub(crate) fn disposition_for_target(
+    pub(crate) fn disposition_for_face_epoch(
         &self,
-        live_target: TextRasterWorkTarget,
+        live_face_epoch: u64,
     ) -> TextRasterWorkDisposition {
-        if self.target.page_generation != live_target.page_generation {
-            TextRasterWorkDisposition::StalePageGeneration
-        } else if self.target.face_epoch != live_target.face_epoch {
+        if self.face_epoch != live_face_epoch {
             TextRasterWorkDisposition::InvalidatedFace
         } else {
             TextRasterWorkDisposition::Accepted
@@ -327,7 +310,7 @@ impl TextRasterWorkerPool {
                     while let Ok(work) = request_rx.recv() {
                         let result = TextRasterWorkResult {
                             id: work.id,
-                            target: work.target,
+                            face_epoch: work.face_epoch,
                             result: rasterizer.rasterize(work.font_data.as_ref(), work.request),
                         };
                         publish_completion(&completion_tx, &in_flight, &diagnostics, result);
@@ -376,6 +359,12 @@ impl TextRasterWorkerPool {
     }
 
     #[cfg(test)]
+    pub(crate) fn disconnect_request_channel_for_test(&mut self) {
+        self.request_tx.take();
+        self.request_rx_guard.take();
+    }
+
+    #[cfg(test)]
     pub(crate) fn try_recv_request_for_test(&self) -> Option<TextRasterWorkItem> {
         self.request_rx_guard
             .as_ref()
@@ -387,6 +376,11 @@ impl TextRasterWorkerPool {
     }
 
     pub(crate) fn request(&self, work: TextRasterWorkItem) -> CoreResult<()> {
+        let Some(request_tx) = self.request_tx.as_ref() else {
+            return Err(CoreError::ChannelSend(
+                "text raster worker request channel closed".to_string(),
+            ));
+        };
         let mut in_flight = self.lock_in_flight();
         if !in_flight.insert(work.id) {
             return Err(CoreError::ChannelSend(format!(
@@ -396,12 +390,7 @@ impl TextRasterWorkerPool {
         }
 
         let work_id = work.id;
-        if let Err(error) = self
-            .request_tx
-            .as_ref()
-            .expect("text raster worker request sender alive")
-            .try_send(work)
-        {
+        if let Err(error) = request_tx.try_send(work) {
             in_flight.remove(&work_id);
             self.record_in_flight_locked(&in_flight);
             return Err(match error {
@@ -421,18 +410,14 @@ impl TextRasterWorkerPool {
         self.completion_rx.clone()
     }
 
-    pub(crate) fn drain_completed_for_target(
+    pub(crate) fn drain_completed_for_face_epoch(
         &self,
-        live_target: TextRasterWorkTarget,
+        live_face_epoch: u64,
     ) -> TextRasterCompletionDrain {
         let mut drain = TextRasterCompletionDrain::default();
         while let Ok(result) = self.completion_rx.try_recv() {
-            match result.disposition_for_target(live_target) {
+            match result.disposition_for_face_epoch(live_face_epoch) {
                 TextRasterWorkDisposition::Accepted => drain.accepted.push(result),
-                TextRasterWorkDisposition::StalePageGeneration => {
-                    drain.stale_page_generation_count += 1;
-                    drain.stale_page_generation_ids.push(result.id);
-                }
                 TextRasterWorkDisposition::InvalidatedFace => {
                     drain.face_invalidated_count += 1;
                     drain.face_invalidated_ids.push(result.id);

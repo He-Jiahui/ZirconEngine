@@ -7603,6 +7603,7 @@ dependencies = [
  "serde",
  "serde_json",
  "swash",
+ "sys-locale",
  "taffy",
  "thiserror 2.0.18",
  "tobj",
