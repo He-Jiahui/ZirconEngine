@@ -104,6 +104,23 @@ status: active
 > 上游权威：[`docs/plans/engine-code-structure-convention.md`](../../engine-code-structure-convention.md)
 > 本计划承接 editor UI 计划 01–09 之外的**结构治理横切**：把 retained-host / workbench / asset-editor 的 owner 边界、超大投影文件、重复测试树收敛到规范，并以 editor `module_convention_gate` 防回归。
 
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-editor-ui-code-structure-convergence",
+  "goal": "按 owner 边界、文件预算、测试单一真源、命名与死代码纪律完成 Editor UI 结构硬切收敛。",
+  "milestones": [
+    {"id": "M1", "title": "UI 根层 owner 边界硬切", "depends_on": []},
+    {"id": "M2", "title": "超大投影文件按责任拆分", "depends_on": ["M1"]},
+    {"id": "M3", "title": "重复测试树与巨型测试收敛", "depends_on": ["M1"]},
+    {"id": "M4", "title": "命名与 prelude 边界收敛", "depends_on": ["M1"]},
+    {"id": "M5", "title": "投影样板与 production dead-code 清除", "depends_on": ["M2", "M3", "M4"]}
+  ]
+}
+```
+
+<!-- Workflow topology mirrors the existing M1-M5 execution table. -->
+
 ## 1. 目标
 
 editor 是结构债最重的 crate（探索报告评分最低）：`ui/` 臃肿、`retained_host` 子目录无限细化、超大投影 / 转换文件、`src/tests/**` 与 `src/ui/**` 重复测试树。本计划让 editor 达到与 runtime 同口径的结构友好度。
@@ -166,5 +183,6 @@ workbench_projection.rs(3619)  →  workbench_projection/
 
 - 迁入记录：[`10/2026-07-09-code-structure-and-module-conventions-output-records.md`](10/2026-07-09-code-structure-and-module-conventions-output-records.md)
 - 当前结构审计：`audit_editor_structure.py --json` 的 `module_convention_gate` 已纳入 `editor_ui_10_visual_style_owner_tree_is_hard_cut_over`，用于锁定 visual-style 旧单文件 owner 删除与 folder-backed owner 树完整性。
+- 2026-07-17 current source：`component_registry.rs` / `preferences.rs` 两项 root owner debt 已按 M1.T1 硬切为 folder-backed owner 树，Python audit 为 `classified-and-clear`、迁移债/root owner violations 均为 0；受管偏好 12/12（另 1 项显式截图 exporter ignored）、组件 1/1、`structure_convention` 3/3 全部 exit 0，独立复审 Critical/Important/Minor = 0/0/0，已具备向 Editor07 回传 [fixed](../editor/07/fixed-2026-07-17-ui-root-owner-boundary-migration-debt.md) 的完整证据，详见 [子计划记录](10/2026-07-17-ui-root-owner-hardcut.md)。
 - open 待修复：[editor-ui-plan-output-notices](10/failure-2026-07-13-editor-ui-plan-output-notices.md)
-- open 待修复：[ui-root-owner-boundary-migration-debt](10/failure-2026-07-14-ui-root-owner-boundary-migration-debt.md)
+- fixed 已修复：[ui-root-owner-boundary-migration-debt](../editor/07/fixed-2026-07-17-ui-root-owner-boundary-migration-debt.md)
