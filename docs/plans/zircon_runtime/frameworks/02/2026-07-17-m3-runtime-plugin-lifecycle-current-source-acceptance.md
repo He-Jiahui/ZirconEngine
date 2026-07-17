@@ -22,11 +22,13 @@ Files: ["tools/tests/test_plugin_extension_registry_finalize_coverage.py", "docs
 - `python tools/tests/test_runtime_plugin_descriptor_provided_interface_projection.py`：1/1 passed。
 - `python tools/tests/test_audit_plugin_structure_report.py`：4/4 passed；`audit_plugin_structure.py --json` 报告 28 roots、0 单源违规、0 compat shim。
 - focused `plugin` managed attempt：job `e4f2c4c6cb0e42f29f1674210b5bccb5` / run `fa98f9f4a3df40c4a4dfc358929dc404` 在执行测试前 exit 101；唯一错误为 foreign Render01 active change 的 E0425，不计作 plugin 测试失败。
+- Render01 修复该 E0425 后的 focused `plugin` managed attempt：reservation `3749c1689b004d19a8468006f73405fa`，job `4f529b9a7e5b49eb8d76ee942f754d53`，run `dd942440ed9c423aaacfd791feb3eb3b`；仍在执行测试前 exit 101。fresh 编译诊断为 134 个 foreign Render01 hard-cut consumer errors / 37 个唯一文件：`CompiledRenderPipelineParts` 路径不可达 E0422 x9、私有 `CompiledRenderPipeline::graph` 旧直接访问 E0616 x124、fixture `TextureDesc` 借用类型漂移 E0308 x1；本次诊断中没有 `enabled_features` E0616。
 
 ## Current Blocker
 
-- `zircon_runtime/src/graphics/scene/scene_renderer/core/scene_renderer_render_with_pipeline/render_frame_with_pipeline.rs:318` 仍声明 `RenderGraphResourceAccessKind`，但同一 Render01 active diff 删除了对应 import；最低失败位是现有 open lifecycle `compiled-pipeline-frame-derived-recomputation`。
-- 该文件与 failure record 由 `render01-f2-basic-scene-render-20260717` 持有并处于 `resolving_failure`；Frameworks02 不抢改 foreign lease。owner 修复后原样重跑 focused `plugin`，再继续 `descriptor`、`registration`、package compile 与插件工作区 gates。
+- 最初 `RenderGraphResourceAccessKind` E0425 已由 Render01 owner 在其租约内修复；后续 run `dd942440ed9c423aaacfd791feb3eb3b` 证明更低层的 `compiled-pipeline-frame-derived-recomputation` hard-cut 仍未完成消费者迁移。
+- Render01 owner 已重领 63-path expanded scope，并明确保持 `CompiledRenderPipeline` 字段私有：`CompiledRenderPipelineParts` 走 crate-internal canonical route，旧 `.graph` / `.enabled_features` 消费者改用新版只读访问面，不通过重新公开字段或 compatibility re-export/shim 收口。
+- Frameworks02 已向 owner 回传 9 个 E0422 精确位置、30 个 E0616 文件及唯一 E0308；在 owner 回传 fresh source-manifest fingerprint 前不重跑 Cargo。fingerprint 到达后原样重跑 focused `plugin`，再继续 `descriptor`、`registration`、package compile 与插件工作区 gates。
 
 ## Review
 
