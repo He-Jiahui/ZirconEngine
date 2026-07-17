@@ -18,7 +18,7 @@ from typing import Any
 from .config import CoordinatorConfig
 from .baselines import BaselineService
 from .database import Database
-from .leases import LeaseService, PathPolicy
+from .leases import LeaseService, PathPolicy, lease_paths_overlap
 from .migrations import LATEST_SCHEMA_VERSION, migrate
 from .models import CoordinatorError, SessionStatus, SupervisionState, utc_text
 from .sessions import SessionService
@@ -435,6 +435,7 @@ class CoordinatorApplication:
             "baseline": baseline_state,
             "instanceId": self.instance_id,
             "startedAt": self.started_at,
+            "sessionTtlSeconds": self.config.session_ttl_seconds,
             "controlApiVersions": [1],
             "supervisionApiVersions": [1],
             "schemaVersion": LATEST_SCHEMA_VERSION,
@@ -498,26 +499,96 @@ class CoordinatorApplication:
             / node.origin_child_dir
             / f"fixed-{resolved_at.isoformat()}-{node.summary_slug}.md"
         )
-        paths = [source, destination]
+        fixer_paths = [source]
         source_text = source.read_text(encoding="utf-8")
         if self.failures._is_child_record_only(source_text):
-            paths.append(
+            fixer_paths.append(
                 self.config.repo_root
                 / node.fixing_child_dir
                 / f"{resolved_at.isoformat()}-{node.summary_slug}-return.md"
             )
         else:
-            paths.extend(
+            fixer_paths.extend(
                 (
+                    destination,
                     self.config.repo_root / node.origin_plan,
                     self.config.repo_root / node.fixing_plan,
                 )
             )
         self.leases.require_owned_live(
             session_id,
-            [path.relative_to(self.config.repo_root).as_posix() for path in paths],
+            [path.relative_to(self.config.repo_root).as_posix() for path in fixer_paths],
             error_code="failure_return_lease_missing",
             message="Scoped failure return requires live leases for every affected artifact",
+        )
+        if self.failures._is_child_record_only(source_text):
+            try:
+                self.leases.require_owned_live(
+                    session_id,
+                    [destination.relative_to(self.config.repo_root).as_posix()],
+                    error_code="failure_return_lease_missing",
+                    message="Scoped failure return requires live leases for every affected artifact",
+                )
+            except CoordinatorError as error:
+                if error.code != "failure_return_lease_missing":
+                    raise
+                origin_owner = self._require_origin_destination_lease(node, destination)
+            else:
+                origin_owner = None
+            if origin_owner is None:
+                return
+            with self.database.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO events(session_id, event_type, payload_json, created_at) VALUES (?, ?, ?, ?)",
+                    (
+                        session_id,
+                        "failure.return_origin_destination_authorized",
+                        json.dumps(
+                            {
+                                "lifecycleKey": lifecycle_key,
+                                "destination": destination.relative_to(self.config.repo_root).as_posix(),
+                                "originOwnerSessionId": origin_owner,
+                                "originPlan": node.origin_plan,
+                            },
+                            sort_keys=True,
+                        ),
+                        utc_text(),
+                    ),
+                )
+
+    def _require_origin_destination_lease(self, node, destination: Path) -> str:
+        """Allow a child-only fixed record under its active origin-plan lease.
+
+        The fixing Session never receives or releases the origin lease.  This is
+        a narrow coordinator lifecycle transfer for the one generated fixed
+        artifact, not a general cross-session write exception.
+        """
+        destination_key = destination.relative_to(self.config.repo_root).as_posix().casefold()
+        expected_plan = node.origin_plan.casefold()
+        with self.database.connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT leases.path_key, leases.session_id, sessions.plan_path
+                FROM leases
+                JOIN sessions ON sessions.session_id = leases.session_id
+                WHERE sessions.status IN ('active', 'resolving_failure', 'waiting_validation')
+                  AND leases.expires_at >= ?
+                """,
+                (utc_text(),),
+            ).fetchall()
+        for row in rows:
+            plan_path = str(row["plan_path"] or "").replace("\\", "/").casefold()
+            if plan_path != expected_plan:
+                continue
+            if lease_paths_overlap(str(row["path_key"]), destination_key):
+                return str(row["session_id"])
+        raise CoordinatorError(
+            "failure_return_lease_missing",
+            "Scoped failure return requires the active origin-plan lease for its fixed destination",
+            details={
+                "paths": [destination.relative_to(self.config.repo_root).as_posix()],
+                "originPlan": node.origin_plan,
+            },
         )
 
     def _command_unlocked(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -565,8 +636,12 @@ class CoordinatorApplication:
         if name == "session.show":
             return {"session": self.sessions.get(str(arguments["session_id"])).to_dict()}
         if name == "session.heartbeat":
-            session = self.sessions.heartbeat(str(arguments["session_id"]))
-            return {"session": session.to_dict()}
+            session_id = str(arguments["session_id"])
+            session = self.sessions.heartbeat(session_id)
+            return {
+                "session": session.to_dict(),
+                "leases": {"renewed": self.leases.heartbeat(session_id)},
+            }
         if name == "session.set_status":
             status = SessionStatus(str(arguments["status"]))
             session_id = str(arguments["session_id"])
@@ -738,11 +813,25 @@ class CoordinatorApplication:
                     "invalid_cargo_compatibility",
                     f"Cargo compatibility fields are invalid: {error}",
                 ) from error
+            target_dir = arguments.get("target_dir")
+            if target_dir is not None and not isinstance(target_dir, str):
+                raise CoordinatorError(
+                    "cargo_cpu_reservation_target_invalid",
+                    "CPU lane reservation target_dir must be a text path when supplied",
+                )
+            burst_eligible = arguments.get("burst_eligible", False)
+            if not isinstance(burst_eligible, bool):
+                raise CoordinatorError(
+                    "cargo_cpu_burst_eligibility_invalid",
+                    "CPU burst eligibility must be a boolean when supplied",
+                )
             reservation = self._require_cargo_jobs().reserve_cpu(
                 str(arguments["session_id"]),
                 compatibility=compatibility,
+                target_dir=target_dir,
                 command=arguments.get("command") or [],
                 ttl_seconds=int(arguments.get("ttl_seconds", 900)),
+                burst_eligible=burst_eligible,
             )
             return {"reservation": reservation}
         if name == "cargo.reserve_gpu":

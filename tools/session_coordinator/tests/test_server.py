@@ -22,13 +22,80 @@ from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.sessions import SessionService
 from tools.session_coordinator.server import CoordinatorApplication, RunningCoordinator
-from tools.session_coordinator.models import CoordinatorError, SupervisionState
+from tools.session_coordinator.models import CoordinatorError, SessionStatus, SupervisionState
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
 from tools.session_coordinator.workspace_copy import WorkspaceCopyRecord
 
 
 class ServerTests(unittest.TestCase):
+    def test_cpu_burst_eligibility_requires_a_boolean_and_reaches_the_reservation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            application.sessions.register(session_id="owner")
+            application.sessions.set_status("owner", SessionStatus.ACTIVE)
+            arguments = {
+                "session_id": "owner",
+                "compatibility": {
+                    "platform": "windows",
+                    "toolchain": "stable-x86_64-pc-windows-msvc",
+                    "target_architecture": "x86_64-pc-windows-msvc",
+                    "workspace": "Cargo.toml",
+                    "build_config": "profile=dev",
+                },
+                "target_dir": None,
+                "ttl_seconds": 900,
+                "command": ["cargo", "check", "-p", "zircon_runtime"],
+                "burst_eligible": True,
+            }
+
+            result = application.command("cargo.reserve_cpu", arguments)
+
+            self.assertTrue(result["reservation"]["burstEligible"])
+            with self.assertRaises(CoordinatorError) as rejected:
+                application.command(
+                    "cargo.reserve_cpu", {**arguments, "burst_eligible": "true"}
+                )
+            self.assertEqual("cargo_cpu_burst_eligibility_invalid", rejected.exception.code)
+
+    def test_lease_release_succeeds_when_a_stale_session_has_a_queued_patch(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            application.supervision.mark_healthy()
+            for session_id in ("owner", "queued-session"):
+                application.sessions.register(session_id=session_id)
+                application.sessions.set_status(session_id, SessionStatus.ACTIVE)
+            self.assertTrue(application.leases.acquire("owner", ["README.md"]).acquired)
+            queued = application.patches.submit(
+                "queued-session",
+                "diff --git a/README.md b/README.md\n"
+                "--- a/README.md\n"
+                "+++ b/README.md\n"
+                "@@ -1 +1 @@\n"
+                "-baseline\n"
+                "+queued\n",
+                ["README.md"],
+            )
+            application.sessions.set_status("queued-session", SessionStatus.STALE)
+
+            result = application.command(
+                "lease.release", {"session_id": "owner", "paths": ["README.md"]}
+            )
+
+            self.assertEqual(1, result["released"])
+            self.assertEqual([], result["processed_patches"])
+            self.assertEqual("queued", application.patches.get(queued.patch_id).status.value)
+            self.assertEqual("baseline\n", (repo / "README.md").read_text(encoding="utf-8"))
+
     def test_scoped_failure_return_requires_leases_for_generated_artifacts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -62,6 +129,93 @@ class ServerTests(unittest.TestCase):
             with self.assertRaises(CoordinatorError) as rejected:
                 application._require_scoped_failure_return_leases(
                     "owner", node.lifecycle_key, date(2026, 7, 16)
+                )
+
+        self.assertEqual("failure_return_lease_missing", rejected.exception.code)
+
+    def test_scoped_failure_return_allows_waiting_validation_origin_destination_lease(self) -> None:
+        """A child-only return may use the origin lease while its gate waits in FIFO."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            origin = fixture.add_plan("docs/plans/plugins/02-sound.md")
+            fixing = fixture.add_plan("docs/plans/runtime/12-input.md")
+            failure = fixture.add_handoff(origin, fixing, "origin-destination")
+            failure.write_text(
+                failure.read_text(encoding="utf-8").replace(
+                    "summary_slug:", "plan_link_mode: child_record_only\nsummary_slug:"
+                ),
+                encoding="utf-8",
+            )
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            node = application.failures.import_repository().nodes[0]
+            application.sessions.register(
+                session_id="origin-owner",
+                plan_path=origin.path.relative_to(repo).as_posix(),
+            )
+            application.sessions.set_status("origin-owner", SessionStatus.ACTIVE)
+            application.sessions.set_status("origin-owner", SessionStatus.WAITING_VALIDATION)
+            application.sessions.register(
+                session_id="fixer",
+                plan_path=fixing.path.relative_to(repo).as_posix(),
+            )
+            receipt = fixing.child / "2026-07-16-origin-destination-return.md"
+            application.leases.acquire(
+                "origin-owner", [origin.child.relative_to(repo).as_posix()]
+            )
+            application.leases.acquire(
+                "fixer",
+                [failure.relative_to(repo).as_posix(), receipt.relative_to(repo).as_posix()],
+            )
+
+            application._require_scoped_failure_return_leases(
+                "fixer", node.lifecycle_key, date(2026, 7, 16)
+            )
+            with application.database.connect() as connection:
+                event = connection.execute(
+                    "SELECT payload_json FROM events WHERE event_type='failure.return_origin_destination_authorized'"
+                ).fetchone()
+            self.assertEqual("origin-owner", json.loads(event["payload_json"])["originOwnerSessionId"])
+
+    def test_scoped_failure_return_rejects_unrelated_destination_lease(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            fixture = FailureGraphFixture(repo)
+            origin = fixture.add_plan("docs/plans/plugins/02-sound.md")
+            fixing = fixture.add_plan("docs/plans/runtime/12-input.md")
+            failure = fixture.add_handoff(origin, fixing, "unrelated-destination")
+            failure.write_text(
+                failure.read_text(encoding="utf-8").replace(
+                    "summary_slug:", "plan_link_mode: child_record_only\nsummary_slug:"
+                ),
+                encoding="utf-8",
+            )
+            application = CoordinatorApplication(
+                CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            )
+            node = application.failures.import_repository().nodes[0]
+            application.sessions.register(
+                session_id="unrelated-owner",
+                plan_path=fixing.path.relative_to(repo).as_posix(),
+            )
+            application.sessions.set_status("unrelated-owner", SessionStatus.ACTIVE)
+            application.sessions.register(session_id="fixer")
+            receipt = fixing.child / "2026-07-16-unrelated-destination-return.md"
+            application.leases.acquire(
+                "unrelated-owner", [origin.child.relative_to(repo).as_posix()]
+            )
+            application.leases.acquire(
+                "fixer",
+                [failure.relative_to(repo).as_posix(), receipt.relative_to(repo).as_posix()],
+            )
+
+            with self.assertRaises(CoordinatorError) as rejected:
+                application._require_scoped_failure_return_leases(
+                    "fixer", node.lifecycle_key, date(2026, 7, 16)
                 )
 
         self.assertEqual("failure_return_lease_missing", rejected.exception.code)
@@ -300,18 +454,28 @@ class ServerTests(unittest.TestCase):
             root = Path(directory)
             repo = init_repo(root / "repo")
             config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            (repo / "owned.txt").write_text("owned\n", encoding="utf-8")
 
             with RunningCoordinator.start(config) as running:
                 client = CoordinatorClient.from_runtime(config)
                 health = client.health()
-                registered = client.command("session.register", {"session_id": "session-a"})
+                registered = client.command(
+                    "session.register",
+                    {"session_id": "session-a", "write_scope": ["owned.txt"]},
+                )
                 active = client.command(
                     "session.set_status", {"session_id": "session-a", "status": "active"}
                 )
+                claimed = client.command(
+                    "lease.claim", {"session_id": "session-a", "paths": ["owned.txt"]}
+                )
+                heartbeat = client.command("session.heartbeat", {"session_id": "session-a"})
 
                 self.assertEqual("ok", health["status"])
                 self.assertEqual("registered", registered["session"]["status"])
                 self.assertEqual("active", active["session"]["status"])
+                self.assertTrue(claimed["lease"]["acquired"])
+                self.assertEqual(1, heartbeat["leases"]["renewed"])
 
                 request = urllib.request.Request(
                     f"{running.base_url}/command",
