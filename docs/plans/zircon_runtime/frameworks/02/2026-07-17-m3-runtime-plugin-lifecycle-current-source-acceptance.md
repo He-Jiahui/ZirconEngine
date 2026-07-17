@@ -23,15 +23,15 @@ Files: ["tools/tests/test_plugin_extension_registry_finalize_coverage.py", "docs
 - `python tools/tests/test_audit_plugin_structure_report.py`：4/4 passed；`audit_plugin_structure.py --json` 报告 28 roots、0 单源违规、0 compat shim。
 - focused `plugin` managed attempt：job `e4f2c4c6cb0e42f29f1674210b5bccb5` / run `fa98f9f4a3df40c4a4dfc358929dc404` 在执行测试前 exit 101；唯一错误为 foreign Render01 active change 的 E0425，不计作 plugin 测试失败。
 - Render01 修复该 E0425 后的 focused `plugin` managed attempt：reservation `3749c1689b004d19a8468006f73405fa`，job `4f529b9a7e5b49eb8d76ee942f754d53`，run `dd942440ed9c423aaacfd791feb3eb3b`；仍在执行测试前 exit 101。fresh 编译诊断为 134 个 foreign Render01 hard-cut consumer errors / 37 个唯一文件：`CompiledRenderPipelineParts` 路径不可达 E0422 x9、私有 `CompiledRenderPipeline::graph` 旧直接访问 E0616 x124、fixture `TextureDesc` 借用类型漂移 E0308 x1；本次诊断中没有 `enabled_features` E0616。
-- Render01 owner 完成消费者迁移后，Frameworks02 对原 30 个 E0616 文件做只读复扫：剩余 compiled-pipeline 非方法 `.graph` 访问 0、直接 `.enabled_features` 访问 0；9 个 `CompiledRenderPipelineParts` 引用均由 crate-internal canonical route 解析，原 E0308 已通过 `match &lifetime.desc` 收口。
-- Render01 first-class manifest 必须合并显式 Rust 文件租约与 owned Rust 目录租约的递归展开结果，再以 forward-slash `path_key`、`[StringComparer]::Ordinal` 排序、`path=lowercase_sha256`、LF/no-final-LF 聚合。当前 68/68 路径原子重算命中 `270fbc0bdf43037e1a266287f045a58a25e044b785eac9b5b81abb9c9a6719c6`；目录租约补入 `resource_write_index.rs`、`runtime_feature_flags.rs`、`runtime_metadata.rs`、`tests.rs`。此前 `bec06a53...` 与漏展开目录的 `3744b95e...` 均已明确拒绝，不提供兼容。
+- Render01 owner 完成消费者迁移后，Frameworks02 对原 30 个 E0616 文件做只读复扫：剩余 compiled-pipeline 非方法 `.graph` 访问 0、直接 `.enabled_features` 访问 0；9 个 `CompiledRenderPipelineParts` 引用均由 crate-internal canonical route 解析，原 E0308 已通过 `match &lifetime.desc` 收口。最终 frame-scan hard cut 又删除 `build_frame_submission_context` 对 `capability_requirements` 的逐帧扫描，将 ScreenSpaceAntiAlias capability 冻结在 runtime metadata descriptor；focused filter 当前应选择 5 tests。
+- Render01 first-class manifest 必须合并显式 Rust 文件租约与 owned Rust 目录租约的递归展开结果，再以 forward-slash `path_key`、`[StringComparer]::Ordinal` 排序、`path=lowercase_sha256`、LF/no-final-LF 聚合。最终 frame-scan 修复后的 68/68 路径原子重算命中 `4322914a3cb0f9709987f9745d1d7cba5b327fc3a0b378fe531e6e29d9213368`；目录租约继续补入 `resource_write_index.rs`、`runtime_feature_flags.rs`、`runtime_metadata.rs`、`tests.rs`。此前 `bec06a53...`、漏展开目录的 `3744b95e...` 与修复前的 `270fbc0b...` 均已明确拒绝，不提供兼容。
 - source-bound focused `plugin` 预约没有建立、Cargo 没有重跑：协调器在解析 `source_manifest` 前以 `Cargo compatibility field build_config is empty or invalid` 拒绝 68-path payload。最低共享层原因为 `CargoCompatibility::canonical()` 仍限制 `build_config <= 4096` 字符，而只含 `source_manifest` 的最小 JSON 已达 10494 字符；该问题已通过 Session `frameworks02-m1-current-source-acceptance-r10-20260717` 的 `resolving_failure` reason 回传 Coordinator01。
 
 ## Current Blocker
 
 - Render01 的 compiled-pipeline hard cut 已在静态层收口，并保持字段私有；当前阻塞已下沉到 Coordinator01 的 exact source-manifest 预约载荷契约，不再是 Render01 源码诊断未修复。
 - Coordinator01 必须在不弱化逐文件 SHA-256、预约时校验和 consume/start 前复验的前提下，原子展开 owned Rust 目录租约或接受 owner-supplied explicit path list，并移除或提升与 68-path manifest 冲突的 4096 字符上限；回归测试必须覆盖目录展开和大清单。Frameworks02 不用无绑定预约、人工时间窗、漏目录或部分清单冒充原子 current-source gate。
-- 修复装载后，Frameworks02 只接受聚合指纹仍为 `270fbc0bdf43037e1a266287f045a58a25e044b785eac9b5b81abb9c9a6719c6` 的 68/68 清单并原样重跑 focused `plugin`；随后继续 `descriptor`、`registration`、package compile 与插件工作区 gates。任何源码漂移都必须重新授权，不接受已拒绝的 `bec06a53...` 或 `3744b95e...`。
+- 修复装载后，Frameworks02 只接受聚合指纹仍为 `4322914a3cb0f9709987f9745d1d7cba5b327fc3a0b378fe531e6e29d9213368` 的 68/68 清单并原样重跑 focused `plugin`，且 focused filter 必须实际执行 5 tests；随后继续 `descriptor`、`registration`、package compile 与插件工作区 gates。任何源码漂移都必须重新授权，不接受已拒绝的 `bec06a53...`、`3744b95e...` 或 `270fbc0b...`。
 
 ## Review
 
