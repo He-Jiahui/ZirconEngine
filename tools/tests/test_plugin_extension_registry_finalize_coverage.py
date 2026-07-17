@@ -49,7 +49,7 @@ class PluginExtensionRegistryFinalizeCoverageTests(unittest.TestCase):
             )
         )
 
-        self.assertEqual(20, len(typed_fields))
+        self.assertEqual(21, len(typed_fields))
         self.assertEqual(typed_fields, finalize_fields)
         self.assertEqual(typed_fields, finalized_state_fields)
 
