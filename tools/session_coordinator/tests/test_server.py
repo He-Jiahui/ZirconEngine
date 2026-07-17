@@ -265,6 +265,46 @@ class ServerTests(unittest.TestCase):
                 ).fetchone()
             self.assertEqual("expired", row["status"])
 
+    def test_startup_expires_pending_reservations_before_listener_publish(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(
+                repo,
+                state_root=root / "state",
+                port=0,
+                watch_interval_seconds=60,
+                maintenance_interval_seconds=60,
+            )
+            bootstrap = CoordinatorApplication(config)
+            bootstrap.sessions.register(session_id="expired-owner")
+            bootstrap.sessions.set_status("expired-owner", SessionStatus.ACTIVE)
+            reservation = bootstrap.cargo_jobs.reserve_cpu(
+                "expired-owner",
+                compatibility=CargoCompatibility(
+                    platform="windows",
+                    toolchain="rustc-test",
+                    target_architecture="x86_64-pc-windows-msvc",
+                    workspace="Cargo.toml",
+                    build_config="profile=metadata;startup-expiry-test",
+                ),
+                command=("cargo", "metadata"),
+            )
+            with bootstrap.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE cargo_lane_reservations SET expires_at=? WHERE reservation_id=?",
+                    ("2000-01-01T00:00:00+00:00", reservation["reservationId"]),
+                )
+
+            with RunningCoordinator.start(config):
+                with Database(config.database_path).connect() as connection:
+                    row = connection.execute(
+                        "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                        (reservation["reservationId"],),
+                    ).fetchone()
+
+            self.assertEqual("expired", row["status"])
+
     def test_application_wires_codex_sync_to_sanitized_evidence_projection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

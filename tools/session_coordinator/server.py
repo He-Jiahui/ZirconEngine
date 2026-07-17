@@ -1618,6 +1618,20 @@ class RunningCoordinator:
             )
             if not application.read_only:
                 remove_commit_guard(config.repo_root)
+            if application.cargo_jobs is not None:
+                reservation_reconciliation = (
+                    application.cargo_jobs.reconcile_pending_reservations()
+                )
+                if any(reservation_reconciliation.values()):
+                    with application.database.transaction() as connection:
+                        connection.execute(
+                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                            (
+                                "cargo.reservations_reconciled",
+                                json.dumps(reservation_reconciliation, sort_keys=True),
+                                utc_text(),
+                            ),
+                        )
             httpd = _CoordinatorHttpServer(
                 (config.host, config.port),
                 CoordinatorRequestHandler,
