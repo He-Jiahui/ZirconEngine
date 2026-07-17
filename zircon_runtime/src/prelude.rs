@@ -62,24 +62,7 @@ pub use crate::engine_module::{
 pub use crate::foundation::{FoundationModule, FOUNDATION_MODULE_NAME};
 #[cfg(feature = "graphics")]
 pub use crate::graphics::prelude::*;
-pub use crate::input::{
-    ButtonInputState, CursorGrabMode, CursorHostRequest, CursorPosition, DefaultInputActionManager,
-    DefaultInputManager, FileDragDropEvent, GamepadAxis, GamepadAxisInput, GamepadAxisSettings,
-    GamepadAxisState, GamepadAxisTransition, GamepadButton, GamepadButtonAxisSettings,
-    GamepadButtonSettings, GamepadButtonValueState, GamepadConnectionInfo, GamepadId,
-    GamepadRumbleIntensity, GamepadRumbleRequest, ImeCursorArea, ImeCursorRange,
-    ImeDeleteSurrounding, ImeEvent, ImeHostRequest, ImePreedit, ImeSurroundingText, InputAction,
-    InputActionContext, InputActionEvaluator, InputActionManager, InputActionMap, InputActionState,
-    InputAxisBinding, InputAxisDirection, InputBinding, InputButton, InputConfig, InputDriver,
-    InputEvent, InputEventRecord, InputFrameSnapshot, InputModule, InputRecording,
-    InputRecordingFrame, InputReplayCursor, InputReplayFrameReport, InputSnapshot, MouseScrollUnit,
-    MouseWheelEvent, TouchPhase, TouchPoint, WindowStatusEvent, WindowTheme,
-    GAMEPAD_AXIS_CHANGE_THRESHOLD, GAMEPAD_AXIS_DEADZONE_LOWER, GAMEPAD_AXIS_DEADZONE_UPPER,
-    GAMEPAD_AXIS_LIVEZONE_LOWER, GAMEPAD_AXIS_LIVEZONE_UPPER, GAMEPAD_BUTTON_AXIS_CHANGE_THRESHOLD,
-    GAMEPAD_BUTTON_AXIS_HIGH, GAMEPAD_BUTTON_AXIS_LOW, GAMEPAD_BUTTON_PRESS_THRESHOLD,
-    GAMEPAD_BUTTON_RELEASE_THRESHOLD, INPUT_ACTION_MANAGER_NAME, INPUT_DRIVER_NAME,
-    INPUT_MANAGER_NAME, INPUT_MODULE_NAME, PIXEL_SCROLL_LINE_DELTA_SCALE,
-};
+pub use crate::input::prelude::*;
 pub use crate::platform::{
     CapabilityStatus, CursorBoundaryBackend, CursorOptionsBackend, EventLoopPolicy,
     FileDragDropBackend, GamepadBackend, GamepadEventBackend, GamepadRumbleBackend,

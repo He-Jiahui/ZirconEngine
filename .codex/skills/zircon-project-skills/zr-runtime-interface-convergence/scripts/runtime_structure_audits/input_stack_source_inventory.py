@@ -14,13 +14,19 @@ INPUT_STACK_GUARD_FILES = (
 )
 INPUT_RUNTIME_MODULES = (
     "zircon_runtime/src/input/mod.rs",
+    "zircon_runtime/src/input/prelude.rs",
     "zircon_runtime/src/input/module/config.rs",
     "zircon_runtime/src/input/module/descriptor.rs",
     "zircon_runtime/src/input/module/mod.rs",
     "zircon_runtime/src/input/module/module_type.rs",
     "zircon_runtime/src/input/runtime/action_evaluator.rs",
+    "zircon_runtime/src/input/runtime/action_evaluator/binding_index.rs",
+    "zircon_runtime/src/input/runtime/action_evaluator/frame_axis_index.rs",
     "zircon_runtime/src/input/runtime/default_input_action_manager.rs",
     "zircon_runtime/src/input/runtime/default_input_manager.rs",
+    "zircon_runtime/src/input/runtime/event_buffer/frame.rs",
+    "zircon_runtime/src/input/runtime/event_buffer/mod.rs",
+    "zircon_runtime/src/input/runtime/event_buffer/recorder.rs",
     "zircon_runtime/src/input/runtime/input_driver.rs",
     "zircon_runtime/src/input/runtime/recording.rs",
     "zircon_runtime/src/input/runtime/input_state.rs",
@@ -29,6 +35,10 @@ INPUT_RUNTIME_MODULES = (
 FRAMEWORK_INPUT_MODULES = (
     "zircon_runtime/src/core/framework/input/button_input_state.rs",
     "zircon_runtime/src/core/framework/input/cursor.rs",
+    "zircon_runtime/src/core/framework/input/event_retention/mod.rs",
+    "zircon_runtime/src/core/framework/input/event_retention/queue_status.rs",
+    "zircon_runtime/src/core/framework/input/event_retention/recording_config.rs",
+    "zircon_runtime/src/core/framework/input/event_retention/recording_status.rs",
     "zircon_runtime/src/core/framework/input/file_drag_drop.rs",
     "zircon_runtime/src/core/framework/input/gamepad.rs",
     "zircon_runtime/src/core/framework/input/ime.rs",
@@ -42,6 +52,7 @@ FRAMEWORK_INPUT_MODULES = (
     "zircon_runtime/src/core/framework/input/input_event.rs",
     "zircon_runtime/src/core/framework/input/input_event_record.rs",
     "zircon_runtime/src/core/framework/input/input_frame_snapshot.rs",
+    "zircon_runtime/src/core/framework/input/input_manager.rs",
     "zircon_runtime/src/core/framework/input/input_snapshot.rs",
     "zircon_runtime/src/core/framework/input/mod.rs",
     "zircon_runtime/src/core/framework/input/mouse_wheel.rs",
@@ -59,6 +70,7 @@ INPUT_TEST_MODULES = (
 )
 
 INPUT_MANAGER_CHILD_TEST_MODULES = (
+    "zircon_runtime/src/input/tests/input_manager/event_buffer.rs",
     "zircon_runtime/src/input/tests/input_manager/frame_state.rs",
     "zircon_runtime/src/input/tests/input_manager/host_requests.rs",
 )

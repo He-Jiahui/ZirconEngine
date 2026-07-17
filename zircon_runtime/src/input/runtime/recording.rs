@@ -47,15 +47,37 @@ impl InputRecording {
         self.frames.is_empty()
     }
 
+    pub fn discarded_record_count(&self) -> u64 {
+        self.frames
+            .iter()
+            .map(InputRecordingFrame::discarded_record_count)
+            .max()
+            .unwrap_or(0)
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.frames.iter().all(InputRecordingFrame::is_complete)
+    }
+
     pub fn replay_cursor(&self) -> InputReplayCursor<'_> {
         InputReplayCursor::new(self)
     }
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct InputRecordingFrame {
     frame_index: u64,
     records: Vec<InputEventRecord>,
+    #[serde(default = "recording_enabled_by_default")]
+    recording_enabled: bool,
+    #[serde(default)]
+    discarded_record_count: u64,
+}
+
+impl Default for InputRecordingFrame {
+    fn default() -> Self {
+        Self::new(0, Vec::new())
+    }
 }
 
 impl InputRecordingFrame {
@@ -63,6 +85,8 @@ impl InputRecordingFrame {
         Self {
             frame_index,
             records,
+            recording_enabled: true,
+            discarded_record_count: 0,
         }
     }
 
@@ -80,7 +104,13 @@ impl InputRecordingFrame {
     }
 
     pub fn capture_from_manager(frame_index: u64, input_manager: &dyn InputManager) -> Self {
-        Self::new(frame_index, input_manager.drain_event_records())
+        let (records, status) = input_manager.drain_event_records_with_status();
+        Self {
+            frame_index,
+            records,
+            recording_enabled: status.enabled,
+            discarded_record_count: status.discarded_records,
+        }
     }
 
     pub fn frame_index(&self) -> u64 {
@@ -98,6 +128,22 @@ impl InputRecordingFrame {
     pub fn is_empty(&self) -> bool {
         self.records.is_empty()
     }
+
+    pub fn discarded_record_count(&self) -> u64 {
+        self.discarded_record_count
+    }
+
+    pub fn recording_enabled(&self) -> bool {
+        self.recording_enabled
+    }
+
+    pub fn is_complete(&self) -> bool {
+        self.recording_enabled && self.discarded_record_count == 0
+    }
+}
+
+const fn recording_enabled_by_default() -> bool {
+    true
 }
 
 #[derive(Debug)]

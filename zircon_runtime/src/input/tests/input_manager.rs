@@ -9,6 +9,7 @@ use crate::input::{
     WindowStatusEvent, WindowTheme, PIXEL_SCROLL_LINE_DELTA_SCALE,
 };
 
+mod event_buffer;
 mod frame_state;
 mod host_requests;
 mod touch_gamepad;

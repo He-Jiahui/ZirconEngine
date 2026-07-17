@@ -20,6 +20,7 @@ fn input_manager_tracks_state_and_drains_events() {
 #[test]
 fn input_manager_records_sequences_and_timestamps_for_ui_bridge_consumers() {
     let input = DefaultInputManager::default();
+    input.set_event_recording_config(crate::input::InputEventRecordingConfig::enabled(16));
     input.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
     input.submit_event(InputEvent::ButtonReleased(InputButton::MouseLeft));
 

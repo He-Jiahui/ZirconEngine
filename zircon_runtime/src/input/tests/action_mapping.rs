@@ -4,9 +4,9 @@ use crate::core::CoreRuntime;
 
 use crate::input::{
     module_descriptor_with_config, DefaultInputManager, GamepadAxis, GamepadAxisInput,
-    GamepadAxisSettings, GamepadId, InputAction, InputActionContext, InputActionEvaluator,
-    InputActionMap, InputAxisBinding, InputAxisDirection, InputBinding, InputButton, InputConfig,
-    InputEvent, INPUT_MODULE_NAME,
+    GamepadAxisSettings, GamepadAxisState, GamepadAxisTransition, GamepadId, InputAction,
+    InputActionContext, InputActionEvaluator, InputActionMap, InputAxisBinding, InputAxisDirection,
+    InputBinding, InputButton, InputConfig, InputEvent, InputFrameSnapshot, INPUT_MODULE_NAME,
 };
 
 #[test]
@@ -400,6 +400,93 @@ fn input_action_manager_resolves_from_runtime_module_descriptor() {
         actions.evaluate_actions_with_active_contexts(&input.frame_snapshot(), &["gameplay"]);
 
     assert!(rebound_state.just_activated("gameplay.confirm"));
+}
+
+#[test]
+fn action_evaluator_indexes_10_100_and_1000_bindings_once() {
+    for binding_count in [10, 100, 1_000] {
+        let evaluator = InputActionEvaluator::new(action_map_with_unique_bindings(binding_count));
+
+        assert_eq!(
+            evaluator.indexed_binding_candidate_count(),
+            binding_count,
+            "a stable action index should inspect each configured binding once, not {binding_count} squared candidates"
+        );
+        assert!(evaluator
+            .evaluate(&Default::default())
+            .pressed_actions()
+            .is_empty());
+        assert_eq!(evaluator.evaluation_binding_visit_count(), binding_count);
+    }
+}
+
+#[test]
+fn action_evaluator_indexes_axis_frame_sources_once_for_10_100_and_1000_bindings() {
+    for binding_count in [10, 100, 1_000] {
+        let (action_map, frame) = action_map_with_unique_axis_bindings(binding_count);
+        let evaluator = InputActionEvaluator::new(action_map);
+
+        let state = evaluator.evaluate(&frame);
+
+        assert_eq!(state.pressed_actions().len(), binding_count);
+        assert_eq!(evaluator.evaluation_binding_visit_count(), binding_count);
+        assert_eq!(
+            evaluator.evaluation_axis_source_visit_count(),
+            binding_count * 2,
+            "frame axis state and transition sources should each be indexed once"
+        );
+    }
+}
+
+#[test]
+fn replacing_an_action_map_rebuilds_the_binding_index() {
+    let mut evaluator = InputActionEvaluator::new(action_map_with_unique_bindings(10));
+    assert_eq!(evaluator.indexed_binding_candidate_count(), 10);
+
+    evaluator.set_action_map(action_map_with_unique_bindings(3));
+
+    assert_eq!(evaluator.indexed_binding_candidate_count(), 3);
+}
+
+fn action_map_with_unique_bindings(binding_count: usize) -> InputActionMap {
+    let mut map = InputActionMap::new();
+    for index in 0..binding_count {
+        let action = format!("gameplay.action_{index}");
+        map.add_action(InputAction::new(action.clone()));
+        map.bind(InputBinding::button(
+            action,
+            InputButton::KeyCode(index as u32),
+        ));
+    }
+    map
+}
+
+fn action_map_with_unique_axis_bindings(
+    binding_count: usize,
+) -> (InputActionMap, InputFrameSnapshot) {
+    let mut map = InputActionMap::new();
+    let mut frame = InputFrameSnapshot::default();
+    for index in 0..binding_count {
+        let action = format!("gameplay.axis_action_{index}");
+        let gamepad = GamepadId(index as u64);
+        map.add_action(InputAction::new(action.clone()));
+        map.bind(InputBinding::axis(
+            action,
+            InputAxisBinding::new(gamepad, GamepadAxis::LeftStickX),
+        ));
+        frame.gamepad_axes.push(GamepadAxisState {
+            gamepad,
+            axis: GamepadAxis::LeftStickX,
+            value: 0.5,
+        });
+        frame.gamepad_axis_transitions.push(GamepadAxisTransition {
+            gamepad,
+            axis: GamepadAxis::LeftStickX,
+            previous_value: 0.0,
+            value: 0.5,
+        });
+    }
+    (map, frame)
 }
 
 fn assert_close(left: f32, right: f32) {

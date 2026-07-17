@@ -1,3 +1,5 @@
+#[cfg(test)]
+use std::cell::Cell;
 use std::collections::{BTreeMap, BTreeSet};
 
 use crate::input::{
@@ -5,14 +7,33 @@ use crate::input::{
     InputFrameSnapshot,
 };
 
+mod binding_index;
+mod frame_axis_index;
+
+use binding_index::ActionBindingIndex;
+use frame_axis_index::FrameAxisIndex;
+
 #[derive(Clone, Debug, Default)]
 pub struct InputActionEvaluator {
     action_map: InputActionMap,
+    binding_index: ActionBindingIndex,
+    #[cfg(test)]
+    evaluation_binding_visits: Cell<usize>,
+    #[cfg(test)]
+    evaluation_axis_source_visits: Cell<usize>,
 }
 
 impl InputActionEvaluator {
     pub fn new(action_map: InputActionMap) -> Self {
-        Self { action_map }
+        let binding_index = ActionBindingIndex::from_action_map(&action_map);
+        Self {
+            action_map,
+            binding_index,
+            #[cfg(test)]
+            evaluation_binding_visits: Cell::new(0),
+            #[cfg(test)]
+            evaluation_axis_source_visits: Cell::new(0),
+        }
     }
 
     pub fn action_map(&self) -> &InputActionMap {
@@ -20,7 +41,23 @@ impl InputActionEvaluator {
     }
 
     pub fn set_action_map(&mut self, action_map: InputActionMap) {
+        self.binding_index = ActionBindingIndex::from_action_map(&action_map);
         self.action_map = action_map;
+    }
+
+    #[cfg(test)]
+    pub(crate) fn indexed_binding_candidate_count(&self) -> usize {
+        self.binding_index.candidate_count()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn evaluation_binding_visit_count(&self) -> usize {
+        self.evaluation_binding_visits.get()
+    }
+
+    #[cfg(test)]
+    pub(crate) fn evaluation_axis_source_visit_count(&self) -> usize {
+        self.evaluation_axis_source_visits.get()
     }
 
     pub fn evaluate(&self, frame: &InputFrameSnapshot) -> InputActionState {
@@ -78,6 +115,18 @@ impl InputActionEvaluator {
         consumed_buttons: &[InputButton],
         consumed_axes: &[GamepadAxisInput],
     ) -> InputActionState {
+        #[cfg(test)]
+        self.evaluation_binding_visits.set(0);
+        #[cfg(test)]
+        self.evaluation_axis_source_visits.set(0);
+        let frame_axes = if self.binding_index.has_axis_bindings() {
+            FrameAxisIndex::from_frame(frame)
+        } else {
+            FrameAxisIndex::default()
+        };
+        #[cfg(test)]
+        self.evaluation_axis_source_visits
+            .set(frame_axes.source_visit_count());
         let consumed_buttons = consumed_buttons.iter().cloned().collect::<BTreeSet<_>>();
         let consumed_axes = consumed_axes.iter().cloned().collect::<BTreeSet<_>>();
         let active_contexts = active_contexts
@@ -99,7 +148,11 @@ impl InputActionEvaluator {
             let mut action_just_deactivated = false;
             let mut action_value = 0.0;
 
-            for binding in self.action_map.bindings_for_action(&action.id) {
+            for &binding_index in self.binding_index.indices_for_action(&action.id) {
+                #[cfg(test)]
+                self.evaluation_binding_visits
+                    .set(self.evaluation_binding_visits.get().saturating_add(1));
+                let binding = &self.action_map.bindings[binding_index];
                 if binding
                     .buttons
                     .iter()
@@ -129,8 +182,9 @@ impl InputActionEvaluator {
                         continue;
                     }
 
-                    let axis_transition = binding_axis_transition(frame, binding, &consumed_axes);
-                    let axis_value = binding_axis_value(frame, binding, &consumed_axes);
+                    let axis_transition =
+                        binding_axis_transition(&frame_axes, binding, &consumed_axes);
+                    let axis_value = binding_axis_value(&frame_axes, binding, &consumed_axes);
                     if axis_value != 0.0 {
                         action_pressed = true;
                         action_value = dominant_action_value(action_value, axis_value);
@@ -190,7 +244,7 @@ fn binding_axis_consumed(
 }
 
 fn binding_axis_value(
-    frame: &InputFrameSnapshot,
+    frame_axes: &FrameAxisIndex,
     binding: &InputBinding,
     consumed_axes: &BTreeSet<GamepadAxisInput>,
 ) -> f32 {
@@ -204,17 +258,18 @@ fn binding_axis_value(
             )
         })
         .filter_map(|binding_axis| {
-            frame
-                .gamepad_axes
-                .iter()
-                .find(|axis| axis.gamepad == binding_axis.gamepad && axis.axis == binding_axis.axis)
-                .map(|axis| binding_axis.value(axis.value))
+            frame_axes
+                .value(GamepadAxisInput::new(
+                    binding_axis.gamepad,
+                    binding_axis.axis,
+                ))
+                .map(|value| binding_axis.value(value))
         })
         .fold(0.0, dominant_action_value)
 }
 
 fn binding_axis_transition(
-    frame: &InputFrameSnapshot,
+    frame_axes: &FrameAxisIndex,
     binding: &InputBinding,
     consumed_axes: &BTreeSet<GamepadAxisInput>,
 ) -> BindingAxisTransition {
@@ -230,21 +285,11 @@ fn binding_axis_transition(
             continue;
         }
 
-        let axis_transition = frame
-            .gamepad_axis_transitions
-            .iter()
-            .find(|axis| axis.gamepad == binding_axis.gamepad && axis.axis == binding_axis.axis);
+        let axis_input = GamepadAxisInput::new(binding_axis.gamepad, binding_axis.axis);
+        let axis_transition = frame_axes.transition(axis_input);
         let current_source = axis_transition
             .map(|axis| axis.value)
-            .or_else(|| {
-                frame
-                    .gamepad_axes
-                    .iter()
-                    .find(|axis| {
-                        axis.gamepad == binding_axis.gamepad && axis.axis == binding_axis.axis
-                    })
-                    .map(|axis| axis.value)
-            })
+            .or_else(|| frame_axes.value(axis_input))
             .unwrap_or(0.0);
         let previous_source = axis_transition
             .map(|axis| axis.previous_value)

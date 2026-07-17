@@ -3,6 +3,7 @@ from __future__ import annotations
 
 INPUT_MOD_DECLARATIONS = (
     "mod module;",
+    "pub mod prelude;",
     "mod runtime;",
     "pub use crate::core::framework::input::{",
     "DefaultInputActionManager, DefaultInputManager, InputActionEvaluator, InputDriver,",
@@ -11,13 +12,25 @@ RUNTIME_MOD_DECLARATIONS = (
     "mod action_evaluator;",
     "mod default_input_action_manager;",
     "mod default_input_manager;",
+    "mod event_buffer;",
     "mod input_driver;",
     "mod recording;",
     "mod input_state;",
 )
+EVENT_BUFFER_VISIBILITY_ANCHORS = (
+    (
+        "zircon_runtime/src/input/runtime/event_buffer/frame.rs",
+        "pub(in crate::input::runtime) struct FrameEventBuffer",
+    ),
+    (
+        "zircon_runtime/src/input/runtime/event_buffer/recorder.rs",
+        "pub(in crate::input::runtime) struct InputEventRecorder",
+    ),
+)
 FRAMEWORK_MOD_DECLARATIONS = (
     "mod button_input_state;",
     "mod cursor;",
+    "mod event_retention;",
     "mod gamepad;",
     "mod input_action;",
     "mod input_action_context;",
@@ -27,7 +40,18 @@ FRAMEWORK_MOD_DECLARATIONS = (
     "mod input_binding;",
     "mod input_event;",
     "mod input_frame_snapshot;",
+    "mod input_manager;",
+    "pub use input_manager::InputManager;",
 )
+INPUT_PRELUDE_ANCHORS = (
+    "pub use super::{",
+    "DefaultInputManager",
+    "InputActionManager",
+    "InputEventRecordingStatus",
+    "InputRecordingFrame",
+    "DEFAULT_INPUT_EVENT_RECORDING_CAPACITY",
+)
+CRATE_PRELUDE_ANCHORS = ("pub use crate::input::prelude::*;",)
 INPUT_TEST_DECLARATIONS = (
     "mod action_axis_transitions;",
     "mod action_mapping;",
@@ -62,6 +86,10 @@ PUBLIC_SURFACE_ANCHORS = (
     "InputRecordingFrame",
     "InputReplayCursor",
     "InputReplayFrameReport",
+    "InputEventQueueStatus",
+    "InputEventRecordingConfig",
+    "InputEventRecordingStatus",
+    "DEFAULT_INPUT_EVENT_RECORDING_CAPACITY",
     "INPUT_ACTION_MANAGER_NAME",
 )
 ACTION_EVALUATOR_ANCHORS = (
@@ -79,6 +107,15 @@ ACTION_EVALUATOR_ANCHORS = (
     "binding_axis_value",
     "binding_axis_transition",
     "dominant_action_value",
+    "binding_index.indices_for_action",
+    "FrameAxisIndex::from_frame",
+)
+AXIS_FRAME_INDEX_ANCHORS = (
+    "pub(super) struct FrameAxisIndex",
+    "GamepadAxisInput::new",
+    "pub(super) fn value",
+    "pub(super) fn transition",
+    "source_visit_count",
 )
 GAMEPAD_ABI_ANCHORS = (
     "ZrRuntimeEventV1::gamepad_connection_with_ids",
@@ -128,6 +165,9 @@ RUNTIME_12_DOC_ANCHORS = (
     "cursor_host_request_static_passed_cargo_deferred",
     "gamepad_bridge_static_passed_cargo_pending",
     "missing_cursor_host_request_anchors = []",
+    "missing_input_prelude_anchors = []",
+    "missing_crate_prelude_anchors = []",
+    "missing_axis_frame_index_anchors = []",
     "runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation",
 )
 RUNTIME_12_TEST_ANCHORS = (
@@ -146,6 +186,12 @@ RUNTIME_12_TEST_ANCHORS = (
     "input_recording_captures_drainable_event_records_by_frame",
     "input_replay_restores_frame_snapshots_in_recorded_order",
     "cursor_host_requests_are_frame_local_and_drainable",
+    "pointer_event_streams_are_frame_bounded_at_common_polling_rates",
+    "pointer_coalescing_preserves_button_and_touch_edges_in_order",
+    "recording_is_opt_in_bounded_and_reports_discarded_raw_records",
+    "input_recording_marks_a_bounded_capture_incomplete_after_discard",
+    "action_evaluator_indexes_10_100_and_1000_bindings_once",
+    "action_evaluator_indexes_axis_frame_sources_once_for_10_100_and_1000_bindings",
 )
 RUNTIME_12_BEHAVIOR_TEST_ANCHORS = RUNTIME_12_TEST_ANCHORS
 CARGO_GATE_ANCHORS = (

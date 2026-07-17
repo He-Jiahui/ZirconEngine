@@ -1,7 +1,6 @@
-use crate::core::framework::channel::ChannelReceiver;
-
 mod button_input_state;
 mod cursor;
+mod event_retention;
 mod file_drag_drop;
 mod gamepad;
 mod ime;
@@ -15,6 +14,7 @@ mod input_button;
 mod input_event;
 mod input_event_record;
 mod input_frame_snapshot;
+mod input_manager;
 mod input_snapshot;
 mod mouse_wheel;
 mod touch;
@@ -22,6 +22,10 @@ mod window_status;
 
 pub use button_input_state::ButtonInputState;
 pub use cursor::{CursorGrabMode, CursorHostRequest, CursorPosition};
+pub use event_retention::{
+    InputEventQueueStatus, InputEventRecordingConfig, InputEventRecordingStatus,
+    DEFAULT_INPUT_EVENT_RECORDING_CAPACITY,
+};
 pub use file_drag_drop::FileDragDropEvent;
 pub use gamepad::{
     GamepadAxis, GamepadAxisInput, GamepadAxisSettings, GamepadAxisState, GamepadAxisTransition,
@@ -46,44 +50,8 @@ pub use input_button::InputButton;
 pub use input_event::InputEvent;
 pub use input_event_record::InputEventRecord;
 pub use input_frame_snapshot::InputFrameSnapshot;
+pub use input_manager::InputManager;
 pub use input_snapshot::InputSnapshot;
 pub use mouse_wheel::{MouseScrollUnit, MouseWheelEvent, PIXEL_SCROLL_LINE_DELTA_SCALE};
 pub use touch::{TouchPhase, TouchPoint};
 pub use window_status::{WindowStatusEvent, WindowTheme};
-
-pub trait InputManager: Send + Sync {
-    fn begin_frame(&self) {}
-    fn submit_event(&self, event: InputEvent);
-    fn snapshot(&self) -> InputSnapshot;
-    fn frame_snapshot(&self) -> InputFrameSnapshot {
-        let snapshot = self.snapshot();
-        let buttons = ButtonInputState::from_pressed(snapshot.pressed_buttons);
-        InputFrameSnapshot {
-            cursor_position: snapshot.cursor_position,
-            buttons,
-            wheel_accumulator: snapshot.wheel_accumulator,
-            mouse_wheel_accumulator: [0.0, snapshot.wheel_accumulator],
-            mouse_wheel_events: if snapshot.wheel_accumulator == 0.0 {
-                Vec::new()
-            } else {
-                vec![MouseWheelEvent::lines(0.0, snapshot.wheel_accumulator)]
-            },
-            ..InputFrameSnapshot::default()
-        }
-    }
-    fn drain_ime_host_requests(&self) -> Vec<ImeHostRequest> {
-        Vec::new()
-    }
-    fn drain_gamepad_rumble_requests(&self) -> Vec<GamepadRumbleRequest> {
-        Vec::new()
-    }
-    fn drain_cursor_host_requests(&self) -> Vec<CursorHostRequest> {
-        Vec::new()
-    }
-    fn drain_events(&self) -> Vec<InputEvent>;
-    fn drain_event_records(&self) -> Vec<InputEventRecord>;
-
-    fn subscribe_events(&self) -> Option<ChannelReceiver<InputEventRecord>> {
-        None
-    }
-}

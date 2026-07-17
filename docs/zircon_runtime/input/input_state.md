@@ -10,18 +10,30 @@ related_code:
   - zircon_runtime/src/core/framework/input/input_action_map.rs
   - zircon_runtime/src/core/framework/input/input_action_state.rs
   - zircon_runtime/src/core/framework/input/input_event.rs
+  - zircon_runtime/src/core/framework/input/input_event_record.rs
+  - zircon_runtime/src/core/framework/input/event_retention/mod.rs
+  - zircon_runtime/src/core/framework/input/event_retention/queue_status.rs
+  - zircon_runtime/src/core/framework/input/event_retention/recording_config.rs
+  - zircon_runtime/src/core/framework/input/event_retention/recording_status.rs
   - zircon_runtime/src/core/framework/input/mouse_wheel.rs
   - zircon_runtime/src/core/framework/input/file_drag_drop.rs
   - zircon_runtime/src/core/framework/input/window_status.rs
   - zircon_runtime/src/core/framework/input/input_frame_snapshot.rs
+  - zircon_runtime/src/core/framework/input/input_manager.rs
   - zircon_runtime/src/core/framework/input/input_snapshot.rs
   - zircon_runtime/src/core/framework/input/gamepad.rs
   - zircon_runtime/src/core/framework/input/ime.rs
   - zircon_runtime/src/core/framework/input/touch.rs
   - zircon_runtime/src/input/mod.rs
+  - zircon_runtime/src/input/prelude.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs
   - zircon_runtime/src/input/runtime/action_evaluator.rs
+  - zircon_runtime/src/input/runtime/action_evaluator/binding_index.rs
+  - zircon_runtime/src/input/runtime/action_evaluator/frame_axis_index.rs
+  - zircon_runtime/src/input/runtime/event_buffer/mod.rs
+  - zircon_runtime/src/input/runtime/event_buffer/frame.rs
+  - zircon_runtime/src/input/runtime/event_buffer/recorder.rs
   - zircon_runtime/src/input/runtime/recording.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
@@ -40,6 +52,10 @@ related_code:
   - zircon_runtime/src/dynamic_api/tests/input_events.rs
   - zircon_runtime/src/dynamic_api/tests/host_requests.rs
   - zircon_runtime/src/input/tests/input_manager/frame_state.rs
+  - zircon_runtime/src/input/tests/input_manager/event_buffer.rs
+  - zircon_runtime/src/input/tests/input_manager/touch_gamepad.rs
+  - zircon_runtime/src/input/tests/action_mapping.rs
+  - zircon_runtime/src/input/tests/recording_replay.rs
   - zircon_runtime/src/input/tests/input_manager/host_requests.rs
   - zircon_app/src/entry/runtime_library/loaded_runtime.rs
   - zircon_app/src/entry/runtime_library/runtime_session.rs
@@ -82,16 +98,28 @@ implementation_files:
   - zircon_runtime/src/core/framework/input/input_action_map.rs
   - zircon_runtime/src/core/framework/input/input_action_state.rs
   - zircon_runtime/src/core/framework/input/input_event.rs
+  - zircon_runtime/src/core/framework/input/input_event_record.rs
+  - zircon_runtime/src/core/framework/input/event_retention/mod.rs
+  - zircon_runtime/src/core/framework/input/event_retention/queue_status.rs
+  - zircon_runtime/src/core/framework/input/event_retention/recording_config.rs
+  - zircon_runtime/src/core/framework/input/event_retention/recording_status.rs
   - zircon_runtime/src/core/framework/input/mouse_wheel.rs
   - zircon_runtime/src/core/framework/input/file_drag_drop.rs
   - zircon_runtime/src/core/framework/input/window_status.rs
   - zircon_runtime/src/core/framework/input/input_frame_snapshot.rs
+  - zircon_runtime/src/core/framework/input/input_manager.rs
   - zircon_runtime/src/core/framework/input/gamepad.rs
   - zircon_runtime/src/core/framework/input/ime.rs
   - zircon_runtime/src/core/framework/input/touch.rs
   - zircon_runtime/src/input/runtime/action_evaluator.rs
+  - zircon_runtime/src/input/prelude.rs
+  - zircon_runtime/src/input/runtime/action_evaluator/binding_index.rs
+  - zircon_runtime/src/input/runtime/action_evaluator/frame_axis_index.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs
+  - zircon_runtime/src/input/runtime/event_buffer/mod.rs
+  - zircon_runtime/src/input/runtime/event_buffer/frame.rs
+  - zircon_runtime/src/input/runtime/event_buffer/recorder.rs
   - zircon_runtime/src/input/runtime/recording.rs
   - zircon_runtime/src/input/runtime/input_state.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
@@ -140,6 +168,7 @@ plan_sources:
   - user: 2026-05-16 continue Bevy-style platform/window/input stable prelude completion
   - chat: ZirconEngine Bevy 式 Platform / Window / Input / Gilrs 完成度计划
   - docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md
+  - docs/plans/zircon_runtime/runtime/12/failure-2026-07-17-input-event-growth-and-frequency.md
   - docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md
   - docs/plans/engine-code-structure-convention.md
   - docs/plans/engine-code-review-findings-2026-06.md
@@ -159,11 +188,13 @@ plan_sources:
 tests:
   - zircon_runtime/src/input/tests/input_manager.rs
   - zircon_runtime/src/input/tests/input_manager/frame_state.rs
+  - zircon_runtime/src/input/tests/input_manager/event_buffer.rs
   - zircon_runtime/src/input/tests/input_manager/host_requests.rs
   - zircon_runtime/src/input/tests/action_mapping.rs
   - zircon_runtime/src/input/tests/action_axis_transitions.rs
   - zircon_runtime/src/input/tests/gamepad_bridge.rs
   - zircon_runtime/src/input/tests/recording_replay.rs
+  - zircon_runtime/src/input/tests/input_manager/touch_gamepad.rs
   - zircon_runtime/src/tests/runtime_absorption/input_stack.rs
   - zircon_runtime/src/input/runtime/default_input_manager.rs::input_manager_accessors_recover_poisoned_state_lock
   - zircon_runtime/src/input/runtime/default_input_action_manager.rs::input_action_manager_accessors_recover_poisoned_evaluator_lock
@@ -203,7 +234,9 @@ doc_type: module-detail
 
 # Runtime Input State
 
-Runtime 12 current child-owner sync (2026-07-10): `input_stack_boundary` reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `expected_guard_file_count = 6`, `missing_guard_files = []`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `behavior_test_anchor_count = 15`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. Current status anchors are `Frame Input Contract`, `input_frame_contract_static_passed_cargo_pending`, `arbitration_judgement_documented_static_passed`, `action_contract_static_passed_cargo_pending`, `action_evaluator_static_passed_cargo_pending`, `action_context_static_passed_cargo_pending`, `action_axis_value_static_passed_cargo_deferred`, `action_config_static_passed_cargo_deferred`, `action_manager_registration_static_passed_cargo_deferred`, `action_axis_consumption_static_passed_cargo_deferred`, `input_recording_replay_static_passed_cargo_deferred`, `cursor_host_request_static_passed_cargo_deferred`, `gamepad_bridge_static_passed_cargo_pending`, and `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`. Pending command anchors remain `cargo test -p zircon_runtime --lib input --locked -- --nocapture`, `cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`, `cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture`, and `cargo test -p zircon_app --locked`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, input module doc, M0 review, and interface-convergence mirror aligned; production input behavior is unchanged.
+Runtime 12 current child-owner sync (2026-07-17): `input_stack_boundary` reports `expected_runtime_module_count = 18`, `expected_framework_module_count = 25`, `expected_test_module_count = 7`, `expected_guard_file_count = 6`, `missing_guard_files = []`, `missing_input_prelude_anchors = []`, `missing_crate_prelude_anchors = []`, `missing_axis_frame_index_anchors = []`, `public_surface_anchors = 30/30`, `runtime_12_guard_anchors = 5/5`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `behavior_test_anchor_count = 21`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `FrameEventBuffer` and `InputEventRecorder` now live in folder-backed runtime owners, retention configuration/status declarations live under `core/framework/input/event_retention`, `ActionBindingIndex` and `FrameAxisIndex` have dedicated evaluator child owners, and the runtime prelude plus framework input-manager contract are explicitly wired and inventoried. Current status anchor is `input_event_bounds_and_action_index_current_source_accepted`: source-manifest-bound Windows job `d064840b0a8f40dcb405bab74b493ba1` passed 39 input tests with 0 failures, including bounded pointer/event retention, recording/replay, and button/axis index scaling. Historical command anchors remain `cargo test -p zircon_runtime --lib input --locked -- --nocapture`, `cargo test -p zircon_runtime --lib action_map --locked -- --nocapture`, `cargo test -p zircon_runtime --lib gamepad --locked -- --nocapture`, and `cargo test -p zircon_app --locked`; M5 does not promote the unrun app-wide gate. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps the plan, runtime index, and input module doc aligned.
+
+Earlier accepted/deferred slice anchors remain discoverable as `input_frame_contract_static_passed_cargo_pending`, `arbitration_judgement_documented_static_passed`, `action_contract_static_passed_cargo_pending`, `action_evaluator_static_passed_cargo_pending`, `action_context_static_passed_cargo_pending`, `input_recording_replay_static_passed_cargo_deferred`, `gamepad_bridge_static_passed_cargo_pending`, and `runtime_12_input_stack_cargo_pending_gate_stays_explicit_until_input_validation`.
 
 ## Purpose
 
@@ -212,13 +245,15 @@ Runtime 12 current child-owner sync (2026-07-10): `input_stack_boundary` reports
 The design follows Bevy's input split:
 
 - `ButtonInputState<T>` mirrors Bevy `ButtonInput<T>` semantics with durable `pressed` state plus per-frame `just_pressed` and `just_released` transitions.
-- `InputEvent` remains the append-only neutral event stream, now covering cursor position, cursor enter/leave, cursor host requests, file drag/drop, window status, mouse motion, Bevy-style wheel x/y/unit events, keyboard, IME composition/delete requests, outgoing IME host requests, focus loss, touch, gamepad connection, gamepad button, and gamepad axis events.
+- `InputEvent` remains the neutral submitted-event vocabulary, covering cursor position, cursor enter/leave, cursor host requests, file drag/drop, window status, mouse motion, Bevy-style wheel x/y/unit events, keyboard, IME composition/delete requests, outgoing IME host requests, focus loss, touch, gamepad connection, gamepad button, and gamepad axis events. Queue retention is an explicit manager policy rather than an implied unbounded event log.
 - `InputFrameSnapshot` is the new full-frame state view for systems that need transitions, cursor-in-window state, current-frame cursor host requests, file drag/drop and window status events, active touches, connected gamepads, processed gamepad axes, current-frame gamepad axis transitions, processed analog button values, current-frame gamepad rumble requests, IME preedit/commit/delete-surrounding/host-request state, precise wheel events, and motion accumulators.
 - `InputSnapshot` remains the compatibility view: cursor, pressed buttons, and scalar wheel accumulator.
 
 ## Runtime Manager Behavior
 
-`DefaultInputManager::begin_frame()` clears transient button transitions plus wheel and mouse-motion accumulators, and clears current-frame host request queues. It does not release currently pressed buttons. Callers that do not use `begin_frame()` keep the previous behavior where wheel accumulates until inspected.
+`DefaultInputManager::begin_frame()` clears transient button transitions plus wheel and mouse-motion accumulators, the reduced frame event queue, and current-frame host request queues. It does not release currently pressed buttons. Callers that do not use `begin_frame()` keep the previous behavior where wheel accumulates until inspected.
+
+`InputManager::drain_events()` is a frame-transient read port, not a history store. Consecutive `CursorMoved` events collapse to the latest position and consecutive raw `MouseMotion` events collapse to their summed delta. Coalescing stops at every other event, so button, touch, keyboard, IME, window, file, wheel, and gamepad edges retain their submitted order. `InputEventQueueStatus` exposes current retained depth plus the frame's coalesced count. The simulated ten-minute 125/500/1000Hz pressure anchor proves each pointer-only interval stays at one queued event, while the mixed edge anchor proves coalescing never jumps across an edge.
 
 Cursor events keep `cursor_position` and `cursor_inside_window` separate. `CursorMoved` updates position, while `CursorEntered` and `CursorLeft` only update whether the host cursor is inside the window. This mirrors Bevy's split between `CursorMoved`, `CursorEntered`, and `CursorLeft` messages in `dev/bevy/crates/bevy_window/src/event.rs`.
 
@@ -254,15 +289,17 @@ Runtime 12 M0.1 makes the frame-input lifecycle explicit. Platform and app host 
 
 `DefaultInputManager::begin_frame()` is the transition-clear boundary for the next frame. It clears `just_pressed`, `just_released`, wheel/motion accumulators, current-frame message lists, and outgoing host request queues, but it does not release durable pressed buttons or persistent IME/gamepad state. This follows the same state split as Bevy `ButtonInput<T>`, where `just_pressed` and `just_released` are one-frame facts layered on top of a longer-lived pressed set.
 
+The same boundary clears any undrained `drain_events()` data. Consumers that need deterministic history must opt into the separate recording lane; they must not treat a missed transient drain as persistent storage.
+
 The dynamic runtime session has one important ordering rule: `RuntimeDynamicSession::tick_frame()` runs the loaded level before it calls `input_manager.begin_frame()`. Guard anchor: RuntimeDynamicSession::tick_frame() runs the loaded level before it calls `input_manager.begin_frame()`. Events submitted since the previous clear therefore remain visible to level systems for exactly one update, and are cleared only after that update has consumed the frame. `frame_input_clears_after_level_tick_not_before` is the source-order guard for that rule; `input_snapshot_just_pressed_is_true_for_exactly_one_frame` is the behavior anchor for the one-frame transition state.
 
 Runtime 12 M0.2 settles the first arbitration boundary above this lower input state: UI surface/pointer capture/popup/focus 优先; UI surface hits, pointer capture, popup scope, and text/navigation focus go through the UI 09 `interaction_gate` / dispatch authority before gameplay actions. Gameplay action mapping consumes UI-unhandled input, or all input in headless/no-UI profiles. `DefaultInputManager` still does not make that decision; it only preserves the frame facts both consumers need.
 
 `runtime_absorption::input_stack::runtime_12_input_stack_contracts_stay_documented_and_exported` guards this contract at the plan/doc/source boundary. It keeps the frame contract anchors, `DefaultInputManager` / `InputFrameSnapshot` public surface, and named M0.1 test anchors synchronized while the Cargo input filter remains pending.
 
-`input_stack_boundary.py` now mirrors Runtime 12 through the Python structural audit as the 337-line audit reader, missing-anchor checker, and risk classifier; `input_stack_markdown.py` owns the 108-line Markdown renderer. Current evidence reports `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 15`, `missing_gamepad_abi_anchors = []`, `missing_cursor_host_request_anchors = []`, `missing_doc_anchors = []`, `missing_test_anchors = []`, `missing_behavior_test_anchors = []`, `missing_cargo_gate_anchors = []`, `oversized_modules = []`, `mirror_docs_guard_present = true`, and `risks = []`. `runtime_12_input_stack_mirror_docs_match_structure_audit_counts` keeps this module doc, Runtime 12, the runtime index, the M0 review, and runtime-interface convergence aligned to those counts. This is structure evidence only; the input/action_map/gamepad/app Cargo filters remain pending.
+Historical 2026-06-20 evidence from `input_stack_boundary.py` reported `expected_runtime_module_count = 12`, `expected_framework_module_count = 20`, `expected_test_module_count = 7`, `public_surface_anchors = 26/26`, `runtime_12_guard_anchors = 5/5`, `behavior_test_anchor_count = 15`, and empty missing/risk lists. Those dated counts are retained only as provenance; the unique current block at the top of this document is authoritative.
 
-Fresh 2026-06-21 Runtime 12 inventory and Markdown split evidence: `input_stack_source_inventory.py` owns runtime/framework/test owner module inventory and line-budget constants, while `input_stack_anchor_inventory.py` owns module declarations, public-surface anchors, action evaluator anchors, gamepad ABI anchors, cursor host-request anchors, Rust guard anchors, doc/test anchors, behavior-test anchors, and pending Cargo gate anchors. `input_stack_boundary.py` remains the audit reader, missing-anchor calculator, and risk aggregator at 337 lines; `input_stack_markdown.py` owns `render_input_stack_boundary_markdown` at 108 lines. Direct audit still reports runtime/framework/test owner modules 12/20/7, public surface anchors 26/26, Runtime 12 guard anchors 5/5, behavior-test anchors 15/15, cursor host-request anchors 12/12, `mirror_docs_guard_present = true`, and `risks = []`; rustfmt plus standalone `input_stack.rs` 4/4 and `plan_status.rs` 33/33 also passed. Package-level Cargo remains deferred to the Runtime 12 validation gate.
+Historical 2026-06-21 inventory-split evidence recorded runtime/framework/test owner modules 12/20/7, public-surface anchors 26/26, Runtime 12 guard anchors 5/5, behavior-test anchors 15/15, and cursor host-request anchors 12/12. It also established `input_stack_source_inventory.py` as the module/line-budget owner and `input_stack_anchor_inventory.py` as the declaration and anchor owner. These dated counts do not describe current source.
 
 ## Action Mapping
 
@@ -275,6 +312,8 @@ Runtime 12 M1 adds the first data-driven gameplay action layer without removing 
 - `InputActionState` is the frame result: durable `pressed` actions, one-frame `just_activated` actions, one-frame `just_deactivated` actions, and per-action continuous values readable through `InputActionState::value(...)`.
 
 `zircon_runtime::input::runtime::InputActionEvaluator` owns the concrete evaluation step. It reads an `InputFrameSnapshot`, evaluates each explicit action against its bindings, reports a chord as active only when all chord buttons are currently pressed, and reports `just_activated` when an active binding contains at least one `just_pressed` button. It reports `just_deactivated` only when no binding for the action remains active and at least one binding button was released this frame.
+
+The evaluator compiles a deterministic action-id-to-binding-index table when it receives an `InputActionMap`, and rebuilds that table only in `set_action_map(...)`. The count baseline for one binding per action is 100, 10,000, and 1,000,000 candidates under the former full scan at 10/100/1000 bindings; the indexed evaluator exposes 10, 100, and 1,000 candidates to the same evaluation loop. This is a count-based baseline, avoiding a new benchmark dependency while still proving the asymptotic owner changed from per-action full scans to stable configuration lookup.
 
 The evaluator also accepts `evaluate_with_consumed_buttons(...)`, `evaluate_with_consumed_input(...)`, `evaluate_with_active_contexts(...)`, `evaluate_with_active_contexts_and_consumed_buttons(...)`, and `evaluate_with_active_contexts_and_consumed_input(...)`. That is the Runtime 12 M0.2/M1.3/M1.8 bridge: callers that run UI routing first pass any UI-consumed buttons and `GamepadAxisInput` values to the gameplay evaluator, callers with menu/gameplay modes pass active contexts, and those filtered bindings are ignored for the frame before axis values or axis transition edges are evaluated. Actions without a context remain global so host-level or always-on gameplay commands can keep working. Headless or no-UI callers use `evaluate(...)`, which treats the whole snapshot as unconsumed gameplay input and leaves context filtering disabled.
 
@@ -292,11 +331,13 @@ Runtime 12 M1.6 registers action mapping through the runtime manager path instea
 
 ## Input Recording And Replay
 
-`InputRecording` is the runtime-owned deterministic input capture container for headless replays, gameplay regression harnesses, and future tooling. It stores ordered `InputRecordingFrame` values, and each frame stores the drained `InputEventRecord` list for one runtime frame. `InputRecordingFrame::capture_from_manager(frame_index, input_manager)` drains the existing `InputManager::drain_event_records()` queue, so recording does not introduce a second event tap or bypass `DefaultInputManager::submit_event(...)`.
+`InputRecording` is the runtime-owned deterministic input capture container for headless replays, gameplay regression harnesses, and future tooling. It stores ordered `InputRecordingFrame` values, and each frame stores the drained `InputEventRecord` list for one runtime frame. `InputRecordingFrame::capture_from_manager(frame_index, input_manager)` drains `InputManager::drain_event_records()`, so recording does not bypass `DefaultInputManager::submit_event(...)`.
+
+Recording is disabled by default. A capture owner must call `set_event_recording_config(InputEventRecordingConfig::enabled(capacity))` before submitting the events it wants to retain. Raw submitted events enter the recording lane before pointer coalescing, preserving deterministic input order up to the configured bound. When the bound is full the oldest record is discarded, `InputEventRecordingStatus::discarded_records` increases, and `retained_records` remains at or below capacity. `drain_event_records_with_status()` drains records and snapshots those counters under the same manager lock; `InputRecordingFrame` stores the cumulative discarded count, and `InputRecording::is_complete()` lets replay/tool owners reject an incomplete capture instead of silently treating it as lossless. Together, `InputEventQueueStatus::coalesced_events` and the recording status provide the required coalesce/drop diagnostics without adding an app-side cache. Disabling recording clears the retained queue and counters. System time and event cloning are skipped entirely while recording is disabled.
 
 `InputReplayCursor::replay_next_frame(...)` replays one recorded frame by calling `InputManager::begin_frame()` and then submitting the recorded `InputEvent` values in their original frame order. The original `InputEventRecord.sequence` and `timestamp_millis` remain preserved in the recording for diagnostics and serialization, but replay deliberately re-enters through `submit_event(...)`; the destination manager owns fresh runtime sequence/timestamp metadata. `InputReplayFrameReport` returns the recorded frame index, event count, and the resulting `InputFrameSnapshot`, which lets headless tests or script tools read the same-frame button, axis, mouse, IME, and gamepad state after replay.
 
-The minimal backlog cutover is source-level complete through `input_recording_replay_static_passed_cargo_deferred`. It does not add editor UI capture controls, an asset-backed recording file format, or cross-process input streaming; those remain separate product/tooling decisions. The behavior anchors are `input_recording_captures_drainable_event_records_by_frame` and `input_replay_restores_frame_snapshots_in_recorded_order`.
+The bounded-recording cutover keeps editor UI capture controls, an asset-backed recording file format, and cross-process input streaming out of scope. Behavior anchors are `input_recording_captures_drainable_event_records_by_frame`, `input_recording_marks_a_bounded_capture_incomplete_after_discard`, `input_replay_restores_frame_snapshots_in_recorded_order`, `recording_is_opt_in_bounded_and_reports_discarded_raw_records`, `pointer_event_streams_are_frame_bounded_at_common_polling_rates`, and `action_evaluator_indexes_10_100_and_1000_bindings_once`; managed Cargo evidence is recorded by the Runtime12 numbered child output after the milestone testing stage.
 
 ## Compatibility
 
@@ -424,4 +465,4 @@ Current intentional gaps are browser Gamepad API support, additional non-mouse d
 
 Plan sources are Runtime09, Runtime12, Runtime15, and Plan09 numbered output records. The current guard implementation files are `tests/runtime_absorption/input_stack/**`, `tests/runtime_absorption/naming_boundary/runtime_15_m2/{input,ui}/**`, `tests/runtime_absorption/ui_architecture/legacy_renames.rs`, and the scene-world production-budget guard. No input production behavior changed in this reconciliation.
 
-The direct Runtime12 structure audit reports runtime/framework/test/guard counts 12/20/7/6, all missing lists empty, `mirror_docs_guard_present = true`, and `risks = []`. Current-source tests pass input-stack 11/11, input naming 3/3, Runtime09 route/name 11/11, and scene-world visibility owner 1/1. The available older default-feature `input` filter remains 429 passed / 25 failed / 1 ignored; all twelve stale guard failures are reconciled in current source, while thirteen active UI behavior failures and a fresh default-feature rebuild remain pending. Acceptance evidence is recorded in `tests/acceptance/runtime-input-current-result.md`.
+The dated 2026-07-10 structure audit reported runtime/framework/test/guard counts 12/20/7/6, with empty missing/risk lists. Its input-stack 11/11, input naming 3/3, Runtime09 route/name 11/11, and scene-world visibility 1/1 results remain historical evidence only; current inventory and validation are recorded in the unique current block above and the Runtime 12 numbered output.

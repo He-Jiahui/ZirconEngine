@@ -3,9 +3,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use crate::input::{
     ButtonInputState, CursorHostRequest, FileDragDropEvent, GamepadAxis, GamepadAxisState,
     GamepadAxisTransition, GamepadButton, GamepadButtonValueState, GamepadId, GamepadRumbleRequest,
-    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, InputEvent, InputEventRecord,
-    MouseScrollUnit, MouseWheelEvent, TouchPoint, WindowStatusEvent,
+    ImeDeleteSurrounding, ImeHostRequest, ImePreedit, InputButton, MouseScrollUnit,
+    MouseWheelEvent, TouchPoint, WindowStatusEvent,
 };
+
+use super::event_buffer::{FrameEventBuffer, InputEventRecorder};
 
 #[derive(Debug)]
 pub(crate) struct InputState {
@@ -31,9 +33,8 @@ pub(crate) struct InputState {
     pub(crate) ime_host_requests: Vec<ImeHostRequest>,
     pub(crate) window_status_events: Vec<WindowStatusEvent>,
     pub(crate) file_drag_drop_events: Vec<FileDragDropEvent>,
-    pub(crate) events: Vec<InputEvent>,
-    pub(crate) records: Vec<InputEventRecord>,
-    pub(crate) next_sequence: u64,
+    pub(super) frame_events: FrameEventBuffer,
+    pub(super) event_recorder: InputEventRecorder,
 }
 
 impl Default for InputState {
@@ -61,9 +62,8 @@ impl Default for InputState {
             ime_host_requests: Vec::new(),
             window_status_events: Vec::new(),
             file_drag_drop_events: Vec::new(),
-            events: Vec::new(),
-            records: Vec::new(),
-            next_sequence: 0,
+            frame_events: FrameEventBuffer::default(),
+            event_recorder: InputEventRecorder::default(),
         }
     }
 }

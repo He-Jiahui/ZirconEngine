@@ -79,6 +79,7 @@ fn input_manager_tracks_touch_and_gamepad_state() {
 #[test]
 fn input_manager_event_log_harness_covers_window_keyboard_mouse_touch_and_gamepad() {
     let input = DefaultInputManager::default();
+    input.set_event_recording_config(crate::input::InputEventRecordingConfig::enabled(32));
     let gamepad = GamepadId(9);
 
     input.begin_frame();

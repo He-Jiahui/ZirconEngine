@@ -1,6 +1,7 @@
 mod action_evaluator;
 mod default_input_action_manager;
 mod default_input_manager;
+mod event_buffer;
 mod input_driver;
 mod input_state;
 mod recording;

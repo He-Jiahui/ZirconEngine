@@ -1,17 +1,20 @@
 use crate::core::framework::input::InputManager;
 use crate::input::{
-    DefaultInputManager, InputButton, InputEvent, InputRecording, InputRecordingFrame,
+    DefaultInputManager, InputButton, InputEvent, InputEventRecordingConfig, InputRecording,
+    InputRecordingFrame,
 };
 
 #[test]
 fn input_recording_captures_drainable_event_records_by_frame() {
     let input = DefaultInputManager::default();
+    input.set_event_recording_config(InputEventRecordingConfig::enabled(16));
     input.submit_event(InputEvent::CursorMoved { x: 4.0, y: 9.0 });
     input.submit_event(InputEvent::ButtonPressed(InputButton::MouseLeft));
 
     let frame = InputRecordingFrame::capture_from_manager(17, &input);
     assert_eq!(frame.frame_index(), 17);
     assert_eq!(frame.event_count(), 2);
+    assert!(frame.is_complete());
     assert!(input.drain_event_records().is_empty());
 
     let mut recording = InputRecording::new();
@@ -19,7 +22,39 @@ fn input_recording_captures_drainable_event_records_by_frame() {
 
     assert_eq!(recording.frame_count(), 1);
     assert_eq!(recording.event_count(), 2);
+    assert!(recording.is_complete());
     assert_eq!(recording.frames(), &[frame]);
+}
+
+#[test]
+fn input_recording_marks_a_bounded_capture_incomplete_after_discard() {
+    let input = DefaultInputManager::default();
+    input.set_event_recording_config(InputEventRecordingConfig::enabled(2));
+    input.submit_event(InputEvent::CursorMoved { x: 1.0, y: 0.0 });
+    input.submit_event(InputEvent::CursorMoved { x: 2.0, y: 0.0 });
+    input.submit_event(InputEvent::CursorMoved { x: 3.0, y: 0.0 });
+
+    let frame = InputRecordingFrame::capture_from_manager(5, &input);
+    assert_eq!(frame.event_count(), 2);
+    assert_eq!(frame.discarded_record_count(), 1);
+    assert!(!frame.is_complete());
+
+    let recording = InputRecording::from_frames(vec![frame]);
+    assert_eq!(recording.discarded_record_count(), 1);
+    assert!(!recording.is_complete());
+}
+
+#[test]
+fn input_recording_marks_capture_incomplete_when_recording_is_disabled() {
+    let input = DefaultInputManager::default();
+    input.submit_event(InputEvent::CursorMoved { x: 1.0, y: 2.0 });
+
+    let frame = InputRecordingFrame::capture_from_manager(6, &input);
+
+    assert!(!frame.recording_enabled());
+    assert!(frame.is_empty());
+    assert!(!frame.is_complete());
+    assert!(!InputRecording::from_frames(vec![frame]).is_complete());
 }
 
 #[test]

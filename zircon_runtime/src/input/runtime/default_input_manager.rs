@@ -1,11 +1,11 @@
 use std::sync::{Mutex, MutexGuard};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::core::framework::input::InputManager as InputManagerFacade;
 
 use crate::input::{
     CursorHostRequest, GamepadAxisSettings, GamepadAxisTransition, GamepadButtonAxisSettings,
-    GamepadButtonSettings, ImeEvent, ImeHostRequest, InputButton, InputEvent, InputEventRecord,
+    GamepadButtonSettings, ImeEvent, ImeHostRequest, InputButton, InputEvent,
+    InputEventQueueStatus, InputEventRecord, InputEventRecordingConfig, InputEventRecordingStatus,
     InputFrameSnapshot, InputSnapshot, MouseScrollUnit, MouseWheelEvent, TouchPhase, TouchPoint,
 };
 
@@ -28,6 +28,7 @@ impl InputManagerFacade for DefaultInputManager {
     fn begin_frame(&self) {
         let mut state = self.lock_state();
         state.buttons.clear_transitions();
+        state.frame_events.begin_frame();
         state.wheel_accumulator = 0.0;
         state.mouse_wheel_accumulator = [0.0, 0.0];
         state.mouse_wheel_unit = MouseScrollUnit::Line;
@@ -45,12 +46,6 @@ impl InputManagerFacade for DefaultInputManager {
 
     fn submit_event(&self, event: InputEvent) {
         let mut state = self.lock_state();
-        state.next_sequence += 1;
-        let sequence = state.next_sequence;
-        let timestamp_millis = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap_or_default()
-            .as_millis() as u64;
         match &event {
             InputEvent::CursorMoved { x, y } => {
                 state.cursor_position = [*x, *y];
@@ -258,12 +253,8 @@ impl InputManagerFacade for DefaultInputManager {
                 state.gamepad_rumble_requests.push(*request);
             }
         }
-        state.events.push(event.clone());
-        state.records.push(InputEventRecord {
-            sequence,
-            timestamp_millis,
-            event,
-        });
+        state.event_recorder.record(&event);
+        state.frame_events.push(event);
     }
 
     fn snapshot(&self) -> InputSnapshot {
@@ -320,12 +311,32 @@ impl InputManagerFacade for DefaultInputManager {
 
     fn drain_events(&self) -> Vec<InputEvent> {
         let mut state = self.lock_state();
-        std::mem::take(&mut state.events)
+        state.frame_events.drain()
     }
 
     fn drain_event_records(&self) -> Vec<InputEventRecord> {
         let mut state = self.lock_state();
-        std::mem::take(&mut state.records)
+        state.event_recorder.drain()
+    }
+
+    fn drain_event_records_with_status(
+        &self,
+    ) -> (Vec<InputEventRecord>, InputEventRecordingStatus) {
+        let mut state = self.lock_state();
+        let records = state.event_recorder.drain();
+        (records, state.event_recorder.status())
+    }
+
+    fn set_event_recording_config(&self, config: InputEventRecordingConfig) {
+        self.lock_state().event_recorder.configure(config);
+    }
+
+    fn event_recording_status(&self) -> InputEventRecordingStatus {
+        self.lock_state().event_recorder.status()
+    }
+
+    fn event_queue_status(&self) -> InputEventQueueStatus {
+        self.lock_state().frame_events.status()
     }
 }
 

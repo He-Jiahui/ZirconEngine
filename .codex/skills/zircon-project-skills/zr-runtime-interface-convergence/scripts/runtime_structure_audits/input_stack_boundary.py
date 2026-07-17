@@ -4,11 +4,15 @@ from pathlib import Path
 
 from runtime_structure_audits.input_stack_anchor_inventory import (
     ACTION_EVALUATOR_ANCHORS,
+    AXIS_FRAME_INDEX_ANCHORS,
     CARGO_GATE_ANCHORS,
+    CRATE_PRELUDE_ANCHORS,
     CURSOR_HOST_REQUEST_ANCHORS,
+    EVENT_BUFFER_VISIBILITY_ANCHORS,
     FRAMEWORK_MOD_DECLARATIONS,
     GAMEPAD_ABI_ANCHORS,
     INPUT_MOD_DECLARATIONS,
+    INPUT_PRELUDE_ANCHORS,
     INPUT_TEST_DECLARATIONS,
     MIRROR_DOCS_GUARD,
     PUBLIC_SURFACE_ANCHORS,
@@ -88,17 +92,20 @@ def _missing_snippets(sources: tuple[str, ...], snippets: tuple[str, ...]) -> li
 
 def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     input_mod = root / "zircon_runtime/src/input/mod.rs"
+    input_prelude = root / "zircon_runtime/src/input/prelude.rs"
     runtime_mod = root / "zircon_runtime/src/input/runtime/mod.rs"
     framework_mod = root / "zircon_runtime/src/core/framework/input/mod.rs"
     tests_mod = root / "zircon_runtime/src/input/tests/mod.rs"
     prelude = root / "zircon_runtime/src/prelude.rs"
     action_evaluator = root / "zircon_runtime/src/input/runtime/action_evaluator.rs"
-    input_stack_guard_paths = tuple(root / path for path in INPUT_STACK_GUARD_FILES)
-    runtime_12_plan = (
-        root
-        / "docs/plans/zircon_runtime/runtime/12-input-stack-and-action-mapping.md"
+    axis_frame_index = (
+        root / "zircon_runtime/src/input/runtime/action_evaluator/frame_axis_index.rs"
     )
-    runtime_index = root / "docs/plans/zircon_runtime/runtime/index.md"
+    input_stack_guard_paths = tuple(root / path for path in INPUT_STACK_GUARD_FILES)
+    runtime_12_closeout = (
+        root
+        / "docs/plans/zircon_runtime/runtime/12/2026-07-17-m5-input-event-bounds-current-source-closeout.md"
+    )
     input_doc = root / "docs/zircon_runtime/input/input_state.md"
     app_gamepad_events = root / "zircon_app/src/entry/runtime_entry_app/gamepad/events.rs"
     app_gamepad_polling = root / "zircon_app/src/entry/runtime_entry_app/gamepad/polling.rs"
@@ -122,12 +129,16 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     platform_diagnostics = root / "zircon_runtime/src/platform/tests/diagnostics.rs"
 
     input_mod_source = _read_text(input_mod) if input_mod.exists() else ""
+    input_prelude_source = _read_text(input_prelude) if input_prelude.exists() else ""
     runtime_mod_source = _read_text(runtime_mod) if runtime_mod.exists() else ""
     framework_mod_source = _read_text(framework_mod) if framework_mod.exists() else ""
     tests_mod_source = _read_text(tests_mod) if tests_mod.exists() else ""
     prelude_source = _read_text(prelude) if prelude.exists() else ""
     action_evaluator_source = (
         _read_text(action_evaluator) if action_evaluator.exists() else ""
+    )
+    axis_frame_index_source = (
+        _read_text(axis_frame_index) if axis_frame_index.exists() else ""
     )
     missing_guard_files = [
         path.relative_to(root).as_posix()
@@ -139,7 +150,7 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     )
     doc_sources = tuple(
         _read_text(path)
-        for path in (runtime_12_plan, runtime_index, input_doc)
+        for path in (runtime_12_closeout, input_doc)
         if path.exists()
     )
     test_sources = tuple(
@@ -228,10 +239,27 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
         (input_mod_source, framework_mod_source, prelude_source),
         PUBLIC_SURFACE_ANCHORS,
     )
+    missing_input_prelude_anchors = _missing_snippets(
+        (input_prelude_source,),
+        INPUT_PRELUDE_ANCHORS,
+    )
+    missing_crate_prelude_anchors = _missing_snippets(
+        (prelude_source,),
+        CRATE_PRELUDE_ANCHORS,
+    )
     missing_action_evaluator_anchors = _missing_snippets(
         (action_evaluator_source,),
         ACTION_EVALUATOR_ANCHORS,
     )
+    missing_axis_frame_index_anchors = _missing_snippets(
+        (axis_frame_index_source,),
+        AXIS_FRAME_INDEX_ANCHORS,
+    )
+    missing_event_buffer_visibility_anchors = [
+        f"{path}: {anchor}"
+        for path, anchor in EVENT_BUFFER_VISIBILITY_ANCHORS
+        if not (root / path).exists() or anchor not in _read_text(root / path)
+    ]
     missing_gamepad_abi_anchors = _missing_snippets(
         gamepad_sources,
         GAMEPAD_ABI_ANCHORS,
@@ -278,8 +306,16 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
         risks.append("input/tests/mod.rs is missing expected owner test declarations.")
     if missing_public_surface:
         risks.append("Runtime 12 input public surface anchors are missing from exports.")
+    if missing_input_prelude_anchors:
+        risks.append("Runtime 12 input subsystem prelude exports are missing.")
+    if missing_crate_prelude_anchors:
+        risks.append("Runtime 12 input subsystem prelude is detached from crate prelude.")
     if missing_action_evaluator_anchors:
         risks.append("Runtime 12 action evaluator lost required UI-filtered evaluation anchors.")
+    if missing_axis_frame_index_anchors:
+        risks.append("Runtime 12 action evaluator lost its indexed frame-axis lookup owner.")
+    if missing_event_buffer_visibility_anchors:
+        risks.append("Runtime 12 event-buffer leaf visibility escaped its runtime owner.")
     if missing_gamepad_abi_anchors:
         risks.append("Runtime 12 gamepad app ABI to dynamic-session path anchors are missing.")
     if missing_cursor_host_request_anchors:
@@ -291,7 +327,7 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
     if MIRROR_DOCS_GUARD not in input_stack_guard_source:
         risks.append("Runtime 12 input-stack mirror-doc aggregate guard is missing.")
     if missing_doc_anchors:
-        risks.append("Runtime 12 plan or mirror docs are missing required status anchors.")
+        risks.append("Runtime 12 output record or module docs are missing required status anchors.")
     if missing_test_anchors:
         risks.append("Runtime 12 named input/action/gamepad test anchors are missing.")
     if missing_behavior_test_anchors:
@@ -319,7 +355,11 @@ def input_stack_boundary_audit(root: Path) -> dict[str, object]:
         "missing_test_mod_declarations": missing_test_mod_declarations,
         "missing_public_surface": missing_public_surface,
         "public_surface_anchor_count": len(PUBLIC_SURFACE_ANCHORS),
+        "missing_input_prelude_anchors": missing_input_prelude_anchors,
+        "missing_crate_prelude_anchors": missing_crate_prelude_anchors,
         "missing_action_evaluator_anchors": missing_action_evaluator_anchors,
+        "missing_axis_frame_index_anchors": missing_axis_frame_index_anchors,
+        "missing_event_buffer_visibility_anchors": missing_event_buffer_visibility_anchors,
         "missing_gamepad_abi_anchors": missing_gamepad_abi_anchors,
         "missing_cursor_host_request_anchors": missing_cursor_host_request_anchors,
         "cursor_host_request_anchor_count": len(CURSOR_HOST_REQUEST_ANCHORS),
