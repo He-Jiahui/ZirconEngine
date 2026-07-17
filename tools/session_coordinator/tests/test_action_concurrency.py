@@ -33,13 +33,16 @@ class ActionConcurrencyTests(unittest.TestCase):
                 plan_path="docs/plans/runtime/01-feature.md",
                 write_scope=["src/feature.py"],
             )
+            leases = LeaseService(
+                database, PathPolicy(repo), ttl_seconds=300, grace_seconds=30
+            )
             operations: list[str] = []
             service = ActionService(
                 database,
                 ActionFingerprinter(database, repo, daemon_instance_id="instance-a"),
                 ActionExecutor(
                     sessions=sessions,
-                    leases=None,
+                    leases=leases,
                     patches=None,
                     failures=None,
                     workspace_copy=None,
@@ -67,6 +70,7 @@ class ActionConcurrencyTests(unittest.TestCase):
             )
 
             self.assertEqual("succeeded", confirmed.status.value)
+            self.assertEqual({"renewed": 0}, confirmed.result["leases"])
             self.assertEqual(
                 ["session.heartbeat@session-a", "session.heartbeat@session-a"],
                 operations,
