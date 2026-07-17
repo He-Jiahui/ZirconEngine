@@ -9,10 +9,18 @@ pub(super) fn assert_plugin_importer_d13_sdk_parent_mounts_status_mirrors_are_cu
     let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
     let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
     let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+        read_repo(
+            "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        );
+    let runtime_index = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     for (label, source) in [

@@ -38,9 +38,7 @@ pub(crate) use language::normalize_text_language_tag;
 pub(crate) use layout_session::SharedTextLayoutSession;
 pub use layout_session::{shared_text_layout_fallback_report, TextLayoutFallbackReport};
 pub(crate) use model::{BackendShapeRequest, TextFrame, TextSize, TextStyle};
-pub(crate) use native_buffer::{
-    NativeTextAlign, NativeTextBufferRequest, NativeTextFontIdReport, NativeTextWrap,
-};
+pub(crate) use native_buffer::{NativeTextAlign, NativeTextBufferRequest, NativeTextWrap};
 pub(crate) use render_state::TextRenderState;
 pub use rich::{
     EmojiShortcodeRegistrationError, RichTextDecoration, RichTextDecorator,

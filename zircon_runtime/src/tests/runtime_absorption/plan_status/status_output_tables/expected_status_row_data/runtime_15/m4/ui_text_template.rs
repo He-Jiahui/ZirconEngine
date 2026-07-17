@@ -43,8 +43,8 @@ pub(super) const EXPECTED_STATUS_OUTPUT_SLICES: &[Slice] = &[
         &[
             "runtime_15_screen_space_ui_text_font_id_report_visibility_sync_static_passed_cargo_deferred",
             "graphics/scene/scene_renderer/ui/text/font_id_report.rs",
-            "pub(super) struct ScreenSpaceUiTextFontIdReport",
-            "pub(super) text_batch_count",
+            "pub(crate) struct ScreenSpaceUiTextFontIdReport",
+            "pub(crate) text_batch_count",
             "runtime_15_screen_space_ui_text_font_id_report_is_child_owner",
         ],
     ),

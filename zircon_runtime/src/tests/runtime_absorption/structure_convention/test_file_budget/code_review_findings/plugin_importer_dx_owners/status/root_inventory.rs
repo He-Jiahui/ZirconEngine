@@ -8,10 +8,18 @@ fn runtime_15_plugin_importer_dx_status_docs_root_inventory_is_child_owned() {
     let status_map = read_runtime_src(REVIEW_GUARD_STATUS_MAP_PATH);
     let date_map = read_runtime_src(REVIEW_GUARD_DATE_MAP_PATH);
     let runtime_15_plan =
-        read_repo("docs/plans/zircon_runtime/runtime/15-code-structure-and-module-conventions.md");
-    let runtime_index = read_repo("docs/plans/zircon_runtime/runtime/index.md");
-    let review_findings = read_repo("docs/plans/engine-code-review-findings-2026-06.md");
-    let structure_convention = read_repo("docs/plans/engine-code-structure-convention.md");
+        read_repo(
+            "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-code-structure-and-module-conventions-output-records.md",
+        );
+    let runtime_index = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-runtime-index-output-records.md",
+    );
+    let review_findings = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-review-findings-output-records.md",
+    );
+    let structure_convention = read_repo(
+        "docs/plans/_archive/zircon_runtime/runtime/15/2026-07-09-engine-code-structure-output-records.md",
+    );
     let module_doc = read_repo("docs/zircon_runtime/structure/module-convention.md");
 
     for (module_name, child_path, anchor) in PLUGIN_IMPORTER_DX_STATUS_DOC_ROOT_CHILDREN {

@@ -109,6 +109,10 @@ impl TextRenderState {
         self.font_database.take_missing_glyph_diagnostics()
     }
 
+    pub(crate) fn font_database(&self) -> &FontDatabase {
+        &self.font_database
+    }
+
     pub(crate) fn invalidate_font_faces(&mut self) {
         self.bitmap_source_cache.discard_all_for_face_invalidation();
         self.bitmap_retry_state.discard_all_for_face_invalidation();

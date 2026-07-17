@@ -32,7 +32,7 @@ mod resolved_batches;
 mod sdf_fallback;
 
 use self::font_assets::{ensure_font_asset_record, load_font_asset_record, LoadedUiFontAsset};
-use self::font_id_report::ScreenSpaceUiTextFontIdReport;
+use self::font_id_report::{accumulate_text_font_id_report, ScreenSpaceUiTextFontIdReport};
 use self::prepare_report::text_prepare_report;
 pub(crate) use self::prepare_report::ScreenSpaceUiTextPrepareReport;
 #[cfg(test)]
@@ -317,6 +317,7 @@ impl ScreenSpaceUiTextBackend {
                 asset_manager,
                 text.font.as_deref(),
                 text.font_family.as_deref(),
+                text.style.code,
             );
             let native_buffer = text_state.shape_native_buffer(NativeTextBufferRequest {
                 text: &text.text,
@@ -335,7 +336,12 @@ impl ScreenSpaceUiTextBackend {
                 emphasis: text.style.emphasis,
                 code: text.style.code,
             });
-            font_id_report.accumulate(native_buffer.font_ids);
+            accumulate_text_font_id_report(
+                &mut font_id_report,
+                &native_buffer.buffer,
+                native_buffer.primary_face,
+                text_state.font_database(),
+            );
             buffers.push(native_buffer.buffer);
         }
         let font_faces_changed = font_assets.len() != font_asset_count_at_entry;
@@ -514,7 +520,18 @@ fn resolve_family_name(
     asset_manager: &ProjectAssetManager,
     font_asset: Option<&str>,
     preferred_family: Option<&str>,
+    code: bool,
 ) -> Option<String> {
+    if code {
+        return ensure_font_asset_record(
+            text_state,
+            font_assets,
+            asset_manager,
+            DEFAULT_FONT_ASSET,
+        )
+        .record
+        .and_then(|record| record.family.clone());
+    }
     if let Some(family) = preferred_family.filter(|family| !family.trim().is_empty()) {
         if let Some(asset) = font_asset.filter(|asset| !asset.trim().is_empty()) {
             let _ = ensure_font_asset_record(text_state, font_assets, asset_manager, asset);

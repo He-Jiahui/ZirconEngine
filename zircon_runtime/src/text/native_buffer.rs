@@ -4,8 +4,10 @@ use crate::core::framework::text::{
     TextDirection, TextFontRequest, TextRenderMode, TextShapeRequest,
 };
 
-use super::{fallback_spans_for_request, TextRenderState};
-use super::{FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight};
+use super::{
+    fallback_spans_for_request, FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle,
+    FontWeight, TextRenderState,
+};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub(crate) enum NativeTextWrap {
@@ -43,17 +45,9 @@ pub(crate) struct NativeTextBufferRequest<'a> {
     pub(crate) code: bool,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub(crate) struct NativeTextFontIdReport {
-    pub(crate) text_batch_count: usize,
-    pub(crate) glyph_count: usize,
-    pub(crate) fallback_glyph_count: usize,
-    pub(crate) unmapped_glyph_count: usize,
-}
-
 pub(crate) struct NativeTextBuffer {
     pub(crate) buffer: Buffer,
-    pub(crate) font_ids: NativeTextFontIdReport,
+    pub(crate) primary_face: Option<FontFaceId>,
 }
 
 impl TextRenderState {
@@ -62,6 +56,10 @@ impl TextRenderState {
         request: NativeTextBufferRequest<'_>,
     ) -> NativeTextBuffer {
         self.with_native_text_backend(|font_system, font_database| {
+            let font_query = native_font_query(request);
+            let primary_face = font_database
+                .match_face(&font_query)
+                .map(|font_match| font_match.face);
             let attrs = native_attrs(request);
             let family_storage = request.family.map(|family| [family]);
             let families = family_storage
@@ -71,9 +69,9 @@ impl TextRenderState {
                 families,
                 asset: request.font_asset,
                 size: request.font_size,
-                weight: request.font_weight,
+                weight: font_query.weight.0,
                 stretch: 100,
-                italic: request.emphasis,
+                italic: matches!(font_query.style, FontStyle::Italic),
                 render_mode: TextRenderMode::Auto,
             };
             let mut fallback_request = TextShapeRequest::new(request.text, font);
@@ -129,8 +127,10 @@ impl TextRenderState {
                 );
             }
             buffer.shape_until_scroll(font_system, false);
-            let font_ids = font_id_report(request, &buffer, font_database);
-            NativeTextBuffer { buffer, font_ids }
+            NativeTextBuffer {
+                buffer,
+                primary_face,
+            }
         })
     }
 }
@@ -144,62 +144,31 @@ fn native_attrs(request: NativeTextBufferRequest<'_>) -> Attrs<'_> {
             .map(|family| Attrs::new().family(Family::Name(family)))
             .unwrap_or_else(Attrs::new)
     };
-    let weight = TextStyleWeight::normalized(request.font_weight);
-    attrs = attrs.weight(Weight(if request.strong {
-        weight.max(Weight::BOLD.0)
-    } else {
-        weight
-    }));
-    if request.emphasis {
+    let query = native_font_query(request);
+    attrs = attrs.weight(Weight(query.weight.0));
+    if matches!(query.style, FontStyle::Italic) {
         attrs = attrs.style(Style::Italic);
     }
     attrs
 }
 
-struct TextStyleWeight;
-
-impl TextStyleWeight {
-    const fn normalized(weight: u16) -> u16 {
-        if weight < 1 {
-            1
-        } else if weight > 1000 {
-            1000
-        } else {
-            weight
-        }
-    }
-}
-
-fn font_id_report(
-    request: NativeTextBufferRequest<'_>,
-    buffer: &Buffer,
-    database: &super::font::FontDatabase,
-) -> NativeTextFontIdReport {
+fn native_font_query(request: NativeTextBufferRequest<'_>) -> FontQuery {
     let family = request.family.or(request.font_asset).unwrap_or_default();
-    let query = FontQuery {
+    let requested_weight = FontWeight::clamped(request.font_weight);
+    FontQuery {
         families: vec![FontFamilyName::from(family)],
-        weight: FontWeight::clamped(TextStyleWeight::normalized(request.font_weight)),
-        style: FontStyle::Normal,
+        weight: if request.strong {
+            requested_weight.max(FontWeight::BOLD)
+        } else {
+            requested_weight
+        },
+        style: if request.emphasis {
+            FontStyle::Italic
+        } else {
+            FontStyle::Normal
+        },
         stretch: FontStretch::NORMAL,
-    };
-    let Some(primary) = database.match_face(&query).map(|matched| matched.face) else {
-        return NativeTextFontIdReport::default();
-    };
-    let mut report = NativeTextFontIdReport::default();
-    for glyph in buffer.layout_runs().flat_map(|run| run.glyphs.iter()) {
-        report.glyph_count = report.glyph_count.saturating_add(1);
-        match database.font_face_id(glyph.font_id) {
-            Some(face) if face != primary => {
-                report.fallback_glyph_count = report.fallback_glyph_count.saturating_add(1)
-            }
-            Some(_) => {}
-            None => report.unmapped_glyph_count = report.unmapped_glyph_count.saturating_add(1),
-        }
     }
-    if report.glyph_count > 0 {
-        report.text_batch_count = 1;
-    }
-    report
 }
 
 #[cfg(test)]
@@ -233,18 +202,26 @@ mod tests {
         rich.strong = true;
         rich.emphasis = true;
         let attrs = native_attrs(rich);
+        let query = native_font_query(rich);
         assert_eq!(attrs.family, Family::Name("Zircon Sans"));
         assert_eq!(attrs.weight, Weight::BOLD);
         assert_eq!(attrs.style, Style::Italic);
+        assert_eq!(query.families, vec![FontFamilyName::from("Zircon Sans")]);
+        assert_eq!(query.weight, FontWeight::BOLD);
+        assert_eq!(query.style, FontStyle::Italic);
 
         let medium = native_attrs(request(Some("Zircon Sans")));
         assert_eq!(medium.weight, Weight(500));
 
-        let mut code = request(Some("Zircon Sans"));
+        let mut code = request(Some("Zircon Mono"));
         code.font_weight = 450;
         code.code = true;
         let attrs = native_attrs(code);
+        let query = native_font_query(code);
         assert_eq!(attrs.family, Family::Monospace);
         assert_eq!(attrs.weight, Weight(450));
+        assert_eq!(query.families, vec![FontFamilyName::from("Zircon Mono")]);
+        assert_eq!(query.weight, FontWeight(450));
+        assert_eq!(query.style, FontStyle::Normal);
     }
 }

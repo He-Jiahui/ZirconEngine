@@ -149,7 +149,7 @@ pub(super) fn expected_status_for_slice(slice: &str) -> Option<&'static str> {
             "runtime_15_screen_space_ui_text_font_id_report_owner_split_static_passed_cargo_deferred",
         )
     } else if slice == "Runtime 15 M4 screen-space UI text font-id report visibility sync" {
-        // Visibility sync: text/font_id_report.rs keeps its report DTO private to the text parent.
+        // Visibility sync: text/font_id_report.rs keeps its report DTO crate-internal for render stats.
         // Guard: runtime_15_screen_space_ui_text_font_id_report_is_child_owner.
         Some(
             "runtime_15_screen_space_ui_text_font_id_report_visibility_sync_static_passed_cargo_deferred",
