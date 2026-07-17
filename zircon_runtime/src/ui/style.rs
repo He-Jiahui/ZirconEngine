@@ -367,6 +367,11 @@ impl StyleProperty for ButtonInteractionStateProperty {
                     .map(|_| ButtonInteractionState::Pressed)
             })
             .or_else(|| {
+                bool_value(sheet, "dragging")
+                    .filter(|value| *value)
+                    .map(|_| ButtonInteractionState::Hover)
+            })
+            .or_else(|| {
                 bool_value(sheet, "focused")
                     .filter(|value| *value)
                     .map(|_| ButtonInteractionState::Focused)

@@ -12,6 +12,7 @@ mod field_visual_screenshot;
 mod icon_button_visual_screenshot;
 mod layout;
 mod material_feedback_visual_screenshot;
+mod material_state_layer_visual_screenshot;
 mod pointer_bridge;
 mod popup_selection_visual_screenshot;
 mod property_axis_visual_screenshot;

@@ -1,9 +1,10 @@
 use super::super::super::data::{FrameRect, TemplatePaneNodeData};
+use super::super::material_state_layer::push_state_layer_commands;
 use super::super::render_commands::HostPaintCommand;
 use super::super::style_selector::{
     is_asset_browser_toolbar_chip_button, is_tab_like_workbench_button, WorkbenchButtonKind,
 };
-use super::layers::surface_indicator_order;
+use super::layers::{content_order, surface_overlay_order};
 use super::surface_indicator::{button_surface_indicator_palette, button_surface_indicator_rect};
 
 mod style;
@@ -30,12 +31,21 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn push_bu
         command_style.radius,
         opacity,
     ));
+    push_state_layer_commands(
+        commands,
+        node,
+        rect,
+        clip,
+        command_style.radius,
+        surface_overlay_order(order),
+        opacity,
+    );
     if should_paint_tab_like_indicator(node) {
         let palette = button_surface_indicator_palette();
         commands.push(HostPaintCommand::quad(
             button_surface_indicator_rect(node, rect),
             Some(clip.clone()),
-            surface_indicator_order(order),
+            content_order(order),
             Some(palette.underline),
             None,
             0.0,

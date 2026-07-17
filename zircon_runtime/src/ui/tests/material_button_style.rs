@@ -124,6 +124,7 @@ fn material_button_style_resolves_typed_values_from_v2_style_values() {
 fn material_button_style_resolves_slint_state_layer_priority() {
     let values = BTreeMap::from([
         ("disabled".to_string(), Value::Boolean(true)),
+        ("dragging".to_string(), Value::Boolean(true)),
         ("focused".to_string(), Value::Boolean(true)),
         ("pressed".to_string(), Value::Boolean(true)),
         ("hovered".to_string(), Value::Boolean(true)),
@@ -132,12 +133,21 @@ fn material_button_style_resolves_slint_state_layer_priority() {
     assert_eq!(style.interaction_state, ButtonInteractionState::Disabled);
 
     let values = BTreeMap::from([
+        ("dragging".to_string(), Value::Boolean(true)),
         ("focused".to_string(), Value::Boolean(true)),
         ("pressed".to_string(), Value::Boolean(true)),
         ("hovered".to_string(), Value::Boolean(true)),
     ]);
     let style = resolve_button_style_from_values(&values);
     assert_eq!(style.interaction_state, ButtonInteractionState::Pressed);
+
+    let values = BTreeMap::from([
+        ("focused".to_string(), Value::Boolean(true)),
+        ("dragging".to_string(), Value::Boolean(true)),
+        ("hovered".to_string(), Value::Boolean(true)),
+    ]);
+    let style = resolve_button_style_from_values(&values);
+    assert_eq!(style.interaction_state, ButtonInteractionState::Hover);
 
     let values = BTreeMap::from([
         ("focused".to_string(), Value::Boolean(true)),

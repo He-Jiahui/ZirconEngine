@@ -292,51 +292,90 @@ fn native_template_painter_resolves_button_variants_and_interaction_priority() {
 }
 
 #[test]
-fn native_template_painter_matches_slint_state_layer_priority() {
-    let nodes = model_rc(vec![
-        TemplatePaneNodeData {
-            control_id: "DisabledPriority".into(),
-            node_id: "DisabledPriority.node".into(),
-            disabled: true,
-            focused: true,
-            pressed: true,
-            hovered: true,
-            frame: frame(4.0, 4.0),
-            ..material_button_base()
-        },
-        TemplatePaneNodeData {
-            control_id: "FocusPriority".into(),
-            node_id: "FocusPriority.node".into(),
-            focused: true,
-            pressed: true,
-            hovered: true,
-            frame: frame(4.0, 32.0),
-            ..material_button_base()
-        },
-        TemplatePaneNodeData {
-            control_id: "PressedPriority".into(),
-            node_id: "PressedPriority.node".into(),
-            pressed: true,
-            hovered: true,
-            frame: frame(4.0, 60.0),
-            ..material_button_base()
-        },
-        TemplatePaneNodeData {
-            control_id: "HoverPriority".into(),
-            node_id: "HoverPriority.node".into(),
-            hovered: true,
-            dragging: true,
-            frame: frame(4.0, 88.0),
-            ..material_button_base()
-        },
-    ]);
+fn native_real_button_painter_composes_material_state_layer_priority() {
+    let cases = [
+        (
+            "Disabled",
+            MaterialStatePriorityFlags {
+                disabled: true,
+                pressed: true,
+                dragging: true,
+                focused: true,
+                hovered: true,
+            },
+            MaterialStatePriorityFlags {
+                disabled: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+        ),
+        (
+            "Pressed",
+            MaterialStatePriorityFlags {
+                pressed: true,
+                dragging: true,
+                focused: true,
+                hovered: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+            MaterialStatePriorityFlags {
+                pressed: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+        ),
+        (
+            "Dragging",
+            MaterialStatePriorityFlags {
+                dragging: true,
+                focused: true,
+                hovered: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+            MaterialStatePriorityFlags {
+                dragging: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+        ),
+        (
+            "Focused",
+            MaterialStatePriorityFlags {
+                focused: true,
+                hovered: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+            MaterialStatePriorityFlags {
+                focused: true,
+                ..MaterialStatePriorityFlags::default()
+            },
+        ),
+    ];
+    let mut nodes = Vec::with_capacity(cases.len() * 3);
 
-    let bytes = paint_template_nodes_for_test(96, 116, nodes);
+    for (index, (label, mixed, winning)) in cases.iter().copied().enumerate() {
+        let y = 4.0 + index as f32 * 28.0;
+        nodes.extend([
+            material_state_priority_button(&format!("{label}Mixed"), 4.0, y, true, mixed),
+            material_state_priority_button(&format!("{label}Winning"), 88.0, y, true, winning),
+            material_state_priority_button(&format!("{label}FeatureOff"), 172.0, y, false, winning),
+        ]);
+    }
 
-    assert_eq!(pixel(&bytes, 96, 8, 8), SURFACE_DISABLED);
-    assert_eq!(pixel(&bytes, 96, 8, 36), SURFACE_PRESSED);
-    assert_eq!(pixel(&bytes, 96, 8, 64), SURFACE_PRESSED);
-    assert_eq!(pixel(&bytes, 96, 8, 92), SURFACE_HOVER);
+    let bytes = paint_template_nodes_for_test(248, 116, model_rc(nodes));
+
+    for (index, (label, _, _)) in cases.iter().enumerate() {
+        let y = 14 + index as u32 * 28;
+        let mixed = pixel(&bytes, 248, 40, y);
+        let winning = pixel(&bytes, 248, 124, y);
+        let feature_off = pixel(&bytes, 248, 208, y);
+
+        assert_eq!(
+            mixed, winning,
+            "{label} mixed state should paint exactly like its winning-only state"
+        );
+        assert_ne!(
+            winning, feature_off,
+            "{label} winning state should compose a visible Material state layer"
+        );
+    }
 }
 
 #[test]
@@ -453,6 +492,38 @@ fn button_style(
         color,
         interaction_state,
         ..ResolvedButtonStyle::default()
+    }
+}
+
+#[derive(Clone, Copy, Default)]
+struct MaterialStatePriorityFlags {
+    disabled: bool,
+    pressed: bool,
+    dragging: bool,
+    focused: bool,
+    hovered: bool,
+}
+
+fn material_state_priority_button(
+    control_id: &str,
+    x: f32,
+    y: f32,
+    state_layer_enabled: bool,
+    flags: MaterialStatePriorityFlags,
+) -> TemplatePaneNodeData {
+    TemplatePaneNodeData {
+        control_id: control_id.into(),
+        node_id: format!("{control_id}.node").into(),
+        component_role: "button".into(),
+        button_variant: "outlined".into(),
+        state_layer_enabled,
+        disabled: flags.disabled,
+        pressed: flags.pressed,
+        dragging: flags.dragging,
+        focused: flags.focused,
+        hovered: flags.hovered,
+        frame: frame(x, y),
+        ..material_button_base()
     }
 }
 

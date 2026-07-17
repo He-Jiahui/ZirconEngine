@@ -56,7 +56,7 @@
 - Modify `docs/zircon_runtime/ui/v2.md`
   - Record runtime Button boolean dragging folding to Hover.
 - Modify `docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md`
-  - Add the accepted slice status only after testing-stage acceptance.
+  - Add the accepted slice status only after testing-stage acceptance; because this numbered definition is protected, commit it through a separate coordinator maintenance scope before the business milestone.
 - Create `docs/plans/zircon_editor/editor_layout/15/2026-07-16-material-state-priority-convergence.md`
   - Canonical milestone output record written once after acceptance.
 - Preserve `docs/superpowers/specs/2026-07-16-layout15-material-state-priority-design.md`
@@ -86,7 +86,7 @@ Retained Material and runtime Button style resolution select the same highest-pr
 
 ### Implementation Slice M1-A: Write contract tests before production changes
 
-- [ ] Extend `material_state_layer/state.rs` tests with a table-driven resolver contract. The test must construct these cases and assert the exact resolved state:
+- [x] Extend `material_state_layer/state.rs` tests with a table-driven resolver contract. The test must construct these cases and assert the exact resolved state:
 
 ```rust
 #[test]
@@ -164,7 +164,7 @@ fn material_state_layer_resolves_exact_interaction_priority() {
 }
 ```
 
-- [ ] Extend `material_button_style_resolves_slint_state_layer_priority` with the exact runtime drift case:
+- [x] Extend `material_button_style_resolves_slint_state_layer_priority` with the exact runtime drift case:
 
 ```rust
 let values = BTreeMap::from([
@@ -176,7 +176,7 @@ let style = resolve_button_style_from_values(&values);
 assert_eq!(style.interaction_state, ButtonInteractionState::Hover);
 ```
 
-- [ ] Do not run Cargo yet. Run only lightweight source checks:
+- [x] Do not run Cargo yet. Run only lightweight source checks:
 
 ```powershell
 rustfmt --edition 2021 --check `
@@ -191,7 +191,7 @@ Expected: formatting and diff checks pass; the new tests remain intentionally un
 
 ### Implementation Slice M1-B: Introduce the private retained resolver
 
-- [ ] Add this private enum and resolver above `state_layer_opacity` in `material_state_layer/state.rs`:
+- [x] Add this private enum and resolver above `state_layer_opacity` in `material_state_layer/state.rs`:
 
 ```rust
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -237,7 +237,7 @@ impl MaterialStateLayerResolvedState {
 }
 ```
 
-- [ ] Replace the current opacity `if` chain with a pure mapping:
+- [x] Replace the current opacity `if` chain with a pure mapping:
 
 ```rust
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn state_layer_opacity(
@@ -248,11 +248,11 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn state_l
 }
 ```
 
-- [ ] Preserve `state_layer_color`, host palette lookup, declared-color override, and all opacity constants exactly.
+- [x] Preserve `state_layer_color`, host palette lookup, declared-color override, and all opacity constants exactly.
 
 ### Implementation Slice M1-C: Converge runtime Button boolean fallback
 
-- [ ] In `ButtonInteractionStateProperty::extract`, insert boolean dragging immediately after pressed and before focused:
+- [x] In `ButtonInteractionStateProperty::extract`, insert boolean dragging immediately after pressed and before focused:
 
 ```rust
 .or_else(|| {
@@ -262,25 +262,25 @@ pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn state_l
 })
 ```
 
-- [ ] Do not add `ButtonInteractionState::Dragging`, a compatibility alias, or a runtime/editor special case.
+- [x] Do not add `ButtonInteractionState::Dragging`, a compatibility alias, or a runtime/editor special case.
 
 ### Implementation Slice M1-D: Update module contracts
 
-- [ ] Update `docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/index.md` with:
+- [x] Update `docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/index.md` with:
   - private resolver ownership;
   - exact priority order;
   - unchanged opacity values;
   - test references to the state resolver and visual fixture.
-- [ ] Update `docs/zircon_runtime/ui/v2.md` with:
+- [x] Update `docs/zircon_runtime/ui/v2.md` with:
   - explicit string state remains authoritative;
   - boolean order is loading, disabled, pressed, dragging, focused, hovered;
   - Button dragging intentionally folds to Hover to match shared `UiPainter`.
-- [ ] Keep machine-readable `related_code`, `implementation_files`, `plan_sources`, and `tests` metadata accurate in each touched module document.
+- [x] Keep machine-readable `related_code`, `implementation_files`, `plan_sources`, and `tests` metadata accurate in each touched module document.
 
 ### M1 Testing Stage: Managed contract verification
 
-- [ ] Apply `prefer-windows-validation` and ensure the coordinator reports no foreign blocking Cargo job.
-- [ ] Run the shared lower-layer contract first through a coordinator-managed Windows test lane:
+- [x] Apply `prefer-windows-validation` and ensure the coordinator reports no foreign blocking Cargo job.
+- [x] Run the shared lower-layer contract first through a coordinator-managed Windows test lane:
 
 ```powershell
 $env:CODEX_THREAD_ID = 'editor-layout15-material-state-priority-implementation-20260716'
@@ -292,7 +292,7 @@ $env:CODEX_THREAD_ID = 'editor-layout15-material-state-priority-implementation-2
 
 Expected focused evidence: `ui_painter_state_keeps_drag_priority_above_focus` passes and Button resolves Dragging to Hover.
 
-- [ ] Run the runtime contract through the same managed Windows policy:
+- [x] Run the runtime contract through the same managed Windows policy:
 
 ```powershell
 $env:CODEX_THREAD_ID = 'editor-layout15-material-state-priority-implementation-20260716'
@@ -304,7 +304,7 @@ $env:CODEX_THREAD_ID = 'editor-layout15-material-state-priority-implementation-2
 
 Expected focused evidence: `material_button_style_resolves_slint_state_layer_priority` passes with focused+dragging resolving to Hover.
 
-- [ ] Run the retained resolver test from a current-source coordinator-managed `zircon_editor` test binary:
+- [x] Run the retained resolver test from a current-source coordinator-managed `zircon_editor` test binary:
 
 ```powershell
 & $editorTestBinary material_state_layer_resolves_exact_interaction_priority `
@@ -313,8 +313,8 @@ Expected focused evidence: `material_button_style_resolves_slint_state_layer_pri
 
 Expected: `1 passed; 0 failed`.
 
-- [ ] If an upper-layer validation fails, list the lower shared support candidates first and repair the lowest owned layer. For a foreign owner, create/return the canonical failure handoff instead of adding a UI bypass.
-- [ ] Promotion gate: all three named contracts pass against the same current source; rustfmt and scoped diff checks pass; no public Button API change exists.
+- [x] If an upper-layer validation fails, list the lower shared support candidates first and repair the lowest owned layer. For a foreign owner, create/return the canonical failure handoff instead of adding a UI bypass.
+- [x] Promotion gate: all three named contracts pass against the same current source; rustfmt and scoped diff checks pass; no public Button API change exists.
 
 ## Milestone M2: Retained Visual Acceptance and Coordinator Closeout
 
@@ -336,9 +336,24 @@ Prove the converged state priority through a dedicated real-painter artifact who
 - Existing retained test painter and `visual_layout_output_path` remain the sole screenshot route.
 - `docs/tests/editor` is the only accepted artifact directory.
 
+### Implementation Slice M2-A0: Route the real Button painter through the shared overlay
+
+- [x] Compose the existing `push_state_layer_commands` path in the specialized retained
+  Button surface painter after the base surface and before tab indicator/content commands.
+- [x] Keep the stable paint order `base -> state layer -> ripple -> indicator -> content`;
+  the named `surface_overlay_order(...)` helper owns the first overlay offset, while the
+  indicator is inserted after ripple at `content_order(...)` and before content.
+- [x] Add real outlined Button enabled/disabled structural-difference coverage without
+  copying state color or opacity constants into the painter test.
+- [x] Add a selected + pressed + ripple-enabled DockTab regression that validates the
+  final `(z_index, insertion_index)` ordering.
+- [x] Replace the stale native-painter pure-base expectation with real outlined Button
+  mixed-state/winning-state/feature-off pairs, proving that the specialized path now
+  composes the pre-existing disabled/pressed/dragging/focused state-layer contract.
+
 ### Implementation Slice M2-A: Add the relative visual fixture
 
-- [ ] Register the module in `retained_menu_pointer/mod.rs`:
+- [x] Register the module in `retained_menu_pointer/mod.rs`:
 
 ```rust
 mod material_feedback_visual_screenshot;
@@ -346,7 +361,7 @@ mod material_state_layer_visual_screenshot;
 mod pointer_bridge;
 ```
 
-- [ ] Create `material_state_layer_visual_screenshot.rs` with these constants and tests:
+- [x] Create `material_state_layer_visual_screenshot.rs` with these constants and tests:
 
 ```rust
 const MATERIAL_STATE_LAYER_SCREENSHOT: &str =
@@ -393,7 +408,7 @@ fn capture_material_state_layer_visual_artifact() {
 }
 ```
 
-- [ ] Compute sample geometry from available width, never from four unrelated x coordinates:
+- [x] Compute sample geometry from available width, never from four unrelated x coordinates:
 
 ```rust
 fn sample_frame(index: usize) -> TemplateNodeFrameData {
@@ -404,7 +419,7 @@ fn sample_frame(index: usize) -> TemplateNodeFrameData {
 }
 ```
 
-- [ ] Define the complete fixture state and helper path below. The sample itself is a real
+- [x] Define the complete fixture state and helper path below. The sample itself is a real
   outlined Button so focused and pressed still exercise their base-surface split even though
   both state-layer opacity tokens are `0.10`; dragging remains visibly stronger through its
   `0.16` overlay.
@@ -626,21 +641,21 @@ fn visual_layout_output_path(filename: &str) -> PathBuf {
 }
 ```
 
-- [ ] Each sample node sets `state_layer_enabled: true` and only the flags encoded by
+- [x] Each sample node sets `state_layer_enabled: true` and only the flags encoded by
   `MaterialVisualState`. All labels use the retained Runtime Text path; do not rasterize
   text locally or name a concrete font family.
 
 ### Implementation Slice M2-B: Add artifact and target guards
 
-- [ ] The ignored capture writes via `visual_layout_output_path`, which resolves to `docs/tests/editor`.
-- [ ] After capture, compute and record the PNG SHA-256:
+- [x] The ignored capture writes via `visual_layout_output_path`, which resolves to `docs/tests/editor`.
+- [x] After capture, compute and record the PNG SHA-256:
 
 ```powershell
 Get-FileHash -Algorithm SHA256 `
   docs/tests/editor/editor-components-material-state-layer-900x360.png
 ```
 
-- [ ] Scan repository and managed target roots for the exact file name:
+- [x] Scan repository and managed target roots for the exact file name:
 
 ```powershell
 $name = 'editor-components-material-state-layer-900x360.png'
@@ -657,18 +672,18 @@ Expected: zero target matches; the only accepted file is under `docs/tests/edito
 
 ### Implementation Slice M2-C: Document and record the accepted milestone
 
-- [ ] Update the parent Layout15 slice only after testing succeeds. Record that this slice closes the explicit state-priority resolver, runtime dragging fallback, and dedicated local artifact; do not mark parent M1 or full S15.4 complete.
-- [ ] Create `docs/plans/zircon_editor/editor_layout/15/2026-07-16-material-state-priority-convergence.md` with exactly one machine-readable `Plan`, `Milestone`, `Status`, and `Files` field plus these headings:
+- [x] Update the parent Layout15 slice only after testing succeeds. Record that this slice closes the explicit state-priority resolver, runtime dragging fallback, and dedicated local artifact; do not mark parent M1 or full S15.4 complete.
+- [x] Create `docs/plans/zircon_editor/editor_layout/15/2026-07-16-material-state-priority-convergence.md` with exactly one machine-readable `Plan`, `Milestone`, `Status`, and `Files` field plus these headings:
   - `## Scope delivered`
   - `## Fresh testing evidence`
   - `## Review`
-- [ ] Include current-source managed job IDs, exact focused test counts, PNG bytes/hash, target scan count, independent review severity counts, and accepted residual risk.
+- [x] Include current-source managed job IDs, exact focused test counts, PNG bytes/hash, target scan count, independent review severity counts, and accepted residual risk.
 
 ### M2 Testing Stage: Current-source visual acceptance
 
-- [ ] Run rustfmt and scoped diff checks across the exact candidate.
-- [ ] Build or refresh a current-source `zircon_editor` test binary using only the coordinator-managed Windows lane.
-- [ ] Execute the exact visual guard:
+- [x] Run rustfmt and scoped diff checks across the exact candidate.
+- [x] Build or refresh a current-source `zircon_editor` test binary using only the coordinator-managed Windows lane.
+- [x] Execute the exact visual guard:
 
 ```powershell
 & $editorTestBinary material_state_layer_visual_separates_hover_focus_press_and_drag_priority `
@@ -677,7 +692,7 @@ Expected: zero target matches; the only accepted file is under `docs/tests/edito
 
 Expected: `1 passed; 0 failed`.
 
-- [ ] Execute the ignored capture:
+- [x] Execute the ignored capture:
 
 ```powershell
 & $editorTestBinary capture_material_state_layer_visual_artifact `
@@ -686,14 +701,14 @@ Expected: `1 passed; 0 failed`.
 
 Expected: `1 passed; 0 failed`; PNG exists only in `docs/tests/editor`.
 
-- [ ] Visually inspect the PNG at original detail and verify:
+- [x] Visually inspect the PNG at original detail and verify:
   - all four labels are readable;
   - surfaces and gaps are balanced and use the shared rounded style;
   - focused does not impersonate pressed;
   - dragging is visibly stronger than hover/focus;
   - no overlap, clipping, large unexplained empty region, or absolute-position drift appears.
-- [ ] Run the output-record audit, scoped plan audit, `git diff --check`, and exact-manifest review.
-- [ ] Independent reviewer gate: Critical/Important/Minor must be `0/0/0` before commit.
+- [x] Run the output-record audit, scoped plan audit, `git diff --check`, and exact-manifest review.
+- [x] Independent reviewer gate: Critical/Important/Minor must be `0/0/0` before commit.
 - [ ] Coordinator milestone gate: validation, review, failure audit, plan output, and exact commit manifest must all bind to the same current HEAD and candidate fingerprint.
 - [ ] Commit only through the coordinator; after success, record the commit hash and keep the broader Layout15 goal active.
 
@@ -707,19 +722,21 @@ Expected: `1 passed; 0 failed`; PNG exists only in `docs/tests/editor`.
 
 ## Acceptance Manifest
 
-The final exact manifest may contain only:
+The protected parent plan definition was committed separately through coordinator maintenance as `c617938ee73608179a8c3d69d04a2f5d1b84906c`. The final business M2 manifest is exactly:
 
 - `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/material_state_layer/state.rs`
 - `zircon_runtime/src/ui/style.rs`
 - `zircon_runtime/src/ui/tests/material_button_style.rs`
 - `zircon_editor/src/tests/host/retained_menu_pointer/material_state_layer_visual_screenshot.rs`
 - `zircon_editor/src/tests/host/retained_menu_pointer/mod.rs`
+- `zircon_editor/src/tests/host/retained_window/native_material_painter.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/surface.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons/layers.rs`
+- `zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_buttons_tests/paint.rs`
 - `docs/tests/editor/editor-components-material-state-layer-900x360.png`
 - `docs/zircon_editor/ui/retained_host/host_contract/paint_template_nodes/index.md`
 - `docs/zircon_runtime/ui/v2.md`
-- `docs/plans/zircon_editor/editor_layout/15-component-standardization-from-primitives.md`
 - `docs/plans/zircon_editor/editor_layout/15/2026-07-16-material-state-priority-convergence.md`
-- `docs/superpowers/specs/2026-07-16-layout15-material-state-priority-design.md`
 - `docs/superpowers/plans/2026-07-16-layout15-material-state-priority.md`
 
 Any changed Runtime Text, Render18, M1.1 TextField/Dialog, workspace manifest, lockfile, compatibility facade, or unrelated screenshot path is foreign and must be excluded.
@@ -730,3 +747,6 @@ Any changed Runtime Text, Render18, M1.1 TextField/Dialog, workspace manifest, l
 
 | 里程碑 | 范围 | 状态 | 完成日期 | 证据（命令输出 / 文件 / 测试名） |
 |---|---|---|---|---|
+| M1 | retained explicit resolver + runtime Button dragging fallback | `completed` | 2026-07-17 | current runtime-interface drag-priority 1/1; runtime `material_button_style_resolves_slint_state_layer_priority` 1/1; editor current-source `state_layer` group includes resolver and is 11/0/1 |
+| M2 | specialized Button state-layer composition + relative visual artifact | `completed` | 2026-07-17 | managed editor job `37b0965d5e7647bb8952c3adb523145d` exit 0; selected+ripple 1/1; capture 1/1; PNG 29106 bytes / SHA-256 `3A4FDB2BE4DE90F7E096DCC428812967A15718AEDF80E7239B1E3D813387E468`; target matches 0; final exact-manifest review 0/0/0 |
+| M2 | M2-T current-source visual acceptance | passed | 2026-07-17 | editor `state_layer` group 11 passed / 0 failed / 1 ignored; selected+ripple 1/1; capture 1/1; runtime priority 1/1; screenshot hash and target exclusion rechecked |

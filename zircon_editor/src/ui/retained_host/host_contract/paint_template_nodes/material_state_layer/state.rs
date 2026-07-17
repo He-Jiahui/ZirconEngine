@@ -7,28 +7,49 @@ const MATERIAL_STATE_LAYER_OPACITY_FOCUS: f32 = 0.10;
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) const MATERIAL_STATE_LAYER_OPACITY_PRESS: f32 = 0.10;
 const MATERIAL_STATE_LAYER_OPACITY_DRAG: f32 = 0.16;
 
+/// Owns the retained Material state-layer priority before opacity projection.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum MaterialStateLayerResolvedState {
+    Disabled,
+    Pressed,
+    Dragging,
+    Focused,
+    Hovered,
+}
+
+impl MaterialStateLayerResolvedState {
+    fn resolve(node: &TemplatePaneNodeData) -> Option<Self> {
+        if !node.state_layer_enabled {
+            None
+        } else if is_button_disabled(node) {
+            Some(Self::Disabled)
+        } else if node.pressed || node.enter_pressed {
+            Some(Self::Pressed)
+        } else if node.dragging {
+            Some(Self::Dragging)
+        } else if node.focused || node.selected || node.checked {
+            Some(Self::Focused)
+        } else if node.hovered || node.drop_hovered || node.active_drag_target {
+            Some(Self::Hovered)
+        } else {
+            None
+        }
+    }
+
+    const fn opacity(self) -> f32 {
+        match self {
+            Self::Disabled | Self::Focused => MATERIAL_STATE_LAYER_OPACITY_FOCUS,
+            Self::Pressed => MATERIAL_STATE_LAYER_OPACITY_PRESS,
+            Self::Dragging => MATERIAL_STATE_LAYER_OPACITY_DRAG,
+            Self::Hovered => MATERIAL_STATE_LAYER_OPACITY_HOVER,
+        }
+    }
+}
+
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn state_layer_opacity(
     node: &TemplatePaneNodeData,
 ) -> Option<f32> {
-    if !node.state_layer_enabled {
-        return None;
-    }
-    if is_button_disabled(node) {
-        return Some(MATERIAL_STATE_LAYER_OPACITY_FOCUS);
-    }
-    if node.pressed || node.enter_pressed {
-        return Some(MATERIAL_STATE_LAYER_OPACITY_PRESS);
-    }
-    if node.dragging {
-        return Some(MATERIAL_STATE_LAYER_OPACITY_DRAG);
-    }
-    if node.focused || node.selected || node.checked {
-        return Some(MATERIAL_STATE_LAYER_OPACITY_FOCUS);
-    }
-    if node.hovered || node.drop_hovered || node.active_drag_target {
-        return Some(MATERIAL_STATE_LAYER_OPACITY_HOVER);
-    }
-    None
+    MaterialStateLayerResolvedState::resolve(node).map(MaterialStateLayerResolvedState::opacity)
 }
 
 pub(in crate::ui::retained_host::host_contract::paint_template_nodes) fn state_layer_color(
@@ -59,6 +80,16 @@ mod tests {
     use crate::ui::retained_host::host_contract::paint_theme::PALETTE;
     use crate::ui::retained_host::primitives::Color;
 
+    macro_rules! state_node {
+        ($($field:ident),* $(,)?) => {
+            TemplatePaneNodeData {
+                state_layer_enabled: true,
+                $($field: true,)*
+                ..TemplatePaneNodeData::default()
+            }
+        };
+    }
+
     #[test]
     fn state_layer_fallback_color_projects_from_host_palette() {
         let mut palette = PALETTE;
@@ -84,36 +115,118 @@ mod tests {
     }
 
     #[test]
-    fn pressed_state_layer_opacity_has_priority_over_focus_and_selection() {
-        let node = TemplatePaneNodeData {
-            state_layer_enabled: true,
-            focused: true,
-            selected: true,
-            checked: true,
-            pressed: true,
-            ..TemplatePaneNodeData::default()
-        };
-
-        assert_eq!(
-            state_layer_opacity(&node),
-            Some(MATERIAL_STATE_LAYER_OPACITY_PRESS)
+    fn material_state_layer_resolves_exact_interaction_priority() {
+        let mut gated_off = state_node!(
+            disabled,
+            pressed,
+            enter_pressed,
+            dragging,
+            focused,
+            selected,
+            checked,
+            hovered,
+            drop_hovered,
+            active_drag_target,
         );
+        gated_off.state_layer_enabled = false;
+
+        let cases = [
+            (
+                "default state layer has no overlay",
+                TemplatePaneNodeData::default(),
+                None,
+                None,
+            ),
+            (
+                "disabled state layer suppresses every interaction",
+                gated_off,
+                None,
+                None,
+            ),
+            ("enabled idle state has no layer", state_node!(), None, None),
+            (
+                "disabled wins over every interaction",
+                state_node!(
+                    disabled,
+                    pressed,
+                    enter_pressed,
+                    dragging,
+                    focused,
+                    selected,
+                    checked,
+                    hovered,
+                    drop_hovered,
+                    active_drag_target,
+                ),
+                Some(MaterialStateLayerResolvedState::Disabled),
+                Some(MATERIAL_STATE_LAYER_OPACITY_FOCUS),
+            ),
+            (
+                "pressed wins over drag focus and hover",
+                state_node!(pressed, dragging, focused, hovered),
+                Some(MaterialStateLayerResolvedState::Pressed),
+                Some(MATERIAL_STATE_LAYER_OPACITY_PRESS),
+            ),
+            (
+                "dragging wins over focus selection checked and hover",
+                state_node!(dragging, focused, selected, checked, hovered),
+                Some(MaterialStateLayerResolvedState::Dragging),
+                Some(MATERIAL_STATE_LAYER_OPACITY_DRAG),
+            ),
+            (
+                "focused wins over hover",
+                state_node!(focused, hovered),
+                Some(MaterialStateLayerResolvedState::Focused),
+                Some(MATERIAL_STATE_LAYER_OPACITY_FOCUS),
+            ),
+            (
+                "hovered resolves hover",
+                state_node!(hovered),
+                Some(MaterialStateLayerResolvedState::Hovered),
+                Some(MATERIAL_STATE_LAYER_OPACITY_HOVER),
+            ),
+        ];
+
+        for (label, node, expected_state, expected_opacity) in cases {
+            assert_eq!(
+                MaterialStateLayerResolvedState::resolve(&node),
+                expected_state,
+                "{label}"
+            );
+            assert_eq!(state_layer_opacity(&node), expected_opacity, "{label}");
+        }
     }
 
     #[test]
-    fn drag_state_layer_opacity_has_priority_over_focus_and_selection() {
-        let node = TemplatePaneNodeData {
-            state_layer_enabled: true,
-            focused: true,
-            selected: true,
-            checked: true,
-            dragging: true,
-            ..TemplatePaneNodeData::default()
-        };
+    fn state_layer_resolves_interaction_aliases() {
+        let cases = [
+            (
+                state_node!(enter_pressed, dragging, focused, hovered),
+                MaterialStateLayerResolvedState::Pressed,
+            ),
+            (
+                state_node!(selected, hovered),
+                MaterialStateLayerResolvedState::Focused,
+            ),
+            (
+                state_node!(checked, hovered),
+                MaterialStateLayerResolvedState::Focused,
+            ),
+            (
+                state_node!(drop_hovered),
+                MaterialStateLayerResolvedState::Hovered,
+            ),
+            (
+                state_node!(active_drag_target),
+                MaterialStateLayerResolvedState::Hovered,
+            ),
+        ];
 
-        assert_eq!(
-            state_layer_opacity(&node),
-            Some(MATERIAL_STATE_LAYER_OPACITY_DRAG)
-        );
+        for (node, expected) in cases {
+            assert_eq!(
+                MaterialStateLayerResolvedState::resolve(&node),
+                Some(expected)
+            );
+        }
     }
 }
