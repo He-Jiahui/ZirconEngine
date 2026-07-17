@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-14
 summary_slug: ui-root-owner-boundary-migration-debt
 origin_plan: docs/plans/zircon_editor/editor/07-domain-editors-and-graph-foundation.md
@@ -10,11 +10,17 @@ fixing_child_dir: docs/plans/zircon_editor/editor_ui/10
 related_code:
   - zircon_editor/src/ui/component_registry.rs
   - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/component_registry
+  - zircon_editor/src/ui/preferences
   - .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/editor_structure_audits/module_convention_boundary.py
 tests:
   - python .codex/skills/zircon-project-skills/zr-runtime-interface-convergence/scripts/audit_editor_structure.py --json
+  - cargo test -p zircon_editor --lib appearance_preferences_ --locked --jobs 1 -- --test-threads=1
+  - cargo test -p zircon_editor --lib retained_registry_includes_material_text_input_contracts --locked --jobs 1 -- --test-threads=1
   - cargo test -p zircon_editor --lib structure_convention --locked
+resolved_at: 2026-07-17
 ---
+
 
 # EditorUI10：UI 根层仍有两个单文件 owner 边界债务
 
@@ -63,7 +69,13 @@ settings/appearance 迁移；但二者在 `ui/` 根层的物理模块边界由 E
 | 日期 | 里程碑/切片 | 状态 | 完成项目与验证证据 |
 | --- | --- | --- | --- |
 | 2026-07-14 | EditorUI10 M1 `ui/` owner 边界复验 | `open-待功能 owner 处理` | 当前结构审计精确报告 `component_registry.rs` 与 `preferences.rs` 两项 root owner 违规；其余大文件与 production dead-code 计数为 0。本条只登记失败与验收边界，不声明结构门完成。 |
+| 2026-07-17 | EditorUI10 M1 root owner hard cut | `code-complete-review-accepted-audit-green-cargo-pending` | 已删除两个旧 root 文件；组件注册表拆为薄 façade、registry owner 与 focused test，偏好拆为 appearance/persistence/startup/migration owners 和 tokens/persistence/startup 三族 tests，原 1+12 测试名全部保留。Python audit 从 2 项恢复为 `classified-and-clear`、`migration_debt_count = 0`、root violation = 0；文件级 rustfmt/scoped diff 通过；独立只读复审 Critical/Important/Minor = 0/0/0。受管 Rust 门、fixed return 与 managed commit 尚未完成。 |
+| 2026-07-17 | EditorUI10 M1 behavior gates | `behavior-green-structure-gate-pending` | 受管偏好门 job `7471e8a6feb040cf9f9eddb0fdd9c291` / run `cabceceafbb44cb3b54288c00c06373b` 为 12 passed / 0 failed / 1 ignored；受管组件门 job `f99cf3b9efec4cf9ba69b4757c60b706` / run `332b3e0237db4bb7809e55ef619f28ed` 为 1 passed / 0 failed，二者 exit 0。`structure_convention` 仍 pending，因此 failure 保持 open，不提前 fixed。 |
+| 2026-07-17 | EditorUI10 M1 structure gate 与回传 | `fixed-return-verified` | 受管结构门 reservation `248825f9529748c89684c10d3a26dc1c`、job `c7c5a95862824ef6ae04cf08117b076d`、run `ac6e0936c7ad4c509f25c0c20dca5d6a` 为 3 passed / 0 failed / 3342 filtered，exit 0。Python audit、1+12 行为合同、结构门与独立复审全部为绿，已具备向 Editor07 回传 fixed 的完整证据。 |
 
 ## 修复结果与回传
 
-Open state: `待修复`; no pass is claimed. 完成后由 EditorUI10 联合组件/设置功能 owner 回传 Editor07 的全局结构门结果；Editor07 的两个既有失败关闭不以本项为旁路前提。
+- 根因：component_registry and preferences remained multi-responsibility ui root single-file owners
+- 架构修复：hard-cut both roots into folder-backed responsibility owners and deleted the legacy physical files without shims
+- 验证：结构审计为 `classified-and-clear` 且迁移债/root owner violations 均为 0；偏好 job `7471e8a6feb040cf9f9eddb0fdd9c291` / run `cabceceafbb44cb3b54288c00c06373b` 执行 `appearance_preferences_` 为 12 passed / 0 failed / 1 ignored、exit 0（ignored 为显式截图 exporter）；组件 job `f99cf3b9efec4cf9ba69b4757c60b706` / run `332b3e0237db4bb7809e55ef619f28ed` 执行 retained registry exact 为 1 passed / 0 failed、exit 0；结构 job `c7c5a95862824ef6ae04cf08117b076d` / run `ac6e0936c7ad4c509f25c0c20dca5d6a` 为 3 passed / 0 failed / 3342 filtered、exit 0；独立复审 0/0/0。
+- 回传：EditorUI10 root-owner debt is fixed and returned to Editor07 with current-source managed evidence

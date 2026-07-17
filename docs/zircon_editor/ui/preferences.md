@@ -1,7 +1,11 @@
 ---
 related_code:
-  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/mod.rs
+  - zircon_editor/src/ui/preferences/appearance.rs
+  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/ui/preferences/startup.rs
   - zircon_editor/src/ui/preferences/typography_migration.rs
+  - zircon_editor/src/ui/preferences/tests
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/model.rs
@@ -9,8 +13,12 @@ related_code:
   - zircon_runtime_interface/src/ui/design_tokens.rs
   - zircon_runtime_interface/src/ui/skin/preset.rs
 implementation_files:
-  - zircon_editor/src/ui/preferences.rs
+  - zircon_editor/src/ui/preferences/mod.rs
+  - zircon_editor/src/ui/preferences/appearance.rs
+  - zircon_editor/src/ui/preferences/persistence.rs
+  - zircon_editor/src/ui/preferences/startup.rs
   - zircon_editor/src/ui/preferences/typography_migration.rs
+  - zircon_editor/src/ui/preferences/tests
   - zircon_editor/src/ui/mod.rs
   - zircon_editor/src/ui/retained_host/app.rs
 plan_sources:
@@ -33,7 +41,7 @@ doc_type: module-detail
 
 ## Purpose
 
-`zircon_editor/src/ui/preferences.rs` is the retained editor owner for global appearance preferences. It gives the editor one startup path for design tokens before those tokens are projected into retained host rendering. Fonts, color theme, and style packs should be selected here or through a future persisted preference model, not by individual controls or startup code.
+`zircon_editor/src/ui/preferences/` is the retained editor owner for global appearance preferences. The thin `mod.rs` exposes only the startup entry point; `appearance.rs`, `persistence.rs`, `startup.rs`, and `typography_migration.rs` own the DTO, storage, resolution, and migration responsibilities separately. It gives the editor one startup path for design tokens before those tokens are projected into retained host rendering. Fonts, color theme, and style packs should be selected here or through a future persisted preference model, not by individual controls or startup code.
 
 The current implementation stores `EditorDesignTokens` in `EditorAppearancePreferences`. The default is still the workbench dark token set, while the versioned preference store can replace the source without changing control renderers.
 
@@ -65,7 +73,7 @@ Screenshots under `docs/tests/editor` are evidence that the harness refreshed th
 
 ## Test Coverage
 
-The slice added focused preference tests for default logical typography, global typography replacement, full token replacement, version-1 typography migration, and preservation of custom sizes. On 2026-07-10 the fresh editor test binary ran the preference filter with 12 passed, 0 failed, and one ignored screenshot export; component and Workbench captures were then refreshed under `docs/tests/editor`. The migration preserves custom version-1 sizes while correcting only the exact legacy defaults.
+The slice added focused preference tests for default logical typography, global typography replacement, full token replacement, version-1 typography migration, and preservation of custom sizes. On 2026-07-10 the fresh editor test binary ran the preference filter with 12 passed, 0 failed, and one ignored screenshot export; component and Workbench captures were then refreshed under `docs/tests/editor`. On 2026-07-17 all 12 behavior tests were preserved while moving them into `preferences/tests/{tokens,persistence,startup}.rs`; managed job `7471e8a6feb040cf9f9eddb0fdd9c291` passed 12/12 with exit code 0, while the one ignored item remains the explicit screenshot exporter. The migration preserves custom version-1 sizes while correcting only the exact legacy defaults.
 
 ## Follow-up
 

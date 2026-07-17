@@ -10,7 +10,7 @@
 
 ## `module_convention_gate` 当前实测
 
-字段同 [Runtime 镜像文档](../../zircon_runtime/structure/module-convention.md)，加 editor owner 分类（对齐 `large-file-ownership-m1.md` 的 `editor-retained-host` / `editor-ui`）。2026-06-22 最新 `audit_editor_structure.py --json` 输出：
+字段同 [Runtime 镜像文档](../../zircon_runtime/structure/module-convention.md)，加 editor owner 分类（对齐 `large-file-ownership-m1.md` 的 `editor-retained-host` / `editor-ui`）。2026-07-17 最新 `audit_editor_structure.py --json` 输出：
 
 | 字段 | 当前 | 目标 |
 |---|---|
@@ -29,6 +29,7 @@
 - `editor_ui_10_module_convention_mirror_docs_track_audit_entry`：本文和 Editor UI 10 计划必须同步记录 `audit_editor_structure.py --json` 与结构 guard 名称。
 - 2026-06-22 验证：M1.T1 前的 `cargo test -p zircon_editor --lib structure_convention --locked --message-format short --color never -- --test-threads=1` 通过（3 passed，2066 filtered out）；测试入口编译漂移已通过 owner-local import / `cfg(test)` helper 收束修复。
 - 2026-06-22 M1.T1：`ui/activity.rs`、`ui/control.rs`、`ui/reflection.rs` 顶层单文件 owner 已硬切为 folder-backed owner tree，`ui_module_owner_boundary_violation_count` 清零。
+- 2026-07-17 M1.T1 回归关闭：结构审计先精确复现 `component_registry.rs`、`preferences.rs` 两项 root owner debt（`migration_debt_count = 2`），随后硬切为 `component_registry/{mod,registry,tests}.rs` 与 `preferences/{mod,appearance,persistence,startup,typography_migration,tests/**}`；旧文件不存在，最新 Python audit 为 `classified-and-clear`、`migration_debt_count = 0`、`ui_module_owner_boundary_violation_count = 0`。文件级 rustfmt 与 scoped diff 已通过；受管偏好 12/12、组件 1/1、结构 3/3 全部 exit 0，并已完成 Editor07 fixed return。
 - 2026-06-22 M1.T1 后续验证：同一 focused structure guard 重新尝试时被 runtime/plugin 侧 `RuntimePluginDescriptor` 私有字段访问错误阻断在 `zircon_runtime` 编译阶段，尚未进入 editor guard；脚本级审计仍通过并记录 `migration_debt_count = 31`。
 - 2026-06-22 M4.T1：`scene/viewport/handles/{move,rotate,scale}_handle_tool_impl.rs` 禁名模块已硬切为 `*_handle_tool_behavior.rs`，旧路径扫描清零，`banned_name_module_count` 降为 5，`migration_debt_count` 降为 28。
 - 2026-06-22 M4.T1：`ui/workbench/project/runtime_asset_helpers.rs` 与 `ui/retained_host/app/host_lifecycle/invalidation_bridge/mark_helpers.rs` 已硬切为 `runtime_asset_resolution.rs` 与 `dirty_marking.rs`，旧 helper 源文件不存在，调用方与 owner 说明已改向新路径，`banned_name_module_count` 降为 3，`migration_debt_count` 降为 26；focused `structure_convention` guard 本次 240s 超时无诊断，未声明通过。

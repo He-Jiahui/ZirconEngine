@@ -1,12 +1,16 @@
 ---
 related_code:
-  - zircon_editor/src/ui/component_registry.rs
+  - zircon_editor/src/ui/component_registry/mod.rs
+  - zircon_editor/src/ui/component_registry/registry.rs
+  - zircon_editor/src/ui/component_registry/tests.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
   - zircon_editor/src/ui/retained_host/host_contract/template_component_family/roles.rs
 implementation_files:
-  - zircon_editor/src/ui/component_registry.rs
+  - zircon_editor/src/ui/component_registry/mod.rs
+  - zircon_editor/src/ui/component_registry/registry.rs
+  - zircon_editor/src/ui/component_registry/tests.rs
   - zircon_editor/src/ui/template_runtime/retained_adapter.rs
   - zircon_editor/src/ui/retained_host/ui/component_contract_metadata.rs
   - zircon_editor/src/ui/retained_host/ui/workbench_window_projection.rs
@@ -26,7 +30,7 @@ doc_type: module-detail
 
 # Retained Component Registry
 
-`ui/component_registry.rs` is the single editor owner for component descriptors consumed by retained projection and native host contract metadata. It starts with `UiComponentDescriptorRegistry::editor_showcase()` and then registers `material_editor_foundation()` descriptors. Registry replacement by component id is intentional: when both catalogs describe the same id, the Material foundation descriptor is the final typed contract rather than a legacy showcase string fallback.
+`ui/component_registry/` is the single editor owner for component descriptors consumed by retained projection and native host contract metadata. Its thin `mod.rs` exports only the registry entry point, `registry.rs` owns catalog construction, and `tests.rs` owns the focused component contract. The registry starts with `UiComponentDescriptorRegistry::editor_showcase()` and then registers `material_editor_foundation()` descriptors. Registry replacement by component id is intentional: when both catalogs describe the same id, the Material foundation descriptor is the final typed contract rather than a legacy showcase string fallback.
 
 Both `RetainedUiHostAdapter` and `component_contract_metadata` call `retained_component_registry()`. They must not assemble private registry variants, because a split catalog can preserve geometry while silently dropping category, layout-role, and semantic role before native painting.
 
@@ -38,4 +42,4 @@ The defaults are component semantics, not absolute screen placement. The authore
 
 ## Validation State
 
-The typed registry exact test passes 1/1 on the 2026-07-12 current-source Windows binary; SearchField DTO projection also passes 1/1 and the earlier E0308 has been returned as fixed. The active-workspace-root painter group passes 4/4, including SearchField surface/glyph/placeholder pixels and inactive sibling-host isolation. Real Blend Space screenshots pass at 900×620 and 1260×780 and are stored only under `docs/tests/editor`; registry metadata and native painting now have end-to-end visual evidence.
+The typed registry exact test passed 1/1 on the 2026-07-12 Windows binary; SearchField DTO projection also passed 1/1 and the earlier E0308 was returned as fixed. The active-workspace-root painter group passed 4/4, including SearchField surface/glyph/placeholder pixels and inactive sibling-host isolation. On 2026-07-17 the owner was hard-cut from the root single file to `component_registry/{mod,registry,tests}.rs`; the current structure audit reports zero UI root owner violations, and managed job `f99cf3b9efec4cf9ba69b4757c60b706` passed the moved registry behavior test 1/1 with exit code 0.
