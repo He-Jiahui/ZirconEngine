@@ -1333,6 +1333,17 @@ class CoordinatorApplication:
                 orphaned = [
                     job.job_id for job in self.cargo_jobs.reconcile_orphans()
                 ]
+                reservation_reconciliation = self.cargo_jobs.reconcile_pending_reservations()
+                if any(reservation_reconciliation.values()):
+                    with self.database.transaction() as connection:
+                        connection.execute(
+                            "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, ?)",
+                            (
+                                "cargo.reservations_reconciled",
+                                json.dumps(reservation_reconciliation, sort_keys=True),
+                                utc_text(),
+                            ),
+                        )
             if self.workspace_copy is not None:
                 self.workspace_copy.recover_interrupted_jobs(startup=False)
             retention_plan = self.retention.plan()
@@ -1754,6 +1765,9 @@ class RunningCoordinator:
             if application.cargo_jobs is not None:
                 try:
                     orphaned = application.cargo_jobs.reconcile_orphans()
+                    reservation_reconciliation = (
+                        application.cargo_jobs.reconcile_pending_reservations()
+                    )
                     if orphaned:
                         with application.database.transaction() as connection:
                             connection.execute(
@@ -1764,6 +1778,15 @@ class RunningCoordinator:
                                         {"job_ids": [job.job_id for job in orphaned]},
                                         sort_keys=True,
                                     ),
+                                ),
+                            )
+                    if any(reservation_reconciliation.values()):
+                        with application.database.transaction() as connection:
+                            connection.execute(
+                                "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
+                                (
+                                    "cargo.reservations_reconciled",
+                                    json.dumps(reservation_reconciliation, sort_keys=True),
                                 ),
                             )
                     application.cleanup.retry_pending_jobs()

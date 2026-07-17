@@ -2287,6 +2287,31 @@ class CargoJobService:
                 orphaned_ids.append(row["job_id"])
         return tuple(self.get(job_id) for job_id in orphaned_ids)
 
+    def reconcile_pending_reservations(
+        self, *, now: datetime | None = None
+    ) -> dict[str, int]:
+        """Advance FIFO lanes past expired claims without touching managed jobs."""
+        now_text = utc_text(now or utc_now())
+        with self.database.transaction() as connection:
+            expired_cpu = expire_invalid_pending_cpu_reservations(
+                connection, now=now_text
+            )
+            expired_gpu = expire_invalid_pending_lane_reservations(
+                connection, lane_scope="gpu", now=now_text
+            )
+            released_cpu = reconcile_terminal_finished_lane_reservations(
+                connection, lane_scope="cpu", now=now_text
+            )
+            released_gpu = reconcile_terminal_finished_lane_reservations(
+                connection, lane_scope="gpu", now=now_text
+            )
+        return {
+            "expiredCpu": expired_cpu,
+            "expiredGpu": expired_gpu,
+            "releasedCpu": released_cpu,
+            "releasedGpu": released_gpu,
+        }
+
     @staticmethod
     def _require_status(
         connection,

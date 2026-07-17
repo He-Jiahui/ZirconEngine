@@ -14,7 +14,12 @@ from pathlib import Path
 from unittest import mock
 
 from tools.session_coordinator.client import CoordinatorClient, CoordinatorClientError
-from tools.session_coordinator.cargo_jobs import CargoJobService, CargoLaneKind, TargetPathPolicy
+from tools.session_coordinator.cargo_jobs import (
+    CargoCompatibility,
+    CargoJobService,
+    CargoLaneKind,
+    TargetPathPolicy,
+)
 from tools.session_coordinator.config import CoordinatorConfig
 from tools.session_coordinator.codex_sync.evidence import CodexEvidenceProjector
 from tools.session_coordinator.codex_sync.models import CodexReconcileResult
@@ -226,6 +231,39 @@ class ServerTests(unittest.TestCase):
 
         self.assertEqual(6518, config.port)
         self.assertTrue(config.unmanaged_artifact_sweep_enabled)
+
+    def test_maintenance_tick_expires_elapsed_pending_cpu_reservations(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            application = CoordinatorApplication(config)
+            application.sessions.register(session_id="expired-owner")
+            reservation = application.cargo_jobs.reserve_cpu(
+                "expired-owner",
+                compatibility=CargoCompatibility(
+                    platform="windows",
+                    toolchain="rustc-test",
+                    target_architecture="x86_64-pc-windows-msvc",
+                    workspace="Cargo.toml",
+                    build_config="profile=metadata;expired-reservation-test",
+                ),
+                command=("cargo", "metadata"),
+            )
+            with application.database.transaction() as connection:
+                connection.execute(
+                    "UPDATE cargo_lane_reservations SET expires_at=? WHERE reservation_id=?",
+                    ("2000-01-01T00:00:00+00:00", reservation["reservationId"]),
+                )
+
+            application._maintenance_tick_unlocked({})
+
+            with application.database.connect() as connection:
+                row = connection.execute(
+                    "SELECT status FROM cargo_lane_reservations WHERE reservation_id=?",
+                    (reservation["reservationId"],),
+                ).fetchone()
+            self.assertEqual("expired", row["status"])
 
     def test_application_wires_codex_sync_to_sanitized_evidence_projection(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

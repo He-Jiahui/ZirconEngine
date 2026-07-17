@@ -64,11 +64,11 @@ def expire_unstarted_gpu_reservations_for_session(
 
 def expire_invalid_pending_lane_reservations(
     connection, *, lane_scope: str, now: str
-) -> None:
+) -> int:
     """Advance one FIFO lane past stale owners or elapsed absolute TTLs."""
     executable = tuple(sorted(EXECUTABLE_CARGO_SESSION_STATUSES))
     placeholders = ", ".join("?" for _ in executable)
-    connection.execute(
+    invalid_owner = connection.execute(
         f"""
         UPDATE cargo_lane_reservations
         SET status='expired', completed_at=COALESCE(completed_at, ?)
@@ -81,7 +81,7 @@ def expire_invalid_pending_lane_reservations(
         """,
         (now, lane_scope, *executable),
     )
-    connection.execute(
+    elapsed_ttl = connection.execute(
         """
         UPDATE cargo_lane_reservations
         SET status='expired', completed_at=COALESCE(completed_at, ?)
@@ -90,14 +90,15 @@ def expire_invalid_pending_lane_reservations(
         """,
         (now, lane_scope, now),
     )
+    return invalid_owner.rowcount + elapsed_ttl.rowcount
 
 
-def expire_invalid_pending_cpu_reservations(connection, *, now: str) -> None:
-    expire_invalid_pending_lane_reservations(connection, lane_scope="cpu", now=now)
+def expire_invalid_pending_cpu_reservations(connection, *, now: str) -> int:
+    return expire_invalid_pending_lane_reservations(connection, lane_scope="cpu", now=now)
 
 
-def expire_invalid_pending_gpu_reservations(connection, *, now: str) -> None:
-    expire_invalid_pending_lane_reservations(connection, lane_scope="gpu", now=now)
+def expire_invalid_pending_gpu_reservations(connection, *, now: str) -> int:
+    return expire_invalid_pending_lane_reservations(connection, lane_scope="gpu", now=now)
 
 
 def reconcile_terminal_finished_lane_reservations(
