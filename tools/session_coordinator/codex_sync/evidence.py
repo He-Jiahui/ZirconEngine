@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 
 from ..database import Database
-from .history import CodexHistoricalEvidenceCollector
+from .history import CodexHistoricalEvidenceCollector, repository_evidence_key
 
 
 class CodexEvidenceProjector:
@@ -389,7 +389,10 @@ class CodexEvidenceProjector:
             / "sessions"
             / local_generated_at.strftime("%Y")
             / local_generated_at.strftime("%m")
-            / f"zircon-engine-evidence-live-{local_generated_at.date().isoformat()}.md"
+            / (
+                f"zircon-engine-evidence-live-{local_generated_at.date().isoformat()}-"
+                f"{repository_evidence_key(self.repo_root)}.md"
+            )
         )
         target.parent.mkdir(parents=True, exist_ok=True)
         temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")

@@ -29,6 +29,7 @@ class CoordinatorClientError(RuntimeError):
 class CoordinatorClient:
     base_url: str
     token: str
+    expected_repository_key: str | None = None
     timeout_seconds: float = 3.0
     control_timeout_seconds: float = 30.0
     command_timeout_seconds: float = 300.0
@@ -45,12 +46,29 @@ class CoordinatorClient:
                 "Coordinator runtime descriptor is unavailable",
                 details={"transport": "descriptor_absent"},
             ) from error
-        return cls(base_url=f"http://{host}:{port}", token="")
+        descriptor_key = runtime.get("repository_key")
+        if descriptor_key is not None and descriptor_key != config.repository_key:
+            raise CoordinatorClientError(
+                "repository_mismatch",
+                "Coordinator runtime descriptor belongs to another repository",
+                details={
+                    "expectedRepositoryKey": config.repository_key,
+                    "actualRepositoryKey": descriptor_key,
+                },
+            )
+        return cls(
+            base_url=f"http://{host}:{port}",
+            token="",
+            expected_repository_key=config.repository_key,
+        )
 
     def health(self) -> dict[str, Any]:
-        return self._request("GET", "/health")
+        health = self._request("GET", "/health")
+        self._require_expected_repository(health)
+        return health
 
     def command(self, command: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        self._verify_endpoint_repository()
         try:
             return self._request(
                 "POST",
@@ -177,6 +195,7 @@ class CoordinatorClient:
         path: str,
         payload: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        self._verify_endpoint_repository()
         envelope = self._request(
             method,
             path,
@@ -188,6 +207,26 @@ class CoordinatorClient:
                 "invalid_response", "Coordinator returned an invalid control envelope"
             )
         return envelope["data"]
+
+    def _verify_endpoint_repository(self) -> None:
+        if self.expected_repository_key is None:
+            return
+        self._require_expected_repository(self._request("GET", "/health"))
+
+    def _require_expected_repository(self, health: dict[str, Any]) -> None:
+        if self.expected_repository_key is None:
+            return
+        actual = health.get("repository_key")
+        if actual == self.expected_repository_key:
+            return
+        raise CoordinatorClientError(
+            "repository_mismatch",
+            "Coordinator endpoint belongs to another repository",
+            details={
+                "expectedRepositoryKey": self.expected_repository_key,
+                "actualRepositoryKey": actual,
+            },
+        )
 
     def _request(
         self,

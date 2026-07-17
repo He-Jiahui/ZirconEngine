@@ -333,6 +333,60 @@ class ServerTests(unittest.TestCase):
                         CoordinatorClient.from_runtime(second).health()["repo_root"],
                     )
 
+    def test_fixed_listener_rejects_a_second_repository(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first_repo = init_repo(root / "first")
+            second_repo = init_repo(root / "second")
+            first = CoordinatorConfig.for_repo(
+                first_repo,
+                state_root=root / "first-state",
+                port=0,
+            )
+
+            with RunningCoordinator.start(first) as first_running:
+                second = CoordinatorConfig.for_repo(
+                    second_repo,
+                    state_root=root / "second-state",
+                    port=first_running.httpd.server_address[1],
+                )
+                with self.assertRaises(OSError):
+                    RunningCoordinator.start(second)
+
+    def test_client_rejects_foreign_repository_at_descriptor_endpoint(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            expected_repo = init_repo(root / "expected")
+            foreign_repo = init_repo(root / "foreign")
+            expected = CoordinatorConfig.for_repo(
+                expected_repo,
+                state_root=root / "expected-state",
+                port=0,
+            )
+            foreign = CoordinatorConfig.for_repo(
+                foreign_repo,
+                state_root=root / "foreign-state",
+                port=0,
+            )
+
+            with RunningCoordinator.start(foreign) as foreign_running:
+                expected.runtime_path.parent.mkdir(parents=True, exist_ok=True)
+                expected.runtime_path.write_text(
+                    json.dumps(
+                        {
+                            "host": "127.0.0.1",
+                            "port": foreign_running.httpd.server_address[1],
+                            "repository_key": expected.repository_key,
+                        }
+                    ),
+                    encoding="utf-8",
+                )
+
+                with self.assertRaises(CoordinatorClientError) as rejected:
+                    CoordinatorClient.from_runtime(expected).health()
+
+            self.assertEqual("repository_mismatch", rejected.exception.code)
+
     def test_isolated_config_disables_host_artifact_sweeps(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

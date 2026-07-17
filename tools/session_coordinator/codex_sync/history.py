@@ -34,6 +34,12 @@ _TERMINAL_TASKS = {
 }
 
 
+def repository_evidence_key(repo_root: str | Path) -> str:
+    """Return a stable, path-private key for shared Codex evidence output."""
+    identity = str(Path(repo_root).resolve()).replace("/", "\\").rstrip("\\").casefold()
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+
+
 @dataclass(frozen=True)
 class _EvidenceRecord:
     source_id: str
@@ -586,7 +592,10 @@ class CodexHistoricalEvidenceCollector:
             day=1, hour=0, minute=0, second=0, microsecond=0
         )
         month_end = self._next_month(generated_at)
-        target = month_root / f"zircon-engine-evidence-history-{generated_at:%Y-%m}.md"
+        target = month_root / (
+            f"zircon-engine-evidence-history-{generated_at:%Y-%m}-"
+            f"{repository_evidence_key(self.repo_root)}.md"
+        )
         with self.database.connect() as connection:
             totals = connection.execute(
                 """SELECT kind, outcome, COUNT(*) AS total

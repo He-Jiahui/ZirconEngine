@@ -11,7 +11,10 @@ from unittest import mock
 
 from tools.session_coordinator.codex_sync.evidence import CodexEvidenceProjector
 from tools.session_coordinator.codex_sync import history
-from tools.session_coordinator.codex_sync.history import CodexHistoricalEvidenceCollector
+from tools.session_coordinator.codex_sync.history import (
+    CodexHistoricalEvidenceCollector,
+    repository_evidence_key,
+)
 from tools.session_coordinator.codex_sync.models import (
     CodexDiscoveryResult,
     CodexReconcileResult,
@@ -726,7 +729,8 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
             migrate(database)
             history = (
                 root
-                / "codex-home/sessions/2026/07/zircon-engine-evidence-history-2026-07.md"
+                / "codex-home/sessions/2026/07"
+                / f"zircon-engine-evidence-history-2026-07-{repository_evidence_key(repo)}.md"
             )
             history.parent.mkdir(parents=True)
             history.write_text("# Existing verified evidence\n", encoding="utf-8")
@@ -885,7 +889,11 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
                 now=lambda: datetime(2026, 7, 15, 8, 1, tzinfo=timezone.utc),
             )
             output = projector.project(run_id="sync-history", include_history=True)
-            history = root / "codex-home/sessions/2026/07/zircon-engine-evidence-history-2026-07.md"
+            history = (
+                root
+                / "codex-home/sessions/2026/07"
+                / f"zircon-engine-evidence-history-2026-07-{repository_evidence_key(repo)}.md"
+            )
 
             self.assertTrue(history.exists())
             self.assertIn("thread-history", history.read_text(encoding="utf-8"))
@@ -957,7 +965,11 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
             ).project(run_id="sync-live-cursor")
 
             self.assertIn("thread-live-cursor", output.read_text(encoding="utf-8"))
-            history = root / "codex-home/sessions/2026/07/zircon-engine-evidence-history-2026-07.md"
+            history = (
+                root
+                / "codex-home/sessions/2026/07"
+                / f"zircon-engine-evidence-history-2026-07-{repository_evidence_key(repo)}.md"
+            )
             self.assertFalse(history.exists())
 
     def test_projects_sanitized_live_session_evidence_into_codex_month_directory(self) -> None:
@@ -992,7 +1004,9 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
             ).project(run_id="sync-a")
 
             self.assertEqual(
-                root / "codex-home/sessions/2026/07/zircon-engine-evidence-live-2026-07-15.md",
+                root
+                / "codex-home/sessions/2026/07"
+                / f"zircon-engine-evidence-live-2026-07-15-{repository_evidence_key(repo)}.md",
                 output,
             )
             text = output.read_text(encoding="utf-8")
@@ -1020,7 +1034,9 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
             ).project(run_id="sync-local-date")
 
             self.assertEqual(
-                root / "codex-home/sessions/2026/07/zircon-engine-evidence-live-2026-07-16.md",
+                root
+                / "codex-home/sessions/2026/07"
+                / f"zircon-engine-evidence-live-2026-07-16-{repository_evidence_key(repo)}.md",
                 output,
             )
 
@@ -1311,6 +1327,46 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
             self.assertNotIn("private-current-command", text)
             self.assertNotIn("private-gpu-compatibility", text)
             self.assertNotIn("private-gpu-command", text)
+
+    def test_repository_scoped_live_pages_do_not_overwrite_each_other(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            codex_home = root / "codex-home"
+            first_repo = init_repo(root / "repo-first")
+            second_repo = init_repo(root / "repo-second")
+            first_database = Database(root / "first.sqlite3")
+            second_database = Database(root / "second.sqlite3")
+            migrate(first_database)
+            migrate(second_database)
+            now = lambda: datetime(2026, 7, 17, 8, 0, tzinfo=timezone.utc)
+
+            first_output = CodexEvidenceProjector(
+                first_database,
+                codex_home=codex_home,
+                repo_root=first_repo,
+                now=now,
+            ).project(run_id="first", include_history=True)
+            second_output = CodexEvidenceProjector(
+                second_database,
+                codex_home=codex_home,
+                repo_root=second_repo,
+                now=now,
+            ).project(run_id="second", include_history=True)
+
+            self.assertNotEqual(first_output, second_output)
+            self.assertIn("仓库：`repo-first`", first_output.read_text(encoding="utf-8"))
+            self.assertIn("仓库：`repo-second`", second_output.read_text(encoding="utf-8"))
+            first_history = (
+                first_output.parent
+                / f"zircon-engine-evidence-history-2026-07-{repository_evidence_key(first_repo)}.md"
+            )
+            second_history = (
+                second_output.parent
+                / f"zircon-engine-evidence-history-2026-07-{repository_evidence_key(second_repo)}.md"
+            )
+            self.assertNotEqual(first_history, second_history)
+            self.assertTrue(first_history.exists())
+            self.assertTrue(second_history.exists())
 
     def test_projection_removes_only_stale_atomic_temporary_pages(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

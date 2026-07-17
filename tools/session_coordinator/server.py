@@ -1439,6 +1439,10 @@ class CoordinatorApplication:
 
 
 class _CoordinatorHttpServer(ThreadingHTTPServer):
+    # The production coordinator owns one fixed loopback endpoint.  Leaving
+    # SO_REUSEADDR enabled on Windows permits unrelated repositories to share
+    # 6518 and makes clients land on an arbitrary ledger.
+    allow_reuse_address = False
     daemon_threads = True
 
     def __init__(self, address, handler, *, application: CoordinatorApplication):
