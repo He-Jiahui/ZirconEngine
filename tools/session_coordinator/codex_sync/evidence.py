@@ -20,7 +20,9 @@ class CodexEvidenceProjector:
     _MAX_OPEN_FAILURES = 40
     _MAX_RECENT_ACTIONS = 20
     _MAX_RECENT_RESERVATIONS = 20
+    _MAX_CURRENT_RESERVATIONS = 20
     _MAX_CURRENT_HEALTH_TIMEOUTS = 20
+    _STALE_PROJECTION_TEMP_GRACE = timedelta(hours=1)
 
     def __init__(
         self,
@@ -51,7 +53,10 @@ class CodexEvidenceProjector:
         self._history.advance_month(generated_at)
         if include_history:
             self._history.render_month_history(generated_at)
-        with self.database.connect() as connection:
+        with self.database.transaction(immediate=False) as connection:
+            coordinator_event_cursor = int(
+                connection.execute("SELECT COALESCE(MAX(event_id), 0) FROM events").fetchone()[0]
+            )
             codex_sessions = connection.execute(
                 """SELECT thread_id, state, source_location, rollout_path,
                           last_event, last_activity_at, diagnostic_code
@@ -77,6 +82,24 @@ class CodexEvidenceProjector:
                    WHERE status IN ('leased', 'running')
                    ORDER BY started_at, job_id LIMIT 100"""
             ).fetchall()
+            current_reservations = connection.execute(
+                """SELECT reservations.reservation_id, reservations.session_id,
+                          reservations.lane_scope, reservations.status,
+                          reservations.execution_mode, reservations.created_at,
+                          reservations.job_id, reservations.expires_at,
+                          jobs.status AS job_status
+                   FROM cargo_lane_reservations AS reservations
+                   LEFT JOIN cargo_jobs AS jobs ON jobs.job_id=reservations.job_id
+                   WHERE reservations.status IN ('pending', 'leased', 'running', 'finished')
+                   ORDER BY reservations.lane_scope,
+                            CASE WHEN reservations.lane_scope='cpu'
+                                 THEN reservations.execution_mode ELSE 'shared' END,
+                            reservations.created_at,
+                            reservations.reservation_id
+                   LIMIT ?""",
+                (self._MAX_CURRENT_RESERVATIONS,),
+            ).fetchall()
+            current_reservations = _with_fifo_positions(current_reservations)
             health_timeout_events = connection.execute(
                 """SELECT session_id, payload_json, created_at
                    FROM events
@@ -119,7 +142,15 @@ class CodexEvidenceProjector:
             history_record_count = connection.execute(
                 "SELECT COUNT(*) FROM codex_evidence_records"
             ).fetchone()[0]
-        external_evidence = self._history.recent_records(live_since)
+            external_evidence = connection.execute(
+                """SELECT thread_id, rollout_name, event_key_hash, kind, outcome,
+                          exit_code, event_at
+                   FROM codex_evidence_records
+                   WHERE event_at >= ?
+                   ORDER BY event_at DESC, evidence_id DESC
+                   LIMIT 50""",
+                (live_since,),
+            ).fetchall()
         health_timeouts = _current_health_timeouts(
             health_timeout_events,
             cargo_jobs,
@@ -132,6 +163,7 @@ class CodexEvidenceProjector:
             f"- 生成时间：`{generated_at.isoformat()}`",
             f"- 同步运行：`{_cell(run_id)}`",
             f"- 仓库：`{_cell(self.repo_root.name)}`",
+            f"- 协调器快照游标：`{coordinator_event_cursor}`",
             "- 隐私边界：不写入会话提示词、命令行、日志正文、CWD、绝对路径或 webhook。",
             "",
             "## 历史回填进度",
@@ -230,6 +262,34 @@ class CodexEvidenceProjector:
         )
         if not cargo_jobs:
             lines.append("| — | — | — | — | — | — |")
+
+        lines.extend(
+            [
+                "",
+                "## 当前预约队列",
+                "",
+                "只显示仍会占用调度车道的预约；FIFO 顺位来自同一协调器快照。",
+                "历史终态另列，且不暴露命令、兼容性或目标路径。",
+                "",
+                "| 预约 | FIFO 顺位 | Job | Session | Lane | 预约状态 | Job 状态 | 到期时间 |",
+                "| --- | --- | --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        lines.extend(
+            "| {reservation} | {fifo} | {job} | {session} | {lane} | {status} | {job_status} | {expires} |".format(
+                reservation=_cell(row["reservation_id"]),
+                fifo=_cell(row["fifo_position"]),
+                job=_cell(row["job_id"] or "—"),
+                session=_cell(row["session_id"]),
+                lane=_cell(row["lane_scope"]),
+                status=_cell(row["status"]),
+                job_status=_cell(row["job_status"] or "—"),
+                expires=_cell(row["expires_at"]),
+            )
+            for row in current_reservations
+        )
+        if not current_reservations:
+            lines.append("| — | — | — | — | — | — | — | — |")
 
         lines.extend(
             [
@@ -335,6 +395,11 @@ class CodexEvidenceProjector:
         temporary = target.with_name(f".{target.name}.{uuid.uuid4().hex}.tmp")
         temporary.write_text("\n".join(lines) + "\n", encoding="utf-8")
         os.replace(temporary, target)
+        _remove_stale_projection_temporaries(
+            target.parent,
+            generated_at,
+            grace=self._STALE_PROJECTION_TEMP_GRACE,
+        )
         return target
 
 
@@ -345,6 +410,47 @@ def _basename(value: object) -> str:
 
 def _cell(value: object) -> str:
     return str(value).replace("|", "\\|").replace("\n", " ").replace("\r", " ")
+
+
+def _with_fifo_positions(rows: Iterable[object]) -> list[dict[str, object]]:
+    """Annotate reservation rows using the same lane/mode FIFO partition as admission."""
+    positions: dict[tuple[str, str], int] = {}
+    projected: list[dict[str, object]] = []
+    for row in rows:
+        lane_scope = str(row["lane_scope"])
+        execution_mode = (
+            str(row["execution_mode"] or "warm")
+            if lane_scope == "cpu"
+            else "shared"
+        )
+        lane_key = (lane_scope, execution_mode)
+        position = positions.get(lane_key, 0) + 1
+        positions[lane_key] = position
+        projected_row = dict(row)
+        projected_row["fifo_position"] = f"{lane_scope}/{execution_mode} #{position}"
+        projected.append(projected_row)
+    return projected
+
+
+def _remove_stale_projection_temporaries(
+    directory: Path,
+    generated_at: datetime,
+    *,
+    grace: timedelta,
+) -> None:
+    """Remove only abandoned atomic-write files after a successful replacement."""
+    cutoff = generated_at.timestamp() - grace.total_seconds()
+    try:
+        candidates = tuple(directory.glob(".zircon-engine-evidence-*.md.*.tmp"))
+    except OSError:
+        return
+    for temporary in candidates:
+        try:
+            if temporary.stat().st_mtime > cutoff:
+                continue
+            temporary.unlink()
+        except OSError:
+            continue
 
 
 def _commit_sha(result_json: object) -> str | None:

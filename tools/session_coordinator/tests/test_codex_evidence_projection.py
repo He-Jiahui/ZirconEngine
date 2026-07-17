@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
 import threading
 import unittest
@@ -9,6 +10,7 @@ from pathlib import Path
 from unittest import mock
 
 from tools.session_coordinator.codex_sync.evidence import CodexEvidenceProjector
+from tools.session_coordinator.codex_sync import history
 from tools.session_coordinator.codex_sync.history import CodexHistoricalEvidenceCollector
 from tools.session_coordinator.codex_sync.models import (
     CodexDiscoveryResult,
@@ -250,6 +252,163 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
                 event = connection.execute(
                     "SELECT kind, outcome FROM codex_evidence_records WHERE thread_id='thread-b'"
                 ).fetchone()
+            self.assertEqual(("task", "succeeded"), tuple(event))
+
+    def test_incomplete_sources_continue_round_robin_after_the_first_fair_pass(self) -> None:
+        """Unused budget should accelerate backfill without starving peer sources."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            rollouts = root / "codex-home/sessions/2026/07/15"
+            rollouts.mkdir(parents=True)
+
+            def source(thread_id: str) -> str:
+                metadata = json.dumps(
+                    {
+                        "type": "session_meta",
+                        "timestamp": "2026-07-15T08:00:00Z",
+                        "payload": {"session_id": thread_id, "cwd": str(repo)},
+                    }
+                )
+                ignored = json.dumps({"type": "ignored", "padding": "x" * 280})
+                return metadata + "\n" + (ignored + "\n") * 20
+
+            for suffix in ("a", "b"):
+                (rollouts / f"rollout-2026-07-15T08-00-00-thread-{suffix}.jsonl").write_text(
+                    source(f"thread-{suffix}"), encoding="utf-8"
+                )
+            collector = CodexHistoricalEvidenceCollector(
+                database, codex_home=root / "codex-home", repo_root=repo
+            )
+
+            with mock.patch.object(history, "MAX_SOURCE_BYTES_PER_PASS", 1024):
+                collector.collect_month(
+                    datetime(2026, 7, 15, 8, 1, tzinfo=timezone.utc),
+                    byte_budget=4 * 1024,
+                )
+
+            with database.connect() as connection:
+                offsets = connection.execute(
+                    "SELECT thread_id, scan_offset FROM codex_evidence_sources ORDER BY thread_id"
+                ).fetchall()
+            self.assertEqual(["thread-a", "thread-b"], [row["thread_id"] for row in offsets])
+            self.assertTrue(all(int(row["scan_offset"]) > 1500 for row in offsets))
+
+    def test_resumes_an_incomplete_current_month_source_after_archive_migration(self) -> None:
+        """A rollout moved to archived_sessions must retain its persisted cursor."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            archive = (
+                root
+                / "codex-home/archived_sessions"
+                / "rollout-2026-07-15T08-00-00-thread-archived.jsonl"
+            )
+            archive.parent.mkdir(parents=True)
+            archive.write_text(
+                "\n".join(
+                    (
+                        json.dumps(
+                            {
+                                "type": "session_meta",
+                                "timestamp": "2026-07-15T08:00:00Z",
+                                "payload": {"session_id": "thread-archived", "cwd": str(repo)},
+                            }
+                        ),
+                        json.dumps(
+                            {
+                                "type": "event_msg",
+                                "timestamp": "2026-07-15T08:00:01Z",
+                                "payload": {"type": "task_completed", "turn_id": "turn-archived"},
+                            }
+                        ),
+                    )
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            collector = CodexHistoricalEvidenceCollector(
+                database, codex_home=root / "codex-home", repo_root=repo
+            )
+            stat = archive.stat()
+            former_live_path = (
+                root
+                / "codex-home/sessions/2026/07/15"
+                / archive.name
+            )
+            source_id = collector._hash(str(former_live_path.resolve()))
+            with database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO codex_sessions(
+                           thread_id, rollout_path, source_location, state, cwd,
+                           last_event, first_seen_at, last_activity_at, last_synced_at,
+                           source_mtime_ns, source_size, missing_scan_count
+                       ) VALUES (?, ?, 'archived', 'archived', ?, 'task_completed',
+                                 ?, ?, ?, ?, ?, 0)""",
+                    (
+                        "thread-archived",
+                        str(archive),
+                        str(repo),
+                        "2026-07-15T08:00:00+00:00",
+                        "2026-07-15T08:00:01+00:00",
+                        "2026-07-15T08:00:01+00:00",
+                        stat.st_mtime_ns,
+                        stat.st_size,
+                    ),
+                )
+                connection.execute(
+                    """INSERT INTO codex_evidence_sources(
+                           source_id, thread_id, rollout_name, source_mtime_ns,
+                           source_size, indexed_at, scan_offset, prefix_hash,
+                           pending_calls_json, scan_complete, scan_revision
+                       ) VALUES (?, 'thread-archived', ?, ?, ?, ?, 0, ?, '{}', 0, 1)""",
+                    (
+                        source_id,
+                        archive.name,
+                        stat.st_mtime_ns,
+                        stat.st_size,
+                        "2026-07-15T08:00:00+00:00",
+                        collector._prefix_hash(archive),
+                    ),
+                )
+                connection.execute(
+                    """INSERT INTO codex_evidence_sources(
+                           source_id, thread_id, rollout_name, source_mtime_ns,
+                           source_size, indexed_at, scan_offset, prefix_hash,
+                           pending_calls_json, scan_complete, scan_revision
+                       ) VALUES (?, 'thread-archived', ?, ?, ?, ?, 0, ?, '{}', 0, 1)""",
+                    (
+                        collector._hash(str(archive.resolve())),
+                        archive.name,
+                        stat.st_mtime_ns,
+                        stat.st_size,
+                        "2026-07-15T08:00:01+00:00",
+                        collector._prefix_hash(archive),
+                    ),
+                )
+
+            collector.collect_month(
+                datetime(2026, 7, 15, 8, 1, tzinfo=timezone.utc), byte_budget=64 * 1024
+            )
+
+            with database.connect() as connection:
+                source = connection.execute(
+                    """SELECT source_id, scan_offset, source_size, scan_complete
+                       FROM codex_evidence_sources"""
+                ).fetchone()
+                source_count = connection.execute(
+                    "SELECT COUNT(*) FROM codex_evidence_sources"
+                ).fetchone()[0]
+                event = connection.execute(
+                    "SELECT kind, outcome FROM codex_evidence_records"
+                ).fetchone()
+            self.assertEqual(source_id, source[0])
+            self.assertEqual((source[2], source[2], 1), tuple(source[1:]))
+            self.assertEqual(1, source_count)
             self.assertEqual(("task", "succeeded"), tuple(event))
 
     def test_incremental_budget_rotates_to_unseen_sources_on_the_next_cycle(self) -> None:
@@ -1056,6 +1215,155 @@ class CodexEvidenceProjectionTests(unittest.TestCase):
             self.assertIn("2026-07-15T07:59:00+00:00", text)
             self.assertNotIn("private-compatibility-key", text)
             self.assertNotIn("private-command-fingerprint", text)
+
+    def test_projects_current_reservation_queue_separately_from_history(self) -> None:
+        """Live evidence must show lane blockers without exposing their command payload."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            sessions = SessionService(database, repo)
+            sessions.register(session_id="session-current")
+            sessions.register(session_id="session-behind")
+            sessions.register(session_id="session-gpu")
+            with database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO cargo_jobs(
+                           job_id, session_id, lane_kind, target_dir, status, dry_run,
+                           created_at, last_heartbeat_at, target_key
+                       ) VALUES (?, ?, 'gpu', ?, 'leased', 0, ?, ?, ?)""",
+                    (
+                        "job-leased",
+                        "session-gpu",
+                        str(root / "target-gpu"),
+                        "2026-07-15T07:58:00+00:00",
+                        "2026-07-15T07:58:00+00:00",
+                        "target-gpu",
+                    ),
+                )
+                connection.executemany(
+                    """INSERT INTO cargo_lane_reservations(
+                           reservation_id, session_id, lane_scope, compatibility_key,
+                           command_fingerprint, job_id, status, created_at, expires_at,
+                           started_at, completed_at
+                       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL)""",
+                    (
+                        (
+                            "reservation-pending",
+                            "session-current",
+                            "cpu",
+                            "private-current-compatibility",
+                            "private-current-command",
+                            None,
+                            "pending",
+                            "2026-07-15T07:57:00+00:00",
+                            "2026-07-15T08:57:00+00:00",
+                        ),
+                        (
+                            "reservation-leased",
+                            "session-gpu",
+                            "gpu",
+                            "private-gpu-compatibility",
+                            "private-gpu-command",
+                            "job-leased",
+                            "leased",
+                            "2026-07-15T07:58:00+00:00",
+                            "2026-07-15T08:58:00+00:00",
+                        ),
+                        (
+                            "reservation-behind",
+                            "session-behind",
+                            "cpu",
+                            "private-current-compatibility",
+                            "private-current-command",
+                            None,
+                            "pending",
+                            "2026-07-15T07:59:00+00:00",
+                            "2026-07-15T08:59:00+00:00",
+                        ),
+                    ),
+                )
+
+            output = CodexEvidenceProjector(
+                database,
+                codex_home=root / "codex-home",
+                repo_root=repo,
+                now=lambda: datetime(2026, 7, 15, 8, 0, tzinfo=timezone.utc),
+            ).project(run_id="sync-current-reservations")
+
+            text = output.read_text(encoding="utf-8")
+            queue = text.split("## 当前预约队列", maxsplit=1)[1].split(
+                "##", maxsplit=1
+            )[0]
+            self.assertIn("reservation-pending", queue)
+            self.assertIn("reservation-leased", queue)
+            self.assertIn("session-current", queue)
+            self.assertIn("session-gpu", queue)
+            self.assertIn("job-leased", queue)
+            self.assertIn("pending", queue)
+            self.assertIn("leased", queue)
+            self.assertIn("FIFO 顺位", queue)
+            self.assertIn("cpu/warm #1", queue)
+            self.assertIn("cpu/warm #2", queue)
+            self.assertIn("gpu/shared #1", queue)
+            self.assertNotIn("private-current-compatibility", text)
+            self.assertNotIn("private-current-command", text)
+            self.assertNotIn("private-gpu-compatibility", text)
+            self.assertNotIn("private-gpu-command", text)
+
+    def test_projection_removes_only_stale_atomic_temporary_pages(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            month_root = root / "codex-home/sessions/2026/07"
+            month_root.mkdir(parents=True)
+            stale = month_root / ".zircon-engine-evidence-live-2026-07-15.md.stale.tmp"
+            fresh = month_root / ".zircon-engine-evidence-history-2026-07.fresh.tmp"
+            stale.write_text("interrupted", encoding="utf-8")
+            fresh.write_text("in progress", encoding="utf-8")
+            os.utime(stale, (0, 0))
+
+            CodexEvidenceProjector(
+                database,
+                codex_home=root / "codex-home",
+                repo_root=repo,
+                now=lambda: datetime(2026, 7, 15, 8, 0, tzinfo=timezone.utc),
+            ).project(run_id="sync-temporary-cleanup")
+
+            self.assertFalse(stale.exists())
+            self.assertTrue(fresh.exists())
+
+    def test_live_projection_records_its_coordinator_event_cursor(self) -> None:
+        """An evidence page must identify the single coordinator state it reports."""
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            database = Database(root / "state.sqlite3")
+            migrate(database)
+            SessionService(database, repo).register(session_id="session-cursor")
+            with database.transaction() as connection:
+                connection.execute(
+                    """INSERT INTO events(session_id, event_type, payload_json, created_at)
+                       VALUES (?, 'cursor.probe', '{}', ?)""",
+                    ("session-cursor", "2026-07-15T07:59:00+00:00"),
+                )
+            with database.connect() as connection:
+                cursor = int(
+                    connection.execute("SELECT MAX(event_id) FROM events").fetchone()[0]
+                )
+
+            output = CodexEvidenceProjector(
+                database,
+                codex_home=root / "codex-home",
+                repo_root=repo,
+                now=lambda: datetime(2026, 7, 15, 8, 0, tzinfo=timezone.utc),
+            ).project(run_id="sync-event-cursor")
+
+            text = output.read_text(encoding="utf-8")
+            self.assertIn(f"- 协调器快照游标：`{cursor}`", text)
 
     def test_projects_only_current_cargo_health_timeouts(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

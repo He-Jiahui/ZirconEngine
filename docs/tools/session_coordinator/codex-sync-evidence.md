@@ -37,6 +37,8 @@ failure handoffs: those remain in their numbered `docs/plans` child directories.
 The Codex hook only signals the repository-scoped worker. The worker discovers and
 commits session state first, then atomically replaces this projection. A partial
 write therefore cannot leave readers with a truncated evidence file.
+After a successful replacement, only abandoned projection temporary files older
+than one hour are removed; a fresh concurrent atomic write is left untouched.
 
 ## Realtime Boundary
 
@@ -49,6 +51,10 @@ The projection intentionally excludes historical noise:
   sessions, at most 100 rows. A stale or merely abandoned `active` record is not live
   work; neither are completed, cancelled, and archived sessions.
 - Cargo contains only leased or running jobs.
+- The current reservation table shows a lane-local FIFO position from the same
+  coordinator snapshot. CPU `warm` and isolated `burst` entries are separate
+  queues; GPU uses its shared queue. The position never reveals a command,
+  compatibility payload, or target directory.
 - Controlled actions include executing actions and terminal actions completed in the
   same four-hour window; previews and expired previews are not operational evidence.
 - Open `failure-*` nodes are listed independently, ordered by priority, so a routing
@@ -66,6 +72,21 @@ renders the monthly history view. The collector reads only repository-owned
 revision, and completion flag for each source. A pass has an 8 MiB aggregate budget
 and a 512 KiB per-source budget, so a large active rollout advances incrementally
 without preventing other sources from being discovered.
+
+Each pass is fair-first: every prioritized source receives at most one 512 KiB
+slice before the collector returns to an incomplete source. If budget remains
+after that first sweep, it repeats the same ordered sweep over incomplete sources
+until the aggregate budget is exhausted or no cursor advances. This makes a single
+large historical rollout catch up at the full bounded 8 MiB rate when the backlog
+is otherwise quiet, while a newly changed or unseen source still receives its
+first slice before historical backfill can consume the remainder.
+
+When Codex moves an incomplete current-month rollout into its archive, the
+collector resumes it only through its existing database cursor. The recorded
+path must still name the same rollout file, resolve inside Codex home, and be
+marked archived; the collector never searches arbitrary archive contents. This
+keeps durable evidence backfill progressing without turning the archive into a
+new discovery surface.
 
 An unchanged source is skipped only after `scan_complete=1`. If a bounded read
 lands exactly at its last newline, the next pass performs a zero-byte EOF probe and
