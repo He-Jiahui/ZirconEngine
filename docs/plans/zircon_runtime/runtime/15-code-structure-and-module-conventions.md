@@ -456,10 +456,29 @@ tests:
   - cargo fmt --all --check
 doc_type: structure-plan
 status: in_progress
-last_refined: 2026-07-16
+last_refined: 2026-07-17
 ---
 
 # 15 · Runtime 代码结构与模块规范收束计划
+
+```zircon-workflow
+{
+  "schema": 1,
+  "workflow_id": "zircon-runtime-code-structure-module-conventions",
+  "goal": "收敛 runtime façade、命名、测试组织、文件预算、prelude 与死代码边界，并以 folder-backed owner 和硬切守卫阻止旧架构回流。",
+  "milestones": [
+    {"id": "M1", "title": "façade 与可见性收束", "depends_on": []},
+    {"id": "M2", "title": "命名与冗余前缀硬切", "depends_on": ["M1"]},
+    {"id": "M3", "title": "测试组织单一规则", "depends_on": []},
+    {"id": "M4", "title": "行数硬上限与 folder-backed owner 收口", "depends_on": ["M1", "M2", "M3"]},
+    {"id": "M5", "title": "prelude 完整化与死代码清除", "depends_on": ["M1"]}
+  ]
+}
+```
+
+<!-- 机器 workflow 于 2026-07-17 late-adoption；M1-M3 的历史实现与验证仍由既有 child records 负责，本次只提交当前 M4.1 精确切片，不把 M4 或父计划整体标记完成。 -->
+
+- [x] **M4.1 Screen-space UI text font-id report owner and canonical archive consumer hard cut.**
 
 > 规范权威：跨域通用规则已统一收敛至 [Zircon 开发规范总纲](../frameworks/development-conventions.md)；本文保留 Runtime 结构收束主题的细节论证与执行上下文，不再作为并列规则源。
 
@@ -1081,6 +1100,7 @@ Runtime 15 精确锚点补记 2026-07-01：`Runtime 15 M3 mesh pipeline shader s
 > 请将产出记录放置在子计划中，此处仅展示当前现状的概述
 
 - fixed 已修复：[derived-reflection-hard-cut-guard](../../zircon_plugins/08/fixed-2026-07-14-derived-reflection-hard-cut-guard.md)
+- fixed 已修复：[screen-space-ui-text-font-id-report-mount-drift](../text/01/fixed-2026-07-17-screen-space-ui-text-font-id-report-mount-drift.md)；Runtime15 已恢复 parent mount，以单一 shaping query 和实际 layout glyph face id owner 硬切重复 DTO/累计路径，Windows managed `text_font` 47/47、独立复审 0/0/0；[回传摘要](15/2026-07-17-screen-space-ui-text-font-id-report-mount-drift-return.md)。
 - fixed 已修复：[manager-service-reactivation-lifecycle](15/fixed-2026-07-14-manager-service-reactivation-lifecycle.md)
 - 2026-07-14：Frameworks05 已返回完整 manager service reactivation 修复；单模块/批量/lazy/失败 rollback behavior 3/3、原始 stale identity reproduction 1/1、activation structure 7/7、全局 test-file budget 1/1。当前切片状态为 `runtime_15_manager_service_reactivation_failure_return_current_source_passed`；详细实现与验证见 [`../frameworks/05/2026-07-14-manager-service-reactivation-lifecycle.md`](../frameworks/05/2026-07-14-manager-service-reactivation-lifecycle.md)。Render18 三个文件预算门仍独立 pending。
 - 2026-07-14：已在保留 Render18 高级光照增量的前提下完成三个最低 owner 家族拆分：GPU mesh recording 迁入 `gpu/mesh_recording.rs`；mesh cache 与 advanced-material tests 分别迁入 `tests/cache.rs`、`tests/advanced_materials.rs`；F16 sprite-stage selection 与通用 pipeline resource usage 分别迁入 `render/sprite_stage_selection.rs`、`render/pipeline_resource_usage.rs`。全部恢复原守卫预算；Frameworks05 已回传 UI text manager-access consumer 修复，最终 fresh managed default-feature Runtime build 通过。状态 `runtime_15_render_owner_budget_split_current_source_managed_build_passed`，详细记录见 [`15/2026-07-14-render-owner-budget-splits.md`](15/2026-07-14-render-owner-budget-splits.md)。
