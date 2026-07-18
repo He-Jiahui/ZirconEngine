@@ -6,7 +6,7 @@ use zircon_runtime::core::framework::sound::{
 
 use crate::engine::SoundEngineState;
 
-use super::super::common::validate_vec3;
+use super::super::coordinates::validate_vec3;
 use super::bindings::validate_source_parameter_bindings;
 use super::clip_range::validate_source_clip_range;
 use super::input::validate_source_input;

@@ -27,6 +27,10 @@ mod timeline_sequences;
 
 pub use manager_state::{DefaultSoundManager, SoundDriver};
 
+#[cfg(test)]
+pub(crate) use mixer_graph::sync::{
+    last_graph_commit_lock_hold_for_test, ActiveGraphCommitHarness,
+};
 pub(crate) use playback_controls::kira_slice_position_for_absolute_frame;
 pub(crate) use playback_status::absolute_position_from_kira_slice;
 pub(crate) use source_controls::{

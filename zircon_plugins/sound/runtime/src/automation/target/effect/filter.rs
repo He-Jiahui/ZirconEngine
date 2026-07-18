@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundFilterEffect, SoundParameterId};
 
-use super::super::helpers::unsupported_automation_parameter;
+use super::super::parameter_values::unsupported_automation_parameter;
 
 pub(super) fn apply_filter_parameter(
     filter: &mut SoundFilterEffect,

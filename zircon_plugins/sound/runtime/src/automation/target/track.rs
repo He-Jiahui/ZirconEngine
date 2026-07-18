@@ -1,6 +1,8 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundParameterId, SoundTrackDescriptor};
 
-use super::helpers::{bool_from_value, non_negative_usize, unsupported_automation_parameter};
+use super::parameter_values::{
+    bool_from_value, non_negative_usize, unsupported_automation_parameter,
+};
 
 pub(super) fn apply_track_parameter(
     track: &mut SoundTrackDescriptor,

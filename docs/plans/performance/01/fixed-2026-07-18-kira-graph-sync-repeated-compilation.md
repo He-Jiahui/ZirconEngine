@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-17
 summary_slug: kira-graph-sync-repeated-compilation
 origin_plan: docs/plans/performance/01-mvp-performance-audit-and-optimization.md
@@ -15,7 +15,9 @@ related_code:
 tests:
   - graph compile and validation invocation-count test
   - 10/100/1000 track mutation benchmark
+resolved_at: 2026-07-18
 ---
+
 
 # Sound02：Kira graph mutation 重复编译并延长全局状态锁
 
@@ -51,4 +53,7 @@ graph diff 与 compiled next graph 是分离返回值，调用链没有“一次
 
 ## 修复结果与回传
 
-Open state: `待 Sound02 Kira 迁移在当前实现上合并一次编译中间表示并压测`。
+- 根因：Graph mutations treated active and inactive graphs alike, recompiling Kira state under the public lock without an active-state compare-and-swap boundary and conflating logical limits with physical Kira sub/send capacity.
+- 架构修复：Separated inactive neutral authoring from active Kira compilation, added revision plus active-state CAS, compiled outside the lock, reused the production commit primitive in the active harness, and preflighted physical sub/send capacity atomically.
+- 验证：Final current-source benchmark job 402c6c99e45d45489082cdffa3154d05 passed 1/1; 1000-track active public lock p95 6.166ms and Kira p95 75.562ms stayed within budget; broad 344/344 and package check exit 0.
+- 回传：Repeated active graph compilation and lock-window risk are fixed in the full Sound M1 current source; immutable M1 milestone SHA remains the downstream acceptance boundary.

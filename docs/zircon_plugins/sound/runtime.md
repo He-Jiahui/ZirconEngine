@@ -4,9 +4,13 @@ related_code:
   - zircon_plugins/sound/plugin.toml
   - zircon_plugins/sound/runtime/Cargo.toml
   - zircon_plugins/sound/runtime/src/config.rs
+  - zircon_plugins/sound/runtime/src/automation/target/parameter_values.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/base_parameters.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/coordinates.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/mod.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/device.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/graph_compile.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/graph_compile/routes.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/graph_validation/mod.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/manager.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/manager/lifecycle.rs
@@ -23,6 +27,7 @@ related_code:
   - zircon_plugins/sound/runtime/src/engine/state/storage.rs
   - zircon_plugins/sound/runtime/src/output/catalog.rs
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/sync.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/configuration.rs
   - zircon_plugins/sound/runtime/src/service_types/output_device/lifecycle.rs
   - zircon_plugins/sound/runtime/src/service_types/playback.rs
   - zircon_plugins/sound/runtime/src/service_types/playback_controls/seek.rs
@@ -36,7 +41,12 @@ related_code:
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
   - zircon_plugins/sound/runtime/src/service_types/runtime_settings.rs
 implementation_files:
+  - zircon_plugins/sound/runtime/src/automation/target/parameter_values.rs
+  - zircon_plugins/sound/runtime/src/automation/target/effect/base_parameters.rs
+  - zircon_plugins/sound/runtime/src/descriptor_validation/coordinates.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/graph_compile.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/graph_compile/routes.rs
+  - zircon_plugins/sound/runtime/src/kira_bridge/device.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/manager.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/manager/lifecycle.rs
   - zircon_plugins/sound/runtime/src/kira_bridge/manager/graph.rs
@@ -49,6 +59,7 @@ implementation_files:
   - zircon_plugins/sound/runtime/src/mixer_configuration/sources.rs
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/configuration.rs
   - zircon_plugins/sound/runtime/src/service_types/mixer_graph/sync.rs
+  - zircon_plugins/sound/runtime/src/service_types/output_device/configuration.rs
   - zircon_plugins/sound/runtime/src/service_types/output_device/lifecycle.rs
   - zircon_plugins/sound/runtime/src/service_types/playback.rs
   - zircon_plugins/sound/runtime/src/service_types/playback_controls/seek.rs
@@ -81,6 +92,7 @@ tests:
   - zircon_plugins/sound/runtime/src/engine/dsp/tests.rs
   - zircon_plugins/sound/runtime/src/engine/filter/tests.rs
   - zircon_plugins/sound/runtime/src/tests/runtime_core/settings.rs
+  - zircon_plugins/sound/runtime/src/tests/automation_binding/validation/active_runtime.rs
 doc_type: module-detail
 ---
 
@@ -111,6 +123,11 @@ editor/plugin registration contracts.
   playback controls.
 - `graph_compile.rs` validates a neutral graph once and produces the compiled graph plus
   its diff. Service modules do not repeat graph compilation.
+- `automation/target/parameter_values.rs` owns typed parameter conversions, while
+  `effect/base_parameters.rs` owns the enabled/bypass/wet fields shared by effect kinds.
+  No behavior is hidden behind `common` or `helpers` modules.
+- `descriptor_validation/coordinates.rs` owns finite coordinate validation shared by
+  source, listener, and volume descriptors.
 - `engine/state/` owns neutral authoring/runtime records. It never owns an audio thread
   or renders samples.
 
@@ -136,22 +153,36 @@ Output activation applies the complete runtime configuration:
   topology instead of allocating `max_tracks` slots in every leaf;
 - `master_gain` is applied to Kira's main track and remains effective across graph edits.
 
+Output configuration and start both hold `config -> state` while validating and applying
+the Kira manager transition. Global gain uses the same order and commits the neutral config
+only after Kira accepts the value, so concurrent start/configuration cannot expose a split
+reported gain and rendered gain. Device discovery preserves the backend's original channel
+count and layout. M1 advertises and activates only mono/stereo; wider devices remain visible
+as unavailable with a typed diagnostic instead of being silently clamped to stereo.
+
 Stopping or reconfiguring output drains Kira playback identities into the neutral
 finished-event boundary before handles are discarded. Authoring records remain available
 for an output restart and clip-backed sources are rebuilt against the new manager.
 
 ## Graph Compile And Commit Model
 
-Every graph mutation follows a generation-checked two-phase path:
+Graph authoring and active execution share one revision-checked two-phase commit, but the
+prepared work depends on the output lifecycle state:
 
-1. Snapshot the `Arc<SoundMixerGraph>` and revision under the state mutex.
-2. Clone, mutate, validate, compile, and diff outside the mutex.
-3. Reacquire the state mutex and retry if the revision changed.
-4. Apply the prepared Kira plan and replace the neutral graph only after Kira succeeds.
+1. Snapshot the `Arc<SoundMixerGraph>`, revision, and Kira active state under the state mutex.
+2. Clone and mutate outside the mutex. An inactive manager runs only neutral graph validation,
+   so a project may author valid M2 effects and pre-effect routes before an output exists. An
+   active manager additionally compiles the M1 Kira representation and its diff exactly once.
+3. Reacquire the state mutex and retry if either the revision or Kira active state changed.
+4. When active, apply the prepared Kira plan; then replace the neutral graph and commit the
+   mutation metadata. When inactive, replace only the validated neutral graph.
 
-This prevents concurrent edits from overwriting each other and keeps graph cloning,
-validation, and diff allocation out of the shared state lock. A next graph is compiled
-once per attempt; the same compiled representation drives both diff and apply.
+Output activation holds the state mutex, starts Kira, and compiles/synchronizes the complete
+current neutral graph before marking the device started. Consequently an authored M2 surface
+is accepted while inactive but produces the typed M1 unsupported diagnostic at activation,
+never a partially active graph. This model prevents concurrent edits or lifecycle transitions
+from overwriting each other and keeps graph cloning, validation, compilation, and diff
+allocation out of the shared state lock.
 
 Pure gain/mute changes send Kira parameter commands with the standard 10 ms linear
 `Tween`. Incremental structural edits first allocate missing send tracks and replacement
@@ -175,11 +206,22 @@ The compiler therefore projects the target track's effective M1 gain into the se
 target gain/mute multiplied by every parent gain/mute through the master. Changes to any
 member of that chain emit `SetSendVolume` for the existing Kira send handle.
 
-M1 supports post-effect send routing. Pre-effect sends and target effects remain typed
-`UnsupportedAdvancedFeature` results until Sound M2 supplies a Kira effect-route mapping;
-they are never silently bypassed. Frame-capture tests use a custom Kira backend to verify
-the rendered contribution of source send gain, target gain/mute, parent gain, and active
-parent updates.
+Post-effect routes are expanded recursively: a send that enters a downstream track also
+contributes to every post-effect send reachable from that track, with memoized chain gain
+and mute projection. This keeps chained buses audible without compiling a second graph or
+allocating route state while holding the public manager mutex.
+
+M1 executes post-effect send routing. Pre-effect sends and target effects may be retained in
+inactive neutral authoring state, but output activation and active graph mutation return typed
+`UnsupportedAdvancedFeature` until Sound M2 supplies a Kira effect-route mapping; they are
+never silently bypassed. Frame-capture tests use a custom Kira backend to verify the rendered
+contribution of source send gain, target gain/mute, parent gain, and active parent updates.
+
+Gain, mute, and send-gain changes update existing Kira handles while playback continues.
+M1 does not migrate live handles between rebuilt parent/track trees, so structural graph
+edits return a typed unsupported error while any Kira playback is genuinely active. A
+naturally stopped handle does not block the edit and remains available for the normal
+finished-event drain, avoiding both silent playback retirement and stale-handle lockout.
 
 ## Playback And Sources
 
@@ -206,8 +248,10 @@ sliced source cursor from its absolute start frame to zero.
 
 ## Performance Invariants
 
-- Graph validation/compile runs once per mutation attempt.
-- State revisions provide compare-and-retry consistency for concurrent edits.
+- Inactive graph mutation runs neutral validation without Kira compilation; active mutation
+  compiles exactly once per attempt.
+- State revision plus Kira active-state comparison provides retry consistency for concurrent
+  edits and output lifecycle transitions.
 - Structural changes stage only affected tracks/subtrees; format changes alone rebuild the
   complete graph.
 - Cached `StaticSoundData` shares frame storage through `Arc`.
@@ -216,6 +260,11 @@ sliced source cursor from its absolute start frame to zero.
   allocator calls for add, update, remove, and send mutations at 10, 100, and 1000 tracks,
   and uses thread-local allocation accounting so parallel library tests cannot pollute the
   measured budget.
+- A MockBackend active public-commit harness uses the same production revision/active-state CAS
+  and lock-held Kira apply primitive to record state-mutex hold p50/p95 for the same
+  add/update/remove/send families and scales. Its linear per-track time budget is separate from
+  the end-to-end active Kira allocation benchmark so lock cost and total backend cost remain
+  independently visible.
 
 ## Hard-Cut Scope
 

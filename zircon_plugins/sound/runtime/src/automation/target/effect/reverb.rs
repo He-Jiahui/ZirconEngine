@@ -2,7 +2,7 @@ use zircon_runtime::core::framework::sound::{
     SoundConvolutionReverbEffect, SoundError, SoundParameterId, SoundReverbEffect,
 };
 
-use super::super::helpers::{
+use super::super::parameter_values::{
     bool_from_value, non_negative_usize, unsupported_automation_parameter,
 };
 

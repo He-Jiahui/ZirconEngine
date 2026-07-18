@@ -1,4 +1,4 @@
-mod common;
+mod coordinates;
 pub(crate) mod external_source;
 pub(crate) mod hrtf;
 pub(crate) mod listener;

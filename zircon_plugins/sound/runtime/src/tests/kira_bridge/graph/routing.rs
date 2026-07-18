@@ -240,7 +240,7 @@ fn active_parent_move_is_rejected_without_retiring_the_live_playback_track() {
         .unwrap();
     let before = render_stable_peak(&mut engine, &captures);
 
-    let mut updated = graph;
+    let mut updated = graph.clone();
     updated.tracks[1].parent = Some(SoundTrackId::new(4));
     let error = engine.sync_graph(&updated).unwrap_err();
     let after = render_stable_peak(&mut engine, &captures);

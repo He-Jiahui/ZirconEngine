@@ -2,9 +2,9 @@ use zircon_runtime::core::framework::sound::{SoundEffectDescriptor, SoundError, 
 
 use crate::kira_bridge::validate_effect;
 
-use super::super::helpers::bool_from_value;
+use super::super::parameter_values::bool_from_value;
 
-pub(super) fn apply_common_effect_parameter(
+pub(super) fn apply_base_effect_parameter(
     effect: &mut SoundEffectDescriptor,
     parameter: &SoundParameterId,
     value: f32,

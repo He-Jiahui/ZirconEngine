@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundPanStereoEffect, SoundParameterId};
 
-use super::super::helpers::{bool_from_value, unsupported_automation_parameter};
+use super::super::parameter_values::{bool_from_value, unsupported_automation_parameter};
 
 pub(super) fn apply_pan_stereo_parameter(
     pan: &mut SoundPanStereoEffect,

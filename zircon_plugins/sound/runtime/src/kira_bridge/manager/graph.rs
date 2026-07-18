@@ -136,6 +136,28 @@ impl<B: Backend> KiraEngine<B> {
                 ),
             });
         }
+        let sub_track_count = graph
+            .tracks()
+            .iter()
+            .filter(|track| track.id != SoundTrackId::master())
+            .count();
+        if sub_track_count > self.physical_sub_track_capacity {
+            return Err(SoundError::BackendUnavailable {
+                detail: format!(
+                    "mixer graph requires {sub_track_count} Kira sub tracks but the backend capacity is {}",
+                    self.physical_sub_track_capacity
+                ),
+            });
+        }
+        if graph.send_targets().len() > self.physical_send_track_capacity {
+            return Err(SoundError::BackendUnavailable {
+                detail: format!(
+                    "mixer graph requires {} Kira send tracks but the backend capacity is {}",
+                    graph.send_targets().len(),
+                    self.physical_send_track_capacity
+                ),
+            });
+        }
         Ok(())
     }
 

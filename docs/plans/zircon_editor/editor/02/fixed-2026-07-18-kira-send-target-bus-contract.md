@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-17
 summary_slug: kira-send-target-bus-contract
 origin_plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
@@ -15,7 +15,9 @@ related_code:
   - zircon_plugins/sound/runtime/src/tests/kira_bridge
 tests:
   - cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime --locked
+resolved_at: 2026-07-18
 ---
+
 
 # Sound02：Kira send 未保持目标 bus 契约
 
@@ -65,4 +67,7 @@ Kira SendTrack 的输入在自身音量/效果后直接混入输出；它不会�
 
 ## 修复结果与回传
 
-Open state: `待 Kira logical target-bus gain/mute/parent adapter、frame-capture regression 与 fresh gates 完成。`
+- 根因：Post-effect sends compiled without preserving target-bus gain, mute, parent-chain gain and master-gain application order, so rendered sends could be silent or apply master gain incorrectly.
+- 架构修复：Compiled send targets before routes, evaluated chained parent and bus gains exactly once, applied master gain once to direct and send paths, and synchronized installed sends after active parent-gain changes.
+- 验证：RED job 99687c8d6c584399aa727b09e121cdc1 was 1/4; route GREEN job 7016d604dcf84f75bb0ceac48b331660 passed 8/8; final broad job 93780d78e3184784b545160381387ff7 passed 344/344 and package check exited 0.
+- 回传：Kira send target/bus/master routing semantics are fixed in the full Sound M1 current source; immutable M1 milestone SHA remains the downstream acceptance boundary.

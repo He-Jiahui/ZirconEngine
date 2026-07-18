@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundVolumeDescriptor, SoundVolumeShape};
 
-use super::common::validate_vec3;
+use super::coordinates::validate_vec3;
 
 pub(crate) fn validate_volume_descriptor(volume: &SoundVolumeDescriptor) -> Result<(), SoundError> {
     if !volume.interior_gain.is_finite()

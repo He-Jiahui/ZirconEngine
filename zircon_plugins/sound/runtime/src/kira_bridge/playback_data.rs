@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use kira::{
-    sound::static_sound::{StaticSoundData, StaticSoundSettings},
+    sound::{
+        static_sound::{StaticSoundData, StaticSoundSettings},
+        PlaybackPosition,
+    },
     Frame,
 };
 use zircon_runtime::asset::SoundAsset;
@@ -17,6 +20,7 @@ pub(crate) fn static_sound_data(
 ) -> StaticSoundData {
     let gain = if playback.muted { 0.0 } else { playback.gain };
     let mut settings = StaticSoundSettings::default()
+        .start_position(PlaybackPosition::Samples(0))
         .volume(linear_gain_to_decibels(gain))
         .playback_rate(playback.speed as f64)
         .panning(playback.pan);

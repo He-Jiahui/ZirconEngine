@@ -1,4 +1,4 @@
-use super::helpers::sorted_runtime_optional_feature_signatures;
+use super::support::sorted_runtime_optional_feature_signatures;
 
 #[test]
 fn linked_feature_provider_manifests_match_sound_package_manifest() {

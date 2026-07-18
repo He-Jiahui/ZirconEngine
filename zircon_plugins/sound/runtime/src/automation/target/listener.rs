@@ -2,7 +2,7 @@ use zircon_runtime::core::framework::sound::{
     SoundError, SoundListenerDescriptor, SoundParameterId,
 };
 
-use super::helpers::{bool_from_value, unsupported_automation_parameter};
+use super::parameter_values::{bool_from_value, unsupported_automation_parameter};
 
 pub(super) fn apply_listener_parameter(
     listener: &mut SoundListenerDescriptor,

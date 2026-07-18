@@ -1,4 +1,4 @@
-use super::helpers::{
+use super::support::{
     sorted_registration_report_optional_feature_signatures,
     sorted_runtime_optional_feature_signatures,
 };

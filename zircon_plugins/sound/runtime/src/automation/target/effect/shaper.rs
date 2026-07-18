@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundParameterId, SoundWaveShaperEffect};
 
-use super::super::helpers::unsupported_automation_parameter;
+use super::super::parameter_values::unsupported_automation_parameter;
 
 pub(super) fn apply_wave_shaper_parameter(
     shaper: &mut SoundWaveShaperEffect,

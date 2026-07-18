@@ -2,7 +2,7 @@ use zircon_runtime::core::framework::sound::{SoundError, SoundListenerDescriptor
 
 use crate::engine::SoundEngineState;
 
-use super::common::validate_vec3;
+use super::coordinates::validate_vec3;
 
 pub(crate) fn validate_listener_descriptor(
     state: &SoundEngineState,

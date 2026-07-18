@@ -12,13 +12,7 @@ fn sound_channel_layout_option_uses_framework_named_layout_vocabulary() {
 
     assert_eq!(option.value_type, "enum");
     assert_eq!(option.default_value, "stereo");
-    assert_eq!(
-        option.enum_values,
-        AudioChannelLayout::named_layout_names()
-            .iter()
-            .map(|name| (*name).to_string())
-            .collect::<Vec<_>>()
-    );
+    assert_eq!(option.enum_values, ["mono", "stereo"]);
     for option_value in &option.enum_values {
         assert!(
             AudioChannelLayout::from_name(option_value).is_some(),

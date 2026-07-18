@@ -32,7 +32,6 @@ use super::{
 
 mod automation_binding;
 mod automation_curve;
-mod common;
 mod convolution;
 mod dynamic_events;
 mod graph_config;
@@ -49,5 +48,6 @@ mod ray_tracing;
 mod runtime_core;
 mod source_inputs;
 mod spatial;
+mod support;
 
-use common::*;
+use support::*;

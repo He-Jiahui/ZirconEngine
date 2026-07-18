@@ -26,6 +26,8 @@ pub(crate) struct KiraEngine<B: Backend> {
     pub(super) graph: Option<SoundMixerGraph>,
     pub(super) logical_track_capacity: usize,
     pub(super) logical_voice_capacity: usize,
+    pub(super) physical_sub_track_capacity: usize,
+    pub(super) physical_send_track_capacity: usize,
     pub(super) physical_voice_capacity: usize,
     pub(super) global_volume_gain: f32,
 }
@@ -52,6 +54,8 @@ impl<B: Backend> KiraEngine<B> {
             graph: None,
             logical_track_capacity: DEFAULT_LOGICAL_RESOURCE_CAPACITY,
             logical_voice_capacity: DEFAULT_LOGICAL_RESOURCE_CAPACITY,
+            physical_sub_track_capacity: DEFAULT_LOGICAL_RESOURCE_CAPACITY,
+            physical_send_track_capacity: DEFAULT_LOGICAL_RESOURCE_CAPACITY,
             physical_voice_capacity: DEFAULT_LOGICAL_RESOURCE_CAPACITY,
             global_volume_gain: 1.0,
         }

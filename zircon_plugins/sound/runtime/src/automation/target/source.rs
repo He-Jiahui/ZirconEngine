@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundParameterId, SoundSourceDescriptor};
 
-use super::helpers::{bool_from_value, unsupported_automation_parameter};
+use super::parameter_values::{bool_from_value, unsupported_automation_parameter};
 
 pub(super) fn apply_source_parameter(
     source: &mut SoundSourceDescriptor,

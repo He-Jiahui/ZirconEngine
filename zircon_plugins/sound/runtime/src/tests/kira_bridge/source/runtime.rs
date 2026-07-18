@@ -58,7 +58,10 @@ fn clip_source_controls_drive_the_bound_kira_handle() {
     pause_bound_source(&mut runtime.engine, &mut runtime.voice).unwrap();
     runtime
         .engine
-        .with_backend_mut(|backend| backend.on_start_processing())
+        .with_backend_mut(|backend| {
+            backend.on_start_processing();
+            backend.process();
+        })
         .unwrap();
     assert_eq!(
         runtime.engine.playback_state(playback).unwrap(),

@@ -4,7 +4,7 @@ use kira::backend::Backend;
 use zircon_runtime::core::framework::sound::{SoundError, SoundMixerGraph, SoundSourceId};
 
 use crate::engine::{SoundEngineState, SourceVoice};
-use crate::kira_bridge::{compile_graph_update, KiraEngine};
+use crate::kira_bridge::{compile_graph_update, validate_graph, KiraEngine};
 use crate::mixer_configuration::configure::{
     commit_mixer_configuration, prepare_mixer_configuration, PreparedMixerConfiguration,
 };
@@ -22,15 +22,22 @@ impl DefaultSoundManager {
     ) -> Result<(), SoundError> {
         for _ in 0..CONFIGURE_RETRY_LIMIT {
             let snapshot = lock_recover(&self.state).graph_snapshot();
-            let graph_plan = compile_graph_update(&snapshot.graph, &graph)?;
+            let graph_plan = if snapshot.kira_active {
+                Some(compile_graph_update(&snapshot.graph, &graph)?)
+            } else {
+                validate_graph(&graph)?;
+                None
+            };
 
             let mut state = lock_recover(&self.state);
-            if state.graph_revision != snapshot.revision {
+            if state.graph_revision != snapshot.revision
+                || state.kira.is_active() != snapshot.kira_active
+            {
                 continue;
             }
             let prepared = prepare_mixer_configuration(&state, &graph)?;
             let previous_graph = state.graph.clone();
-            let was_active = state.kira.is_active();
+            let was_active = snapshot.kira_active;
             let PreparedMixerConfiguration {
                 graph,
                 sources,
@@ -38,7 +45,7 @@ impl DefaultSoundManager {
                 automation_bindings,
                 meters,
             } = prepared;
-            if was_active {
+            if let Some(graph_plan) = graph_plan {
                 state.kira.apply_graph_update(&graph, graph_plan)?;
             }
 

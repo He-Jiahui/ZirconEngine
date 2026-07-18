@@ -1,4 +1,4 @@
-use super::helpers::assert_feature_registration_module;
+use super::support::assert_feature_registration_module;
 
 #[test]
 fn linked_feature_registration_reports_contribute_runtime_modules() {

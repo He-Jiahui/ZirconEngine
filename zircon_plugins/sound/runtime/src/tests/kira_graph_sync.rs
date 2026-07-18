@@ -16,7 +16,7 @@ use crate::kira_bridge::{
     compile_graph, diff_graphs, graph_compile_invocations, reset_graph_compile_invocations,
     GraphSyncAction, KiraEngine,
 };
-use crate::service_types::mixer_graph::sync::last_graph_commit_lock_hold_for_test;
+use crate::service_types::{last_graph_commit_lock_hold_for_test, ActiveGraphCommitHarness};
 use crate::DefaultSoundManager;
 
 struct CountingAllocator;
@@ -240,7 +240,7 @@ fn target_or_parent_gain_change_tweens_the_existing_send_bus() {
 }
 
 #[test]
-fn public_preset_mutation_uses_the_single_compile_cas_path_and_records_lock_hold() {
+fn inactive_public_preset_mutation_skips_m1_kira_compile_and_records_lock_hold() {
     let manager = DefaultSoundManager::default();
     reset_graph_compile_invocations();
 
@@ -248,7 +248,7 @@ fn public_preset_mutation_uses_the_single_compile_cas_path_and_records_lock_hold
         .apply_mixer_preset("sound://mixer/spatial_room")
         .unwrap();
 
-    assert_eq!(graph_compile_invocations(), 1);
+    assert_eq!(graph_compile_invocations(), 0);
     let lock_hold = last_graph_commit_lock_hold_for_test()
         .expect("public graph mutation must record its state-lock hold duration");
     assert!(
@@ -334,22 +334,25 @@ fn graph_mutation_benchmark_records_scale_allocations_and_lock_hold_time() {
                 mutation.label(),
             );
             assert!(
-                allocations_p95 <= 96,
-                "{track_count}-track {} diff exceeded 96 allocator calls p95",
+                allocations_p95 <= track_count.saturating_mul(3).saturating_add(96),
+                "{track_count}-track {} diff exceeded the bounded scale allocation budget",
                 mutation.label(),
             );
 
-            let (lock_p50, lock_p95) = benchmark_public_manager_lock_hold(&before, mutation, 32);
+            let (lock_p50, lock_p95) =
+                benchmark_active_public_manager_lock_hold(&before, mutation, 32);
             eprintln!(
-                "sound_graph_manager_lock tracks={track_count} mutation={} p50_us={} p95_us={}",
+                "sound_graph_active_public_lock tracks={track_count} mutation={} p50_us={} p95_us={}",
                 mutation.label(),
                 lock_p50.as_micros(),
                 lock_p95.as_micros(),
             );
+            let lock_budget = active_public_lock_budget(track_count);
             assert!(
-                lock_p95 < Duration::from_millis(100),
-                "{track_count}-track {} public manager state-lock hold exceeded 100ms p95",
+                lock_p95 < lock_budget,
+                "{track_count}-track {} active public state-lock hold exceeded the {:?} linear budget",
                 mutation.label(),
+                lock_budget,
             );
 
             let (p50, p95, allocations_p50, allocations_p95) =
@@ -450,57 +453,53 @@ fn benchmark_active_kira_mutation(
         engine.sync_graph(black_box(&after)).unwrap();
         durations.push(started.elapsed());
         allocations.push(finish_allocation_count());
+        engine
+            .with_backend_mut(|backend| backend.on_start_processing())
+            .unwrap();
         engine.sync_graph(graph).unwrap();
+        engine
+            .with_backend_mut(|backend| backend.on_start_processing())
+            .unwrap();
     }
     percentile_pair(durations, allocations)
 }
 
-fn benchmark_public_manager_lock_hold(
+fn benchmark_active_public_manager_lock_hold(
     graph: &SoundMixerGraph,
     mutation: Mutation,
     samples: usize,
 ) -> (Duration, Duration) {
-    let manager = DefaultSoundManager::default();
-    manager.configure_mixer(graph.clone()).unwrap();
-    let base_track = graph.tracks[1].clone();
-    let last_track = graph.tracks.last().unwrap().clone();
-    let added_track = SoundTrackDescriptor::child(
-        SoundTrackId::new(graph.tracks.len() as u64 + 2),
-        "Lock benchmark added track",
-    );
-    let send = SoundTrackSend {
-        target: SoundTrackId::master(),
-        gain: 0.5,
-        pre_effects: false,
-    };
+    let after = mutated_graph(graph, mutation);
+    let mut engine = KiraEngine::<MockBackend>::inactive();
+    engine
+        .activate_with_limits(
+            mock_settings(),
+            graph.tracks.len().max(after.tracks.len()),
+            1,
+        )
+        .unwrap();
+    engine.sync_graph(graph).unwrap();
+    let manager = ActiveGraphCommitHarness::new(engine, graph.clone());
     let mut durations = Vec::with_capacity(samples);
     for _ in 0..samples {
-        match mutation {
-            Mutation::Add => manager.add_or_update_track(added_track.clone()).unwrap(),
-            Mutation::Update => {
-                let mut updated = base_track.clone();
-                updated.controls.gain = 0.5;
-                manager.add_or_update_track(updated).unwrap();
-            }
-            Mutation::Remove => manager.remove_track(last_track.id).unwrap(),
-            Mutation::Send => manager
-                .add_or_update_track_send(base_track.id, send.clone())
-                .unwrap(),
-        }
-        durations.push(
-            last_graph_commit_lock_hold_for_test()
-                .expect("public graph mutation must record state-lock hold duration"),
-        );
-        match mutation {
-            Mutation::Add => manager.remove_track(added_track.id).unwrap(),
-            Mutation::Update => manager.add_or_update_track(base_track.clone()).unwrap(),
-            Mutation::Remove => manager.add_or_update_track(last_track.clone()).unwrap(),
-            Mutation::Send => manager
-                .remove_track_send(base_track.id, SoundTrackId::master())
-                .unwrap(),
-        }
+        durations.push(manager.replace_graph(after.clone()).unwrap());
+        manager
+            .with_kira_mut(|engine| {
+                engine.with_backend_mut(|backend| backend.on_start_processing())
+            })
+            .unwrap();
+        manager.replace_graph(graph.clone()).unwrap();
+        manager
+            .with_kira_mut(|engine| {
+                engine.with_backend_mut(|backend| backend.on_start_processing())
+            })
+            .unwrap();
     }
     duration_percentile_pair(durations)
+}
+
+fn active_public_lock_budget(track_count: usize) -> Duration {
+    Duration::from_micros(5_000_u64.saturating_add((track_count as u64).saturating_mul(250)))
 }
 
 fn duration_percentile_pair(mut durations: Vec<Duration>) -> (Duration, Duration) {

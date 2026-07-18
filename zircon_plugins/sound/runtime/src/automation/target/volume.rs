@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundError, SoundParameterId, SoundVolumeDescriptor};
 
-use super::helpers::{i32_from_value, unsupported_automation_parameter};
+use super::parameter_values::{i32_from_value, unsupported_automation_parameter};
 
 pub(super) fn apply_volume_parameter(
     volume: &mut SoundVolumeDescriptor,

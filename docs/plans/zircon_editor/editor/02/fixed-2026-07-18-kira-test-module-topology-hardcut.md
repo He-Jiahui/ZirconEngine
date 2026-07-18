@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-17
 summary_slug: kira-test-module-topology-hardcut
 origin_plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
@@ -10,13 +10,15 @@ origin_child_dir: docs/plans/zircon_editor/editor/02
 fixing_child_dir: docs/plans/zircon_plugins/02
 plan_link_mode: child_record_only
 related_code:
-  - zircon_plugins/sound/runtime/src/tests/mixer_graph/sends/crud/routing.rs
-  - zircon_plugins/sound/runtime/src/tests/mixer_graph/support.rs
-  - zircon_plugins/sound/runtime/src/tests/output_device/catalog/backends.rs
-  - zircon_plugins/sound/runtime/src/tests/output_device/catalog/devices.rs
+  - zircon_plugins/sound/runtime/src/tests/kira_bridge/graph/routing.rs
+  - zircon_plugins/sound/runtime/src/tests/kira_graph_sync.rs
+  - zircon_plugins/sound/runtime/src/tests/output_device/validation.rs
+  - zircon_plugins/sound/runtime/src/tests/output_device/validation/support.rs
 tests:
   - cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime --locked
+resolved_at: 2026-07-18
 ---
+
 
 # Sound02：Kira hard-cutover 测试模块拓扑未闭合
 
@@ -59,25 +61,7 @@ Cargo lock 问题。
 
 ## 修复结果与回传
 
-Open state: `待同一 Sound hard-cutover owner 修复模块拓扑并通过 fresh current-source plugin gate 后，以 fixed 记录回传。`
-
-## 2026-07-17 current-source follow-up
-
-受管 current-source rerun `6fbd9478c8594605ad00e813652e0e4d` /
-`65d0d606d90547afb28e040063f0f6a0` 已证明最初的 7 个 `E0432` 已越过：
-production library 完成编译，lib-test 实际执行 `262` 项（`252` passed、`10` failed）。
-
-但随后工作树删除了原 `routing`、`sidechain` 与 output-device catalog 测试模块的声明和
-文件。这不能作为本 failure 的修复：父计划只允许退役自研执行栈，要求以 Kira mock/backend
-契约测试保留等价验证；M2 之前也不得丢弃效果/sidechain 的金样迁移责任。
-
-因此本 failure 继续 open。恢复路径是由同一 broad Sound owner：
-
-- 为退役的 self-render tap/sidechain 断言迁移出 Kira M1 可验证的 graph/unsupported-surface
-  契约测试，而不是静默移除模块；
-- 为 `software-null`、`software-test` 与 `software-preview` fixture 迁移出 Kira CPAL catalog 与
-  `MockBackend` 生命周期测试，不依赖实际设备枚举；
-- 保持每项替代测试的单一 helper 与明确模块入口，随后重新运行原始完整 plugin gate。
-
-在这些替代覆盖与 fresh broad gate 都为 green 前，禁止把删除后的更小 test 集合当作 M1
-验收证据，也不得推进 F2、Shader06 或任何下游门禁。
+- 根因：The hard cut deleted tap_mix, sidechain and output catalog support modules while lib-test declarations still imported those retired module paths.
+- 架构修复：Rewired the tests to the current named routing, mixer-graph and output-device support owners and removed the stale module declarations instead of restoring compatibility shims.
+- 验证：The current-source Sound library now compiles; route focused passed 8/8, final focused passed 1/1, plugin broad passed 344/344, and package check exited 0.
+- 回传：The stale Sound test module topology is fixed without restoring deleted hard-cut paths; immutable M1 milestone SHA remains the downstream acceptance boundary.

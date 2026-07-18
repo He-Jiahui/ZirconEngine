@@ -20,6 +20,8 @@ impl<B: Backend> KiraEngine<B> {
         B::Error: Debug,
     {
         let _ = self.deactivate();
+        let physical_sub_track_capacity = settings.capacities.sub_track_capacity;
+        let physical_send_track_capacity = settings.capacities.send_track_capacity;
         self.logical_track_capacity = settings.capacities.sub_track_capacity.saturating_add(1);
         self.manager =
             Some(
@@ -27,6 +29,8 @@ impl<B: Backend> KiraEngine<B> {
                     detail: format!("kira backend activation failed: {error:?}"),
                 })?,
             );
+        self.physical_sub_track_capacity = physical_sub_track_capacity;
+        self.physical_send_track_capacity = physical_send_track_capacity;
         Ok(())
     }
 

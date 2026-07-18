@@ -24,5 +24,5 @@ fn automation_binding_rejects_unbounded_track_delay_parameters() {
         .apply_automation_value(binding, f32::NAN)
         .unwrap_err()
         .to_string()
-        .contains("non-negative frame count"));
+        .contains("finite"));
 }

@@ -7,6 +7,7 @@ use super::SoundEngineState;
 #[derive(Clone)]
 pub(crate) struct SoundGraphSnapshot {
     pub(crate) revision: u64,
+    pub(crate) kira_active: bool,
     pub(crate) graph: Arc<SoundMixerGraph>,
 }
 
@@ -14,6 +15,7 @@ impl SoundEngineState {
     pub(crate) fn graph_snapshot(&self) -> SoundGraphSnapshot {
         SoundGraphSnapshot {
             revision: self.graph_revision,
+            kira_active: self.kira.is_active(),
             graph: Arc::clone(&self.graph),
         }
     }

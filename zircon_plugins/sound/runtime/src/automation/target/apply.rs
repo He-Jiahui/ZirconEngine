@@ -7,7 +7,7 @@ use crate::descriptor_validation::volume::validate_volume_descriptor;
 use crate::engine::SoundEngineState;
 use crate::kira_bridge::validate_graph;
 
-use super::{effect, helpers, listener, source, track, volume};
+use super::{effect, listener, parameter_values, source, track, volume};
 
 pub(crate) fn apply_automation_target(
     state: &mut SoundEngineState,
@@ -16,6 +16,7 @@ pub(crate) fn apply_automation_target(
     value: f32,
 ) -> Result<(), SoundError> {
     ensure_automation_execution_available(state.kira.is_active())?;
+    ensure_finite_value("sound automation value", value)?;
     match target {
         SoundAutomationTarget::Track(track) => {
             let mut graph = (*state.graph).clone();
@@ -86,12 +87,11 @@ pub(crate) fn apply_automation_target(
         }
         SoundAutomationTarget::SynthParameter(target_parameter) => {
             if parameter.as_str() != "value" && parameter.as_str() != target_parameter.as_str() {
-                return Err(helpers::unsupported_automation_parameter(
+                return Err(parameter_values::unsupported_automation_parameter(
                     "synth parameter",
                     parameter,
                 ));
             }
-            ensure_finite_value("synth automation value", value)?;
             state.parameters.insert(target_parameter, value);
             Ok(())
         }

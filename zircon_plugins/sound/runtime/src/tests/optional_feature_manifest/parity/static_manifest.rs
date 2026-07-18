@@ -1,5 +1,5 @@
 use super::super::support::{optional_features_from_plugin_toml, STATIC_SOUND_PLUGIN_MANIFEST};
-use super::helpers::{
+use super::support::{
     sorted_runtime_optional_feature_signatures, sorted_static_optional_feature_signatures,
 };
 

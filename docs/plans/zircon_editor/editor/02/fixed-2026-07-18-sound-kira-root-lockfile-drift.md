@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-17
 summary_slug: sound-kira-root-lockfile-drift
 origin_plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
@@ -15,7 +15,9 @@ related_code:
   - zircon_plugins/Cargo.lock
 tests:
   - cargo test -p zircon_runtime --lib scene:: --locked --jobs 1 -- --test-threads=1
+resolved_at: 2026-07-18
 ---
+
 
 # Plugins02：Sound Kira 依赖与根 workspace lockfile 漂移
 
@@ -74,4 +76,7 @@ Editor02、Frameworks05 等上层门禁都无法到达自身编译/测试逻辑�
 
 ## 修复结果与回传
 
-Open state: `待 Plugins02 同步双 lockfile、完成 Sound focused 验证并回传 Editor02 原始 broad gate`; no pass is claimed.
+- 根因：The Sound manifest required Kira 0.12.2 while the canonical root and plugin lockfiles were initially stale, causing all locked consumers to fail before compilation.
+- 架构修复：Regenerated and minimized the canonical dependency closure under Rust 1.94.1 while preserving unrelated workspace members; the root and plugin locks now describe the Kira hard-cut source consistently.
+- 验证：Root lock SHA-256 is 309BF641F1BF22D7E7BD4F4C4E7476325DC9F1754F8CE605135B4C1DAA811645; plugin lock is 181BDC2DDC3F394461A8D0D3230F10519E9D0631A76F59AE8F0E176A2D83F16B; package check and both root/plugin metadata --locked jobs exited 0.
+- 回传：Canonical root/plugin lock drift is fixed for the full current-source Sound hard cut; immutable M1 milestone SHA remains the downstream acceptance boundary.

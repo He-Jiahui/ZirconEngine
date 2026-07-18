@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-17
 summary_slug: kira-012-production-api-migration
 origin_plan: docs/plans/zircon_editor/editor/02-data-sync-and-messaging.md
@@ -18,7 +18,9 @@ related_code:
   - zircon_plugins/sound/runtime/src/service_types/output_device/configuration.rs
 tests:
   - cargo +1.94.1 test --manifest-path zircon_plugins/Cargo.toml -p zircon_plugin_sound_runtime --locked
+resolved_at: 2026-07-18
 ---
+
 
 # Plugins02：Kira 0.12 生产 API 迁移未闭合
 
@@ -65,4 +67,7 @@ stdout 为 0 bytes，测试二进制没有生成，实际 test count 为 0。不
 
 ## 修复结果与回传
 
-Open state: `待 Plugins02 完成 Kira 0.12 support-first 适配、fresh managed plugin gate、独立审查和 source/lock closure 后回传`。
+- 根因：Sound runtime manifest hard-cut to Kira 0.12.2 while device selection, playback-rate conversion and output lifecycle production paths still targeted removed CPAL/Kira APIs.
+- 架构修复：Converged device selection, playback data and manager lifecycle on the Kira 0.12.2 API and removed the deleted output lifecycle/test-module dependencies from the product execution path.
+- 验证：Current-source route 8/8, automation 3/3, final focused 1/1, plugin broad 344/344, package check job 473424cc901640d18385d5767e257fbe exit 0, plugin/root locked metadata both exit 0.
+- 回传：Kira 0.12 production API migration is fixed in the full Sound M1 current source; immutable M1 milestone SHA remains the downstream acceptance boundary.

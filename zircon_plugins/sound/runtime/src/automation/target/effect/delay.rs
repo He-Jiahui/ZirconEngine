@@ -1,6 +1,6 @@
 use zircon_runtime::core::framework::sound::{SoundDelayEffect, SoundError, SoundParameterId};
 
-use super::super::helpers::{non_negative_usize, unsupported_automation_parameter};
+use super::super::parameter_values::{non_negative_usize, unsupported_automation_parameter};
 
 pub(super) fn apply_delay_parameter(
     delay: &mut SoundDelayEffect,

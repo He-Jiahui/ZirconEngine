@@ -5,7 +5,8 @@ use kira::{
 };
 use std::sync::Arc;
 use zircon_runtime::core::framework::sound::{
-    SoundMixerGraph, SoundPlaybackId, SoundTrackDescriptor, SoundTrackId, SoundTrackSend,
+    SoundError, SoundMixerGraph, SoundPlaybackId, SoundTrackDescriptor, SoundTrackId,
+    SoundTrackSend,
 };
 
 use crate::kira_bridge::KiraEngine;
@@ -82,4 +83,62 @@ fn backend_allocation_failure_preserves_the_previously_installed_graph() {
     assert!(engine.sync_graph(&after).is_err());
     assert_eq!(engine.installed_graph_for_test(), Some(&before));
     assert!(engine.contains_track(SoundTrackId::new(2)));
+}
+
+#[test]
+fn physical_sub_track_capacity_accepts_exact_limit_and_rejects_limit_plus_one() {
+    let mut settings = mock_settings(48_000);
+    settings.capacities.sub_track_capacity = 1;
+    settings.capacities.send_track_capacity = 1;
+    let mut engine = KiraEngine::<MockBackend>::inactive();
+    engine.activate(settings).unwrap();
+    engine.set_logical_capacities_for_test(3, 8);
+
+    let mut exact = SoundMixerGraph::default_stereo(48_000);
+    exact
+        .tracks
+        .push(SoundTrackDescriptor::child(SoundTrackId::new(2), "Music"));
+    engine.sync_graph(&exact).unwrap();
+
+    let mut overflow = exact.clone();
+    overflow
+        .tracks
+        .push(SoundTrackDescriptor::child(SoundTrackId::new(3), "SFX"));
+    let error = engine.sync_graph(&overflow).unwrap_err();
+    assert!(matches!(error, SoundError::BackendUnavailable { .. }));
+    assert_eq!(engine.installed_graph_for_test(), Some(&exact));
+}
+
+#[test]
+fn physical_send_capacity_accepts_exact_limit_and_rejects_limit_plus_one() {
+    let mut settings = mock_settings(48_000);
+    settings.capacities.sub_track_capacity = 3;
+    settings.capacities.send_track_capacity = 1;
+    let mut engine = KiraEngine::<MockBackend>::inactive();
+    engine.activate(settings).unwrap();
+    engine.set_logical_capacities_for_test(4, 8);
+
+    let mut exact = SoundMixerGraph::default_stereo(48_000);
+    exact
+        .tracks
+        .push(SoundTrackDescriptor::child(SoundTrackId::new(2), "Music"));
+    exact
+        .tracks
+        .push(SoundTrackDescriptor::child(SoundTrackId::new(3), "Bus"));
+    exact.tracks[1].sends.push(SoundTrackSend {
+        target: SoundTrackId::master(),
+        gain: 0.5,
+        pre_effects: false,
+    });
+    engine.sync_graph(&exact).unwrap();
+
+    let mut overflow = exact.clone();
+    overflow.tracks[1].sends.push(SoundTrackSend {
+        target: SoundTrackId::new(3),
+        gain: 0.25,
+        pre_effects: false,
+    });
+    let error = engine.sync_graph(&overflow).unwrap_err();
+    assert!(matches!(error, SoundError::BackendUnavailable { .. }));
+    assert_eq!(engine.installed_graph_for_test(), Some(&exact));
 }

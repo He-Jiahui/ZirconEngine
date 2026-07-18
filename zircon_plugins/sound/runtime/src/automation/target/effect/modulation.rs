@@ -2,7 +2,9 @@ use zircon_runtime::core::framework::sound::{
     SoundChorusEffect, SoundError, SoundFlangerEffect, SoundParameterId, SoundPhaserEffect,
 };
 
-use super::super::helpers::{non_negative_usize, u8_from_value, unsupported_automation_parameter};
+use super::super::parameter_values::{
+    non_negative_usize, u8_from_value, unsupported_automation_parameter,
+};
 
 pub(super) fn apply_flanger_parameter(
     flanger: &mut SoundFlangerEffect,

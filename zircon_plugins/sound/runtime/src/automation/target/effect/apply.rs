@@ -4,14 +4,14 @@ use zircon_runtime::core::framework::sound::{
 
 use crate::kira_bridge::validate_effect;
 
-use super::{common, delay, dynamics, filter, gain, modulation, reverb, shaper, stereo};
+use super::{base_parameters, delay, dynamics, filter, gain, modulation, reverb, shaper, stereo};
 
 pub(in crate::automation::target) fn apply_effect_parameter(
     effect: &mut SoundEffectDescriptor,
     parameter: &SoundParameterId,
     value: f32,
 ) -> Result<(), SoundError> {
-    if common::apply_common_effect_parameter(effect, parameter, value)? {
+    if base_parameters::apply_base_effect_parameter(effect, parameter, value)? {
         return Ok(());
     }
 
