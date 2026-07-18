@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use crate::rhi::{
@@ -13,13 +14,13 @@ mod retained_cache;
 mod surface_setup;
 mod text;
 
-use batching::{batch_draw_plan, BatchDrawPlanStats, DrawOp};
+use batching::{BatchDrawPlanStats, DrawOp, batch_draw_plan};
 use geometry::command_effective_rect;
 use pipeline::{
     create_image_bind_group_layout, create_image_pipeline, create_image_sampler,
     create_solid_pipeline,
 };
-use render_pass::{record_draw_ops_to_view, TargetLoad, WgpuUiDrawBuffers};
+use render_pass::{TargetLoad, WgpuUiDrawBuffers, record_draw_ops_to_view};
 use retained_cache::WgpuRetainedSurfaceCache;
 use surface_setup::{configure_surface, create_surface, instance_descriptor, request_device};
 use text::WgpuUiTextRenderer;
@@ -233,14 +234,8 @@ impl WgpuUiSurfaceRenderer {
             .matches(self.config.format, draw_list.surface_size)
             && self.retained_cache.initialized();
         let mode = surface_render_mode(draw_list, cache_ready);
-        let render_draw_list;
-        let draw_list = match mode {
-            SurfaceRenderMode::FullRedraw => {
-                render_draw_list = full_redraw_draw_list(draw_list);
-                &render_draw_list
-            }
-            SurfaceRenderMode::DamagePatch => draw_list,
-        };
+        let render_draw_list = render_draw_list(draw_list, mode);
+        let draw_list = render_draw_list.as_ref();
         let draw_plan = batch_draw_plan(draw_list);
         self.prepare_image_resources(draw_list);
         self.text.prepare(
@@ -270,7 +265,7 @@ impl WgpuUiSurfaceRenderer {
     }
 
     fn prepare_image_resources(&mut self, draw_list: &UiSurfaceDrawList) {
-        let mut uploaded_resource_keys = HashSet::new();
+        let mut uploaded_resource_keys = HashSet::<&str>::new();
         for command in &draw_list.commands {
             let UiSurfaceCommandKind::Image { payload } = &command.kind else {
                 continue;
@@ -294,16 +289,16 @@ impl WgpuUiSurfaceRenderer {
             if rgba.len() < expected_len {
                 continue;
             }
-            let cache_key = payload.resource_key.clone();
-            if !uploaded_resource_keys.insert(cache_key.clone()) {
-                if let Some(resource) = self.image_cache.get_mut(&cache_key) {
+            let cache_key = payload.resource_key.as_str();
+            if !uploaded_resource_keys.insert(cache_key) {
+                if let Some(resource) = self.image_cache.get_mut(cache_key) {
                     resource.last_touched_present = self.present_index;
                 }
                 continue;
             }
             let replace = self
                 .image_cache
-                .get(&cache_key)
+                .get(cache_key)
                 .map(|resource| resource.size != (payload.width, payload.height))
                 .unwrap_or(true);
             if replace {
@@ -311,13 +306,12 @@ impl WgpuUiSurfaceRenderer {
                     &self.device,
                     &self.image_bind_group_layout,
                     &self.image_sampler,
-                    &cache_key,
                     (payload.width, payload.height),
                     self.present_index,
                 );
-                self.image_cache.insert(cache_key.clone(), resource);
+                self.image_cache.insert(cache_key.to_owned(), resource);
             }
-            if let Some(resource) = self.image_cache.get_mut(&cache_key) {
+            if let Some(resource) = self.image_cache.get_mut(cache_key) {
                 resource.last_touched_present = self.present_index;
                 self.queue.write_texture(
                     resource.texture.as_image_copy(),
@@ -338,6 +332,9 @@ impl WgpuUiSurfaceRenderer {
     }
 
     fn prune_image_cache(&mut self) {
+        if self.image_cache.len() <= MAX_UI_IMAGE_CACHE_ENTRIES {
+            return;
+        }
         let keys_to_prune = image_cache_keys_to_prune(
             self.image_cache
                 .iter()
@@ -464,6 +461,17 @@ fn surface_render_mode(draw_list: &UiSurfaceDrawList, cache_ready: bool) -> Surf
     }
 }
 
+fn render_draw_list(
+    draw_list: &UiSurfaceDrawList,
+    mode: SurfaceRenderMode,
+) -> Cow<'_, UiSurfaceDrawList> {
+    if mode == SurfaceRenderMode::FullRedraw && draw_list.damage.is_some() {
+        Cow::Owned(full_redraw_draw_list(draw_list))
+    } else {
+        Cow::Borrowed(draw_list)
+    }
+}
+
 fn full_redraw_draw_list(draw_list: &UiSurfaceDrawList) -> UiSurfaceDrawList {
     let mut draw_list = draw_list.clone();
     draw_list.damage = None;
@@ -482,7 +490,6 @@ impl WgpuUiImageResource {
         device: &wgpu::Device,
         layout: &wgpu::BindGroupLayout,
         sampler: &wgpu::Sampler,
-        key: &str,
         size: (u32, u32),
         last_touched_present: u64,
     ) -> Self {
@@ -515,7 +522,6 @@ impl WgpuUiImageResource {
                 },
             ],
         });
-        let _ = key;
         Self {
             texture,
             bind_group,
