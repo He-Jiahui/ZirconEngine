@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import sqlite3
 import sys
 import tempfile
 import threading
 import unittest
+from contextlib import contextmanager
 from unittest import mock
 from pathlib import Path
 import subprocess
@@ -41,6 +43,33 @@ class WorkspaceCopyTests(unittest.TestCase):
 
     def tearDown(self) -> None:
         self.temporary_directory.cleanup()
+
+    def _run_with_mocked_streams(
+        self,
+        stdout: str | None,
+        stderr: str | None,
+        *,
+        exit_code: int = 101,
+    ):
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        process = mock.Mock()
+        process.pid = 4242
+        process.returncode = exit_code
+        process.communicate.return_value = (stdout, stderr)
+        process.poll.return_value = exit_code
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.subprocess.Popen",
+            return_value=process,
+        ):
+            evidence = self.service.run(
+                "session-a", result.job_id, command=("cargo", "test")
+            )
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM validation_copy_runs WHERE run_id = ?",
+                (evidence.run_id,),
+            ).fetchone()
+        return evidence, row
 
     def test_copy_uses_head_for_foreign_dirty_and_overlay_for_owned_files(self) -> None:
         (self.repo / "README.md").write_text("foreign dirty\n", encoding="utf-8")
@@ -248,6 +277,377 @@ class WorkspaceCopyTests(unittest.TestCase):
             ).fetchone()["status"]
         self.assertEqual("removed", status)
 
+    def test_run_normalizes_both_missing_streams_before_durable_insert(self) -> None:
+        evidence, row = self._run_with_mocked_streams(None, None)
+
+        self.assertEqual(101, evidence.exit_code)
+        self.assertEqual("", evidence.stdout)
+        self.assertEqual("", evidence.stderr)
+        self.assertEqual("", row["stdout_text"])
+        self.assertEqual("", row["stderr_text"])
+
+    def test_run_normalizes_missing_stdout_without_losing_stderr(self) -> None:
+        evidence, row = self._run_with_mocked_streams(None, "cargo stderr")
+
+        self.assertEqual("", evidence.stdout)
+        self.assertEqual("cargo stderr", evidence.stderr)
+        self.assertEqual("cargo stderr", row["stderr_text"])
+
+    def test_run_normalizes_missing_stderr_without_losing_stdout(self) -> None:
+        evidence, row = self._run_with_mocked_streams("cargo stdout", None)
+
+        self.assertEqual("cargo stdout", evidence.stdout)
+        self.assertEqual("", evidence.stderr)
+        self.assertEqual("cargo stdout", row["stdout_text"])
+
+    def test_run_persists_real_nonzero_terminal_evidence(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+
+        evidence = self.service.run(
+            "session-a",
+            result.job_id,
+            command=(
+                sys.executable,
+                "-c",
+                "import sys; print('cargo stdout'); print('cargo stderr', file=sys.stderr); raise SystemExit(101)",
+            ),
+        )
+
+        self.assertEqual(101, evidence.exit_code)
+        self.assertIn("cargo stdout", evidence.stdout)
+        self.assertIn("cargo stderr", evidence.stderr)
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT exit_code, stdout_text, stderr_text FROM validation_copy_runs WHERE run_id = ?",
+                (evidence.run_id,),
+            ).fetchone()
+        self.assertEqual(101, row["exit_code"])
+        self.assertIn("cargo stdout", row["stdout_text"])
+        self.assertIn("cargo stderr", row["stderr_text"])
+
+    def test_run_preserves_durable_evidence_when_completion_hook_fails(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        self.service.set_completion_hook(
+            lambda _run_id: (_ for _ in ()).throw(RuntimeError("hook failed"))
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.run(
+                "session-a", result.job_id, command=(sys.executable, "-c", "pass")
+            )
+
+        self.assertEqual(
+            "validation_copy_completion_hook_failed", rejected.exception.code
+        )
+        with self.database.connect() as connection:
+            run_row = connection.execute(
+                "SELECT exit_code FROM validation_copy_runs WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+            copy_status = connection.execute(
+                "SELECT status FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()["status"]
+            event = connection.execute(
+                "SELECT event_type, payload_json FROM events "
+                "WHERE session_id = ? ORDER BY event_id DESC LIMIT 1",
+                ("session-a",),
+            ).fetchone()
+        self.assertEqual(0, run_row["exit_code"])
+        self.assertEqual("failed", copy_status)
+        self.assertEqual("validation_copy.completion_hook_failed", event["event_type"])
+        self.assertIn("validation_copy_completion_hook_failed", event["payload_json"])
+        self.assertTrue(result.job_root.exists())
+
+    def test_started_run_records_observable_completion_hook_failure(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        self.service.set_completion_hook(
+            lambda _run_id: (_ for _ in ()).throw(RuntimeError("hook failed"))
+        )
+
+        started = self.service.start(
+            "session-a",
+            result.job_id,
+            command=(sys.executable, "-c", "print('async evidence')"),
+        )
+
+        for _ in range(100):
+            with self.database.connect() as connection:
+                copy_status = connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id = ?",
+                    (result.job_id,),
+                ).fetchone()["status"]
+                run_row = connection.execute(
+                    "SELECT exit_code FROM validation_copy_runs WHERE run_id = ?",
+                    (started["runId"],),
+                ).fetchone()
+                event = connection.execute(
+                    "SELECT event_type, payload_json FROM events "
+                    "WHERE session_id = ? ORDER BY event_id DESC LIMIT 1",
+                    ("session-a",),
+                ).fetchone()
+            if copy_status == "failed" and event is not None:
+                break
+            threading.Event().wait(0.02)
+
+        self.assertEqual("failed", copy_status)
+        self.assertEqual(0, run_row["exit_code"])
+        self.assertEqual("validation_copy.completion_hook_failed", event["event_type"])
+        self.assertIn("validation_copy_completion_hook_failed", event["payload_json"])
+        self.assertTrue(result.job_root.exists())
+
+    def test_cleanup_cannot_remove_copy_while_completion_hook_is_running(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        hook_started = threading.Event()
+        release_hook = threading.Event()
+        outcome: dict[str, object] = {}
+
+        def blocking_hook(_run_id: str) -> None:
+            hook_started.set()
+            release_hook.wait(timeout=5)
+
+        def run_validation() -> None:
+            try:
+                outcome["evidence"] = self.service.run(
+                    "session-a",
+                    result.job_id,
+                    command=(sys.executable, "-c", "print('terminal evidence')"),
+                )
+            except BaseException as error:
+                outcome["error"] = error
+
+        self.service.set_completion_hook(blocking_hook)
+        worker = threading.Thread(target=run_validation)
+        worker.start()
+        self.assertTrue(hook_started.wait(5))
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.cleanup("session-a", result.job_root)
+
+        self.assertEqual("validation_copy_cleanup_busy", rejected.exception.code)
+        self.assertTrue(result.job_root.exists())
+        release_hook.set()
+        worker.join(timeout=5)
+        self.assertFalse(worker.is_alive())
+        self.assertNotIn("error", outcome)
+        self.assertEqual("removed", self.service.status("session-a", result.job_id).status)
+
+    def test_periodic_recovery_skips_locally_active_completion_hook(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        hook_started = threading.Event()
+        release_hook = threading.Event()
+        outcome: dict[str, object] = {}
+
+        def blocking_hook(_run_id: str) -> None:
+            hook_started.set()
+            release_hook.wait(timeout=5)
+
+        def run_validation() -> None:
+            try:
+                outcome["evidence"] = self.service.run(
+                    "session-a",
+                    result.job_id,
+                    command=(sys.executable, "-c", "print('terminal evidence')"),
+                )
+            except BaseException as error:
+                outcome["error"] = error
+
+        self.service.set_completion_hook(blocking_hook)
+        worker = threading.Thread(target=run_validation)
+        worker.start()
+        self.assertTrue(hook_started.wait(5))
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda _pid: False, startup=False
+        )
+
+        self.assertEqual((0, 0), recovered)
+        self.assertEqual("running", self.service.status("session-a", result.job_id).status)
+        release_hook.set()
+        worker.join(timeout=5)
+        self.assertFalse(worker.is_alive())
+        self.assertNotIn("error", outcome)
+        self.assertEqual("removed", self.service.status("session-a", result.job_id).status)
+
+    def test_periodic_recovery_skips_locally_reserved_process_launch(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        launch_started = threading.Event()
+        release_launch = threading.Event()
+        outcome: dict[str, object] = {}
+        process = mock.Mock()
+        process.pid = 4444
+        process.returncode = 0
+        process.communicate.return_value = ("stdout", "")
+        process.poll.return_value = 0
+
+        def blocking_popen(*_args, **_kwargs):
+            launch_started.set()
+            release_launch.wait(timeout=5)
+            return process
+
+        def run_validation() -> None:
+            try:
+                outcome["evidence"] = self.service.run(
+                    "session-a", result.job_id, command=("cargo", "test")
+                )
+            except BaseException as error:
+                outcome["error"] = error
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.subprocess.Popen",
+            side_effect=blocking_popen,
+        ):
+            worker = threading.Thread(target=run_validation)
+            worker.start()
+            self.assertTrue(launch_started.wait(5))
+
+            recovered = self.service.recover_interrupted_jobs(
+                process_alive=lambda _pid: False, startup=False
+            )
+
+            self.assertEqual((0, 0), recovered)
+            self.assertEqual(
+                "running", self.service.status("session-a", result.job_id).status
+            )
+            release_launch.set()
+            worker.join(timeout=5)
+
+        self.assertFalse(worker.is_alive())
+        self.assertNotIn("error", outcome)
+        self.assertEqual("removed", self.service.status("session-a", result.job_id).status)
+
+    def test_recovery_running_snapshot_is_atomic_with_run_reservation(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        recovery_transaction_started = threading.Event()
+        release_recovery = threading.Event()
+        launch_started = threading.Event()
+        release_launch = threading.Event()
+        outcome: dict[str, object] = {}
+        process = mock.Mock()
+        process.pid = 4545
+        process.returncode = 0
+        process.communicate.return_value = ("stdout", "")
+        process.poll.return_value = 0
+        original_transaction = self.database.transaction
+
+        @contextmanager
+        def gated_transaction(*, immediate: bool = True):
+            if threading.current_thread().name == "recovery-snapshot":
+                recovery_transaction_started.set()
+                release_recovery.wait(timeout=5)
+            with original_transaction(immediate=immediate) as connection:
+                yield connection
+
+        def recover() -> None:
+            outcome["recovered"] = self.service.recover_interrupted_jobs(
+                process_alive=lambda _pid: False, startup=False
+            )
+
+        def blocking_popen(*_args, **_kwargs):
+            launch_started.set()
+            release_launch.wait(timeout=5)
+            return process
+
+        def run_validation() -> None:
+            try:
+                outcome["evidence"] = self.service.run(
+                    "session-a", result.job_id, command=("cargo", "test")
+                )
+            except BaseException as error:
+                outcome["error"] = error
+
+        with (
+            mock.patch.object(self.database, "transaction", gated_transaction),
+            mock.patch(
+                "tools.session_coordinator.workspace_copy.subprocess.Popen",
+                side_effect=blocking_popen,
+            ),
+        ):
+            recovery = threading.Thread(target=recover, name="recovery-snapshot")
+            recovery.start()
+            self.assertTrue(recovery_transaction_started.wait(5))
+            worker = threading.Thread(target=run_validation)
+            worker.start()
+            launched_during_recovery = launch_started.wait(0.2)
+            release_recovery.set()
+            recovery.join(timeout=5)
+            self.assertFalse(recovery.is_alive())
+            self.assertTrue(launch_started.wait(5))
+            release_launch.set()
+            worker.join(timeout=5)
+
+        self.assertFalse(launched_during_recovery)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual((0, 0), outcome["recovered"])
+        self.assertNotIn("error", outcome)
+        self.assertEqual("removed", self.service.status("session-a", result.job_id).status)
+
+    def test_run_preserves_copy_when_evidence_insert_fails(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                """CREATE TRIGGER reject_validation_copy_run
+                   BEFORE INSERT ON validation_copy_runs
+                   BEGIN
+                     SELECT RAISE(ABORT, 'injected evidence failure');
+                   END"""
+            )
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.service.run(
+                "session-a", result.job_id, command=(sys.executable, "-c", "pass")
+            )
+
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT status, run_pid FROM validation_copies WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()
+            run_count = connection.execute(
+                "SELECT COUNT(*) FROM validation_copy_runs WHERE job_id = ?",
+                (result.job_id,),
+            ).fetchone()[0]
+        self.assertEqual("failed", row["status"])
+        self.assertIsNone(row["run_pid"])
+        self.assertEqual(0, run_count)
+        self.assertTrue(result.job_root.exists())
+
+    def test_started_run_normalizes_missing_streams_before_cleanup(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        process = mock.Mock()
+        process.pid = 4343
+        process.returncode = 101
+        process.communicate.return_value = (None, "async cargo stderr")
+        process.poll.return_value = 101
+
+        with mock.patch(
+            "tools.session_coordinator.workspace_copy.subprocess.Popen",
+            return_value=process,
+        ):
+            started = self.service.start(
+                "session-a", result.job_id, command=("cargo", "test")
+            )
+
+        for _ in range(100):
+            with self.database.connect() as connection:
+                run_row = connection.execute(
+                    "SELECT exit_code, stdout_text, stderr_text FROM validation_copy_runs WHERE run_id = ?",
+                    (started["runId"],),
+                ).fetchone()
+                copy_status = connection.execute(
+                    "SELECT status FROM validation_copies WHERE job_id = ?",
+                    (result.job_id,),
+                ).fetchone()["status"]
+            if run_row is not None and copy_status == "removed":
+                break
+            threading.Event().wait(0.02)
+
+        self.assertIsNotNone(run_row)
+        self.assertEqual(101, run_row["exit_code"])
+        self.assertEqual("", run_row["stdout_text"])
+        self.assertEqual("async cargo stderr", run_row["stderr_text"])
+        self.assertEqual("removed", copy_status)
+
     def test_start_returns_running_job_that_can_be_cancelled(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))
 
@@ -267,7 +667,7 @@ class WorkspaceCopyTests(unittest.TestCase):
                     "SELECT status FROM validation_copies WHERE job_id = ?",
                     (result.job_id,),
                 ).fetchone()["status"]
-            if status != "running":
+            if status == "removed":
                 break
             threading.Event().wait(0.05)
         self.assertEqual("removed", status)
@@ -412,6 +812,31 @@ class WorkspaceCopyTests(unittest.TestCase):
             }
         self.assertEqual("materialized", statuses[first.job_id])
         self.assertEqual("removed", statuses[second.job_id])
+
+    def test_restart_preserves_copy_with_terminal_evidence_as_failed(self) -> None:
+        result = self.service.materialize("session-a", include_paths=("README.md",))
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE validation_copies SET status = 'running', run_pid = 999999 "
+                "WHERE job_id = ?",
+                (result.job_id,),
+            )
+            connection.execute(
+                """INSERT INTO validation_copy_runs(
+                       run_id, job_id, session_id, command_json, exit_code,
+                       stdout_text, stderr_text, started_at, completed_at
+                   ) VALUES ('terminal-run', ?, 'session-a', '["python"]', 0,
+                             'stdout', '', 'started', 'completed')""",
+                (result.job_id,),
+            )
+
+        recovered = self.service.recover_interrupted_jobs(
+            process_alive=lambda _pid: False
+        )
+
+        self.assertEqual((1, 0), recovered)
+        self.assertEqual("failed", self.service.status("session-a", result.job_id).status)
+        self.assertTrue(result.job_root.exists())
 
     def test_periodic_recovery_retries_cleanup_pending_job(self) -> None:
         result = self.service.materialize("session-a", include_paths=("README.md",))

@@ -18,6 +18,10 @@ from .baselines import hash_file
 from .database import Database
 from .models import CoordinatorError, utc_text
 from .processes import process_is_alive
+from .workspace_copy_terminal import (
+    ValidationCopyTerminalLifecycle,
+    ValidationRunEvidence,
+)
 
 _ARCHIVE_PATH_ARGUMENT_LIMIT = 512
 
@@ -48,26 +52,6 @@ class WorkspaceCopyRecord:
         }
 
 
-@dataclass(frozen=True, slots=True)
-class ValidationRunEvidence:
-    run_id: str
-    job_id: str
-    command: tuple[str, ...]
-    exit_code: int
-    stdout: str
-    stderr: str
-
-    def to_dict(self) -> dict[str, object]:
-        return {
-            "run_id": self.run_id,
-            "job_id": self.job_id,
-            "command": list(self.command),
-            "exit_code": self.exit_code,
-            "stdout": self.stdout,
-            "stderr": self.stderr,
-        }
-
-
 class WorkspaceCopyService:
     def __init__(
         self,
@@ -90,13 +74,29 @@ class WorkspaceCopyService:
                 )
         self.target_roots = roots
         self._running_lock = threading.Lock()
+        self._active_run_jobs: set[str] = set()
         self._running_processes: dict[str, subprocess.Popen[str]] = {}
         self._cleanup_lock = threading.Lock()
         self._mutation_gate = mutation_gate
         self._completion_hook: Callable[[str], None] | None = None
+        self._terminal = ValidationCopyTerminalLifecycle(database, mutation_gate)
 
     def set_completion_hook(self, hook: Callable[[str], None]) -> None:
         self._completion_hook = hook
+
+    def _reserve_local_run(self, job_id: str) -> None:
+        with self._running_lock:
+            if job_id in self._active_run_jobs:
+                raise CoordinatorError(
+                    "validation_copy_not_materialized",
+                    "Validation copy is already running or unavailable",
+                )
+            self._active_run_jobs.add(job_id)
+
+    def _release_local_run(self, job_id: str) -> None:
+        with self._running_lock:
+            self._running_processes.pop(job_id, None)
+            self._active_run_jobs.discard(job_id)
 
     def scoped_manifest_hash(
         self, job_id: str, paths: tuple[str, ...] | list[str]
@@ -364,33 +364,44 @@ class WorkspaceCopyService:
             raise CoordinatorError(
                 "validation_copy_command_empty", "Validation command cannot be empty"
             )
-        with self.database.transaction() as connection:
-            row = connection.execute(
-                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
-            ).fetchone()
-            if row is None:
-                raise CoordinatorError("validation_copy_not_found", f"Unknown validation-copy job: {job_id}")
-            if row["session_id"] != session_id:
-                raise CoordinatorError(
-                    "validation_copy_foreign_session", "Validation copy belongs to another Session"
+        self._reserve_local_run(job_id)
+        try:
+            with self.database.transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+                ).fetchone()
+                if row is None:
+                    raise CoordinatorError(
+                        "validation_copy_not_found", f"Unknown validation-copy job: {job_id}"
+                    )
+                if row["session_id"] != session_id:
+                    raise CoordinatorError(
+                        "validation_copy_foreign_session",
+                        "Validation copy belongs to another Session",
+                    )
+                cursor = connection.execute(
+                    """
+                    UPDATE validation_copies SET status = 'running', run_pid = NULL
+                    WHERE job_id = ? AND status = 'materialized'
+                    """,
+                    (job_id,),
                 )
-            cursor = connection.execute(
-                """
-                UPDATE validation_copies SET status = 'running', run_pid = NULL
-                WHERE job_id = ? AND status = 'materialized'
-                """,
-                (job_id,),
-            )
-            if cursor.rowcount != 1:
-                raise CoordinatorError(
-                    "validation_copy_not_materialized",
-                    "Validation copy is already running or unavailable",
-                )
+                if cursor.rowcount != 1:
+                    raise CoordinatorError(
+                        "validation_copy_not_materialized",
+                        "Validation copy is already running or unavailable",
+                    )
+        except BaseException:
+            self._release_local_run(job_id)
+            raise
         run_id = uuid.uuid4().hex
         started_at = utc_text()
         process: subprocess.Popen[str] | None = None
         job_root = Path(row["job_root"]).resolve()
-        process_finished = False
+        process_started = False
+        evidence_persisted = False
+        completion_succeeded = False
+        evidence: ValidationRunEvidence | None = None
         try:
             source_root = Path(row["source_root"]).resolve()
             target_root = Path(row["target_root"]).resolve()
@@ -410,62 +421,61 @@ class WorkspaceCopyService:
                 stderr=subprocess.PIPE,
                 text=True,
             )
+            process_started = True
             with self._running_lock:
                 self._running_processes[job_id] = process
             with self.database.transaction() as connection:
-                connection.execute(
+                cursor = connection.execute(
                     "UPDATE validation_copies SET run_pid = ? WHERE job_id = ? AND status = 'running'",
                     (process.pid, job_id),
                 )
-            stdout_full, stderr_full = process.communicate()
-            process_finished = True
-            completed_at = utc_text()
-            stdout = stdout_full[-65536:]
-            stderr = stderr_full[-65536:]
-            with self.database.transaction() as connection:
-                connection.execute(
-                    """
-                    INSERT INTO validation_copy_runs(
-                        run_id, job_id, session_id, command_json, exit_code,
-                        stdout_text, stderr_text, started_at, completed_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    (
-                        run_id,
-                        job_id,
-                        session_id,
-                        json.dumps(command_tuple),
-                        process.returncode,
-                        stdout,
-                        stderr,
-                        started_at,
-                        completed_at,
-                    ),
-                )
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
-                    (job_id,),
-                )
-            if self._completion_hook is not None:
-                self._completion_hook(run_id)
-        except BaseException:
+                if cursor.rowcount != 1:
+                    raise CoordinatorError(
+                        "validation_copy_terminal_state_changed",
+                        "Validation copy changed state while registering its process",
+                    )
+            exit_code, stdout, stderr = self._terminal.collect(process)
+            evidence = self._terminal.persist(
+                run_id=run_id,
+                job_id=job_id,
+                session_id=session_id,
+                command=command_tuple,
+                exit_code=exit_code,
+                stdout=stdout,
+                stderr=stderr,
+                started_at=started_at,
+            )
+            evidence_persisted = True
+            self._terminal.notify_completion(self._completion_hook, run_id)
+            self._terminal.finalize_success(job_id)
+            completion_succeeded = True
+        except BaseException as error:
             if process is not None and process.poll() is None:
                 process.kill()
                 process.wait(timeout=5)
-            with self.database.transaction() as connection:
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
-                    (job_id,),
+            if evidence_persisted:
+                self._terminal.preserve_completion_failure(
+                    error=error,
+                    run_id=run_id,
+                    job_id=job_id,
+                    session_id=session_id,
                 )
+            self._terminal.restore_after_failure(
+                job_id,
+                process_started=process_started,
+                evidence_persisted=evidence_persisted,
+            )
             raise
         finally:
-            if process_finished:
+            if completion_succeeded:
                 self._cleanup_terminal_copy(session_id, job_root)
-            with self._running_lock:
-                self._running_processes.pop(job_id, None)
-        return ValidationRunEvidence(
-            run_id, job_id, command_tuple, int(process.returncode), stdout, stderr
-        )
+            self._release_local_run(job_id)
+        if evidence is None:
+            raise CoordinatorError(
+                "validation_copy_terminal_evidence_missing",
+                "Validation process completed without durable terminal evidence",
+            )
+        return evidence
 
     def start(
         self,
@@ -481,29 +491,34 @@ class WorkspaceCopyService:
             raise CoordinatorError(
                 "validation_copy_command_empty", "Validation command cannot be empty"
             )
-        with self.database.transaction() as connection:
-            row = connection.execute(
-                "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
-            ).fetchone()
-            if row is None:
-                raise CoordinatorError(
-                    "validation_copy_not_found", f"Unknown validation-copy job: {job_id}"
+        self._reserve_local_run(job_id)
+        try:
+            with self.database.transaction() as connection:
+                row = connection.execute(
+                    "SELECT * FROM validation_copies WHERE job_id = ?", (job_id,)
+                ).fetchone()
+                if row is None:
+                    raise CoordinatorError(
+                        "validation_copy_not_found", f"Unknown validation-copy job: {job_id}"
+                    )
+                if row["session_id"] != session_id:
+                    raise CoordinatorError(
+                        "validation_copy_foreign_session",
+                        "Validation copy belongs to another Session",
+                    )
+                cursor = connection.execute(
+                    """UPDATE validation_copies SET status = 'running', run_pid = NULL
+                       WHERE job_id = ? AND status = 'materialized'""",
+                    (job_id,),
                 )
-            if row["session_id"] != session_id:
-                raise CoordinatorError(
-                    "validation_copy_foreign_session",
-                    "Validation copy belongs to another Session",
-                )
-            cursor = connection.execute(
-                """UPDATE validation_copies SET status = 'running', run_pid = NULL
-                   WHERE job_id = ? AND status = 'materialized'""",
-                (job_id,),
-            )
-            if cursor.rowcount != 1:
-                raise CoordinatorError(
-                    "validation_copy_not_materialized",
-                    "Validation copy is already running or unavailable",
-                )
+                if cursor.rowcount != 1:
+                    raise CoordinatorError(
+                        "validation_copy_not_materialized",
+                        "Validation copy is already running or unavailable",
+                    )
+        except BaseException:
+            self._release_local_run(job_id)
+            raise
         run_id = run_id or uuid.uuid4().hex
         started_at = utc_text()
         process: subprocess.Popen[str] | None = None
@@ -530,10 +545,15 @@ class WorkspaceCopyService:
             with self._running_lock:
                 self._running_processes[job_id] = process
             with self.database.transaction() as connection:
-                connection.execute(
+                cursor = connection.execute(
                     "UPDATE validation_copies SET run_pid = ? WHERE job_id = ? AND status = 'running'",
                     (process.pid, job_id),
                 )
+                if cursor.rowcount != 1:
+                    raise CoordinatorError(
+                        "validation_copy_terminal_state_changed",
+                        "Validation copy changed state while registering its process",
+                    )
             threading.Thread(
                 target=self._finish_started_run,
                 args=(session_id, job_id, run_id, command_tuple, started_at, process),
@@ -544,13 +564,20 @@ class WorkspaceCopyService:
             if process is not None and process.poll() is None:
                 process.kill()
                 process.wait(timeout=5)
-            with self._running_lock:
-                self._running_processes.pop(job_id, None)
-            with self.database.transaction() as connection:
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
-                    (job_id,),
-                )
+            try:
+                with self.database.transaction() as connection:
+                    cursor = connection.execute(
+                        "UPDATE validation_copies SET status = 'materialized', run_pid = NULL "
+                        "WHERE job_id = ? AND status = 'running'",
+                        (job_id,),
+                    )
+                    if cursor.rowcount != 1:
+                        raise CoordinatorError(
+                            "validation_copy_terminal_state_changed",
+                            "Validation copy changed state while rolling back its launch",
+                        )
+            finally:
+                self._release_local_run(job_id)
             raise
         return {
             "jobId": job_id,
@@ -571,47 +598,44 @@ class WorkspaceCopyService:
         job_root = Path(
             self._validation_copy_row(job_id)["job_root"]
         ).resolve()
-        process_finished = False
+        evidence_persisted = False
+        completion_succeeded = False
         try:
-            stdout_full, stderr_full = process.communicate()
-            process_finished = True
-            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
-            with gate, self.database.transaction() as connection:
-                connection.execute(
-                    """INSERT INTO validation_copy_runs(
-                           run_id, job_id, session_id, command_json, exit_code,
-                           stdout_text, stderr_text, started_at, completed_at
-                       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                    (
-                        run_id,
-                        job_id,
-                        session_id,
-                        json.dumps(command),
-                        int(process.returncode),
-                        stdout_full[-65536:],
-                        stderr_full[-65536:],
-                        started_at,
-                        utc_text(),
-                    ),
+            exit_code, stdout, stderr = self._terminal.collect(process)
+            self._terminal.persist(
+                run_id=run_id,
+                job_id=job_id,
+                session_id=session_id,
+                command=command,
+                exit_code=exit_code,
+                stdout=stdout,
+                stderr=stderr,
+                started_at=started_at,
+            )
+            evidence_persisted = True
+            self._terminal.notify_completion(self._completion_hook, run_id)
+            self._terminal.finalize_success(job_id)
+            completion_succeeded = True
+        except BaseException as error:
+            if process.poll() is None:
+                process.kill()
+                process.wait(timeout=5)
+            if evidence_persisted:
+                self._terminal.preserve_completion_failure(
+                    error=error,
+                    run_id=run_id,
+                    job_id=job_id,
+                    session_id=session_id,
                 )
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'materialized', run_pid = NULL WHERE job_id = ? AND status = 'running'",
-                    (job_id,),
-                )
-            if self._completion_hook is not None:
-                self._completion_hook(run_id)
-        except BaseException:
-            gate = self._mutation_gate() if self._mutation_gate is not None else nullcontext()
-            with gate, self.database.transaction() as connection:
-                connection.execute(
-                    "UPDATE validation_copies SET status = 'failed', run_pid = NULL WHERE job_id = ? AND status = 'running'",
-                    (job_id,),
-                )
+            self._terminal.restore_after_failure(
+                job_id,
+                process_started=True,
+                evidence_persisted=evidence_persisted,
+            )
         finally:
-            if process_finished:
+            if completion_succeeded:
                 self._cleanup_terminal_copy(session_id, job_root)
-            with self._running_lock:
-                self._running_processes.pop(job_id, None)
+            self._release_local_run(job_id)
 
     def cancel(self, session_id: str, job_id: str) -> dict[str, object]:
         with self.database.connect() as connection:
@@ -683,22 +707,37 @@ class WorkspaceCopyService:
     ) -> tuple[int, int]:
         recovered_running = 0
         recovered_cleanup = 0
-        with self.database.transaction() as connection:
-            rows = connection.execute(
-                "SELECT job_id, run_pid FROM validation_copies WHERE status = 'running'"
-            ).fetchall()
-            for row in rows:
-                pid = int(row["run_pid"] or 0)
-                if pid <= 0 or not process_alive(pid):
-                    connection.execute(
-                        """
-                        UPDATE validation_copies
-                        SET status = 'materialized', run_pid = NULL
-                        WHERE job_id = ? AND status = 'running'
-                        """,
-                        (row["job_id"],),
-                    )
-                    recovered_running += 1
+        with self._running_lock:
+            locally_active = frozenset(self._active_run_jobs)
+            with self.database.transaction() as connection:
+                rows = connection.execute(
+                    """SELECT copy.job_id, copy.run_pid,
+                              EXISTS(
+                                  SELECT 1 FROM validation_copy_runs run
+                                  WHERE run.job_id = copy.job_id
+                              ) AS has_terminal_evidence
+                       FROM validation_copies copy
+                       WHERE copy.status = 'running'"""
+                ).fetchall()
+                for row in rows:
+                    if row["job_id"] in locally_active:
+                        continue
+                    pid = int(row["run_pid"] or 0)
+                    if pid <= 0 or not process_alive(pid):
+                        status = (
+                            "failed"
+                            if row["has_terminal_evidence"]
+                            else "materialized"
+                        )
+                        cursor = connection.execute(
+                            """
+                            UPDATE validation_copies
+                            SET status = ?, run_pid = NULL
+                            WHERE job_id = ? AND status = 'running'
+                            """,
+                            (status, row["job_id"]),
+                        )
+                        recovered_running += cursor.rowcount
         with self.database.connect() as connection:
             cleanup_rows = connection.execute(
                 """
