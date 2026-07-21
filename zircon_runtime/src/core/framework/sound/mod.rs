@@ -17,9 +17,6 @@ mod playback;
 mod preset;
 mod status;
 
-pub(crate) use crate::core::framework::audio::AudioChannelLayout;
-#[cfg(test)]
-pub(crate) use crate::core::framework::audio::AudioSpeakerChannel;
 pub use acoustics::{
     SoundHrtfProfileDescriptor, SoundRayTracedImpulseResponseDescriptor,
     SoundRayTracingConvolutionStatus,

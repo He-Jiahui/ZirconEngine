@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use super::AudioChannelLayout;
+use crate::core::framework::audio::AudioChannelLayout;
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SoundBackendState {

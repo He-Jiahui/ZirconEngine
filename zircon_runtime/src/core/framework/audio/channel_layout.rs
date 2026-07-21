@@ -24,6 +24,83 @@ pub enum AudioSpeakerChannel {
     SideRight,
 }
 
+fn named_layout_contract(name: &str) -> Option<(u16, &'static [AudioSpeakerChannel])> {
+    use AudioSpeakerChannel::{
+        BackLeft, BackRight, FrontCenter, FrontLeft, FrontRight, LowFrequency, SideLeft, SideRight,
+    };
+
+    match name {
+        "mono" => Some((1, &[FrontCenter])),
+        "stereo" => Some((2, &[FrontLeft, FrontRight])),
+        "quad" => Some((4, &[FrontLeft, FrontRight, BackLeft, BackRight])),
+        "surround_5_0" => Some((
+            5,
+            &[FrontLeft, FrontRight, FrontCenter, BackLeft, BackRight],
+        )),
+        "surround_5_1" => Some((
+            6,
+            &[
+                FrontLeft,
+                FrontRight,
+                FrontCenter,
+                LowFrequency,
+                BackLeft,
+                BackRight,
+            ],
+        )),
+        "surround_5_1_side" => Some((
+            6,
+            &[
+                FrontLeft,
+                FrontRight,
+                FrontCenter,
+                LowFrequency,
+                SideLeft,
+                SideRight,
+            ],
+        )),
+        "surround_7_0" => Some((
+            7,
+            &[
+                FrontLeft,
+                FrontRight,
+                FrontCenter,
+                BackLeft,
+                BackRight,
+                SideLeft,
+                SideRight,
+            ],
+        )),
+        "surround_7_1" => Some((
+            8,
+            &[
+                FrontLeft,
+                FrontRight,
+                FrontCenter,
+                LowFrequency,
+                BackLeft,
+                BackRight,
+                SideLeft,
+                SideRight,
+            ],
+        )),
+        _ => None,
+    }
+}
+
+fn speaker_bit(speaker: AudioSpeakerChannel) -> u8 {
+    match speaker {
+        AudioSpeakerChannel::FrontLeft => 1 << 0,
+        AudioSpeakerChannel::FrontRight => 1 << 1,
+        AudioSpeakerChannel::FrontCenter => 1 << 2,
+        AudioSpeakerChannel::LowFrequency => 1 << 3,
+        AudioSpeakerChannel::BackLeft => 1 << 4,
+        AudioSpeakerChannel::BackRight => 1 << 5,
+        AudioSpeakerChannel::SideLeft => 1 << 6,
+        AudioSpeakerChannel::SideRight => 1 << 7,
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AudioChannelLayout {
     pub name: String,
@@ -189,16 +266,19 @@ impl AudioChannelLayout {
     }
 
     pub fn has_unique_speakers(&self) -> bool {
-        self.speakers
-            .iter()
-            .enumerate()
-            .all(|(index, speaker)| !self.speakers[index + 1..].contains(speaker))
+        let mut seen = 0_u8;
+        self.speakers.iter().copied().all(|speaker| {
+            let bit = speaker_bit(speaker);
+            let unique = seen & bit == 0;
+            seen |= bit;
+            unique
+        })
     }
 
     pub fn is_canonical_named_layout(&self) -> bool {
-        Self::from_name(&self.name)
-            .map(|layout| {
-                layout.channel_count == self.channel_count && layout.speakers == self.speakers
+        named_layout_contract(&self.name)
+            .map(|(channel_count, speakers)| {
+                channel_count == self.channel_count && speakers == self.speakers.as_slice()
             })
             .unwrap_or_default()
     }
@@ -214,15 +294,10 @@ impl AudioChannelLayout {
         {
             return false;
         }
-        if Self::from_name(&self.name).is_some() {
+        if named_layout_contract(&self.name).is_some() {
             return self.is_canonical_named_layout();
         }
-        if self
-            .name
-            .strip_prefix("discrete_")
-            .and_then(|suffix| suffix.parse::<u16>().ok())
-            .is_some()
-        {
+        if self.name.starts_with("discrete_") {
             return self.is_canonical_discrete_layout();
         }
         if self.speakers.is_empty() {

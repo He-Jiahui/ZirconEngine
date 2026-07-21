@@ -1,3 +1,5 @@
+use crate::core::framework::audio::{AudioChannelLayout, AudioSpeakerChannel};
+
 use super::*;
 
 #[test]
@@ -209,6 +211,27 @@ fn sound_channel_layout_contract_rejects_ambiguous_speaker_metadata() {
         ],
     };
     assert!(!discrete_with_named_speakers.is_valid_contract_layout());
+
+    for reserved_name in [
+        "discrete_",
+        "discrete_two",
+        "discrete_02",
+        "discrete_65536",
+        "discrete_-1",
+    ] {
+        let malformed_discrete = AudioChannelLayout {
+            name: reserved_name.to_string(),
+            channel_count: 2,
+            speakers: vec![
+                AudioSpeakerChannel::FrontLeft,
+                AudioSpeakerChannel::FrontRight,
+            ],
+        };
+        assert!(
+            !malformed_discrete.is_valid_contract_layout(),
+            "reserved discrete name must not degrade to a custom layout: {reserved_name}"
+        );
+    }
 }
 
 #[test]

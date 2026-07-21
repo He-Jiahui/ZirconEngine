@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 
-use super::{AudioChannelLayout, SoundMixBlock, SoundOutputDeviceId};
+use crate::core::framework::audio::AudioChannelLayout;
+
+use super::{SoundMixBlock, SoundOutputDeviceId};
 
 /// Default output latency target for descriptor builders that do not expose backend tuning yet.
 pub const DEFAULT_SOUND_OUTPUT_LATENCY_BLOCKS: usize = 2;

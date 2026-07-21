@@ -5,7 +5,6 @@ related_code:
   - zircon_runtime/src/asset/assets/sound.rs
   - zircon_plugins/audio_importer/runtime/src/lib.rs
   - zircon_runtime/src/core/framework/sound/mod.rs
-  - zircon_plugins/sound/runtime/src/engine/render/channel_layout/mod.rs
 implementation_files:
   - zircon_runtime/src/core/framework/audio/mod.rs
   - zircon_runtime/src/core/framework/audio/channel_layout.rs

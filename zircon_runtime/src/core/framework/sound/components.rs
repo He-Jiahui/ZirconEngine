@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::audio::AudioChannelLayout;
+
 use super::{
-    AudioChannelLayout, ExternalAudioSourceHandle, SoundClipId, SoundImpulseResponseId,
-    SoundListenerId, SoundParameterId, SoundPlaybackCompletionAction, SoundSourceId, SoundTrackId,
-    SoundVolumeId,
+    ExternalAudioSourceHandle, SoundClipId, SoundImpulseResponseId, SoundListenerId,
+    SoundParameterId, SoundPlaybackCompletionAction, SoundSourceId, SoundTrackId, SoundVolumeId,
 };
 
 pub const AUDIO_SOURCE_COMPONENT_TYPE: &str = "sound.Component.AudioSource";

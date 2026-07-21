@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+use crate::core::framework::audio::AudioChannelLayout;
+
 use super::{
-    AudioChannelLayout, SoundAutomationBinding, SoundDynamicEventCatalog, SoundEffectDescriptor,
+    SoundAutomationBinding, SoundDynamicEventCatalog, SoundEffectDescriptor,
     SoundRayTracingConvolutionStatus, SoundSourceDescriptor, SoundTrackId,
 };
 
