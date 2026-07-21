@@ -32,7 +32,16 @@ related_code:
   - zircon_runtime/src/scene/reflect/world_reflection.rs
   - zircon_runtime_interface/src/reflect/read_write.rs
   - zircon_runtime_interface/src/reflect/schema.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
+  - zircon_runtime/src/scene/components/scene/transform.rs
+  - zircon_runtime/src/scene/components/scene/hierarchy.rs
+  - zircon_runtime/src/scene/components/scene/activation.rs
+  - zircon_runtime/src/scene/components/scene/camera.rs
+  - zircon_runtime/src/scene/components/scene/mesh_renderer.rs
+  - zircon_runtime/src/scene/components/scene/lighting.rs
+  - zircon_runtime/src/scene/components/scene/physics.rs
+  - zircon_runtime/src/scene/components/scene/animation.rs
+  - zircon_runtime/src/core/framework/scene/mobility.rs
 implementation_files:
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_edit_mode_projection.rs
   - zircon_editor/src/scene/viewport/controller/scene_viewport_controller_build_render_snapshot.rs
