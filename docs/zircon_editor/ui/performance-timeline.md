@@ -31,7 +31,8 @@ related_code:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/host/editor_runtime_client.rs
+  - zircon_editor/src/core/gateway/contract.rs
+  - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/ui/host/startup/resolve_session.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
@@ -79,7 +80,8 @@ implementation_files:
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu.rs
   - zircon_editor/src/ui/retained_host/host_contract/presenter/softbuffer.rs
   - zircon_editor/src/ui/retained_host/host_contract/window.rs
-  - zircon_editor/src/ui/host/editor_runtime_client.rs
+  - zircon_editor/src/core/gateway/contract.rs
+  - zircon_editor/src/core/gateway/session.rs
   - zircon_editor/src/ui/host/startup/resolve_session.rs
   - zircon_editor/src/ui/layouts/views/preview_images.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
@@ -139,7 +141,7 @@ doc_type: module-detail
 
 ## Purpose
 
-The editor side of the profiling milestone consumes the runtime diagnostics spine without becoming the recorder owner. The retained host adds editor-stream frame and span samples for authoring work, and it can merge a dynamic runtime session snapshot through `EditorRuntimeClient::profile_control` when the runtime cdylib supports the optional ABI hook.
+The editor side of the profiling milestone consumes the runtime diagnostics spine without becoming the recorder owner. The retained host adds editor-stream frame and span samples for authoring work, and it can merge a dynamic runtime session snapshot through `EditorRuntimeGateway::profile_control` when the attached `SessionGateway` exposes the optional runtime ABI hook.
 
 This is the M1/M2 bridge plus the first M3 panel surface. Runtime Diagnostics still reports whether profiling is active and how many frames, spans, counters, and over-budget frames are visible, while the Performance Timeline view projects the same snapshot into frame, span, hotspot, and capture-control rows.
 
@@ -158,7 +160,7 @@ These spans stay in editor-owned modules and use the runtime profiling recorder 
 
 ## Dynamic Runtime Merge
 
-`EditorRuntimeClient` exposes a default `profile_control` method returning `Ok(None)`. `zircon_app::RuntimeSession` implements it by serializing `ProfileControlRequest`, calling the optional dynamic runtime `profile_control` function, decoding `ProfileControlResponse`, and freeing the returned ABI buffer.
+`EditorRuntimeGateway` owns the editor-side `profile_control` contract. Its default path reports the missing `runtime.profile.control` capability; the current dynamic transport is `SessionGateway`, which returns `Ok(None)` only when the validated runtime API table omits the optional hook. `zircon_app::RuntimeSession::editor_gateway` constructs that gateway over the runtime API table and session handle. `SessionGateway` serializes `ProfileControlRequest`, calls the optional dynamic runtime `profile_control` function, decodes `ProfileControlResponse`, and frees the returned ABI buffer.
 
 When the `profiling` feature is enabled, `RetainedEditorHost::runtime_diagnostics_with_profile` starts from local editor diagnostics and asks the runtime client for a `Snapshot` response. If a runtime snapshot is returned, `app/profiling.rs` merges it into the editor snapshot:
 
