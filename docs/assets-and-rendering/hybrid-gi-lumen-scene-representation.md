@@ -78,7 +78,7 @@ related_code:
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
   - zircon_runtime/src/core/framework/tests.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
@@ -348,7 +348,7 @@ implementation_files:
   - zircon_runtime/src/core/framework/render/scene_extract.rs
   - zircon_runtime/src/core/framework/render/frame_extract.rs
   - zircon_runtime/src/core/framework/render/backend_types.rs
-  - zircon_runtime/src/scene/components/scene.rs
+  - zircon_runtime/src/scene/components/scene/mod.rs
   - zircon_runtime/src/scene/world/render.rs
   - zircon_runtime/src/scene/world/project_io.rs
   - zircon_runtime/src/asset/assets/scene/mod.rs
