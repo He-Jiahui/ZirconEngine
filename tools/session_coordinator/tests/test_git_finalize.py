@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -83,6 +85,17 @@ class GitFinalizeTests(unittest.TestCase):
             text=True,
         ).stdout.strip()
 
+    def _authorize_recovery_process(self) -> None:
+        lock_path = self.database.path.parent / "coordinator.lock"
+        lock_path.write_text(json.dumps({"pid": os.getpid()}), encoding="utf-8")
+
+    def _mutex_owner(self) -> str | None:
+        with self.database.connect() as connection:
+            row = connection.execute(
+                "SELECT owner_id FROM git_mutex WHERE lock_name='index'"
+            ).fetchone()
+        return None if row is None else str(row["owner_id"])
+
     def _commit_milestone(self, *args, **kwargs):
         return self.service.commit_milestone(
             *args,
@@ -150,6 +163,43 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(foreign_path, self._staged_names())
         self.assertEqual("foreign = True\n", (self.repo / foreign_path).read_text(encoding="utf-8"))
 
+    def test_maintenance_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
+        maintenance_path = "tools/coordinator_repair.py"
+        foreign_path = "src/foreign_staged.py"
+        for path, content in (
+            (maintenance_path, "repair = True\n"),
+            (foreign_path, "foreign = True\n"),
+        ):
+            target = self.repo / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text(content, encoding="utf-8")
+        subprocess.run(["git", "add", "--", foreign_path], cwd=self.repo, check=True)
+        original_index = self.service._index_path().read_bytes()
+
+        with mock.patch.object(
+            self.service,
+            "_restore_index",
+            side_effect=RuntimeError("injected maintenance restore failure"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self.service.finalize(
+                    "session-a",
+                    paths=[maintenance_path],
+                    message="fix(tooling): preserve recoverable maintenance index",
+                    maintenance=True,
+                )
+
+        with self.database.connect() as connection:
+            request = connection.execute(
+                """SELECT status, commit_sha, ref_updated_sha, index_snapshot
+                   FROM finalize_requests ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertEqual("finalizing", request["status"])
+        self.assertIsNone(request["commit_sha"])
+        self.assertEqual(self._head(), request["ref_updated_sha"])
+        self.assertEqual(original_index, bytes(request["index_snapshot"]))
+        self.assertEqual("session-a", self._mutex_owner())
+
     def test_milestone_commit_is_scoped_atomic_and_keeps_session_active(self) -> None:
         paths = ["src/milestone.py", "tests/test_milestone.py"]
         acquisition = self.leases.acquire("session-a", paths)
@@ -176,6 +226,71 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(SessionStatus.ACTIVE, self.sessions.get("session-a").status)
         self.assertEqual(result.commit_sha, self._head())
         self.assertEqual("feat(runtime): complete M2 milestone", result.message)
+
+    def test_milestone_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
+        path = "src/recoverable_milestone.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("milestone = True\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        self.baselines.attribute("session-a", [path])
+        original_index = self.service._index_path().read_bytes()
+
+        with mock.patch.object(
+            self.service,
+            "_restore_index",
+            side_effect=RuntimeError("injected milestone restore failure"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self._commit_milestone(
+                    "session-a",
+                    paths=[path],
+                    message="fix(runtime): preserve recoverable milestone index",
+                )
+
+        with self.database.connect() as connection:
+            request = connection.execute(
+                """SELECT status, commit_sha, ref_updated_sha, index_snapshot
+                   FROM finalize_requests ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertEqual("finalizing", request["status"])
+        self.assertIsNone(request["commit_sha"])
+        self.assertEqual(self._head(), request["ref_updated_sha"])
+        self.assertEqual(original_index, bytes(request["index_snapshot"]))
+        self.assertEqual("session-a", self._mutex_owner())
+
+    def test_milestone_pre_cas_restore_failure_keeps_recoverable_snapshot(self) -> None:
+        path = "src/failed_milestone.py"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("milestone = False\n", encoding="utf-8")
+        self.assertTrue(self.leases.acquire("session-a", [path]).acquired)
+        self.baselines.attribute("session-a", [path])
+        original_index = self.service._index_path().read_bytes()
+
+        with mock.patch.object(
+            self.service,
+            "_restore_index",
+            side_effect=RuntimeError("injected failed milestone restore"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self._commit_milestone(
+                    "session-a",
+                    paths=[path],
+                    message="fix(runtime): preserve failed milestone snapshot",
+                    validation_commands=((sys.executable, "-c", "raise SystemExit(7)"),),
+                )
+
+        with self.database.connect() as connection:
+            request = connection.execute(
+                """SELECT status, commit_sha, ref_updated_sha, index_snapshot
+                   FROM finalize_requests ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertEqual("finalizing", request["status"])
+        self.assertIsNone(request["commit_sha"])
+        self.assertIsNone(request["ref_updated_sha"])
+        self.assertEqual(original_index, bytes(request["index_snapshot"]))
+        self.assertEqual("session-a", self._mutex_owner())
 
     def test_milestone_commit_chunks_add_and_post_commit_reset_pathspecs(self) -> None:
         paths = [f"src/chunked/path_{index}.py" for index in range(8)]
@@ -481,6 +596,66 @@ class GitFinalizeTests(unittest.TestCase):
 
         self.assertEqual("finalize_ignore_scan_failed", rejected.exception.code)
 
+    def test_git_path_output_redacts_git_stderr_details(self) -> None:
+        secret = "api" + "_key=do-not-log"
+        failure = subprocess.CalledProcessError(
+            128, ["git", "ls-tree"], stderr=f"fatal: {secret}"
+        )
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", side_effect=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._git_path_output("ls-tree", "--name-only", "HEAD")
+
+        self.assertEqual("finalize_head_content_failed", rejected.exception.code)
+        self.assertNotIn(secret, str(rejected.exception.details))
+        self.assertIn("<redacted>", rejected.exception.details["stderr"])
+
+    def test_ignored_path_scan_redacts_git_stderr_details(self) -> None:
+        secret = "WECOM_" + "WEBHOOK_KEY=do-not-log"
+        failure = subprocess.CompletedProcess(
+            ["git", "check-ignore"],
+            128,
+            stdout=b"",
+            stderr=f"fatal: {secret}".encode("utf-8"),
+        )
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", return_value=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._ignored_paths(("src/feature.py",))
+
+        self.assertEqual("finalize_ignore_scan_failed", rejected.exception.code)
+        self.assertNotIn(secret, str(rejected.exception.details))
+        self.assertIn("<redacted>", rejected.exception.details["error"])
+
+    def test_index_worktree_scan_redacts_git_stderr_details(self) -> None:
+        secret = (
+            "https://"
+            + "qyapi"
+            + ".weixin.qq.com/cgi-bin/"
+            + "webhook/send?"
+            + "key=do-not-log"
+        )
+        failure = subprocess.CompletedProcess(
+            ["git", "diff"],
+            128,
+            stdout=b"",
+            stderr=f"fatal: {secret}".encode("utf-8"),
+        )
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.run", return_value=failure
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._require_index_matches_worktree(("src/feature.py",))
+
+        self.assertEqual("finalize_index_worktree_scan_failed", rejected.exception.code)
+        self.assertNotIn(secret, str(rejected.exception.details))
+        self.assertIn("<redacted>", rejected.exception.details["error"])
+
     def test_pathspec_chunks_use_utf16_budget_and_reject_oversize_path(self) -> None:
         astral_path = "\U0001f600" * 7_000
         chunks = list(self.service._pathspec_chunks((astral_path, astral_path)))
@@ -740,12 +915,51 @@ class GitFinalizeTests(unittest.TestCase):
             self.sessions.get("session-a"), (fixed_path,), maintenance=False
         )
 
-    def test_finalize_rejects_wecom_webhook_material(self) -> None:
+    def test_finalize_rejects_staged_wecom_webhook_url(self) -> None:
         paths = self._complete_with_changes()
         secret = self.repo / paths[0]
         endpoint = "https://" + "qyapi" + ".weixin.qq.com/cgi-bin/" + "webhook/send?"
+        secret_value = endpoint + "key=do-not-commit"
         secret.write_text(
-            endpoint + "key=" + "do-not-commit\n",
+            secret_value + "\n",
+            encoding="utf-8",
+        )
+        self.baselines.attribute("session-a", [paths[0]])
+        before = self._head()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): add feature"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(before, self._head())
+        self.assertNotIn(secret_value, str(rejected.exception.details))
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_rejects_staged_wecom_webhook_key_configuration(self) -> None:
+        paths = self._complete_with_changes()
+        secret = self.repo / paths[0]
+        secret_value = "WECOM_" + "WEBHOOK_KEY=do-not-commit"
+        secret.write_text(secret_value + "\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [paths[0]])
+        before = self._head()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): add feature"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(before, self._head())
+        self.assertNotIn(secret_value, str(rejected.exception.details))
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_rejects_staged_maintenance_capability(self) -> None:
+        paths = self._complete_with_changes()
+        secret = self.repo / paths[0]
+        secret.write_text(
+            "ZIRCON_COORDINATOR_" + "MAINTENANCE_TOKEN=do-not-commit\n",
             encoding="utf-8",
         )
         self.baselines.attribute("session-a", [paths[0]])
@@ -758,6 +972,232 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("finalize_secret_detected", rejected.exception.code)
         self.assertEqual("", self._staged_names())
 
+    def test_finalize_rejects_staged_generic_credential(self) -> None:
+        paths = self._complete_with_changes()
+        secret = self.repo / paths[0]
+        secret.write_text("api" + "_key=do-not-commit\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [paths[0]])
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): add feature"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_rejects_staged_credential_in_binary_blob(self) -> None:
+        paths = self._complete_with_changes()
+        secret = self.repo / paths[0]
+        endpoint = "https://" + "qyapi" + ".weixin.qq.com/cgi-bin/" + "webhook/send?"
+        secret.write_bytes(
+            b"\x00binary-prefix\xff"
+            + (b"x" * 65_520)
+            + (endpoint + "key=binary-secret").encode()
+        )
+        self.baselines.attribute("session-a", [paths[0]])
+        before = self._head()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): add binary feature"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(before, self._head())
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_allows_binary_blob_without_credential_marker(self) -> None:
+        paths = self._complete_with_changes()
+        binary = self.repo / paths[0]
+        binary.write_bytes(b"\x00safe-binary\xff" + (b"x" * 70_000))
+        self.baselines.attribute("session-a", [paths[0]])
+
+        result = self.service.finalize(
+            "session-a", paths=paths, message="feat(runtime): add safe binary feature"
+        )
+
+        self.assertEqual(result.commit_sha, self._head())
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_allows_sensitive_names_without_concrete_assignments(self) -> None:
+        paths = self._complete_with_changes()
+        source = self.repo / paths[0]
+        source.write_text(
+            "SENSITIVE_PATTERN = r'ZIRCON_COORDINATOR_MAINTENANCE_TOKEN|password'\n"
+            "def api_key_contract():\n"
+            "    return 'names are not credential values'\n"
+            + "api"
+            + "_key: str\n"
+            + "pass"
+            + "word: Optional[str]\n",
+            encoding="utf-8",
+        )
+        self.baselines.attribute("session-a", [paths[0]])
+
+        result = self.service.finalize(
+            "session-a", paths=paths, message="test(runtime): document credential fields"
+        )
+
+        self.assertEqual(result.commit_sha, self._head())
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_rejects_utf16_staged_credential(self) -> None:
+        paths = self._complete_with_changes()
+        secret = self.repo / paths[0]
+        before = self._head()
+
+        for encoding in ("utf-16", "utf-16-le", "utf-16-be"):
+            with self.subTest(encoding=encoding):
+                prefix = "" if encoding == "utf-16" else "漢" * 4_096
+                secret.write_bytes(
+                    (prefix + "api" + "_key=utf16-secret\n").encode(encoding)
+                )
+                self.baselines.attribute("session-a", [paths[0]])
+                with self.assertRaises(CoordinatorError) as rejected:
+                    self.service.finalize(
+                        "session-a",
+                        paths=paths,
+                        message="feat(runtime): reject utf16 secret",
+                    )
+
+                self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(before, self._head())
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_rejects_yaml_scalar_that_matches_a_source_type_name(self) -> None:
+        path = "config/runtime.yaml"
+        target = self.repo / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("api" + "_key: str\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [path])
+        self.sessions.set_status("session-a", SessionStatus.COMPLETED)
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=[path], message="fix(runtime): reject yaml secret"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual("", self._staged_names())
+
+    def test_finalize_rejects_boundary_marker_before_long_separator(self) -> None:
+        paths = self._complete_with_changes()
+        secret = self.repo / paths[0]
+        secret.write_bytes(
+            (b"x" * 65_533)
+            + b"api"
+            + b"_key"
+            + (b" " * 70_000)
+            + b"= boundary-secret\n"
+        )
+        self.baselines.attribute("session-a", [paths[0]])
+        before = self._head()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): reject boundary marker"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(before, self._head())
+        self.assertEqual("", self._staged_names())
+
+    def test_secret_scan_skips_staged_gitlink_object_payload(self) -> None:
+        gitlink_path = "vendor/dependency"
+        missing_commit = "1" * 40
+        subprocess.run(
+            [
+                "git",
+                "update-index",
+                "--add",
+                "--cacheinfo",
+                "160000",
+                missing_commit,
+                gitlink_path,
+            ],
+            cwd=self.repo,
+            check=True,
+        )
+
+        self.service._require_no_staged_secrets()
+
+        self.assertEqual(gitlink_path, self._staged_names())
+
+    def test_secret_scan_uses_file_backed_stderr_to_avoid_pipe_backpressure(self) -> None:
+        target = self.repo / "src" / "feature.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("safe staged content\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", "src/feature.py"], cwd=self.repo, check=True)
+        original_popen = subprocess.Popen
+        observed_stderr: list[object] = []
+
+        def capture_stderr(*args, **kwargs):
+            command = args[0] if args else kwargs.get("args")
+            if command == ["git", "cat-file", "--batch"]:
+                observed_stderr.append(kwargs.get("stderr"))
+            return original_popen(*args, **kwargs)
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.Popen",
+            side_effect=capture_stderr,
+        ):
+            self.service._require_no_staged_secrets()
+
+        self.assertEqual(1, len(observed_stderr))
+        self.assertIsNot(subprocess.PIPE, observed_stderr[0])
+        self.assertTrue(hasattr(observed_stderr[0], "fileno"))
+
+    def test_secret_scan_cleanup_survives_broken_stdin_pipe(self) -> None:
+        target = self.repo / "src" / "feature.py"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("safe staged content\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", "src/feature.py"], cwd=self.repo, check=True)
+        original_popen = subprocess.Popen
+        process = mock.Mock()
+        process.stdin = mock.Mock()
+        process.stdin.close.side_effect = BrokenPipeError("closed batch input")
+        process.stdout = mock.Mock()
+        process.stdout.readline.side_effect = OSError("batch read failed")
+        process.poll.return_value = None
+
+        def fail_cat_file(*args, **kwargs):
+            command = args[0] if args else kwargs.get("args")
+            if command == ["git", "cat-file", "--batch"]:
+                return process
+            return original_popen(*args, **kwargs)
+
+        with mock.patch(
+            "tools.session_coordinator.git_finalize.subprocess.Popen",
+            side_effect=fail_cat_file,
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._require_no_staged_secrets()
+
+        self.assertEqual("finalize_secret_scan_failed", rejected.exception.code)
+        process.kill.assert_called_once_with()
+        process.wait.assert_called_once_with()
+        process.stdout.close.assert_called_once_with()
+
+    def test_finalize_rejects_staged_credential_when_attributes_disable_diff(self) -> None:
+        paths = self._complete_with_changes()
+        attributes_path = ".gitattributes"
+        (self.repo / attributes_path).write_text("src/feature.py -diff\n", encoding="utf-8")
+        secret = self.repo / paths[0]
+        secret.write_text("api" + "_key=attributes-secret\n", encoding="utf-8")
+        paths.append(attributes_path)
+        self.baselines.attribute("session-a", [paths[0], attributes_path])
+        before = self._head()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): add attributed feature"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(before, self._head())
+        self.assertEqual("", self._staged_names())
+
     def test_secret_scan_decodes_utf8_independently_of_host_locale(self) -> None:
         target = self.repo / "docs" / "utf8.md"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -766,6 +1206,100 @@ class GitFinalizeTests(unittest.TestCase):
 
         with mock.patch("locale.getencoding", return_value="ascii"):
             self.service._require_no_staged_secrets()
+
+    def test_safe_git_stderr_redacts_complete_wecom_webhook(self) -> None:
+        endpoint = "https://" + "qyapi" + ".weixin.qq.com/cgi-bin/" + "webhook/send?"
+
+        sanitized = self.service._safe_git_stderr(endpoint + "key=do-not-log")
+
+        self.assertEqual("https://<redacted>", sanitized)
+
+    def test_safe_git_stderr_redacts_complete_typed_and_yaml_assignments(self) -> None:
+        cases = (
+            ('fatal: api' + '_key: str = "typed-secret"', "typed-secret"),
+            ("fatal: api" + "_key: !!str yaml-secret", "yaml-secret"),
+            (
+                'fatal: api' + '_key: Literal["prod"] = "typed-literal-secret"',
+                "typed-literal-secret",
+            ),
+            (
+                "fatal: api" + "_key: !!str yaml secret value",
+                "yaml secret value",
+            ),
+            (
+                'fatal: api' + '_key = {"nested": "dict-secret"}',
+                "dict-secret",
+            ),
+        )
+
+        for stderr, secret in cases:
+            with self.subTest(stderr=stderr):
+                sanitized = self.service._safe_git_stderr(stderr)
+                self.assertEqual("fatal: <redacted>", sanitized)
+                self.assertNotIn(secret, sanitized)
+
+    def test_git_failure_redacts_complete_typed_assignment_from_message_and_details(self) -> None:
+        stderr = 'fatal: api' + '_key: str = "direct-git-secret"'
+        failure = subprocess.CalledProcessError(
+            128,
+            ["git", "status"],
+            stderr=stderr,
+        )
+
+        with mock.patch("subprocess.run", side_effect=failure):
+            with self.assertRaises(CoordinatorError) as rejected:
+                self.service._git("status")
+
+        self.assertEqual("finalize_git_command_failed", rejected.exception.code)
+        self.assertNotIn("direct-git-secret", str(rejected.exception))
+        self.assertNotIn("direct-git-secret", str(rejected.exception.details))
+        self.assertEqual("fatal: <redacted>", rejected.exception.details["stderr"])
+
+    def test_secret_scan_owns_git_mutex_and_rejection_restores_raw_index_and_head(self) -> None:
+        paths = self._complete_with_changes()
+        staged_path = self.repo / paths[0]
+        staged_path.write_text("approved pre-existing stage\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", paths[0]], cwd=self.repo, check=True)
+        index_path = self.service._index_path()
+        before_index = index_path.read_bytes()
+        before_head = self._head()
+        staged_path.write_text("api" + "_key=restore-secret\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [paths[0]])
+        observed_mutex_owners: list[str | None] = []
+        observed_restore_owners: list[str | None] = []
+        original_scan = self.service._require_no_staged_secrets
+        original_restore = self.service._restore_index
+
+        def scan_while_owned() -> None:
+            with self.database.connect() as connection:
+                row = connection.execute(
+                    "SELECT owner_id FROM git_mutex WHERE lock_name = 'index'"
+                ).fetchone()
+            observed_mutex_owners.append(None if row is None else row["owner_id"])
+            original_scan()
+
+        def restore_while_owned(path, existed, content) -> None:
+            with self.database.connect() as connection:
+                row = connection.execute(
+                    "SELECT owner_id FROM git_mutex WHERE lock_name = 'index'"
+                ).fetchone()
+            observed_restore_owners.append(None if row is None else row["owner_id"])
+            original_restore(path, existed, content)
+
+        self.service._require_no_staged_secrets = scan_while_owned  # type: ignore[method-assign]
+        self.service._restore_index = restore_while_owned  # type: ignore[method-assign]
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): reject staged secret"
+            )
+
+        self.assertEqual("finalize_secret_detected", rejected.exception.code)
+        self.assertEqual(["session-a"], observed_mutex_owners)
+        self.assertEqual(["session-a"], observed_restore_owners)
+        self.assertEqual(before_head, self._head())
+        self.assertEqual(before_index, index_path.read_bytes())
+        self.assertEqual(paths[0], self._staged_names())
+        self.assertIsNone(self._mutex_owner())
 
     def test_unattributed_path_is_rejected_before_index_mutation(self) -> None:
         paths = self._complete_with_changes()
@@ -813,6 +1347,35 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("finalize_validation_failed", rejected.exception.code)
         self.assertEqual("", self._staged_names())
         self.assertTrue((self.repo / "src/feature.py").exists())
+        self.assertIsNone(self._mutex_owner())
+
+    def test_pre_cas_restore_failure_keeps_recoverable_index_snapshot(self) -> None:
+        paths = self._complete_with_changes()
+        original_index = self.service._index_path().read_bytes()
+
+        with mock.patch.object(
+            self.service,
+            "_restore_index",
+            side_effect=RuntimeError("injected pre-cas restore failure"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self.service.finalize(
+                    "session-a",
+                    paths=paths,
+                    message="fix(runtime): preserve failed finalize snapshot",
+                    validation_commands=((sys.executable, "-c", "raise SystemExit(7)"),),
+                )
+
+        with self.database.connect() as connection:
+            request = connection.execute(
+                """SELECT status, commit_sha, ref_updated_sha, index_snapshot
+                   FROM finalize_requests ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertEqual("finalizing", request["status"])
+        self.assertIsNone(request["commit_sha"])
+        self.assertIsNone(request["ref_updated_sha"])
+        self.assertEqual(original_index, bytes(request["index_snapshot"]))
+        self.assertEqual("session-a", self._mutex_owner())
 
     def test_content_changed_between_preview_and_stage_is_rejected(self) -> None:
         paths = self._complete_with_changes()
@@ -923,6 +1486,23 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("post-validation\n", (self.repo / paths[0]).read_text())
         self.assertIn(paths[0], {item.path for item in self.baselines.diff()})
 
+    def test_recovery_rejects_unproven_process_owner_without_releasing_mutex(self) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                "INSERT INTO git_mutex(lock_name, owner_id, acquired_at) VALUES ('index', ?, datetime('now'))",
+                ("active-owner",),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.recover_stale_mutex()
+
+        self.assertEqual("finalize_recovery_process_unproven", rejected.exception.code)
+        with self.database.connect() as connection:
+            owner = connection.execute(
+                "SELECT owner_id FROM git_mutex WHERE lock_name='index'"
+            ).fetchone()["owner_id"]
+        self.assertEqual("active-owner", owner)
+
     def test_restart_recovers_index_and_session_from_interrupted_finalize(self) -> None:
         paths = self._complete_with_changes()
         preview = self.service.preview(
@@ -944,10 +1524,25 @@ class GitFinalizeTests(unittest.TestCase):
                 ("session-a",),
             )
         subprocess.run(["git", "add", "--", *paths], cwd=self.repo, check=True)
+        self._authorize_recovery_process()
+        observed_restore_owners: list[str] = []
+        original_restore = self.service._restore_index
+
+        def restore_while_recovery_owns_mutex(path, existed, content) -> None:
+            with self.database.connect() as connection:
+                owner = connection.execute(
+                    "SELECT owner_id FROM git_mutex WHERE lock_name='index'"
+                ).fetchone()["owner_id"]
+            observed_restore_owners.append(owner)
+            original_restore(path, existed, content)
+
+        self.service._restore_index = restore_while_recovery_owns_mutex  # type: ignore[method-assign]
 
         recovered = self.service.recover_stale_mutex()
 
         self.assertEqual(1, recovered)
+        self.assertEqual(1, len(observed_restore_owners))
+        self.assertTrue(observed_restore_owners[0].startswith("recovery:"))
         self.assertEqual("", self._staged_names())
         self.assertEqual(SessionStatus.COMPLETED, self.sessions.get("session-a").status)
         with self.database.connect() as connection:
@@ -958,8 +1553,98 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual("failed", request["status"])
         self.assertIsNone(request["index_snapshot"])
 
+    def test_recovery_preserves_snapshot_and_mutex_when_head_is_ambiguous(self) -> None:
+        historical_path = "src/historical_finalize.py"
+        historical = self.repo / historical_path
+        historical.parent.mkdir(parents=True, exist_ok=True)
+        historical.write_text("historical = True\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [historical_path])
+        self.sessions.set_status("session-a", SessionStatus.COMPLETED)
+        self.service.finalize(
+            "session-a",
+            paths=[historical_path],
+            message="feat(runtime): historical finalize fixture",
+        )
+        paths = self._complete_with_changes()
+        preview = self.service.preview(
+            "session-a", paths=paths, message="feat(runtime): ambiguous recovery"
+        )
+        index_path = self.service._index_path()
+        snapshot = index_path.read_bytes()
+        start_head = self._head()
+        self.service._persist_finalize_start(
+            preview.request_id,
+            start_head=start_head,
+            index_existed=True,
+            index_content=snapshot,
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                "INSERT INTO git_mutex(lock_name, owner_id, acquired_at) VALUES ('index', ?, datetime('now'))",
+                ("interrupted-owner",),
+            )
+        foreign = self.repo / "foreign.txt"
+        foreign.write_text("foreign head\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", "foreign.txt"], cwd=self.repo, check=True)
+        subprocess.run(
+            ["git", "commit", "-q", "-m", "test: move head outside finalize"],
+            cwd=self.repo,
+            check=True,
+        )
+        self.assertNotEqual(start_head, self._head())
+        self.sessions.set_status("session-a", SessionStatus.FINALIZING)
+        self._authorize_recovery_process()
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.recover_stale_mutex()
+
+        self.assertEqual("finalize_recovery_head_ambiguous", rejected.exception.code)
+        self.assertTrue(self._mutex_owner().startswith("recovery:"))
+        with self.database.connect() as connection:
+            request = connection.execute(
+                "SELECT status, index_snapshot FROM finalize_requests WHERE request_id=?",
+                (preview.request_id,),
+            ).fetchone()
+        self.assertEqual("finalizing", request["status"])
+        self.assertEqual(snapshot, bytes(request["index_snapshot"]))
+        self.assertEqual(SessionStatus.FINALIZING, self.sessions.get("session-a").status)
+
+    def test_recovery_completes_session_for_already_committed_request(self) -> None:
+        paths = self._complete_with_changes()
+        result = self.service.finalize(
+            "session-a", paths=paths, message="feat(runtime): committed recovery fixture"
+        )
+        with self.database.connect() as connection:
+            request_id = connection.execute(
+                "SELECT request_id FROM finalize_requests WHERE commit_sha=?",
+                (result.commit_sha,),
+            ).fetchone()["request_id"]
+        self.sessions.set_status("session-a", SessionStatus.FINALIZING)
+        self._authorize_recovery_process()
+
+        recovered = self.service.recover_stale_mutex()
+
+        self.assertEqual(0, recovered)
+        self.assertEqual(SessionStatus.COMPLETED, self.sessions.get("session-a").status)
+        self.assertIsNone(self._mutex_owner())
+        with self.database.connect() as connection:
+            request = connection.execute(
+                "SELECT status, commit_sha FROM finalize_requests WHERE request_id=?",
+                (request_id,),
+            ).fetchone()
+        self.assertEqual("committed", request["status"])
+        self.assertEqual(result.commit_sha, request["commit_sha"])
+
     def test_restart_reconciles_commit_when_baseline_update_failed(self) -> None:
         paths = self._complete_with_changes()
+        staged_path = self.repo / paths[0]
+        staged_path.write_text("pre-existing staged bytes\n", encoding="utf-8")
+        subprocess.run(["git", "add", "--", paths[0]], cwd=self.repo, check=True)
+        index_path = self.service._index_path()
+        original_index = index_path.read_bytes()
+        original_head = self._head()
+        staged_path.write_text("final attributed worktree bytes\n", encoding="utf-8")
+        self.baselines.attribute("session-a", [paths[0]])
         original_accept = self.baselines.accept_commit
         self.baselines.accept_commit = mock.Mock(side_effect=RuntimeError("injected baseline failure"))
 
@@ -969,6 +1654,8 @@ class GitFinalizeTests(unittest.TestCase):
             )
 
         moved_head = self._head()
+        self.assertNotEqual(original_head, moved_head)
+        self.assertEqual(original_index, index_path.read_bytes())
         with self.database.connect() as connection:
             pending = connection.execute(
                 "SELECT status, ref_updated_sha, commit_sha FROM finalize_requests ORDER BY created_at DESC LIMIT 1"
@@ -977,17 +1664,33 @@ class GitFinalizeTests(unittest.TestCase):
         self.assertEqual(moved_head, pending["ref_updated_sha"])
         self.assertIsNone(pending["commit_sha"])
         self.baselines.accept_commit = original_accept
+        self._authorize_recovery_process()
+        observed_recovery_owners: list[str] = []
+        original_restore = self.service._restore_index
+
+        def restore_recovered_commit_while_owned(path, existed, content) -> None:
+            with self.database.connect() as connection:
+                owner = connection.execute(
+                    "SELECT owner_id FROM git_mutex WHERE lock_name='index'"
+                ).fetchone()["owner_id"]
+            observed_recovery_owners.append(owner)
+            original_restore(path, existed, content)
+
+        self.service._restore_index = restore_recovered_commit_while_owned  # type: ignore[method-assign]
 
         recovered = self.service.recover_stale_mutex()
 
         self.assertEqual(0, recovered)
+        self.assertEqual(1, len(observed_recovery_owners))
+        self.assertTrue(observed_recovery_owners[0].startswith("recovery:"))
         with self.database.connect() as connection:
             committed = connection.execute(
-                "SELECT status, commit_sha FROM finalize_requests WHERE ref_updated_sha = ?",
+                "SELECT status, commit_sha, index_snapshot FROM finalize_requests WHERE ref_updated_sha = ?",
                 (moved_head,),
             ).fetchone()
         self.assertEqual("committed", committed["status"])
         self.assertEqual(moved_head, committed["commit_sha"])
+        self.assertIsNone(committed["index_snapshot"])
 
     def test_recovery_keeps_pending_when_baseline_retry_fails(self) -> None:
         paths = self._complete_with_changes()
@@ -998,18 +1701,102 @@ class GitFinalizeTests(unittest.TestCase):
                 "session-a", paths=paths, message="feat(runtime): add feature"
             )
         self.baselines.accept_commit = mock.Mock(side_effect=RuntimeError("retry failure"))
+        self._authorize_recovery_process()
 
         with self.assertRaises(RuntimeError):
             self.service.recover_stale_mutex()
 
         with self.database.connect() as connection:
+            recovery_owner = connection.execute(
+                "SELECT owner_id FROM git_mutex WHERE lock_name='index'"
+            ).fetchone()["owner_id"]
             pending = connection.execute(
                 "SELECT status, commit_sha, ref_updated_sha FROM finalize_requests ORDER BY created_at DESC LIMIT 1"
             ).fetchone()
+        self.assertTrue(recovery_owner.startswith("recovery:"))
         self.assertEqual("finalizing", pending["status"])
         self.assertIsNone(pending["commit_sha"])
         self.assertEqual(self._head(), pending["ref_updated_sha"])
         self.baselines.accept_commit = original_accept
+
+    def test_forward_reconcile_restores_index_before_clearing_snapshot(self) -> None:
+        paths = self._complete_with_changes()
+        original_accept = self.baselines.accept_commit
+        self.baselines.accept_commit = mock.Mock(
+            side_effect=RuntimeError("injected reconcile fixture failure")
+        )
+        with self.assertRaises(RuntimeError):
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): reconcile fixture"
+            )
+        with self.database.connect() as connection:
+            request = connection.execute(
+                """SELECT request_id, index_snapshot FROM finalize_requests
+                   ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertIsNotNone(request["index_snapshot"])
+        self.baselines.accept_commit = original_accept
+        observed_owners: list[str] = []
+        original_restore = self.service._restore_index
+
+        def restore_while_reconcile_owns_mutex(path, existed, content) -> None:
+            with self.database.connect() as connection:
+                owner = connection.execute(
+                    "SELECT owner_id FROM git_mutex WHERE lock_name='index'"
+                ).fetchone()["owner_id"]
+            observed_owners.append(owner)
+            original_restore(path, existed, content)
+
+        self.service._restore_index = restore_while_reconcile_owns_mutex  # type: ignore[method-assign]
+
+        result = self.service.reconcile_request(request["request_id"])
+
+        self.assertIsNotNone(result)
+        self.assertEqual([f"reconcile:{request['request_id']}"], observed_owners)
+        with self.database.connect() as connection:
+            reconciled = connection.execute(
+                "SELECT status, index_snapshot FROM finalize_requests WHERE request_id=?",
+                (request["request_id"],),
+            ).fetchone()
+        self.assertEqual("committed", reconciled["status"])
+        self.assertIsNone(reconciled["index_snapshot"])
+
+    def test_forward_reconcile_restore_failure_retains_mutex_and_snapshot(self) -> None:
+        paths = self._complete_with_changes()
+        original_accept = self.baselines.accept_commit
+        self.baselines.accept_commit = mock.Mock(
+            side_effect=RuntimeError("injected reconcile fixture failure")
+        )
+        with self.assertRaises(RuntimeError):
+            self.service.finalize(
+                "session-a", paths=paths, message="feat(runtime): retained reconcile fixture"
+            )
+        with self.database.connect() as connection:
+            request = connection.execute(
+                """SELECT request_id, index_snapshot FROM finalize_requests
+                   ORDER BY created_at DESC LIMIT 1"""
+            ).fetchone()
+        self.assertIsNotNone(request["index_snapshot"])
+        self.baselines.accept_commit = original_accept
+
+        with mock.patch.object(
+            self.service,
+            "_restore_index",
+            side_effect=RuntimeError("injected reconcile restore failure"),
+        ):
+            with self.assertRaises(RuntimeError):
+                self.service.reconcile_request(request["request_id"])
+
+        self.assertEqual(
+            f"reconcile:{request['request_id']}", self._mutex_owner()
+        )
+        with self.database.connect() as connection:
+            pending = connection.execute(
+                "SELECT status, index_snapshot FROM finalize_requests WHERE request_id=?",
+                (request["request_id"],),
+            ).fetchone()
+        self.assertEqual("finalizing", pending["status"])
+        self.assertIsNotNone(pending["index_snapshot"])
 
     def test_session_tag_message_is_rejected(self) -> None:
         paths = self._complete_with_changes()
