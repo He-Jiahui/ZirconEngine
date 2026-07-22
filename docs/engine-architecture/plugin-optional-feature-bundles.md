@@ -51,8 +51,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/status.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/base.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/declaration.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
@@ -71,8 +70,7 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking/cycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability/outcome.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/active.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/partition.rs
@@ -90,7 +88,6 @@ related_code:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/lookup.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/registration.rs
@@ -240,8 +237,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/runtime.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/extension_report/status.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/base.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/declaration.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/derived_projection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_capabilities/feature.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_completion/owner_selection.rs
@@ -260,8 +256,7 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_blocking/cycle.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/availability/outcome.rs
+  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_resolution/ordered_ready_set.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/active.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/feature_selection/partition.rs
@@ -278,7 +273,6 @@ implementation_files:
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_extension_report/runtime_merge.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/completion.rs
-  - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/lookup.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/catalog_selections.rs
   - zircon_runtime/src/plugin/runtime_plugin/runtime_plugin_catalog/project_manifest/selection_defaults/hydration.rs
@@ -496,9 +490,9 @@ For catalogs that do not yet know an external feature package at source-generati
 
 Feature dependency report DTOs are folder-backed as well: `feature_report/dependency_report.rs` owns the report row, `block.rs` owns blocked-feature data, and `diagnostic.rs` owns diagnostic formatting.
 
-Feature capability helpers are folder-backed too: `feature_capabilities/base.rs` owns base runtime package capability collection, `feature.rs` owns feature-provided capability projection, and `declaration.rs` owns feature capability declaration checks.
+Feature capability lookup is projection-backed. `derived_projection.rs` builds generation-scoped indexes for target-filtered base package capabilities and feature capability providers, while `feature_capabilities/feature.rs` projects the capabilities declared by one feature manifest. Dependency evaluation reads those indexes instead of rescanning registrations or running a separate declaration helper.
 
-Feature resolution is folder-backed as well: `feature_resolution.rs` owns pending-feature orchestration, `feature_resolution/availability.rs` owns the available-feature fixed-point loop, and `feature_resolution/availability/outcome.rs` owns available/blocked/waiting pending-feature status projection before unresolved waits are projected by the blocking module.
+Feature resolution is incremental rather than a repeated fixed-point scan. `feature_resolution.rs` evaluates each pending feature once, indexes waiters by missing capability, and wakes only affected rows when a capability becomes available. `feature_resolution/ordered_ready_set.rs` owns the deterministic current/next ready queues; unresolved rows are handed to the blocking module after the queues drain.
 
 Feature blocking is folder-backed too: `feature_blocking.rs` owns final blocked-feature report projection, and `feature_blocking/cycle.rs` owns unresolved feature id collection plus feature-capability cycle marking.
 
@@ -506,7 +500,7 @@ Feature status is folder-backed too: `feature_status.rs` owns owner/provider/tar
 
 Feature dependency report orchestration is folder-backed too: `features.rs` owns dependency report flow, while `features/context.rs` owns plugin-selection lookup, enabled package set, base capability seed, and initial dependency-report construction.
 
-Project manifest support is folder-backed too: `project_manifest/completion.rs` owns catalog manifest construction and completion orchestration, `project_manifest/selection_defaults.rs` owns defaulting orchestration, `selection_defaults/catalog_selections.rs` owns missing package selection insertion, `selection_defaults/hydration.rs` owns runtime/editor crate and target-mode default hydration, and `project_manifest/lookup.rs` owns package selection lookup.
+Project manifest support keeps completion and defaulting under `project_manifest/`: `completion.rs` owns catalog manifest construction, `selection_defaults.rs` owns defaulting orchestration, `selection_defaults/catalog_selections.rs` inserts missing package selections, and `selection_defaults/hydration.rs` hydrates runtime/editor crates and target modes. Package selection lookup is owned by `project.rs` and resolves through `RuntimePluginCatalogProjection::registration_index_for_package`, so the catalog does not rescan registrations.
 
 Extension merging is also folder-backed: `extension_merge/runtime.rs` owns runtime package merge, `feature.rs` owns feature extension merge, and `diagnostic.rs` owns fatal diagnostic fan-out.
 
@@ -569,9 +563,7 @@ Added coverage for manifest roundtrip, project manifest nested feature selection
 
 Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `extension_report.rs` now delegates its report declaration, status helpers, and full-catalog runtime extension report assembly to `extension_report/report.rs`, `status.rs`, and `runtime.rs`; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 30.01s with 10 existing warnings.
 
-Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `feature_resolution.rs` now delegates available-feature fixed-point resolution to `feature_resolution/availability.rs`; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 24.24s with 10 existing warnings.
-
-Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `feature_resolution/availability.rs` now keeps the available-feature fixed-point loop while `feature_resolution/availability/outcome.rs` owns available/blocked/waiting pending-feature status projection; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 2.01s with 10 existing warnings.
+The former availability/outcome fixed-point child split is superseded by the current hard cut. The production owner is the event-driven resolver in `feature_resolution.rs` plus `ordered_ready_set.rs`; deleted fixed-point children are not compatibility paths and are not part of current validation evidence.
 
 Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `feature_blocking.rs` now keeps final blocked-feature report projection while `feature_blocking/cycle.rs` owns unresolved feature id collection and feature-capability cycle marking; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 20.57s with 17 existing warnings.
 
@@ -587,7 +579,7 @@ Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plu
 
 Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `project_manifest/selection_defaults.rs` now delegates missing catalog selection insertion to `selection_defaults/catalog_selections.rs` and runtime/editor crate plus target-mode default hydration to `selection_defaults/hydration.rs`; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 23.52s with 10 existing warnings.
 
-Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `feature_capabilities.rs` now delegates base runtime package capability collection, feature-provided capability projection, and feature declaration checks to `feature_capabilities/base.rs`, `feature.rs`, and `declaration.rs`; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 24.20s with 10 existing warnings.
+The former base/declaration scan helpers are also superseded. Current production code indexes base capabilities and feature providers in `RuntimePluginCatalogProjection`; `feature_capabilities/feature.rs` remains the single-manifest projection helper, with no legacy scan shim.
 
 Fresh focused validation on 2026-06-02 used `D:\cargo-targets\zircon-runtime-plugin-boundary`: `runtime_feature_definitions.rs` now delegates runtime feature definition merge and package-manifest registration equality checks to `runtime_feature_definitions/merge.rs` and `registration_match.rs`; focused rustfmt, code migration-word scan, direct whitespace/conflict scans, tracked-file `git diff --check -- ...`, and `cargo check -p zircon_runtime --lib --locked --jobs 1 --target-dir D:\cargo-targets\zircon-runtime-plugin-boundary --message-format short --color never` passed in 20.09s with 10 existing warnings.
 
