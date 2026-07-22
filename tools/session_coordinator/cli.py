@@ -1,13 +1,18 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import os
 import shlex
+import signal
+import sqlite3
+import subprocess
 import sys
 import time
 import uuid
 import webbrowser
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -15,19 +20,33 @@ from .client import CoordinatorClient, CoordinatorClientError
 from .config import CoordinatorConfig
 from .models import CoordinatorError
 from .offline_queue import OfflineCommandSpool
-from .server import run_forever
+from .processes import process_creation_time
+from .server import (
+    bootstrap_proof_bound_handoff as prepare_proof_bound_handoff,
+    run_forever,
+    validate_proof_bound_handoff,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="zircon-session")
     parser.add_argument("--repo-root", default=str(Path.cwd()))
     parser.add_argument("--state-root")
+    parser.add_argument(
+        "--port",
+        type=int,
+        help="Override the local listener port; use 0 only for isolated test coordinators.",
+    )
     parser.add_argument("--json", action="store_true", dest="json_output")
     commands = parser.add_subparsers(dest="command", required=True)
     serve = commands.add_parser("serve")
     serve.add_argument("--automatic-start", action="store_true")
     commands.add_parser("status")
     commands.add_parser("stop")
+    bootstrap_handoff = commands.add_parser("bootstrap-handoff")
+    bootstrap_handoff.add_argument("--reservation-id", required=True)
+    bootstrap_handoff.add_argument("--maintenance-session-id", action="append", required=True)
+    bootstrap_handoff.add_argument("--actor", default="local-bootstrap")
 
     offline_queue = commands.add_parser("offline-queue")
     offline_queue_commands = offline_queue.add_subparsers(
@@ -86,6 +105,22 @@ def _parser() -> argparse.ArgumentParser:
     baseline_attribute = baseline_commands.add_parser("attribute")
     baseline_attribute.add_argument("paths", nargs="+")
     baseline_attribute.add_argument("--session-id")
+
+    ai_effort = commands.add_parser("ai-effort")
+    ai_effort_commands = ai_effort.add_subparsers(dest="ai_effort_command", required=True)
+    ai_effort_commands.add_parser("report")
+    ai_effort_record = ai_effort_commands.add_parser("record")
+    ai_effort_record.add_argument("--ledger-id", required=True)
+    ai_effort_record.add_argument("--plan-id", required=True)
+    ai_effort_record.add_argument("--active-ai-hours", type=float, required=True)
+    ai_effort_record.add_argument(
+        "--outcome", choices=("accepted", "failed", "superseded"), required=True
+    )
+    ai_effort_record.add_argument(
+        "--cost-class", choices=("delivery_design", "repair_validation"), required=True
+    )
+    ai_effort_record.add_argument("--blocked-by", action="append", default=[])
+    ai_effort_record.add_argument("--source-session-id")
 
     lease = commands.add_parser("lease")
     lease_commands = lease.add_subparsers(dest="lease_command", required=True)
@@ -165,7 +200,10 @@ def _parser() -> argparse.ArgumentParser:
     cargo_reserve_cpu.add_argument("--compatibility-json", required=True)
     cargo_reserve_cpu.add_argument("--target-dir")
     cargo_reserve_cpu.add_argument("--ttl-seconds", type=int, default=900)
-    cargo_reserve_cpu.add_argument("--burst-eligible", action="store_true")
+    burst_choice = cargo_reserve_cpu.add_mutually_exclusive_group()
+    burst_choice.add_argument("--burst-eligible", action="store_const", const=True, dest="burst_eligible")
+    burst_choice.add_argument("--no-burst", action="store_const", const=False, dest="burst_eligible")
+    cargo_reserve_cpu.set_defaults(burst_eligible=None)
     cargo_reserve_cpu.add_argument("command_args", nargs=argparse.REMAINDER)
     cargo_reserve_gpu = cargo_commands.add_parser("reserve-gpu")
     cargo_reserve_gpu.add_argument("--session-id", required=True)
@@ -359,10 +397,10 @@ def _split_command(value: str) -> list[str]:
 
 
 def _config(arguments: argparse.Namespace) -> CoordinatorConfig:
-    return CoordinatorConfig.for_repo(
-        arguments.repo_root,
-        state_root=arguments.state_root,
-    )
+    options: dict[str, Any] = {"state_root": arguments.state_root}
+    if arguments.port is not None:
+        options["port"] = arguments.port
+    return CoordinatorConfig.for_repo(arguments.repo_root, **options)
 
 
 def _offline_spool(config: CoordinatorConfig) -> OfflineCommandSpool:
@@ -417,11 +455,310 @@ def _write_report(path: str | None, payload: dict[str, Any]) -> None:
     os.replace(temporary, destination)
 
 
+def _runtime_descriptor(config: CoordinatorConfig) -> dict[str, object]:
+    try:
+        payload = json.loads(config.runtime_path.read_text(encoding="utf-8"))
+        instance_id = payload["instance_id"]
+        pid = payload["pid"]
+        creation_time = payload["process_creation_time"]
+        executable = payload["executable"]
+        command_line = payload["command_line"]
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise CoordinatorError(
+            "bootstrap_runtime_descriptor_invalid",
+            "Proof-bound bootstrap requires the current runtime descriptor",
+        ) from error
+    if (
+        not isinstance(instance_id, str)
+        or not instance_id
+        or not isinstance(pid, int)
+        or pid <= 0
+        or not isinstance(creation_time, str)
+        or not creation_time
+        or not isinstance(executable, str)
+        or not executable
+        or not isinstance(command_line, list)
+        or not command_line
+        or any(not isinstance(part, str) or not part for part in command_line)
+    ):
+        raise CoordinatorError(
+            "bootstrap_runtime_descriptor_invalid",
+            "Proof-bound bootstrap runtime descriptor has an invalid process identity",
+        )
+    return payload
+
+
+@dataclass(frozen=True)
+class _PredecessorHandle:
+    runtime: dict[str, object]
+    kernel32: Any | None = None
+    native_handle: int | None = None
+
+
+def _windows_kernel32():
+    return ctypes.WinDLL("kernel32", use_last_error=True)
+
+
+def _capture_predecessor_handle(runtime: dict[str, object]) -> _PredecessorHandle:
+    """Capture the exact predecessor before proof/hold commits.
+
+    Retaining the Windows process handle prevents PID reuse between the
+    identity check, shutdown request, and exit wait.
+    """
+    pid = int(runtime["pid"])
+    expected_creation = str(runtime["process_creation_time"])
+    if os.name == "nt":
+        synchronize = 0x00100000
+        query_limited_information = 0x1000
+        kernel32 = _windows_kernel32()
+        kernel32.OpenProcess.argtypes = [ctypes.c_uint32, ctypes.c_bool, ctypes.c_uint32]
+        kernel32.OpenProcess.restype = ctypes.c_void_p
+        kernel32.CloseHandle.argtypes = [ctypes.c_void_p]
+        kernel32.CloseHandle.restype = ctypes.c_bool
+        native_handle = kernel32.OpenProcess(
+            synchronize | query_limited_information, False, pid
+        )
+        if not native_handle:
+            raise CoordinatorError(
+                "bootstrap_predecessor_identity_unavailable",
+                "Cannot capture the predecessor process before proof-bound shutdown",
+                details={"pid": pid, "win32Error": ctypes.get_last_error()},
+            )
+        handle = _PredecessorHandle(runtime, kernel32, int(native_handle))
+    else:
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError as error:
+            raise CoordinatorError(
+                "bootstrap_predecessor_exited_before_hold",
+                "The predecessor exited before proof-bound shutdown",
+                details={"pid": pid},
+            ) from error
+        except PermissionError as error:
+            raise CoordinatorError(
+                "bootstrap_predecessor_identity_unavailable",
+                "Cannot capture the predecessor process before proof-bound shutdown",
+                details={"pid": pid},
+            ) from error
+        handle = _PredecessorHandle(runtime)
+    try:
+        actual_creation = process_creation_time(pid)
+    except OSError as error:
+        _close_predecessor_handle(handle)
+        raise CoordinatorError(
+            "bootstrap_predecessor_identity_unavailable",
+            "Cannot verify the captured predecessor process identity",
+        ) from error
+    if actual_creation != expected_creation:
+        _close_predecessor_handle(handle)
+        raise CoordinatorError(
+            "bootstrap_predecessor_changed",
+            "The runtime descriptor PID changed before proof-bound shutdown",
+        )
+    return handle
+
+
+def _close_predecessor_handle(handle: _PredecessorHandle) -> None:
+    if handle.kernel32 is not None and handle.native_handle is not None:
+        handle.kernel32.CloseHandle(handle.native_handle)
+
+
+def _predecessor_handle_exited(handle: _PredecessorHandle) -> bool:
+    if handle.kernel32 is None or handle.native_handle is None:
+        pid = int(handle.runtime["pid"])
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        except PermissionError as error:
+            raise CoordinatorError(
+                "bootstrap_predecessor_identity_unavailable",
+                "Cannot prove whether the predecessor process exited",
+                details={"pid": pid},
+            ) from error
+        return False
+    wait_object_0 = 0
+    wait_timeout = 258
+    handle.kernel32.WaitForSingleObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]
+    handle.kernel32.WaitForSingleObject.restype = ctypes.c_uint32
+    wait_result = int(handle.kernel32.WaitForSingleObject(handle.native_handle, 0))
+    if wait_result == wait_object_0:
+        return True
+    if wait_result == wait_timeout:
+        return False
+    raise CoordinatorError(
+        "bootstrap_predecessor_wait_failed",
+        "Cannot wait for the captured predecessor process to exit",
+        details={"pid": handle.runtime["pid"], "waitResult": wait_result},
+    )
+
+
+def _shutdown_predecessor(handle: _PredecessorHandle) -> None:
+    if _predecessor_handle_exited(handle):
+        raise CoordinatorError(
+            "bootstrap_predecessor_exited_before_shutdown",
+            "The predecessor exited before its controlled shutdown request",
+            details={"pid": handle.runtime["pid"]},
+        )
+    pid = int(handle.runtime["pid"])
+    # Do not terminate descendants: a surprise real Cargo tree must survive for
+    # audited reconciliation and will make the post-handoff audit not-ready.
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill.exe", "/PID", str(pid), "/F"],
+            check=True,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    else:
+        os.kill(pid, signal.SIGTERM)
+
+
+def _wait_for_predecessor_exit(
+    handle: _PredecessorHandle, *, timeout_seconds: float = 15.0
+) -> None:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if _predecessor_handle_exited(handle):
+            return
+        time.sleep(0.05)
+    raise CoordinatorError(
+        "bootstrap_predecessor_exit_timeout",
+        "The predecessor did not exit after the proof-bound shutdown request",
+    )
+
+
+def _start_successor(runtime: dict[str, object]) -> int:
+    creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0) if os.name == "nt" else 0
+    process = subprocess.Popen(
+        [str(runtime["executable"]), *(str(part) for part in runtime["command_line"])],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        creationflags=creationflags,
+    )
+    return int(process.pid)
+
+
+def _wait_for_successor(
+    config: CoordinatorConfig,
+    *,
+    predecessor_instance_id: str,
+    predecessor_pid: int,
+    timeout_seconds: float = 30.0,
+) -> dict[str, object]:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        try:
+            runtime = _runtime_descriptor(config)
+        except CoordinatorError:
+            time.sleep(0.05)
+            continue
+        if runtime["instance_id"] == predecessor_instance_id or int(runtime["pid"]) == predecessor_pid:
+            time.sleep(0.05)
+            continue
+        try:
+            health = CoordinatorClient.from_runtime(config).health()
+        except CoordinatorClientError:
+            time.sleep(0.05)
+            continue
+        supervision = health.get("supervision")
+        if isinstance(supervision, dict) and bool(supervision.get("maintenanceHold")):
+            return {"runtime": runtime, "health": health}
+        time.sleep(0.05)
+    raise CoordinatorError(
+        "bootstrap_successor_timeout",
+        "The successor did not publish a proof-bound maintenance hold",
+    )
+
+
+def _bootstrap_operational_error_code(error: BaseException) -> str:
+    if isinstance(error, CoordinatorError):
+        return error.code
+    if isinstance(error, subprocess.TimeoutExpired):
+        return "bootstrap_process_timeout"
+    if isinstance(error, subprocess.CalledProcessError):
+        return "bootstrap_process_command_failed"
+    if isinstance(error, sqlite3.DatabaseError):
+        return "bootstrap_database_error"
+    return "bootstrap_process_os_error"
+
+
+def bootstrap_proof_bound_handoff(
+    config: CoordinatorConfig,
+    *,
+    reservation_id: str,
+    maintenance_session_ids: tuple[str, ...],
+    actor: str,
+) -> dict[str, object]:
+    """Execute the no-gap predecessor-stop-to-successor-proof protocol."""
+    predecessor = _runtime_descriptor(config)
+    predecessor_handle = _capture_predecessor_handle(predecessor)
+    prepared: dict[str, object] | None = None
+    try:
+        prepared = prepare_proof_bound_handoff(
+            config,
+            reservation_id=reservation_id,
+            maintenance_session_ids=maintenance_session_ids,
+            actor=actor,
+            expected_daemon_instance_id=str(predecessor["instance_id"]),
+            expected_process_id=int(predecessor["pid"]),
+            expected_process_creation_time=str(predecessor["process_creation_time"]),
+        )
+        _shutdown_predecessor(predecessor_handle)
+        _wait_for_predecessor_exit(predecessor_handle)
+        _start_successor(predecessor)
+        successor = _wait_for_successor(
+            config,
+            predecessor_instance_id=str(predecessor["instance_id"]),
+            predecessor_pid=int(predecessor["pid"]),
+        )
+        audit = validate_proof_bound_handoff(
+            config,
+            action_id=str(prepared["actionId"]),
+            reservation_id=reservation_id,
+        )
+    except (
+        CoordinatorError,
+        subprocess.SubprocessError,
+        sqlite3.DatabaseError,
+        OSError,
+    ) as error:
+        if prepared is None:
+            raise
+        return {
+            **prepared,
+            "ready": False,
+            "blockers": [
+                {
+                    "kind": "predecessor_handoff",
+                    "code": _bootstrap_operational_error_code(error),
+                }
+            ],
+        }
+    finally:
+        _close_predecessor_handle(predecessor_handle)
+    return {
+        **prepared,
+        **audit,
+        "successorInstanceId": successor["runtime"]["instance_id"],
+        "successorSchemaVersion": successor["runtime"].get("schema_version"),
+    }
+
+
 def _run(arguments: argparse.Namespace) -> dict[str, Any]:
     config = _config(arguments)
     if arguments.command == "serve":
         run_forever(config, automatic_start=arguments.automatic_start)
         return {"status": "stopped"}
+    if arguments.command == "bootstrap-handoff":
+        return bootstrap_proof_bound_handoff(
+            config,
+            reservation_id=arguments.reservation_id,
+            maintenance_session_ids=tuple(arguments.maintenance_session_id),
+            actor=arguments.actor,
+        )
     if arguments.command == "offline-queue":
         spool = _offline_spool(config)
         if arguments.offline_queue_command == "status":
@@ -506,6 +843,21 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
                 "baseline.attribute",
                 {"session_id": _session_id(arguments.session_id), "paths": arguments.paths},
             )
+    if arguments.command == "ai-effort":
+        if arguments.ai_effort_command == "report":
+            return client.command("ai_effort.report", {})
+        return client.command(
+            "ai_effort.record",
+            {
+                "ledger_id": arguments.ledger_id,
+                "plan_id": arguments.plan_id,
+                "active_ai_hours": arguments.active_ai_hours,
+                "outcome": arguments.outcome,
+                "cost_class": arguments.cost_class,
+                "blocked_by": arguments.blocked_by,
+                "source_session_id": arguments.source_session_id,
+            },
+        )
     if arguments.command == "lease":
         if arguments.lease_command == "claim":
             return client.command(
@@ -595,16 +947,18 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
             command = list(arguments.command_args)
             if command and command[0] == "--":
                 command = command[1:]
+            payload: dict[str, object] = {
+                "session_id": _session_id(arguments.session_id),
+                "compatibility": json.loads(arguments.compatibility_json),
+                "target_dir": arguments.target_dir,
+                "ttl_seconds": arguments.ttl_seconds,
+                "command": command,
+            }
+            if arguments.burst_eligible is not None:
+                payload["burst_eligible"] = arguments.burst_eligible
             return client.command(
                 "cargo.reserve_cpu",
-                {
-                    "session_id": _session_id(arguments.session_id),
-                    "compatibility": json.loads(arguments.compatibility_json),
-                    "target_dir": arguments.target_dir,
-                    "ttl_seconds": arguments.ttl_seconds,
-                    "burst_eligible": arguments.burst_eligible,
-                    "command": command,
-                },
+                payload,
             )
         if arguments.cargo_command == "reserve-gpu":
             command = list(arguments.command_args)
@@ -762,7 +1116,10 @@ def _run(arguments: argparse.Namespace) -> dict[str, Any]:
         if arguments.milestone_command == "prepare":
             action = client.execute_control_action(
                 "topology.refresh",
-                {"sessionId": arguments.session_id},
+                {
+                    "sessionId": arguments.session_id,
+                    "milestoneId": arguments.milestone.strip().upper(),
+                },
                 reason=f"prepare milestone {arguments.milestone.strip().upper()}",
             )
         elif arguments.milestone_command == "validate":
@@ -981,7 +1338,13 @@ def main(argv: list[str] | None = None) -> int:
     arguments = _parser().parse_args(argv)
     try:
         result = _run(arguments)
-    except (CoordinatorClientError, CoordinatorError, OSError, ValueError) as error:
+    except (
+        CoordinatorClientError,
+        CoordinatorError,
+        sqlite3.DatabaseError,
+        OSError,
+        ValueError,
+    ) as error:
         if (
             isinstance(error, CoordinatorClientError)
             and error.code == "offline"
@@ -1011,7 +1374,13 @@ def main(argv: list[str] | None = None) -> int:
                     else json.dumps(result, ensure_ascii=False, indent=2, sort_keys=True)
                 )
                 return 0
-        if hasattr(error, "to_dict"):
+        if isinstance(error, sqlite3.DatabaseError):
+            issue = {
+                "code": "coordinator_database_error",
+                "message": "Coordinator database operation failed",
+                "details": {},
+            }
+        elif hasattr(error, "to_dict"):
             issue = error.to_dict()
         else:
             issue = {"code": "invalid_request", "message": str(error), "details": {}}

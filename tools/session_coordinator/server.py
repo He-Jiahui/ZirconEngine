@@ -16,6 +16,13 @@ from pathlib import Path
 from typing import Any
 
 from .config import CoordinatorConfig
+from .ai_effort import (
+    AiEffortCostClass,
+    AiEffortMilestone,
+    AiEffortOutcome,
+    AiEffortService,
+    normalize_blocked_by,
+)
 from .baselines import BaselineService
 from .database import Database
 from .leases import LeaseService, PathPolicy, lease_paths_overlap
@@ -74,6 +81,177 @@ def _pid_is_alive(pid: int) -> bool:
     return process_is_alive(pid)
 
 
+def _git_finalize_recovery_pending(database: Database) -> bool:
+    with database.connect() as connection:
+        row = connection.execute(
+            """
+            SELECT
+                EXISTS(SELECT 1 FROM git_mutex WHERE lock_name='index')
+                OR EXISTS(
+                    SELECT 1 FROM finalize_requests
+                    WHERE status='finalizing'
+                       OR (status='committed' AND commit_sha IS NULL AND ref_updated_sha IS NOT NULL)
+                )
+                OR EXISTS(
+                    SELECT 1
+                    FROM sessions session
+                    JOIN finalize_requests request ON request.session_id=session.session_id
+                    WHERE session.status='finalizing' AND request.status='committed'
+                )
+            """
+        ).fetchone()
+    return bool(row[0])
+
+
+def bootstrap_proof_bound_handoff(
+    config: CoordinatorConfig,
+    *,
+    reservation_id: str,
+    maintenance_session_ids: tuple[str, ...],
+    actor: str,
+    expected_daemon_instance_id: str | None = None,
+    expected_process_id: int | None = None,
+    expected_process_creation_time: str | None = None,
+) -> dict[str, object]:
+    """Create the durable no-gap hold before an external daemon handoff.
+
+    This deliberately opens SQLite directly instead of asking the predecessor
+    to execute a newer action it has not loaded yet.  The transaction itself
+    becomes the handoff boundary: old and successor daemons both use the same
+    persisted `maintenance_hold` and proof record for their mutation gate.
+    """
+    database = Database(config.database_path)
+    migrate(database)
+    identity = repository_identity(config.repo_root)
+    with database.connect() as connection:
+        state = connection.execute(
+            """
+            SELECT daemon_instance_id, process_creation_time
+            FROM service_recovery_state
+            WHERE repository_key=?
+            """,
+            (identity.key,),
+        ).fetchone()
+    if state is None:
+        raise CoordinatorError("supervision_uninitialized", "Supervision state is missing")
+    supervision = SupervisionService(
+        database,
+        repository_key=identity.key,
+        daemon_instance_id=state["daemon_instance_id"],
+        process_creation_time=state["process_creation_time"],
+        maintenance_session_ids=maintenance_session_ids,
+    )
+    return supervision.bootstrap_proof_bound_handoff(
+        reservation_id=reservation_id,
+        maintenance_session_ids=maintenance_session_ids,
+        actor=actor,
+        expected_daemon_instance_id=expected_daemon_instance_id,
+        expected_process_id=expected_process_id,
+        expected_process_creation_time=expected_process_creation_time,
+    )
+
+
+def validate_proof_bound_handoff(
+    config: CoordinatorConfig,
+    *,
+    action_id: str,
+    reservation_id: str,
+) -> dict[str, object]:
+    """Return ready only after predecessor exit left no post-proof Cargo mutation."""
+    database = Database(config.database_path)
+    migrate(database)
+    identity = repository_identity(config.repo_root)
+    # The successor must make its ready decision against one SQLite snapshot.
+    # A consume that slips between separately-opened reads would otherwise
+    # allow a stale ``ready=true`` response after the HGI job was leased.
+    with database.transaction() as connection:
+        state = connection.execute(
+            """
+            SELECT daemon_instance_id, process_creation_time, maintenance_hold
+            FROM service_recovery_state WHERE repository_key=?
+            """,
+            (identity.key,),
+        ).fetchone()
+        if state is None or not bool(state["maintenance_hold"]):
+            return {
+                "ready": False,
+                "blockers": [{"kind": "maintenance_hold", "status": "missing"}],
+            }
+        supervision = SupervisionService(
+            database,
+            repository_key=identity.key,
+            daemon_instance_id=state["daemon_instance_id"],
+            process_creation_time=state["process_creation_time"],
+        )
+        blockers: list[dict[str, object]] = []
+        proof = supervision.proof_bound_drain(connection)
+        if proof is None or proof["action_id"] != action_id:
+            blockers.append({"kind": "proof", "status": "mismatch"})
+        else:
+            result = supervision._proof_result(proof)
+            fence_event_id = result.get("bootstrapFenceEventId")
+            if not isinstance(fence_event_id, int):
+                blockers.append({"kind": "proof", "status": "fence_missing"})
+            else:
+                post_proof = connection.execute(
+                    """
+                    SELECT event_id, event_type FROM events
+                    WHERE event_id>? AND event_type LIKE 'cargo.%'
+                    ORDER BY event_id
+                    """,
+                    (fence_event_id,),
+                ).fetchall()
+                blockers.extend(
+                    {
+                        "kind": "post_proof_cargo_event",
+                        "eventId": row["event_id"],
+                        "eventType": row["event_type"],
+                    }
+                    for row in post_proof
+                )
+            baseline_ledger = result.get("cpuReservationLedger")
+            if not isinstance(baseline_ledger, list):
+                blockers.append({"kind": "proof", "status": "reservation_ledger_missing"})
+            else:
+                current_ledger = supervision._cpu_reservation_ledger(connection)
+                if current_ledger != baseline_ledger:
+                    blockers.append(
+                        {
+                            "kind": "post_proof_reservation_ledger_drift",
+                            "baselineCount": len(baseline_ledger),
+                            "currentCount": len(current_ledger),
+                        }
+                    )
+        active_jobs = connection.execute(
+            """
+            SELECT job_id, session_id, status FROM cargo_jobs
+            WHERE status IN ('leased', 'running') ORDER BY job_id
+            """
+        ).fetchall()
+        blockers.extend(
+            {
+                "kind": "cargo",
+                "jobId": row["job_id"],
+                "sessionId": row["session_id"],
+                "status": row["status"],
+            }
+            for row in active_jobs
+        )
+        result = supervision._proof_result(proof) if proof is not None else {}
+        binding = result.get("reservationBinding")
+        reservation_session_id = binding.get("sessionId") if isinstance(binding, dict) else None
+        if not isinstance(reservation_session_id, str) or not reservation_session_id:
+            blockers.append({"kind": "reservation", "code": "maintenance_proof_reservation_mismatch"})
+        else:
+            try:
+                supervision.require_proof_bound_reservation_in_connection(
+                    connection, reservation_id, session_id=reservation_session_id
+                )
+            except CoordinatorError as error:
+                blockers.append({"kind": "reservation", "code": error.code})
+        return {"ready": not blockers, "blockers": blockers}
+
+
 class CoordinatorApplication:
     READ_ONLY_COMMANDS = frozenset(
         {
@@ -97,6 +275,7 @@ class CoordinatorApplication:
             "retention.show",
             "audit.all",
             "artifact.audit",
+            "ai_effort.report",
         }
     )
     # These commands either own an independent short SQLite transition or do
@@ -119,6 +298,7 @@ class CoordinatorApplication:
             "cargo.reserve_cpu",
             "cargo.reserve_gpu",
             "cargo.renew_cpu_reservation",
+            "cargo.promote_failure_reservation",
             "cargo.consume_cpu_reservation",
             "cargo.consume_gpu_reservation",
             "cargo.recover_expired_reservation",
@@ -128,6 +308,7 @@ class CoordinatorApplication:
             "cargo.heartbeat",
             "cargo.finish",
             "cargo.release",
+            "ai_effort.record",
             "validation_copy.materialize",
             "validation_copy.run",
             "validation_copy.cleanup",
@@ -148,6 +329,8 @@ class CoordinatorApplication:
         self.started_at = started_at or utc_text()
         self.database = Database(config.database_path)
         migrate(self.database)
+        self.ai_effort = AiEffortService(self.database)
+        self.ai_effort.seed_user_baseline()
         self.workflows = WorkflowStore(self.database)
         self.sessions = SessionService(
             self.database,
@@ -192,7 +375,8 @@ class CoordinatorApplication:
             self.plans,
             self.failures,
         )
-        self.finalize.recover_stale_mutex()
+        if _git_finalize_recovery_pending(self.database):
+            self.finalize.recover_stale_mutex()
         if config.enabled_target_roots:
             self.cargo_jobs: CargoJobService | None = CargoJobService(
                 self.database,
@@ -256,6 +440,11 @@ class CoordinatorApplication:
             maintenance_session_ids=self._maintenance_session_ids_for_startup(),
         )
         self.supervision.initialize(automatic_start=automatic_start)
+        if self.cargo_jobs is not None:
+            self.cargo_jobs.set_admission_guard(self._require_admission_checkpoint)
+            self.cargo_jobs.set_reservation_consume_guard(
+                self._require_reservation_consume_guard
+            )
         if config.codex_home is None or config.codex_spool_base is None:
             raise CoordinatorError("codex_config_invalid", "Codex sync roots are unavailable")
         self.codex_discovery = CodexSessionDiscovery(config.codex_home, config.repo_root)
@@ -398,12 +587,19 @@ class CoordinatorApplication:
             if state is None or not bool(state["maintenance_hold"]):
                 return environment_ids
             row = connection.execute(
-                """SELECT parameters_json FROM action_requests
-                   WHERE action_kind='service.drain'
-                     AND status='succeeded'
-                     AND completed_at IS NOT NULL
-                   ORDER BY completed_at DESC, action_id DESC
-                   LIMIT 1""",
+                """
+                SELECT action.parameters_json
+                FROM service_lifecycle_intents AS intent
+                JOIN action_requests AS action ON action.action_id=intent.action_id
+                WHERE intent.repository_key=?
+                  AND intent.kind='service.drain'
+                  AND intent.status='succeeded'
+                  AND json_extract(intent.result_json, '$.proofBound')=1
+                  AND action.status='succeeded'
+                ORDER BY intent.created_at DESC, intent.intent_id DESC
+                LIMIT 1
+                """,
+                (self.repository_identity.key,),
             ).fetchone()
         if row is None:
             return environment_ids
@@ -452,10 +648,12 @@ class CoordinatorApplication:
         if name in self.NON_BLOCKING_MUTATION_COMMANDS:
             if self.read_only:
                 return self._command_unlocked(name, arguments)
-            self.supervision.require_mutation_allowed(
+            admission_checkpoint = self.supervision.require_mutation_allowed(
                 self._mutation_operation(name, arguments)
             )
-            return self._command_unlocked(name, arguments)
+            return self._command_unlocked(
+                name, arguments, admission_checkpoint=admission_checkpoint
+            )
         if name == "supervision.force_stop_ack":
             with self._mutation_lock:
                 return self._command_unlocked(name, arguments)
@@ -463,9 +661,13 @@ class CoordinatorApplication:
             return self._command_unlocked(name, arguments)
         if name == "legacy.import" and bool(arguments.get("apply")):
             self._require_maintenance_capability(arguments)
-        self.supervision.require_mutation_allowed(self._mutation_operation(name, arguments))
+        admission_checkpoint = self.supervision.require_mutation_allowed(
+            self._mutation_operation(name, arguments)
+        )
         with self._mutation_lock:
-            return self._command_unlocked(name, arguments)
+            return self._command_unlocked(
+                name, arguments, admission_checkpoint=admission_checkpoint
+            )
 
     @staticmethod
     def _mutation_operation(name: str, arguments: dict[str, Any]) -> str:
@@ -592,7 +794,23 @@ class CoordinatorApplication:
             },
         )
 
-    def _command_unlocked(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    def _require_admission_checkpoint(self, connection, operation: str, checkpoint: str) -> None:
+        self.supervision.require_mutation_checkpoint(connection, operation, checkpoint)
+
+    def _require_reservation_consume_guard(
+        self, connection, reservation_id: str, session_id: str
+    ) -> None:
+        self.supervision.require_proof_bound_reservation_in_connection(
+            connection, reservation_id, session_id=session_id
+        )
+
+    def _command_unlocked(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        admission_checkpoint: str | None = None,
+    ) -> dict[str, Any]:
         if self.read_only and name not in self.READ_ONLY_COMMANDS:
             raise CoordinatorError(
                 "not_on_main",
@@ -681,6 +899,63 @@ class CoordinatorApplication:
         if name == "baseline.reconcile":
             baseline = self.baselines.reconcile_health()
             return {"baseline": self._baseline_dict(baseline)}
+        if name == "ai_effort.report":
+            if arguments:
+                raise CoordinatorError(
+                    "ai_effort_report_arguments_invalid",
+                    "AI effort report does not accept arguments",
+                )
+            return {"report": self.ai_effort.report()}
+        if name == "ai_effort.record":
+            required = {
+                "ledger_id",
+                "plan_id",
+                "active_ai_hours",
+                "outcome",
+                "cost_class",
+                "blocked_by",
+            }
+            allowed = required | {"source_session_id"}
+            if not required.issubset(arguments) or set(arguments) - allowed:
+                raise CoordinatorError(
+                    "ai_effort_record_arguments_invalid",
+                    "AI effort record requires the explicit milestone ledger fields",
+                )
+            hours = arguments["active_ai_hours"]
+            if isinstance(hours, bool) or not isinstance(hours, (int, float)):
+                raise CoordinatorError(
+                    "ai_effort_hours_invalid", "AI effort hours must be numeric"
+                )
+            source_session_id = arguments.get("source_session_id")
+            if source_session_id is not None and not isinstance(source_session_id, str):
+                raise CoordinatorError(
+                    "ai_effort_source_session_invalid",
+                    "source_session_id must be a string or null",
+                )
+            try:
+                outcome = AiEffortOutcome(str(arguments["outcome"]))
+            except ValueError as error:
+                raise CoordinatorError(
+                    "ai_effort_outcome_invalid", "AI effort outcome is invalid"
+                ) from error
+            try:
+                cost_class = AiEffortCostClass(str(arguments["cost_class"]))
+            except ValueError as error:
+                raise CoordinatorError(
+                    "ai_effort_cost_class_invalid", "AI effort cost class is invalid"
+                ) from error
+            record = self.ai_effort.record(
+                AiEffortMilestone(
+                    ledger_id=str(arguments["ledger_id"]),
+                    plan_id=str(arguments["plan_id"]),
+                    active_ai_hours=float(hours),
+                    outcome=outcome,
+                    blocked_by=normalize_blocked_by(arguments["blocked_by"]),
+                    cost_class=cost_class,
+                    source_session_id=source_session_id,
+                )
+            )
+            return {"record": record}
         if name == "lease.claim":
             result = self.leases.acquire(str(arguments["session_id"]), arguments.get("paths") or [])
             return {"lease": asdict(result)}
@@ -797,6 +1072,7 @@ class CoordinatorApplication:
                 owner_pid=int(arguments["pid"]) if arguments.get("pid") else None,
                 ephemeral=bool(arguments.get("ephemeral")),
                 compatibility=compatibility,
+                admission_checkpoint=admission_checkpoint,
             )
             cleanup_scheduled = self._require_cleanup().schedule_pending_cleanup()
             return {"job": job.to_dict(), "cleanup_scheduled": cleanup_scheduled}
@@ -820,11 +1096,11 @@ class CoordinatorApplication:
                     "cargo_cpu_reservation_target_invalid",
                     "CPU lane reservation target_dir must be a text path when supplied",
                 )
-            burst_eligible = arguments.get("burst_eligible", False)
-            if not isinstance(burst_eligible, bool):
+            burst_eligible = arguments.get("burst_eligible")
+            if burst_eligible is not None and not isinstance(burst_eligible, bool):
                 raise CoordinatorError(
                     "cargo_cpu_burst_eligibility_invalid",
-                    "CPU burst eligibility must be a boolean when supplied",
+                    "CPU burst eligibility must be a boolean or omitted for automatic selection",
                 )
             reservation = self._require_cargo_jobs().reserve_cpu(
                 str(arguments["session_id"]),
@@ -833,6 +1109,7 @@ class CoordinatorApplication:
                 command=arguments.get("command") or [],
                 ttl_seconds=int(arguments.get("ttl_seconds", 900)),
                 burst_eligible=burst_eligible,
+                admission_checkpoint=admission_checkpoint,
             )
             return {"reservation": reservation}
         if name == "cargo.reserve_gpu":
@@ -861,6 +1138,7 @@ class CoordinatorApplication:
                 target_dir=str(arguments["target_dir"]),
                 command=arguments.get("command") or [],
                 ttl_seconds=int(arguments.get("ttl_seconds", 900)),
+                admission_checkpoint=admission_checkpoint,
             )
             return {"reservation": reservation}
         if name == "cargo.release_cpu_reservation":
@@ -874,6 +1152,23 @@ class CoordinatorApplication:
                 str(arguments["reservation_id"]),
                 session_id=str(arguments["session_id"]),
                 ttl_seconds=int(arguments.get("ttl_seconds", 900)),
+            )
+            return {"reservation": reservation}
+        if name == "cargo.promote_failure_reservation":
+            required = {"session_id", "reservation_id", "failure_lifecycle_key"}
+            if set(arguments) != required or any(
+                not isinstance(arguments.get(field), str) or not arguments[field]
+                for field in required
+            ):
+                raise CoordinatorError(
+                    "cargo_reservation_failure_promotion_arguments_invalid",
+                    "Failure reservation promotion accepts only session_id, reservation_id, and failure_lifecycle_key",
+                )
+            reservation = self._require_cargo_jobs().promote_cpu_reservation_for_failure(
+                str(arguments["reservation_id"]),
+                session_id=str(arguments["session_id"]),
+                failure_lifecycle_key=str(arguments["failure_lifecycle_key"]),
+                admission_checkpoint=admission_checkpoint,
             )
             return {"reservation": reservation}
         if name == "cargo.consume_cpu_reservation":
@@ -898,10 +1193,14 @@ class CoordinatorApplication:
                     "cargo_reservation_consume_arguments_invalid",
                     "CPU reservation consumption cannot create a GPU job",
                 )
+            self.supervision.require_proof_bound_reservation(
+                str(arguments["reservation_id"]), session_id=str(arguments["session_id"])
+            )
             job = self._require_cargo_jobs().consume_cpu_reservation(
                 str(arguments["reservation_id"]),
                 session_id=str(arguments["session_id"]),
                 lane_kind=lane_kind,
+                admission_checkpoint=admission_checkpoint,
             )
             cleanup_scheduled = self._require_cleanup().schedule_pending_cleanup()
             return {"job": job.to_dict(), "cleanup_scheduled": cleanup_scheduled}
@@ -977,6 +1276,11 @@ class CoordinatorApplication:
                 session_id=str(arguments["session_id"]),
                 job_id=str(arguments["job_id"]),
                 command=command,
+            )
+            self.supervision.require_proof_bound_reservation(
+                str(arguments["reservation_id"]),
+                session_id=str(arguments["session_id"]),
+                job_id=str(arguments["job_id"]),
             )
             run = self._require_cargo_runner().start(
                 session_id=str(arguments["session_id"]),
@@ -1664,7 +1968,6 @@ class RunningCoordinator:
                 started_at=started_at,
                 process=application.process_identity,
             )
-            _atomic_json_write(config.runtime_path, descriptor.to_payload())
             if application.read_only:
                 application.supervision.transition(
                     SupervisionState.READ_ONLY,
@@ -1681,6 +1984,7 @@ class RunningCoordinator:
                 )
             else:
                 application.supervision.mark_healthy()
+            _atomic_json_write(config.runtime_path, descriptor.to_payload())
             application.lifecycle.recover_restart_intents()
             application.codex_worker.start()
             (config.state_root / "startup-failure.json").unlink(missing_ok=True)

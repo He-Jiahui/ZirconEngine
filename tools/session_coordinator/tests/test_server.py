@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import subprocess
 import time
@@ -13,6 +14,7 @@ from datetime import date
 from pathlib import Path
 from unittest import mock
 
+from tools.session_coordinator import cli, server
 from tools.session_coordinator.client import CoordinatorClient, CoordinatorClientError
 from tools.session_coordinator.cargo_jobs import (
     CargoCompatibility,
@@ -26,15 +28,40 @@ from tools.session_coordinator.codex_sync.models import CodexReconcileResult
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.sessions import SessionService
-from tools.session_coordinator.server import CoordinatorApplication, RunningCoordinator
+from tools.session_coordinator.server import (
+    CoordinatorApplication,
+    RunningCoordinator,
+    validate_proof_bound_handoff,
+)
 from tools.session_coordinator.models import CoordinatorError, SessionStatus, SupervisionState
 from tools.session_coordinator.tests.helpers import init_repo
 from tools.session_coordinator.tests.failure_fixture import FailureGraphFixture
+from tools.session_coordinator.watch import WorkspaceWatcher
 from tools.session_coordinator.workspace_copy import WorkspaceCopyRecord
 
 
 class ServerTests(unittest.TestCase):
-    def test_cpu_burst_eligibility_requires_a_boolean_and_reaches_the_reservation(self) -> None:
+    def test_pending_git_recovery_still_requires_the_daemon_process_lock(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            database = Database(config.database_path)
+            migrate(database)
+            with database.transaction() as connection:
+                connection.execute(
+                    "INSERT INTO git_mutex(lock_name, owner_id, acquired_at) VALUES ('index', ?, datetime('now'))",
+                    ("interrupted-owner",),
+                )
+
+            with self.assertRaises(CoordinatorError) as rejected:
+                CoordinatorApplication(config)
+
+        self.assertEqual(
+            "finalize_recovery_process_unproven", rejected.exception.code
+        )
+
+    def test_cpu_burst_eligibility_defaults_for_safe_checks_and_allows_opt_out(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             repo = init_repo(root / "repo")
@@ -56,17 +83,32 @@ class ServerTests(unittest.TestCase):
                 "target_dir": None,
                 "ttl_seconds": 900,
                 "command": ["cargo", "check", "-p", "zircon_runtime"],
-                "burst_eligible": True,
             }
 
             result = application.command("cargo.reserve_cpu", arguments)
 
             self.assertTrue(result["reservation"]["burstEligible"])
+            disabled = application.command(
+                "cargo.reserve_cpu", {**arguments, "burst_eligible": False}
+            )
+            self.assertFalse(disabled["reservation"]["burstEligible"])
             with self.assertRaises(CoordinatorError) as rejected:
                 application.command(
                     "cargo.reserve_cpu", {**arguments, "burst_eligible": "true"}
                 )
             self.assertEqual("cargo_cpu_burst_eligibility_invalid", rejected.exception.code)
+
+    def test_reserve_cpu_cli_preserves_auto_default_and_explicit_opt_out(self) -> None:
+        parser = cli._parser()
+        automatic = parser.parse_args(
+            ["cargo", "reserve-cpu", "--compatibility-json", "{}", "--", "cargo", "check"]
+        )
+        disabled = parser.parse_args(
+            ["cargo", "reserve-cpu", "--compatibility-json", "{}", "--no-burst", "--", "cargo", "check"]
+        )
+
+        self.assertIsNone(automatic.burst_eligible)
+        self.assertFalse(disabled.burst_eligible)
 
     def test_lease_release_succeeds_when_a_stale_session_has_a_queued_patch(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -515,6 +557,39 @@ class ServerTests(unittest.TestCase):
                 self.assertEqual("draining", health["supervision"]["state"])
                 self.assertTrue(health["supervision"]["maintenanceHold"])
 
+    def test_runtime_descriptor_is_published_after_durable_hold_enters_draining(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            prepared = CoordinatorApplication(config)
+            prepared.supervision.transition(
+                SupervisionState.HEALTHY,
+                reason_code="test.descriptor_order",
+                actor="test",
+                updates={"maintenance_hold": 1},
+            )
+            original_write = server._atomic_json_write
+            published_states: list[str] = []
+
+            def capture_runtime_state(path, payload) -> None:
+                if path == config.runtime_path:
+                    with Database(config.database_path).connect() as connection:
+                        published_states.append(
+                            connection.execute(
+                                "SELECT state FROM service_recovery_state LIMIT 1"
+                            ).fetchone()["state"]
+                        )
+                original_write(path, payload)
+
+            with mock.patch.object(
+                server, "_atomic_json_write", side_effect=capture_runtime_state
+            ):
+                with RunningCoordinator.start(config):
+                    pass
+
+        self.assertEqual(["draining"], published_states)
+
     def test_successor_rehydrates_scoped_maintenance_hold_from_drain_action(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -547,6 +622,58 @@ class ServerTests(unittest.TestCase):
                         ),
                     ),
                 )
+                connection.execute(
+                    """
+                    INSERT INTO service_lifecycle_intents(
+                        intent_id, repository_key, action_id, kind, status, requested_by,
+                        source_daemon_instance_id, created_at, updated_at, completed_at, result_json
+                    ) VALUES (
+                        'scoped-drain-intent', ?, 'scoped-drain', 'service.drain', 'succeeded',
+                        'operator', 'daemon-a', '2099-01-01T00:00:00+00:00',
+                        '2099-01-01T00:00:00+00:00', '2099-01-01T00:00:00+00:00',
+                        '{"admissionOpen": false, "proofBound": true}'
+                    )
+                    """,
+                    (prepared.repository_identity.key,),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO action_requests(
+                        action_id, action_kind, risk, required_role, actor,
+                        daemon_instance_id, parameters_json, impact_json, warnings_json,
+                        state_fingerprint, confirmation_phrase_hash, status, created_at,
+                        expires_at, completed_at
+                    ) VALUES (
+                        'stale-restart', 'service.restart', 'red', 'maintainer', 'operator',
+                        'daemon-a', ?, '[]', '[]', 'fingerprint', 'phrase', 'succeeded',
+                        '2101-01-01T00:00:00+00:00', '2101-01-01T00:00:00+00:00',
+                        '2101-01-01T00:00:00+00:00'
+                    )
+                    """,
+                    (
+                        json.dumps(
+                            {
+                                "timeoutSeconds": 30,
+                                "maintenanceSessionIds": ["restart-session"],
+                            },
+                            sort_keys=True,
+                        ),
+                    ),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO service_lifecycle_intents(
+                        intent_id, repository_key, action_id, kind, status, requested_by,
+                        source_daemon_instance_id, created_at, updated_at, completed_at, result_json
+                    ) VALUES (
+                        'stale-restart-intent', ?, 'stale-restart', 'service.restart', 'succeeded',
+                        'operator', 'daemon-a', '2101-01-01T00:00:00+00:00',
+                        '2101-01-01T00:00:00+00:00', '2101-01-01T00:00:00+00:00',
+                        '{"state": "healthy"}'
+                    )
+                    """,
+                    (prepared.repository_identity.key,),
+                )
             prepared.supervision.transition(
                 SupervisionState.DRAINING,
                 reason_code="lifecycle.drain.accepted",
@@ -568,6 +695,7 @@ class ServerTests(unittest.TestCase):
                 },
             ):
                 successor = CoordinatorApplication(config)
+            successor.supervision.mark_healthy()
             successor.supervision.transition(
                 SupervisionState.DRAINING,
                 reason_code="test.startup_maintenance_hold",
@@ -580,6 +708,319 @@ class ServerTests(unittest.TestCase):
             with self.assertRaises(CoordinatorError) as rejected:
                 successor.supervision.require_mutation_allowed("lease.claim@other-session")
             self.assertEqual("maintenance_hold_active", rejected.exception.code)
+            with self.assertRaises(CoordinatorError) as stale_restart:
+                successor.supervision.require_mutation_allowed(
+                    "cargo.consume_cpu_reservation@restart-session"
+                )
+            self.assertEqual("maintenance_hold_active", stale_restart.exception.code)
+
+    def test_successor_uses_only_a_proof_bound_drain_not_a_newer_legacy_drain(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            prepared = CoordinatorApplication(config)
+            with prepared.database.transaction() as connection:
+                for action_id, completed_at, session_id in (
+                    ("proof-drain", "2099-01-01T00:00:00+00:00", "hgi-session"),
+                    ("legacy-drain", "2100-01-01T00:00:00+00:00", "legacy-session"),
+                ):
+                    connection.execute(
+                        """
+                        INSERT INTO action_requests(
+                            action_id, action_kind, risk, required_role, actor,
+                            daemon_instance_id, parameters_json, impact_json, warnings_json,
+                            state_fingerprint, confirmation_phrase_hash, status, created_at,
+                            expires_at, completed_at
+                        ) VALUES (?, 'service.drain', 'red', 'maintainer', 'operator',
+                                  'daemon-a', ?, '[]', '[]', 'fingerprint', 'phrase',
+                                  'succeeded', ?, ?, ?)
+                        """,
+                        (
+                            action_id,
+                            json.dumps(
+                                {
+                                    "timeoutSeconds": 30,
+                                    "maintenanceSessionIds": [session_id],
+                                },
+                                sort_keys=True,
+                            ),
+                            completed_at,
+                            completed_at,
+                            completed_at,
+                        ),
+                    )
+                connection.execute(
+                    """
+                    INSERT INTO service_lifecycle_intents(
+                        intent_id, repository_key, action_id, kind, status, requested_by,
+                        source_daemon_instance_id, created_at, updated_at, completed_at,
+                        result_json
+                    ) VALUES (
+                        'proof-intent', ?, 'proof-drain', 'service.drain', 'succeeded',
+                        'operator', 'daemon-a', '2099-01-01T00:00:00+00:00',
+                        '2099-01-01T00:00:00+00:00', '2099-01-01T00:00:00+00:00',
+                        '{"admissionOpen": false, "proofBound": true, "reservationId": "hgi-reservation"}'
+                    )
+                    """,
+                    (prepared.repository_identity.key,),
+                )
+                connection.execute(
+                    """
+                    INSERT INTO service_lifecycle_intents(
+                        intent_id, repository_key, action_id, kind, status, requested_by,
+                        source_daemon_instance_id, created_at, updated_at, completed_at,
+                        result_json
+                    ) VALUES (
+                        'legacy-intent', ?, 'legacy-drain', 'service.drain', 'succeeded',
+                        'operator', 'daemon-a', '2100-01-01T00:00:00+00:00',
+                        '2100-01-01T00:00:00+00:00', '2100-01-01T00:00:00+00:00',
+                        '{"admissionOpen": false, "proofBound": false}'
+                    )
+                    """,
+                    (prepared.repository_identity.key,),
+                )
+            prepared.supervision.transition(
+                SupervisionState.DRAINING,
+                reason_code="test.bootstrap_hold",
+                actor="test",
+                updates={"maintenance_hold": 1},
+            )
+
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "ZIRCON_COORDINATOR_MAINTENANCE_SESSION": "",
+                    "ZIRCON_COORDINATOR_MAINTENANCE_SESSIONS": "",
+                },
+            ):
+                successor = CoordinatorApplication(config)
+            successor.supervision.mark_healthy()
+            successor.supervision.transition(
+                SupervisionState.DRAINING,
+                reason_code="test.startup_maintenance_hold",
+                actor="test",
+            )
+
+            successor.supervision.require_mutation_allowed(
+                "cargo.consume_cpu_reservation@hgi-session"
+            )
+            with self.assertRaises(CoordinatorError) as legacy:
+                successor.supervision.require_mutation_allowed(
+                    "cargo.consume_cpu_reservation@legacy-session"
+                )
+            self.assertEqual("maintenance_hold_active", legacy.exception.code)
+
+    def test_bootstrap_proof_allows_only_its_exact_cpu_reservation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            application = CoordinatorApplication(config)
+            application.supervision.mark_healthy()
+            for session_id in ("hgi-owner", "repair-owner"):
+                application.sessions.register(session_id=session_id)
+                application.sessions.set_status(session_id, SessionStatus.ACTIVE)
+            with application.database.transaction() as connection:
+                for reservation_id, session_id in (
+                    ("hgi-reservation", "hgi-owner"),
+                    ("other-reservation", "repair-owner"),
+                ):
+                    connection.execute(
+                        """
+                        INSERT INTO cargo_lane_reservations(
+                            reservation_id, session_id, lane_scope, compatibility_key,
+                            compatibility_json, command_fingerprint, job_id, status, created_at, expires_at,
+                            execution_mode, burst_eligible, priority_rank
+                        ) VALUES (?, ?, 'cpu', 'compat',
+                                  '{"source_manifest":{"owned.txt":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}}',
+                                  'command', NULL, 'pending',
+                                  '2026-07-19T00:00:00+00:00', '2099-07-19T00:00:00+00:00',
+                                  'warm', 0, 1000)
+                        """,
+                        (reservation_id, session_id),
+                    )
+            application.supervision.bootstrap_proof_bound_handoff(
+                reservation_id="hgi-reservation",
+                maintenance_session_ids=("repair-owner", "hgi-owner"),
+                actor="bootstrap-owner",
+            )
+
+            with self.assertRaises(CoordinatorError) as generic:
+                application.command(
+                    "cargo.reserve_cpu",
+                    {
+                        "session_id": "hgi-owner",
+                        "compatibility": {
+                            "platform": "windows",
+                            "toolchain": "rustc 1.94.1",
+                            "target_architecture": "x86_64-pc-windows-msvc",
+                            "workspace": "zircon-engine-root",
+                            "build_config": "profile=test",
+                        },
+                        "target_dir": None,
+                        "command": ["cargo", "test"],
+                    },
+                )
+            self.assertEqual("maintenance_hold_active", generic.exception.code)
+            with self.assertRaises(CoordinatorError) as other:
+                application.command(
+                    "cargo.consume_cpu_reservation",
+                    {
+                        "session_id": "repair-owner",
+                        "reservation_id": "other-reservation",
+                        "lane_kind": "test",
+                    },
+                )
+            self.assertEqual("maintenance_proof_reservation_mismatch", other.exception.code)
+
+    def test_bootstrap_invalidates_a_generic_reservation_authorized_before_the_hold(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            owned = repo / "owned.txt"
+            owned.write_text("owned\n", encoding="utf-8")
+            owned_hash = hashlib.sha256(owned.read_bytes()).hexdigest().upper()
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            application = CoordinatorApplication(config)
+            application.supervision.mark_healthy()
+            for session_id in ("hgi-owner", "repair-owner", "generic-owner"):
+                application.sessions.register(session_id=session_id)
+                application.sessions.set_status(session_id, SessionStatus.ACTIVE)
+            with application.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO cargo_lane_reservations(
+                        reservation_id, session_id, lane_scope, compatibility_key,
+                        compatibility_json, command_fingerprint, job_id, status, created_at,
+                        expires_at, execution_mode, burst_eligible, priority_rank
+                    ) VALUES (
+                        'hgi-reservation', 'hgi-owner', 'cpu', 'hgi-compat',
+                        ?, 'hgi-command', NULL, 'pending', '2026-07-19T00:00:00+00:00',
+                        '2099-07-19T00:00:00+00:00', 'warm', 0, 1000
+                    )
+                    """,
+                    (
+                        json.dumps(
+                            {"source_manifest": {"owned.txt": owned_hash}}, sort_keys=True
+                        ),
+                    ),
+                )
+            checkpoint = application.supervision.require_mutation_allowed(
+                "cargo.reserve_cpu@generic-owner"
+            )
+            application.supervision.bootstrap_proof_bound_handoff(
+                reservation_id="hgi-reservation",
+                maintenance_session_ids=("repair-owner", "hgi-owner"),
+                actor="bootstrap-owner",
+            )
+
+            with self.assertRaises(CoordinatorError) as stale:
+                application._command_unlocked(
+                    "cargo.reserve_cpu",
+                    {
+                        "session_id": "generic-owner",
+                        "compatibility": {
+                            "platform": "windows",
+                            "toolchain": "rustc 1.94.1",
+                            "target_architecture": "x86_64-pc-windows-msvc",
+                            "workspace": "zircon-engine-root",
+                            "build_config": "profile=test",
+                            "source_manifest": {"owned.txt": owned_hash},
+                        },
+                        "target_dir": None,
+                        "command": ["cargo", "test"],
+                    },
+                    admission_checkpoint=checkpoint,
+                )
+            self.assertEqual("admission_checkpoint_stale", stale.exception.code)
+            with application.database.connect() as connection:
+                generic_reservations = connection.execute(
+                    "SELECT count(*) FROM cargo_lane_reservations WHERE session_id='generic-owner'"
+                ).fetchone()[0]
+            self.assertEqual(0, generic_reservations)
+            self.assertTrue(application.supervision.snapshot().maintenance_hold)
+
+    def test_post_handoff_audit_keeps_hold_when_a_legacy_request_lands_after_proof(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            repo = init_repo(root / "repo")
+            config = CoordinatorConfig.for_repo(repo, state_root=root / "state", port=0)
+            application = CoordinatorApplication(config)
+            application.supervision.mark_healthy()
+            for session_id in ("hgi-owner", "repair-owner", "legacy-owner"):
+                application.sessions.register(session_id=session_id)
+                application.sessions.set_status(session_id, SessionStatus.ACTIVE)
+            with application.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO cargo_lane_reservations(
+                        reservation_id, session_id, lane_scope, compatibility_key,
+                        compatibility_json, command_fingerprint, job_id, status, created_at,
+                        expires_at, execution_mode, burst_eligible, priority_rank
+                    ) VALUES (
+                        'hgi-reservation', 'hgi-owner', 'cpu', 'hgi-compat',
+                        '{"source_manifest":{"owned.txt":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}}',
+                        'hgi-command', NULL, 'pending', '2026-07-19T00:00:00+00:00',
+                        '2099-07-19T00:00:00+00:00', 'warm', 0, 1000
+                    )
+                    """
+                )
+            handoff = application.supervision.bootstrap_proof_bound_handoff(
+                reservation_id="hgi-reservation",
+                maintenance_session_ids=("repair-owner", "hgi-owner"),
+                actor="bootstrap-owner",
+            )
+            with application.database.transaction() as connection:
+                connection.execute(
+                    """
+                    INSERT INTO cargo_lane_reservations(
+                        reservation_id, session_id, lane_scope, compatibility_key,
+                        compatibility_json, command_fingerprint, job_id, status, created_at,
+                        expires_at, execution_mode, burst_eligible, priority_rank
+                    ) VALUES (
+                        'legacy-pending', 'legacy-owner', 'cpu', 'legacy-compat',
+                        '{}', 'legacy-command', NULL, 'pending', '2026-07-19T00:01:00+00:00',
+                        '2099-07-19T00:01:00+00:00', 'warm', 0, 1000
+                    )
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO cargo_jobs(
+                        job_id, session_id, lane_kind, target_dir, status, command_json,
+                        created_at, last_heartbeat_at
+                    ) VALUES (
+                        'legacy-job', 'legacy-owner', 'test', 'D:/cargo-targets/legacy',
+                        'leased', '[]', '2026-07-19T00:01:00+00:00', '2026-07-19T00:01:00+00:00'
+                    )
+                    """
+                )
+                connection.execute(
+                    """
+                    INSERT INTO events(session_id, event_type, payload_json, created_at)
+                    VALUES ('legacy-owner', 'cargo.acquired', '{}', '2026-07-19T00:01:00+00:00')
+                    """
+                )
+
+            audit = validate_proof_bound_handoff(
+                config,
+                action_id=handoff["actionId"],
+                reservation_id="hgi-reservation",
+            )
+
+            self.assertFalse(audit["ready"])
+            self.assertTrue(application.supervision.snapshot().maintenance_hold)
+            self.assertTrue(any(item["kind"] == "cargo" for item in audit["blockers"]))
+            self.assertTrue(
+                any(item["kind"] == "post_proof_cargo_event" for item in audit["blockers"])
+            )
+            self.assertTrue(
+                any(
+                    item["kind"] == "post_proof_reservation_ledger_drift"
+                    for item in audit["blockers"]
+                )
+            )
 
     def test_local_health_and_session_commands_accept_requests_without_token(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -804,19 +1245,60 @@ class ServerTests(unittest.TestCase):
                 maintenance_interval_seconds=0.05,
             )
 
-            with RunningCoordinator.start(config):
-                status = None
-                for _ in range(100):
+            # An isolated coordinator must not spend the test's synchronization
+            # window reconciling real host target pools before it reaches legacy
+            # note maintenance.
+            with mock.patch.object(
+                CoordinatorConfig,
+                "enabled_target_roots",
+                new_callable=mock.PropertyMock,
+                return_value=(),
+            ), mock.patch.object(WorkspaceWatcher, "prepare_scan", return_value=object()), mock.patch.object(
+                WorkspaceWatcher, "apply_scan", return_value=None
+            ):
+                with RunningCoordinator.start(config) as running:
+                    status = None
+                    tick = None
+                    application = running.httpd.application
+                    sync_before = application.codex_worker.snapshot()["successfulRuns"]
+                    application.codex_worker.wake("controlled")
+                    sync = None
+                    sync_deadline = time.monotonic() + 5.0
+                    while time.monotonic() < sync_deadline:
+                        candidate = application.codex_worker.snapshot()
+                        if (
+                            candidate["successfulRuns"] > sync_before
+                            and candidate["lastRunId"]
+                            and candidate["state"] != "running"
+                        ):
+                            sync = candidate
+                            break
+                        time.sleep(0.02)
+                    self.assertIsNotNone(sync, "Codex discovery did not become idle after wake")
                     with Database(config.database_path).connect() as connection:
-                        row = connection.execute(
-                            "SELECT status FROM sessions WHERE session_id = 'live'"
+                        sync_run = connection.execute(
+                            "SELECT source_revision FROM codex_sync_runs WHERE run_id=?",
+                            (sync["lastRunId"],),
                         ).fetchone()
-                    if row is not None:
-                        status = row[0]
-                        break
-                    time.sleep(0.02)
+                    self.assertIsNotNone(sync_run)
+                    self.assertTrue(sync_run[0])
+
+                    tick_deadline = time.monotonic() + 5.0
+                    while time.monotonic() < tick_deadline:
+                        with Database(config.database_path).connect() as connection:
+                            tick = connection.execute(
+                                "SELECT 1 FROM maintenance_ticks WHERE status='succeeded' LIMIT 1"
+                            ).fetchone()
+                            row = connection.execute(
+                                "SELECT status FROM sessions WHERE session_id = 'live'"
+                            ).fetchone()
+                        if tick is not None and row is not None:
+                            status = row[0]
+                            break
+                        time.sleep(0.02)
 
             self.assertTrue(note.exists())
+            self.assertIsNotNone(tick, "daemon maintenance did not complete")
             self.assertEqual("active", status)
 
     def test_destructive_legacy_import_requires_configured_operator_capability(self) -> None:
@@ -983,6 +1465,7 @@ class ServerTests(unittest.TestCase):
             application.supervision.mark_healthy()
             scan_started = threading.Event()
             release_scan = threading.Event()
+            register_entered = threading.Event()
             mutation_finished = threading.Event()
             result: dict[str, object] = {}
 
@@ -995,7 +1478,16 @@ class ServerTests(unittest.TestCase):
                 result.update(application.command("session.register", {"session_id": "session-a"}))
                 mutation_finished.set()
 
-            with mock.patch.object(application.watcher, "scan_once", side_effect=slow_scan):
+            original_register = application.sessions.register
+
+            def observe_register(*args, **kwargs):
+                register_entered.set()
+                return original_register(*args, **kwargs)
+
+            with (
+                mock.patch.object(application.watcher, "scan_once", side_effect=slow_scan),
+                mock.patch.object(application.sessions, "register", side_effect=observe_register),
+            ):
                 scan_worker = threading.Thread(
                     target=lambda: application.command("watch.scan", {}), daemon=True
                 )
@@ -1004,7 +1496,9 @@ class ServerTests(unittest.TestCase):
                 foreground_worker = threading.Thread(target=register_session, daemon=True)
                 foreground_worker.start()
                 try:
-                    self.assertTrue(mutation_finished.wait(timeout=0.5))
+                    # This is the exact boundary protected by the foreground mutex.
+                    # Do not include SQLite scheduling in the non-blocking assertion.
+                    self.assertTrue(register_entered.wait(timeout=1))
                 finally:
                     release_scan.set()
                     scan_worker.join(timeout=1)
@@ -1028,12 +1522,18 @@ class ServerTests(unittest.TestCase):
 
             def slow_scan():
                 scan_started.set()
-                release_scan.wait(timeout=2)
+                release_scan.wait()
                 return []
 
             def register_session() -> None:
-                result.update(application.command("session.register", {"session_id": "session-a"}))
-                mutation_finished.set()
+                try:
+                    result.update(
+                        application.command("session.register", {"session_id": "session-a"})
+                    )
+                except BaseException as error:
+                    foreground_error.append(error)
+                finally:
+                    mutation_finished.set()
 
             with mock.patch.object(application.baselines, "scan", side_effect=slow_scan):
                 scan_worker = threading.Thread(
@@ -1041,10 +1541,15 @@ class ServerTests(unittest.TestCase):
                 )
                 scan_worker.start()
                 self.assertTrue(scan_started.wait(timeout=1))
+                foreground_error: list[BaseException] = []
                 foreground_worker = threading.Thread(target=register_session, daemon=True)
                 foreground_worker.start()
                 try:
-                    self.assertTrue(mutation_finished.wait(timeout=0.5))
+                    self.assertTrue(
+                        mutation_finished.wait(timeout=5),
+                        "session.register did not finish while baseline.scan remained blocked",
+                    )
+                    self.assertFalse(foreground_error, repr(foreground_error))
                 finally:
                     release_scan.set()
                     scan_worker.join(timeout=1)
@@ -1184,7 +1689,7 @@ class ServerTests(unittest.TestCase):
 
             def slow_materialize(*_args, **_kwargs):
                 started.set()
-                release_copy.wait(timeout=2)
+                release_copy.wait()
                 return WorkspaceCopyRecord(
                     "copy-job",
                     "copy-session",
@@ -1196,8 +1701,12 @@ class ServerTests(unittest.TestCase):
                 )
 
             def register_session() -> None:
-                result.update(application.command("session.register", {"session_id": "session-a"}))
-                mutation_finished.set()
+                try:
+                    result.update(application.command("session.register", {"session_id": "session-a"}))
+                except BaseException as error:
+                    foreground_error.append(error)
+                finally:
+                    mutation_finished.set()
 
             with mock.patch.object(
                 application.workspace_copy, "materialize_async", side_effect=slow_materialize
@@ -1211,10 +1720,15 @@ class ServerTests(unittest.TestCase):
                 )
                 copy_worker.start()
                 self.assertTrue(started.wait(timeout=1))
+                foreground_error: list[BaseException] = []
                 foreground_worker = threading.Thread(target=register_session, daemon=True)
                 foreground_worker.start()
                 try:
-                    self.assertTrue(mutation_finished.wait(timeout=0.5))
+                    self.assertTrue(
+                        mutation_finished.wait(timeout=5),
+                        "session.register did not finish while validation-copy materialization remained blocked",
+                    )
+                    self.assertFalse(foreground_error, repr(foreground_error))
                 finally:
                     release_copy.set()
                     copy_worker.join(timeout=1)
