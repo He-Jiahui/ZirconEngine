@@ -1,7 +1,8 @@
 ---
 related_code:
+  - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_load_from_path.rs
+  - zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
   - zircon_editor/src/ui/workbench/project/editor_workspace_document.rs
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs
   - zircon_editor/src/ui/workbench/project/project_editor_workspace.rs
@@ -11,8 +12,9 @@ related_code:
   - zircon_editor/src/tests/workbench/project/document_roundtrip.rs
   - zircon_editor/src/tests/host/manager/bootstrap_and_startup.rs
 implementation_files:
+  - zircon_editor/src/ui/host/project_access.rs
   - zircon_editor/src/ui/workbench/project/editor_project_document.rs
-  - zircon_editor/src/ui/workbench/project/editor_project_document_load_from_path.rs
+  - zircon_editor/src/ui/workbench/project/editor_project_document_load.rs
   - zircon_editor/src/ui/workbench/project/editor_workspace_persistence.rs
   - zircon_editor/src/ui/host/startup/create_or_open.rs
   - zircon_editor/src/ui/host/startup/resolve_session.rs
@@ -33,7 +35,7 @@ doc_type: module-detail
 
 Project workspace persistence is the editor-only layer stored next to a runtime project at `.zircon/editor-workspace.json`. It captures `ProjectEditorWorkspace`: the current `WorkbenchLayout`, open view instances, active center tab, and active drawers. Runtime scene loading remains independent of this file.
 
-`EditorProjectDocument::load_from_path(...)` now loads the runtime project and scene first, then attempts the editor workspace as a recoverable source. If the workspace file is missing, corrupt, unreadable, or has an unsupported `format_version`, the project still opens with `editor_workspace = None` and records an `EditorWorkspaceRestoreDiagnostic` containing the path and message.
+`EditorUiHost::open_project(...)` first asks `ProjectAuthority` to prepare the project, publishes it through the Runtime `AssetManager`, and retrieves the retained `ProjectManager` generation. Only then does `EditorProjectDocument::load_from_project(&project)` load the default scene and the editor workspace. The editor no longer owns a parallel path-based project loader or reopens the project from a raw filesystem path. A missing workspace file is the normal first-open case and returns `editor_workspace = None` without a diagnostic. An unreadable or corrupt workspace, or one with an unsupported `format_version`, still lets the project open with `editor_workspace = None` and records an `EditorWorkspaceRestoreDiagnostic` containing the path and message.
 
 Explicit project open uses that diagnostic to present a clear status line: the project opened, but layout restore fell back to the default chain. Automatic startup restore uses the same diagnostic shape with `Restored recent project with default layout`, so a valid remembered project can still reopen even when its editor workspace file is unusable. Applying `None` through `EditorManager::apply_project_workspace(...)` rebuilds the default session, which in turn honors the saved global default layout before falling back to the Material/Fyrox/JetBrains/Unreal default workbench.
 
