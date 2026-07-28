@@ -8919,6 +8919,7 @@ dependencies = [
  "rayon",
  "ron",
  "rustybuzz",
+ "same-file",
  "serde",
  "serde_json",
  "swash",
