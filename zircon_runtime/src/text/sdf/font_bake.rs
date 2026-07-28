@@ -12,10 +12,14 @@ use crate::text::sdf::{SdfBakeParams, SdfGlyphGenerationError};
 use crate::text::{FontFaceId, FontFamilyName, FontQuery, FontStretch, FontStyle, FontWeight};
 
 mod distance_field;
+mod glyph_metrics;
 mod offline_source;
 
 use distance_field::bake_distance_field_glyph;
+use glyph_metrics::{fallback_metrics, glyph_metrics};
 use offline_source::SdfOfflineSourceCache;
+
+pub(crate) use glyph_metrics::scale_sdf_metrics_for_display;
 
 const DEFAULT_FONT_ASSET: &str = "res://fonts/default.font.toml";
 const FALLBACK_ADVANCE_RATIO: f32 = 0.6;
@@ -441,7 +445,9 @@ impl SdfFontBakeCache {
             if !self.ensure_sdf_font(face, font_database) {
                 continue;
             }
-            let font = self.fonts.get(&face).expect("ensured SDF font");
+            let Some(font) = self.fonts.get(&face) else {
+                continue;
+            };
             let index = glyph_index(font, key, face, font_database);
             let metrics = font.metrics_indexed_sdf(index, px);
             return glyph_metrics(font, px, metrics);
@@ -672,28 +678,37 @@ fn resolve_font_face(
     let asset = font_asset
         .filter(|asset| !asset.trim().is_empty())
         .unwrap_or(DEFAULT_FONT_ASSET);
-    let manifest = load_text_font_source(asset, Some(asset_manager))?;
-    register_loaded_font_manifest(font_database, &manifest)
+    if let Some(face) = font_database.font_asset_primary_face(asset) {
+        return Some(face);
+    }
+    let Some(manifest) = load_text_font_source(asset, Some(asset_manager)) else {
+        font_database.remove_font_asset(asset);
+        return None;
+    };
+    register_loaded_font_manifest(font_database, asset, &manifest)
 }
 
 fn register_loaded_font_manifest(
     font_database: &mut FontDatabase,
+    asset_ref: &str,
     manifest: &LoadedTextFontSource,
 ) -> Option<FontFaceId> {
     if let Some(asset) = &manifest.asset {
         return font_database
-            .register_font_asset(asset, &manifest.source_path)
+            .replace_font_asset(asset_ref, asset, &manifest.source_path)
             .ok()
-            .and_then(|faces| faces.first().copied());
+            .and_then(|report| report.faces.first().copied());
     }
 
     font_database
-        .register_font_file(
+        .replace_font_source(
+            asset_ref,
             &manifest.source_path,
             manifest.family.as_deref(),
             manifest.face_index,
         )
         .ok()
+        .and_then(|report| report.faces.first().copied())
 }
 
 fn shaped_face_for_key(key: &SdfAtlasGlyphKey, font_database: &FontDatabase) -> Option<FontFaceId> {
@@ -737,54 +752,6 @@ fn glyph_index(
         font.lookup_glyph_index(key.glyph)
     } else {
         0
-    }
-}
-
-fn glyph_metrics(font: &fontsdf::Font, px: f32, metrics: fontsdf::Metrics) -> SdfGlyphMetrics {
-    let ascent = font
-        .inner()
-        .horizontal_line_metrics(px)
-        .map(|metrics| metrics.ascent)
-        .unwrap_or(px);
-    SdfGlyphMetrics {
-        bitmap_width: metrics.width as u32,
-        bitmap_height: metrics.height as u32,
-        bitmap_left: metrics.xmin as f32,
-        bitmap_bottom: metrics.ymin as f32,
-        advance: metrics.advance_width.max(px * FALLBACK_ADVANCE_RATIO),
-        ascent,
-    }
-}
-
-pub(crate) fn scale_sdf_metrics_for_display(
-    metrics: SdfGlyphMetrics,
-    display_px: f32,
-    bake_params: SdfBakeParams,
-) -> SdfGlyphMetrics {
-    let scale = display_px.max(1.0) / bake_params.bake_em_px_f32();
-    SdfGlyphMetrics {
-        bitmap_width: scale_bitmap_dimension(metrics.bitmap_width, scale),
-        bitmap_height: scale_bitmap_dimension(metrics.bitmap_height, scale),
-        bitmap_left: metrics.bitmap_left * scale,
-        bitmap_bottom: metrics.bitmap_bottom * scale,
-        advance: metrics.advance * scale,
-        ascent: metrics.ascent * scale,
-    }
-}
-
-fn scale_bitmap_dimension(value: u32, scale: f32) -> u32 {
-    if value == 0 {
-        0
-    } else {
-        ((value as f32 * scale).round() as u32).max(1)
-    }
-}
-
-fn fallback_metrics(px: f32) -> SdfGlyphMetrics {
-    SdfGlyphMetrics {
-        advance: px.max(1.0) * FALLBACK_ADVANCE_RATIO,
-        ascent: px.max(1.0),
-        ..SdfGlyphMetrics::default()
     }
 }
 

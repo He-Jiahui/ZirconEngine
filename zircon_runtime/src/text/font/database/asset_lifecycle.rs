@@ -1,0 +1,256 @@
+use std::collections::HashSet;
+use std::path::Path;
+use std::sync::Arc;
+
+use crate::asset::FontAsset;
+use crate::text::{FontFaceDescriptor, FontFaceId, FontFamilyName};
+
+use super::{
+    read_decoded_font_source, FontAssetOwnerState, FontAssetUpdateReport, FontDatabase,
+    FontDatabaseError,
+};
+use crate::text::font::asset_registration::{font_asset_faces, FontAssetSourceKey};
+use crate::text::font::descriptors::descriptor_from_font_metadata;
+use crate::text::font::face_metadata::FontFaceMetadata;
+use crate::text::font::matching::font_family_identity;
+
+impl FontDatabase {
+    pub(crate) fn font_asset_primary_face(&self, owner: &str) -> Option<FontFaceId> {
+        self.asset_owners
+            .get(owner)?
+            .sources
+            .iter()
+            .find_map(|source| self.asset_source_index.get(source).copied())
+    }
+
+    pub(crate) fn replace_font_asset(
+        &mut self,
+        owner: &str,
+        asset: &FontAsset,
+        source_path: impl AsRef<Path>,
+    ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
+        let source_path = source_path.as_ref();
+        let bytes = read_decoded_font_source(source_path)?;
+        let bytes: Arc<[u8]> = Arc::from(bytes.into_boxed_slice());
+        let registrations = font_asset_faces(asset, bytes.as_ref(), source_path)
+            .into_iter()
+            .map(|registration| (registration.descriptor, registration.metadata))
+            .collect();
+        let fallback_families = normalized_fallback_families(&asset.fallback_families);
+        self.replace_asset_registrations(
+            owner,
+            source_path,
+            bytes,
+            registrations,
+            fallback_families,
+        )
+    }
+
+    pub(crate) fn replace_font_source(
+        &mut self,
+        owner: &str,
+        source_path: impl AsRef<Path>,
+        family: Option<&str>,
+        face_index: u32,
+    ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
+        let source_path = source_path.as_ref();
+        let bytes = read_decoded_font_source(source_path)?;
+        let bytes: Arc<[u8]> = Arc::from(bytes.into_boxed_slice());
+        let metadata = FontFaceMetadata::from_sfnt_bytes(bytes.as_ref(), face_index);
+        let descriptor = descriptor_from_font_metadata(&metadata, family, source_path, face_index);
+        self.replace_asset_registrations(
+            owner,
+            source_path,
+            bytes,
+            vec![(descriptor, metadata)],
+            Vec::new(),
+        )
+    }
+
+    pub(crate) fn remove_font_asset(&mut self, owner: &str) -> FontAssetUpdateReport {
+        if !self.asset_owners.contains_key(owner) {
+            return FontAssetUpdateReport {
+                faces: Vec::new(),
+                retired_faces: Vec::new(),
+                database_changed: false,
+                asset_mapping_changed: false,
+            };
+        }
+
+        let fallback_families = self.fallback_families.clone();
+        let retired_faces = self.remove_asset_owner(owner);
+        FontAssetUpdateReport {
+            faces: Vec::new(),
+            database_changed: !retired_faces.is_empty()
+                || fallback_families != self.fallback_families,
+            retired_faces,
+            asset_mapping_changed: true,
+        }
+    }
+
+    fn replace_asset_registrations(
+        &mut self,
+        owner: &str,
+        source_path: &Path,
+        bytes: Arc<[u8]>,
+        registrations: Vec<(FontFaceDescriptor, FontFaceMetadata)>,
+        fallback_families: Vec<FontFamilyName>,
+    ) -> Result<FontAssetUpdateReport, FontDatabaseError> {
+        let mut next = self.clone();
+        let previous = next.asset_owners.get(owner).cloned().unwrap_or_default();
+        let mut source_keys = Vec::new();
+        let mut faces = Vec::new();
+
+        for (descriptor, metadata) in registrations {
+            let (source_key, face) = next.register_asset_registration(
+                descriptor,
+                metadata,
+                Arc::clone(&bytes),
+                source_path,
+            )?;
+            if !source_keys.contains(&source_key) {
+                source_keys.push(source_key.clone());
+            }
+            if !faces.contains(&face) {
+                faces.push(face);
+            }
+            next.asset_source_owners
+                .entry(source_key)
+                .or_default()
+                .insert(owner.to_string());
+        }
+
+        let retained = source_keys.iter().cloned().collect::<HashSet<_>>();
+        let mut retired_faces = Vec::new();
+        for source_key in previous.sources {
+            if !retained.contains(&source_key) {
+                next.detach_asset_source_owner(owner, &source_key, &mut retired_faces);
+            }
+        }
+        next.asset_owners.insert(
+            owner.to_string(),
+            FontAssetOwnerState {
+                sources: source_keys,
+                fallback_families,
+            },
+        );
+        next.rebuild_asset_fallback_families();
+
+        let database_changed = !self.has_same_render_inputs(&next);
+        let asset_mapping_changed = self.asset_owners.get(owner) != next.asset_owners.get(owner);
+        *self = next;
+        Ok(FontAssetUpdateReport {
+            faces,
+            retired_faces,
+            database_changed,
+            asset_mapping_changed,
+        })
+    }
+
+    fn remove_asset_owner(&mut self, owner: &str) -> Vec<FontFaceId> {
+        let Some(previous) = self.asset_owners.remove(owner) else {
+            return Vec::new();
+        };
+        let mut retired_faces = Vec::new();
+        for source_key in previous.sources {
+            self.detach_asset_source_owner(owner, &source_key, &mut retired_faces);
+        }
+        self.rebuild_asset_fallback_families();
+        retired_faces
+    }
+
+    fn detach_asset_source_owner(
+        &mut self,
+        owner: &str,
+        source_key: &FontAssetSourceKey,
+        retired_faces: &mut Vec<FontFaceId>,
+    ) {
+        let should_retire = self.asset_source_owners.get_mut(source_key).is_some_and(
+            |owners: &mut HashSet<String>| {
+                owners.remove(owner);
+                owners.is_empty()
+            },
+        );
+        if !should_retire {
+            return;
+        }
+        self.asset_source_owners.remove(source_key);
+        if let Some(face) = self.asset_source_index.remove(source_key) {
+            self.retire_face(face);
+            if !retired_faces.contains(&face) {
+                retired_faces.push(face);
+            }
+        }
+    }
+
+    fn retire_face(&mut self, face: FontFaceId) {
+        let Some(index) = face.0.checked_sub(1).map(|index| index as usize) else {
+            return;
+        };
+        let Some(stored) = self.faces.get_mut(index) else {
+            return;
+        };
+        if !stored.active {
+            return;
+        }
+        stored.active = false;
+        let family = font_family_identity(stored.descriptor.family.as_str());
+        stored.source = super::StoredFontSource::SharedBytes(Arc::from(Vec::<u8>::new()));
+        stored.source_bytes = Arc::new(std::sync::OnceLock::new());
+        stored.standalone_bytes = Arc::new(std::sync::OnceLock::new());
+        stored.metadata = Arc::new(std::sync::OnceLock::new());
+
+        let remove_family = if let Some(faces) = self.family_index.get_mut(&family) {
+            faces.retain(|candidate| *candidate != face);
+            faces.is_empty()
+        } else {
+            false
+        };
+        if remove_family {
+            self.family_index.remove(&family);
+        }
+        self.source_face_index
+            .retain(|_, candidate| *candidate != face);
+        self.asset_source_index
+            .retain(|_, candidate| *candidate != face);
+        self.default_instances.remove(&face);
+        self.instances.remove_face(face);
+        if let Some(backend) = self.backend_faces.remove_face(face) {
+            self.backend_database.remove_face(backend);
+        }
+        self.active_face_count = self.active_face_count.saturating_sub(1);
+        self.detach_face_dependent_caches();
+    }
+
+    fn rebuild_asset_fallback_families(&mut self) {
+        let mut fallback_families = self.fallback_base_families.clone();
+        let mut identities = fallback_families
+            .iter()
+            .map(|family| font_family_identity(family.as_str()))
+            .collect::<HashSet<_>>();
+        let mut owners = self.asset_owners.iter().collect::<Vec<_>>();
+        owners.sort_unstable_by(|(left, _), (right, _)| left.cmp(right));
+        for (_, state) in owners {
+            for family in &state.fallback_families {
+                let identity = font_family_identity(family.as_str());
+                if identities.insert(identity) {
+                    fallback_families.push(family.clone());
+                }
+            }
+        }
+        if self.fallback_families != fallback_families {
+            self.fallback_families = fallback_families;
+            self.detach_matching_and_fallback_caches();
+        }
+    }
+}
+
+fn normalized_fallback_families(families: &[String]) -> Vec<FontFamilyName> {
+    let mut identities = HashSet::new();
+    families
+        .iter()
+        .map(|family| FontFamilyName::from(family.as_str()))
+        .filter(|family| !family.is_empty())
+        .filter(|family| identities.insert(font_family_identity(family.as_str())))
+        .collect()
+}

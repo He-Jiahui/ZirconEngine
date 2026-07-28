@@ -1,11 +1,11 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 use zircon_runtime_interface::ui::surface::UiTextRenderMode;
 
 use super::super::render::{
-    text_advances::refresh_screen_space_text_batch_glyphs, ScreenSpaceUiTextBatch,
+    ScreenSpaceUiTextBatch, text_advances::refresh_screen_space_text_batch_glyphs,
 };
-use super::font_assets::{effective_text_render_mode, ensure_font_asset_record, LoadedUiFontAsset};
+use super::font_assets::{UiFontAssetCache, effective_text_render_mode, ensure_font_asset_record};
 use crate::asset::ProjectAssetManager;
 use crate::text::{TextLayoutFallbackReport, TextRenderState};
 
@@ -79,15 +79,15 @@ impl ResolvedScreenSpaceUiTextBatches {
 
 pub(super) fn resolve_text_batches(
     text_state: &mut TextRenderState,
-    font_assets: &mut HashMap<String, LoadedUiFontAsset>,
+    font_assets: &mut UiFontAssetCache,
     asset_manager: &ProjectAssetManager,
     auto_texts: &[ScreenSpaceUiTextBatch],
     native_texts: &[ScreenSpaceUiTextBatch],
     sdf_texts: &[ScreenSpaceUiTextBatch],
 ) -> ResolvedScreenSpaceUiTextBatches {
     let mut loaded_assets = HashSet::new();
-    let mut shaping_changed = false;
-    let mut font_faces_changed = false;
+    let mut shaping_changed = text_state.refresh_shared_font_database();
+    let mut font_faces_changed = shaping_changed;
     for text in auto_texts
         .iter()
         .chain(native_texts.iter())
@@ -98,12 +98,16 @@ pub(super) fn resolve_text_batches(
             .as_deref()
             .filter(|asset| !asset.trim().is_empty())
             .unwrap_or(super::DEFAULT_FONT_ASSET);
-        if !loaded_assets.insert(asset) {
-            continue;
+        for asset in
+            std::iter::once(asset).chain(text.style.code.then_some(super::DEFAULT_FONT_ASSET))
+        {
+            if !loaded_assets.insert(asset) {
+                continue;
+            }
+            let ensured = ensure_font_asset_record(text_state, font_assets, asset_manager, asset);
+            shaping_changed |= ensured.faces_changed;
+            font_faces_changed |= ensured.faces_changed;
         }
-        let ensured = ensure_font_asset_record(text_state, font_assets, asset_manager, asset);
-        shaping_changed |= ensured.loaded;
-        font_faces_changed |= ensured.faces_changed;
     }
 
     let mut resolved =
@@ -115,7 +119,9 @@ pub(super) fn resolve_text_batches(
             .as_deref()
             .filter(|asset| !asset.trim().is_empty())
             .unwrap_or(super::DEFAULT_FONT_ASSET);
-        let font_asset = font_assets.get(asset);
+        let font_asset = font_assets
+            .get(asset)
+            .and_then(|entry| entry.loaded_asset());
         resolved.push_resolved_auto_text(
             text.clone(),
             effective_text_render_mode(UiTextRenderMode::Auto, font_asset),
