@@ -964,6 +964,10 @@ status: in_progress
 
 当前文本计划同步(2026-07-10):按本文“受 guard 计划由 owner 吸收”的规则,runtime text 的 rich/vertical prewarm 状态已在 Text 09 关闭,native bitmap atlas 横向亚像素 stable cache key 已在 Text 04/09 登记；`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 新增 `ScreenSpaceUiTextPrepareReport.raster_upload` 聚合层,对应测试在 `zircon_runtime/src/graphics/scene/scene_renderer/ui/text/tests.rs`。涉及 owner 为 `zircon_runtime/src/ui/surface/render/text_prewarm.rs`、`zircon_runtime/src/ui/text/measure_cache.rs`、`zircon_runtime/src/graphics/scene/scene_renderer/ui/text.rs` 与 `zircon_runtime/src/text/native_bitmap_atlas/source_cache.rs`。详细验证仍归档在 `docs/plans/zircon_runtime/text/**` 与 `docs/tests/runtime/text`,不在本文复制长表。2026-07-10 追加 retained framebuffer proof 像素指标复查、live editor-window capture process gate 与 raster/upload report 静态验证;实时窗口 QA 和真实 scroll raster/upload 增量断言未关闭,仍由 Text 04/09 后续项跟踪。
 
+当前文本基础设施同步（2026-07-17）：共享 FontDatabase 重复发布造成的全局 generation 抖动已在最低 owner 修复。`text/font/database/equivalence.rs` 只比较会改变渲染的语义输入，`text/font/shared.rs` 在同一写锁内完成等价判定、替换与 generation 迁移；等价的 screen-space renderer 初始化不再清空 shaping/SDF resident cache。系统字体 `Discover` 同时在 FontDatabase owner 内幂等化，renderer clone 不再重复目录扫描或向 `fontdb` backend 追加重复 face；`TextRenderState` 也已按 text-owned system locale 直接从共享 backend DB 构造 cosmic FontSystem，删除临时 `FontSystem::new()` 的第二次系统扫描。三项 system-policy regressions 已按 owner 拆入 `text/font/database/tests/system_policy.rs`，不继续堆叠近预算测试根。generation-sensitive SDF tests 已按职责拆入 `text/sdf/font_bake/tests/cache_generation.rs`，生产路径无新增锁、无 facade/shim、无旧双轨，`font/database.rs` 与 `font_bake.rs` 仍低于 1000 行硬限。同一 MVP 稳定性切片还删除 `text/parallel/raster_pool.rs::request(...)` 的 production `expect`：sender 缺失时在 work id 入队前返回 `CoreError::ChannelSend`，不污染 in-flight 诊断；primary fallback resolver 与 SDF ensure/map 异常态也改为在各自最低 owner fail-closed，不再生产 panic。raster worker 同时硬切固定 `page_generation=0` 伪 target：CPU bitmap 只按 face epoch 失效，真实 page generation 继续由 allocation/staging/upload owner 校验，未留下兼容字段或 renderer-root reconstruction；per-page upload merge 的精确基数 guard 留在 `bitmap_run/tests/dirty_upload.rs`，没有把合并策略复制到 renderer root。当前实现状态为 `validation_pending`；expanded shared/SDF/raster-worker/default/UI/upward gates 仍由 Text 计划测试阶段拥有，不在本文复制或提前关闭。
+
+当前文本图集基础设施同步（2026-07-18）：Text04 已在最低 `text/atlas` owner 实现 persistent glyph slot MVP。`GlyphAtlasSet` 现在拥有 neutral `GlyphRasterKey -> page/generation/inserted-frame/rect/content-size` 与 per-page shelf allocator；后续帧精确命中复用 rect 并跳过 dirty/upload，同帧 mixed-storage 子提交仍保留首次 GPU upload。页逐出、page generation 与 page-size 变化会 fail-closed 清理或拒绝旧 slot；裁剪、近似桶、pixel-font、无稳定 face identity 与 mixed legacy source 不进入 persistent 模式。新增测试按职责拆入 `bitmap_run/tests/persistent_slots.rs` 与 `atlas/slot_cache/tests.rs`，原 `bitmap_run/tests.rs` 回落到 1000 行以下；没有新增 renderer-root 重建、兼容 facade 或双轨 API。实现与静态门禁已完成，当前状态为 `implemented / validation_pending`；native persistent-slot DPI key propagation contract 已实现但仍待 managed validation，真实 2x WGPU framebuffer 产品证据、完整 glyphon `TextAtlas` 移除与 live editor typography QA 仍 open。
+
 当前插件架构审查同步（2026-07-10，`plugins_01_m2_t2_t4_typed_extension_freeze_runtime_finalize`）：Plugins 01 的类型化扩展点已补实际 runtime finalize/apply 闭环与 owner unload 回归；实现和测试均归属现有子模块/独立 test owner，没有新增 root 行为、兼容 facade 或 shim。详细证据归档在 Plugins 01 与 `docs/zircon_runtime/plugin/extension_registry.md`；插件架构整体状态：进行中，Sound 等后续计划不得据此标记完成。
 
 > 本文是 2026-06-22 一轮聚焦代码审查的发现目录，作为结构规范与各子计划的**补充输入**。每条带 file:line 证据、严重度与目标计划。规范级规则已并入 [`engine-code-structure-convention.md`](engine-code-structure-convention.md)；结构级发现已并入 Runtime 15 / Editor UI 10 / Plugins 12；属既有受 guard 计划（02/04/06/07/08/09、render）的项在此登记为"建议补入"，由该计划 owner 在其切片内吸收（避免直接改动受计数 guard 的文件）。
@@ -1000,7 +1004,7 @@ P0 项的闭合状态、验证、守卫与补记已迁入 Runtime 15 产出目�
 | # | 发现概述 | 承接计划 |
 |---|----------|----------|
 | F5 | ECS 公共 mutation surface 应返回 typed scene errors。 | Runtime 08 + Runtime 15 |
-| F6 | core resource registry rename 等路径应使用 `CoreError` typed errors。 | Runtime 02 |
+| F6 | core resource registry rename 等路径应使用 resource-owned `ResourceRegistryError` typed errors，禁止资源层反向依赖 framework `CoreError`。 | Frameworks 01 + Runtime 02 |
 | F7 | asset artifact/importer 错误面应保留 `AssetImportError` typed sources。 | Runtime 04 |
 | F8 | texture import settings 与 `RuntimePluginDescriptor` builder/字段 surface 需要收敛。 | Runtime 04 + Runtime 06 + Runtime 15 |
 | F9 | runtime prelude 应覆盖 asset/scene/ECS/ui/graphics 高频类型。 | Runtime 15 |
@@ -1014,6 +1018,13 @@ P0 项的闭合状态、验证、守卫与补记已迁入 Runtime 15 产出目�
 | F17 | entity-path optional lookup 应使用 `get_* -> Option` 命名。 | Runtime 08 |
 | F18 | asset manager resolution 应返回 registered handle shape。 | Runtime 10 |
 | F19 | scene renderer construction owner 应使用 `construct` 命名，避免 `_new` 迁移气味。 | Runtime 15 + render |
+
+2026-07-17 Frameworks01 M1 前置清障：F6 已从“所有 typed error 都塞入
+`CoreError`”硬切为最低资源 owner。`core::resource::{ResourceRegistryError,
+ResourceResult}` 只承接 registry locator/id 缺失；`CoreError` 删除这两个资源变体，
+`core` root 不增加 alias/re-export。该切片消除未来 `zr_resource -> zr_contracts` 的错误类型
+反向边；静态守卫已补强旧变体、root 重导出与 conversion shim 的负向约束，独立复审
+P0/P1/P2=0；managed Cargo 门仍按 Frameworks01 current-source 记录等待依赖提交与 FIFO 前置，本全局同步项不提前关闭 F6。
 
 ## 3. P1/P2 —— 插件开发体验（DX）
 
@@ -1091,4 +1102,4 @@ Runtime 15 M3 review-guard row-data 的具体 cross-doc 与 supplemental anchors
 
 - Native bitmap atlas handoff no longer treats repeated storage formats as an unsupported mixed frame. `text/native_bitmap_atlas/storage.rs` partitions contiguous source runs, preserving the renderer's original glyph draw order for `R8 -> RGBA -> R8` instead of globally merging both R8 groups.
 - The existing renderer pass sequence is the only execution owner; no compatibility sorter, second atlas route, or root-level special case was added. Current-source native atlas and renderer filters pass 44/44 and 13/13.
-- This closes the concrete ordering/fallback defect only. DPI product propagation, complete glyphon `TextAtlas` removal, persistent slot ownership, and live editor typography QA remain explicitly open in Text04.
+- This closes the concrete ordering/fallback defect only. Persistent slot ownership and its native DPI key propagation contract are now `implemented / validation_pending` in Text04; real 2x WGPU framebuffer product evidence, complete glyphon `TextAtlas` removal, managed validation, and live editor typography QA remain explicitly open.
