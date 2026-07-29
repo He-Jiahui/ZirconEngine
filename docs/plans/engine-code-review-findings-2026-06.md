@@ -167,8 +167,6 @@ related_code:
   - zircon_runtime/src/dynamic_api/session/project.rs
   - zircon_runtime/src/scene/world/property_access/path_resolution.rs
   - zircon_runtime/src/animation/sequence/target.rs
-  - zircon_plugins/animation/runtime/src/sequence/apply.rs
-  - zircon_plugins/animation/runtime/src/sequence/target.rs
   - zircon_runtime/src/asset/assets/texture/descriptor.rs
   - zircon_runtime/src/asset/assets/texture/texture_asset.rs
   - zircon_runtime/src/asset/importer/ingest/import_texture.rs
