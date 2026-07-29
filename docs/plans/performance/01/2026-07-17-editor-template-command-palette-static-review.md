@@ -1,7 +1,7 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_command_palette
   - zircon_editor/src/core/commands/registry.rs
   - zircon_editor/src/ui/retained_host/app/command_palette_actions.rs
 plan_sources:

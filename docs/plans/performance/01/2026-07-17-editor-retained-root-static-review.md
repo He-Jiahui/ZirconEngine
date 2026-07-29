@@ -1,6 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/*.rs
+  - zircon_editor/src/ui/retained_host
   - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/movement.rs
   - zircon_editor/src/ui/host/layout_commands.rs
 plan_sources:
