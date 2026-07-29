@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets_tests/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/visual_assets_tests
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_images
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor/10-project-and-asset-reference-management.md
@@ -18,14 +18,14 @@ tests:
   - cache hit/hot-reload/bounded-eviction tests pending
   - 1/100/10000 visual asset filesystem/copy/raster/upload trace pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: static_incremental_review_pending
 ---
 
 # Editor visual assets逐文件性能静态审查（2026-07-17）
 
 ## 范围与覆盖
 
-`visual_assets.rs`、`visual_assets/**`与`visual_assets_tests/**`共 **41/41** 个Rust文件、**1,720** 行已逐文件阅读；直接consumer `template_node_images.rs` + `template_node_images/**` **4/4** 文件、**257** 行也已完成。覆盖resource key、candidate/alias、PNG/SVG/MUI loading、tree/pixel cache、retained preview、tint/missing fallback、target sizing、node image geometry/identity/command及全部runtime/editor-pages/template tests。当前源Cargo与动态trace未完成，因此仍留在`pending.md`。
+`visual_assets.rs`、`visual_assets/**`与`visual_assets_tests/**`共 **41/41** 个Rust文件、**1,720** 行已逐文件阅读；直接consumer `template_node_images.rs` + `template_node_images/**` 的历史审查基线为 **4/4** 文件、**257** 行，当前源仍为4个文件但已增至 **419** 行，新增162行尚未完成逐行复审。既有审查覆盖resource key、candidate/alias、PNG/SVG/MUI loading、tree/pixel cache、retained preview、tint/missing fallback、target sizing、node image geometry/identity/command及当时的runtime/editor-pages/template tests。当前增量复审、Cargo与动态trace均未完成，因此仍留在`pending.md`。
 
 ## 热点与根因
 
