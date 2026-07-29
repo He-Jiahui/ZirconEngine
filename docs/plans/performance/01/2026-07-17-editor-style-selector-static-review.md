@@ -1,7 +1,6 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/style_selector
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme/palette_projection.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
@@ -13,14 +12,14 @@ tests:
   - current-source Windows Cargo pending
   - 1/100/10000 node theme-lock and role-classification trace pending
 doc_type: implementation-evidence
-status: static_complete_dynamic_pending
+status: partial_static_complete_dynamic_pending
 ---
 
 # Editor style selector逐文件性能静态审查（2026-07-17）
 
 ## 范围与覆盖
 
-`style_selector.rs`与`style_selector/**`共 **157/157** 个Rust文件、**7,825** 行已逐文件阅读。覆盖button、icon button、dropdown、text field、selection/segmented controls、slider、popup/list/tree/table rows、alert/toast/tooltip、status/chrome及其palette/state/selection/tests。当前源Cargo、规模计数与像素验收未完成，因此本模块仍留在`pending.md`。
+`style_selector/`在2026-07-17记录的静态审查基线为 **157/157** 个Rust文件、**7,825** 行；当前目录实测仍为 **157** 个Rust文件、**8,629** 个物理行。两者之间的内容差异尚未完成逐文件静态刷新，当前源Cargo、规模计数与像素验收也未完成，因此本模块仍留在`pending.md`。
 
 ## P0：单节点主题读锁扇出
 
