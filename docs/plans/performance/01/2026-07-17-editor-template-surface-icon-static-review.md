@@ -1,14 +1,14 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_asset_placeholder_visuals
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyph_kind
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_icon_button_glyphs.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_surface
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_style_color
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
 reference_sources:

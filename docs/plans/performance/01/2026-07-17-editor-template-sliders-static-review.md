@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_slider_geometry.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_slider_geometry/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_slider_geometry
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_sliders_tests
   - zircon_runtime/src/ui/surface/render/sliders.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

@@ -1,12 +1,12 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_geometry/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_component_family/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/frame_geometry/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test
+  - zircon_editor/src/ui/retained_host/host_contract/template_popup_layout
+  - zircon_editor/src/ui/retained_host/host_contract/template_geometry
+  - zircon_editor/src/ui/retained_host/host_contract/template_component_family
+  - zircon_editor/src/ui/retained_host/host_contract/frame_geometry
+  - zircon_editor/src/ui/retained_host/host_contract/template_input_semantics
+  - zircon_editor/src/ui/retained_host/host_contract/template_activation_semantics
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01
