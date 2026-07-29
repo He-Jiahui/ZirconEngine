@@ -36,19 +36,20 @@ reference_engines:
 
 ## 2. 现状与差距
 
-- `zircon_runtime` 是 `rlib+cdylib` 单 crate，19 个顶层模块共约 120 万行（`zircon_runtime/src`）。
-- 模块边界靠声明顺序与约定维持：`lib.rs` 注释明言 "ui must be declared before asset"；graphics 有 35 处 `use crate::scene::` 与对 `crate::ui::text::shaper` 的直接引用（见计划 05）。
+- `zircon_runtime` 仍是 `rlib+cdylib` 单 crate；`lib.rs` 当前有 22 个 production 顶层 `mod` 声明（另有 `prelude` 与 `tests`），production dependency audit 覆盖 20 个域，尚未形成编译器强制的内部 crate 边界。
+- 旧声明顺序注释及 `graphics→scene`、`graphics→ui` 直接依赖已由 Frameworks05 硬切清零；当前最低结构缺口收敛为 `asset→text=2`、`scene→animation=2`、`rhi→rhi_wgpu=1` 三条硬反向边，见 M0 current-source 基线。禁止继续引用历史 35 处接缝作为迁移输入。
 - 依赖治理已有文档（`runtime/01-tech-stack-and-dependency-governance.md`）但缺编译单元层面的强制手段。
 - 无开发期动态链接选项；重型依赖（wgpu/naga/winit/gltf/image）与纯逻辑代码同一编译单元。
 
 ## 3. 目标拓扑与分层规则
 
 ```
-layer 0  zr_kernel      core/runtime + engine_module（生命周期/调度/描述符；禁止 wgpu/winit 等重依赖）
-         zr_contracts   core/framework（纯 trait/DTO；按域 feature 门控子模块）
-         zr_math        core/math（继续薄转发 zircon_runtime_interface::math）
+layer 0a zr_math        core/math（继续薄转发 zircon_runtime_interface::math）
          zr_resource    core/resource
+         zr_contracts   core/framework（纯 trait/DTO；按域 feature 门控子模块）
+layer 0b zr_kernel      core/runtime + engine_module（生命周期/调度/描述符；依赖 0a，禁止重依赖）
 layer 1  zr_diagnostics diagnostic_log
+         zr_foundation  foundation（Kernel 级 config/event module 与共享原子持久化实现）
          zr_platform    platform（winit 等平台依赖收拢于此）
          zr_input       input
 layer 2  zr_asset       asset          zr_scene   scene（ECS 世界）
@@ -62,7 +63,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 
 分层规则：
 
-1. 只允许上层依赖下层；同层横向依赖必须经 `zr_contracts` 契约或显式批准并记录在本文件。
+1. 只允许上层依赖下层；layer 0 的固定顺序为 `zr_math/zr_resource → zr_contracts → zr_kernel`。同层横向依赖必须经 `zr_contracts` 契约或显式批准并记录在本文件。
 2. `core/manager` 的 handle/resolver 访问层留在门面 crate（它天然需要看到各域实现以组装 resolver），但其 trait/名字常量在 `zr_kernel`/`zr_contracts`。
 3. 内部 crate 位于 `zircon_runtime/crates/`，`publish = false`，根 workspace members 收录；命名前缀 `zr_`（与 `zr_vm_rust_binding` 一致），M0 批准后锁定。
 4. 门面 crate 的 re-export 是结构性 curated re-export（workspace-root-rules 允许项），不是迁移桥；内部 crate 之间禁止任何 re-export 兼容层。
@@ -83,6 +84,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 
 实现切片：
 - 新建 `zr_kernel`/`zr_contracts`/`zr_math`/`zr_resource`/`zr_diagnostics`，源码整目录移动（git mv），门面 `zircon_runtime` 以 `pub use` 恢复原公开路径；
+- 按 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics` 顺序硬切；`core/framework/render/environment/source_cubemap/tests/projection.rs` 当前有两处 concrete Runtime `TaskPool` 反向测试引用，必须先迁到 kernel integration owner 并以静态守卫降为 0；禁止让 contracts 以 dev-dependency 反向依赖 kernel；
 - `core/framework` 迁入 `zr_contracts` 时按域拆 feature（ai/physics/sound/net/render/ui/... 各成 feature，默认全开，勾稽计划 03）；
 - 移动后同批修正所有 crate 内引用（`crate::core::…` → `zr_kernel::…` 等），不留旧路径别名。
 
@@ -96,7 +98,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 ### M2 Phase 2：中层域拆出（platform/input/asset/scene/rhi/rhi_wgpu/render_graph）
 
 实现切片：
-- 依 layer 1–3 顺序逐域拆出；`zr_rhi_wgpu`、`zr_platform` 收拢 wgpu/winit 依赖，`zircon_runtime/Cargo.toml` 中对应依赖随迁移下沉到成员 crate；
+- 依 layer 1–3 顺序逐域拆出；先拆 `zr_foundation`，再拆 `zr_platform/zr_input → zr_asset/zr_scene → zr_rhi/zr_rhi_wgpu/zr_render_graph`。`zr_rhi_wgpu`、`zr_platform` 收拢 wgpu/winit 依赖，`zircon_runtime/Cargo.toml` 中对应依赖随迁移下沉到成员 crate；
 - `builtin/runtime_modules` 组装代码留在门面，改为引用成员 crate 的模块描述符构造函数。
 
 测试阶段：同 M1 命令集，另加：
@@ -140,4 +142,7 @@ facade   zircon_runtime 门面：builtin 组装、plugin 加载、dynamic_api、
 
 - fixed 已修复：[`core/contracts` 反向依赖上层域与 facade](01/fixed-2026-07-13-core-contract-reverse-dependencies.md)（修复责任：Frameworks05；禁止方向 current-source 引用已清零，编译与核心行为门已通过）
 - 产出记录：[`01/2026-07-13-m0-current-structure-and-dependency-baseline.md`](01/2026-07-13-m0-current-structure-and-dependency-baseline.md)
-- 当前状态：M0 的 current workspace/feature/CI 事实、初始 2,151 production refs / 77 domain edges 与内部 `zr_*` crate 层级已经锁定；layer audit 发现的 `core`→asset/graphics/scene 18 refs 与 internal domains→builtin/plugin facade 38 refs 已由 Frameworks05 完成十八类 owner/behavior 硬切。回传基线为 2,290 / 72，全部禁止方向为 0，Runtime core-min/default、App、Editor、相关插件编译与 core-min 生命周期行为门均通过，因此该反向依赖阻断已解除，M0 crate-DAG 分类与物理提取可继续。`zircon_runtime/crates/` 仍不存在，M1–M4 尚未开始迁移；冷/增量 `cargo build --timings` 仍 pending，故不声明 M0 或计划 01 完成。
+- M1 DAG 前置记录：[`01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md`](01/2026-07-17-m1-resource-error-owner-dag-prerequisite.md)（resource registry error owner hard-cut 已实现，locked Cargo 验收 pending）
+- M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md`](01/2026-07-18-m1-runtime-diagnostics-facade-collector-hardcut.md)（manager-resolving diagnostics 已移出 core，静态门通过，Cargo 与 Shader06 foreign doc pending）
+- M1 DAG 前置记录：[`01/2026-07-18-m1-runtime-error-owner-dag-prerequisite.md`](01/2026-07-18-m1-runtime-error-owner-dag-prerequisite.md)（`CoreError/CoreResult` 已硬切到 runtime kernel owner，静态门通过，复审/Cargo pending）
+- 当前状态：M0 已在 2026-07-30 对 9,188 个 Runtime Rust 输入完成 pre/post 同指纹的原子快照：7 个根 workspace members、2,391 production refs / 76 domain edges；旧 `core→asset/graphics/scene` 与 internal→facade 生产反向边已经清零。新出现的 `foundation` 顶层域按 runtime absorption 权威确定为 layer-1 `zr_foundation`，不并入 core、不形成公开根包。物理硬切前必须重新采集同口径快照，并消除 `asset→text=2`、`scene→animation=2`、`rhi→rhi_wgpu=1`，同时把 source-cubemap projection 的两处 concrete Runtime `TaskPool` 测试迁到 kernel integration owner。M1 当前已完成 resource error、manager diagnostics、runtime error 三个 owner-DAG 静态前置且无 alias/shim；`zircon_runtime/crates/` 仍不存在，M1–M4 尚未开始物理迁移。四份冷/增量 `cargo build --timings` 仍在受管 FIFO 测试阶段 pending，故不声明 M0、M1 或计划 01 完成。
