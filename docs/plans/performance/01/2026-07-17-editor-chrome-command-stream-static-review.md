@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/chrome_command_stream
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/image
   - zircon_editor/src/ui/retained_host/host_contract/presenter/gpu/present.rs
   - zircon_runtime/src/rhi/ui_surface.rs
 plan_sources:

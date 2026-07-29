@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/drag_resize
   - zircon_editor/src/ui/retained_host/app/workspace_docking.rs
-  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize/**/*.rs
+  - zircon_editor/src/ui/retained_host/app/workspace_docking/drawer_resize
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

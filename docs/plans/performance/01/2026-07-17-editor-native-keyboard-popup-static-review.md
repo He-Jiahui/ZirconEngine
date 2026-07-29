@@ -1,11 +1,11 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_keyboard.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_keyboard
   - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_popup_dismiss
   - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu.rs
-  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu
   - zircon_editor/src/ui/retained_host/host_contract/workbench_context_menu_tests.rs
   - zircon_editor/src/ui/retained_host/host_contract/host_page_overflow_menu.rs
   - zircon_editor/src/ui/retained_host/host_contract/menu_popup_metrics.rs

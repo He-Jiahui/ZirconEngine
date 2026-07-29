@@ -1,11 +1,11 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_frame.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_frame/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_frame
   - zircon_editor/src/ui/retained_host/host_contract/paint_recording.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_recording/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_recording
   - zircon_editor/src/ui/retained_host/host_contract/paint_primitives.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_primitives
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08

@@ -1,19 +1,19 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/chrome_damage
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/close_prompt_damage
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/pane_button_damage
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/redraw_result
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/resize_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/tab_drag_damage
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/template_hover_damage.rs
   - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/viewport_toolbar_damage
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/01-slate-input-dispatch-core.md

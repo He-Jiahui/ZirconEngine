@@ -1,8 +1,8 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/host_contract/data/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/data
   - zircon_editor/src/ui/retained_host/host_contract/window/presentation/snapshot.rs
-  - zircon_editor/src/ui/retained_host/host_contract/native_pointer/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/native_pointer
   - zircon_editor/src/ui/retained_host/app/host_lifecycle/recompute/viewport_surfaces.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
