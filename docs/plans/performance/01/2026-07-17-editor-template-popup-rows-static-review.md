@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_row_adornments
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_popup_rows_tests
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/08-workbench-shell-on-runtime-ui.md

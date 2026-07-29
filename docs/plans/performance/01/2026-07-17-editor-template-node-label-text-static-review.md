@@ -1,10 +1,10 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_labels_tests
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_text
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
   - docs/plans/zircon_editor/editor_ui/03-text-and-font-stack.md
