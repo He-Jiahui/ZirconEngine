@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import tempfile
 import threading
@@ -13,6 +14,12 @@ from tools.session_coordinator.control_plane.actions.executor import ActionExecu
 from tools.session_coordinator.control_plane.actions.fingerprint import ActionFingerprinter
 from tools.session_coordinator.control_plane.actions.models import ActionContext, ActionKind
 from tools.session_coordinator.control_plane.actions.service import ActionService
+from tools.session_coordinator.cargo_jobs import (
+    CargoCompatibility,
+    CargoJobService,
+    CargoLaneKind,
+    TargetPathPolicy,
+)
 from tools.session_coordinator.database import Database
 from tools.session_coordinator.migrations import migrate
 from tools.session_coordinator.models import (
@@ -34,6 +41,8 @@ class SupervisionActionTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         root = Path(self.temporary.name)
         self.repo = init_repo(root / "repo")
+        self.target_root = root / "cargo-targets"
+        self.target_root.mkdir()
         self.database = Database(root / "coordinator.sqlite3")
         migrate(self.database)
         BaselineService(self.database, self.repo).initialize()
@@ -112,18 +121,670 @@ class SupervisionActionTests(unittest.TestCase):
                 (job_id, f"D:/cargo-targets/{job_id}", status, json.dumps(live_pids)),
             )
 
-    def test_drain_records_blockers_without_closing_admission(self) -> None:
-        drained = self._confirm(ActionKind.SERVICE_DRAIN)
+    def _source_bound_compatibility(self) -> CargoCompatibility:
+        readme_hash = hashlib.sha256((self.repo / "README.md").read_bytes()).hexdigest()
+        return CargoCompatibility(
+            platform="windows",
+            toolchain="stable-x86_64-pc-windows-msvc",
+            target_architecture="x86_64-pc-windows-msvc",
+            workspace="Cargo.toml",
+            build_config="profile=test;features=default;rustflags=;incremental=0;debug=0",
+            source_manifest={"README.md": readme_hash},
+        )
+
+    def test_proof_bound_drain_persists_hold_and_allows_only_maintenance_scope(self) -> None:
+        drained = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session"],
+        )
 
         self.assertEqual("succeeded", drained.status.value)
-        self.assertEqual("healthy", self.supervision.snapshot().state.value)
-        self.assertFalse(self.supervision.snapshot().maintenance_hold)
-        self.supervision.require_mutation_allowed("lease.claim")
+        self.assertEqual("draining", self.supervision.snapshot().state.value)
+        self.assertTrue(self.supervision.snapshot().maintenance_hold)
+        with self.assertRaises(CoordinatorError) as generic:
+            self.supervision.require_mutation_allowed("cargo.acquire@reviewer-session")
+        self.assertEqual("maintenance_hold_active", generic.exception.code)
 
-        resumed = self._confirm(ActionKind.SERVICE_RESUME)
+    def test_proof_bound_drain_applies_its_scope_to_the_current_daemon(self) -> None:
+        self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session"],
+        )
 
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
+        )
+        self.supervision.require_mutation_allowed("cargo.run_reserved@executor-session")
+        with self.assertRaises(CoordinatorError) as foreign:
+            self.supervision.require_mutation_allowed(
+                "cargo.consume_cpu_reservation@reviewer-session"
+            )
+        self.assertEqual("maintenance_hold_active", foreign.exception.code)
+
+    def test_bootstrap_rejects_a_burst_reservation(self) -> None:
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    compatibility_json, command_fingerprint, job_id, status, created_at,
+                    expires_at, execution_mode, burst_eligible, priority_rank
+                ) VALUES (
+                    'burst-reservation', 'executor-session', 'cpu', 'burst-compat',
+                    '{"source_manifest":{"README.md":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}}',
+                    'burst-command', NULL, 'pending', '2026-07-19T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', 'burst', 1, 1000
+                )
+                """
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.supervision.bootstrap_proof_bound_handoff(
+                reservation_id="burst-reservation",
+                maintenance_session_ids=("executor-session",),
+                actor="bootstrap-owner",
+            )
+
+        self.assertEqual("bootstrap_reservation_ineligible", rejected.exception.code)
+
+    def test_proof_bound_runtime11_shape_consumes_once_and_retries_same_job(self) -> None:
+        cargo = CargoJobService(
+            self.database,
+            TargetPathPolicy([self.target_root]),
+            repo_root=self.repo,
+            free_space=lambda _path: 200 * 1024**3,
+        )
+        compatibility = self._source_bound_compatibility()
+        first = cargo.reserve_cpu(
+            "executor-session",
+            compatibility=compatibility,
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib", "runtime11"),
+            burst_eligible=False,
+        )
+        later = cargo.reserve_cpu(
+            "reviewer-session",
+            compatibility=compatibility,
+            command=("cargo", "test", "-p", "zircon_runtime", "--lib", "reviewer"),
+            burst_eligible=False,
+        )
+        self.supervision.bootstrap_proof_bound_handoff(
+            reservation_id=first["reservationId"],
+            maintenance_session_ids=("executor-session",),
+            actor="bootstrap-owner",
+        )
+        cargo.set_reservation_consume_guard(
+            lambda connection, reservation_id, session_id, job_id=None: (
+                self.supervision.require_proof_bound_reservation_in_connection(
+                    connection,
+                    reservation_id,
+                    session_id=session_id,
+                    job_id=job_id,
+                )
+            )
+        )
+
+        first_job = cargo.consume_cpu_reservation(
+            first["reservationId"],
+            session_id="executor-session",
+            lane_kind=CargoLaneKind.TEST,
+        )
+        retried_job = cargo.consume_cpu_reservation(
+            first["reservationId"],
+            session_id="executor-session",
+            lane_kind=CargoLaneKind.TEST,
+        )
+
+        self.assertEqual(first_job.job_id, retried_job.job_id)
+        with self.database.connect() as connection:
+            jobs = connection.execute(
+                "SELECT job_id FROM cargo_jobs WHERE session_id='executor-session'"
+            ).fetchall()
+            reservations = connection.execute(
+                """
+                SELECT reservation_id, status, job_id
+                FROM cargo_lane_reservations
+                WHERE reservation_id IN (?, ?)
+                ORDER BY created_at, reservation_id
+                """,
+                (first["reservationId"], later["reservationId"]),
+            ).fetchall()
+        self.assertEqual([first_job.job_id], [row["job_id"] for row in jobs])
+        self.assertEqual("leased", reservations[0]["status"])
+        self.assertEqual(first_job.job_id, reservations[0]["job_id"])
+        self.assertEqual("pending", reservations[1]["status"])
+        self.assertIsNone(reservations[1]["job_id"])
+
+    def test_bootstrap_handoff_requires_a_quiet_lane_and_binds_one_existing_reservation(self) -> None:
+        """An offline bootstrap cannot create a hold around a live Cargo tree."""
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    compatibility_json, command_fingerprint, job_id, status, created_at, expires_at,
+                    started_at, completed_at, execution_mode, burst_eligible,
+                    priority_rank, failure_lifecycle_key
+                ) VALUES (
+                    'hgi-reservation', 'executor-session', 'cpu', 'hgi-compat',
+                    '{"source_manifest":{"owned.txt":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}}',
+                    'hgi-command', NULL, 'pending', '2026-07-19T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', NULL, NULL, 'warm', 0, 1000, NULL
+                )
+                """
+            )
+        self._insert_cargo_job("live-cargo", status="running", live_pids=[101])
+
+        with self.assertRaises(CoordinatorError) as blocked:
+            self.supervision.bootstrap_proof_bound_handoff(
+                reservation_id="hgi-reservation",
+                maintenance_session_ids=("reviewer-session", "executor-session"),
+                actor="bootstrap-owner",
+            )
+        self.assertEqual("bootstrap_cargo_active", blocked.exception.code)
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET status='released', finished_at='2026-07-19T00:01:00+00:00' "
+                "WHERE job_id='live-cargo'"
+            )
+
+        handoff = self.supervision.bootstrap_proof_bound_handoff(
+            reservation_id="hgi-reservation",
+            maintenance_session_ids=("reviewer-session", "executor-session"),
+            actor="bootstrap-owner",
+        )
+
+        self.assertFalse(handoff["admissionOpen"])
+        self.assertTrue(handoff["proofBound"])
+        self.assertEqual("hgi-reservation", handoff["reservationId"])
+        self.assertTrue(self.supervision.snapshot().maintenance_hold)
+        self.assertEqual("draining", self.supervision.snapshot().state.value)
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
+        )
+        self.supervision.require_mutation_allowed("cargo.run_reserved@executor-session")
+        with self.assertRaises(CoordinatorError) as generic:
+            self.supervision.require_mutation_allowed("cargo.reserve_cpu@executor-session")
+        self.assertEqual("maintenance_hold_active", generic.exception.code)
+        with self.assertRaises(CoordinatorError) as mismatched:
+            self.supervision.require_proof_bound_reservation(
+                "another-reservation", session_id="executor-session"
+            )
+        self.assertEqual("maintenance_proof_reservation_mismatch", mismatched.exception.code)
+        self.supervision.require_proof_bound_reservation(
+            "hgi-reservation", session_id="executor-session"
+        )
+        with self.database.connect() as connection:
+            proof = self.supervision.proof_bound_drain(connection)
+            binding = self.supervision._proof_result(proof)["reservationBinding"]
+        self.assertEqual(
+            {
+                "reservationId",
+                "sessionId",
+                "laneScope",
+                "status",
+                "jobId",
+                "compatibilityKey",
+                "compatibilityPayloadFingerprint",
+                "commandFingerprint",
+                "sourceManifestFingerprint",
+                "createdAt",
+                "priorityRank",
+                "executionMode",
+                "fifoPredecessor",
+            },
+            set(binding),
+        )
+        self.assertEqual("pending", binding["status"])
+        self.assertIsNone(binding["jobId"])
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_lane_reservations SET status='leased' "
+                "WHERE reservation_id='hgi-reservation'"
+            )
+        with self.assertRaises(CoordinatorError) as status_drift:
+            self.supervision.require_proof_bound_reservation(
+                "hgi-reservation", session_id="executor-session"
+            )
+        self.assertEqual("maintenance_proof_reservation_mismatch", status_drift.exception.code)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_lane_reservations SET status='pending' "
+                "WHERE reservation_id='hgi-reservation'"
+            )
+        for column, replacement in (
+            ("command_fingerprint", "drift-command"),
+            ("compatibility_key", "drift-compatibility"),
+            (
+                "compatibility_json",
+                '{"source_manifest":{"owned.txt":"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"}}',
+            ),
+            ("created_at", "2026-07-20T00:00:00+00:00"),
+            ("execution_mode", "burst"),
+        ):
+            with self.database.transaction() as connection:
+                original = connection.execute(
+                    f"SELECT {column} FROM cargo_lane_reservations WHERE reservation_id='hgi-reservation'"
+                ).fetchone()[0]
+                connection.execute(
+                    f"UPDATE cargo_lane_reservations SET {column}=? WHERE reservation_id='hgi-reservation'",
+                    (replacement,),
+                )
+            with self.assertRaises(CoordinatorError) as drifted:
+                self.supervision.require_proof_bound_reservation(
+                    "hgi-reservation", session_id="executor-session"
+                )
+            self.assertEqual("maintenance_proof_reservation_mismatch", drifted.exception.code)
+            with self.database.transaction() as connection:
+                connection.execute(
+                    f"UPDATE cargo_lane_reservations SET {column}=? WHERE reservation_id='hgi-reservation'",
+                    (original,),
+                )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    compatibility_json, command_fingerprint, job_id, status, created_at,
+                    expires_at, execution_mode, burst_eligible, priority_rank
+                ) VALUES (
+                    'injected-predecessor', 'reviewer-session', 'cpu', 'other-compat',
+                    '{"source_manifest":{"owned.txt":"CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"}}',
+                    'other-command', NULL, 'pending', '2020-01-01T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', 'warm', 0, 0
+                )
+                """
+            )
+        with self.assertRaises(CoordinatorError) as predecessor_drift:
+            self.supervision.require_proof_bound_reservation(
+                "hgi-reservation", session_id="executor-session"
+            )
+        self.assertEqual("maintenance_proof_reservation_mismatch", predecessor_drift.exception.code)
+        with self.database.transaction() as connection:
+            connection.execute(
+                "DELETE FROM cargo_lane_reservations WHERE reservation_id='injected-predecessor'"
+            )
+        with self.assertRaises(CoordinatorError) as premature_resume:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=handoff["actionId"],
+            )
+        self.assertEqual("maintenance_proof_reservation_active", premature_resume.exception.code)
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_lane_reservations
+                SET status='released', completed_at='2026-07-19T00:02:00+00:00'
+                WHERE reservation_id='hgi-reservation'
+                """
+            )
+        resumed = self._confirm(
+            ActionKind.SERVICE_RESUME,
+            releaseMaintenanceHold=True,
+            maintenanceHoldActionId=handoff["actionId"],
+        )
         self.assertEqual("succeeded", resumed.status.value)
-        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+
+    def test_bootstrap_reconciles_legacy_priority_yield_before_selecting_fifo_head(self) -> None:
+        """A legacy retry cannot become a proof-bound head ahead of its normal barrier."""
+        lifecycle_key = "origin|runtime11|legacy-priority-yield"
+        with self.database.transaction() as connection:
+            connection.executemany(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    compatibility_json, command_fingerprint, job_id, status, created_at,
+                    expires_at, execution_mode, burst_eligible, priority_rank,
+                    failure_lifecycle_key
+                ) VALUES (?, ?, 'cpu', 'compat',
+                          '{"source_manifest":{"owned.txt":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"}}',
+                          'command', NULL, ?, ?, '2099-07-19T00:00:00+00:00',
+                          'warm', 0, ?, ?)
+                """,
+                (
+                    (
+                        "completed-priority",
+                        "executor-session",
+                        "released",
+                        "2026-07-19T00:00:00+00:00",
+                        0,
+                        lifecycle_key,
+                    ),
+                    (
+                        "normal-barrier",
+                        "reviewer-session",
+                        "pending",
+                        "2026-07-19T00:01:00+00:00",
+                        1000,
+                        None,
+                    ),
+                    (
+                        "legacy-retry",
+                        "executor-session",
+                        "pending",
+                        "2026-07-19T00:02:00+00:00",
+                        0,
+                        lifecycle_key,
+                    ),
+                ),
+            )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.supervision.bootstrap_proof_bound_handoff(
+                reservation_id="legacy-retry",
+                maintenance_session_ids=("executor-session", "reviewer-session"),
+                actor="bootstrap-owner",
+            )
+
+        self.assertEqual("bootstrap_reservation_not_fifo_head", rejected.exception.code)
+
+    def test_second_drain_cannot_replace_the_active_proof_scope_or_release_source(self) -> None:
+        first = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session"],
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    command_fingerprint, job_id, status, created_at, expires_at,
+                    started_at, completed_at, execution_mode, burst_eligible,
+                    priority_rank, failure_lifecycle_key
+                ) VALUES (
+                    'first-proof-reservation', 'executor-session', 'cpu', 'proof-compat',
+                    'proof-command', NULL, 'pending', '2026-07-19T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', NULL, NULL, 'warm', 0, 1000, NULL
+                )
+                """
+            )
+        second = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["reviewer-session"],
+        )
+
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
+        )
+        with self.assertRaises(CoordinatorError) as foreign:
+            self.supervision.require_mutation_allowed(
+                "cargo.consume_cpu_reservation@reviewer-session"
+            )
+        self.assertEqual("maintenance_hold_active", foreign.exception.code)
+        with self.assertRaises(CoordinatorError) as replaced:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=second.action_id,
+            )
+        self.assertEqual("maintenance_hold_release_mismatch", replaced.exception.code)
+        with self.assertRaises(CoordinatorError) as active:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=first.action_id,
+            )
+        self.assertEqual("maintenance_proof_reservation_active", active.exception.code)
+
+    def test_new_proof_cycle_retires_the_previous_scope_and_release_action(self) -> None:
+        first = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session"],
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    command_fingerprint, job_id, status, created_at, expires_at,
+                    started_at, completed_at, execution_mode, burst_eligible,
+                    priority_rank, failure_lifecycle_key
+                ) VALUES (
+                    'first-cycle-reservation', 'executor-session', 'cpu', 'proof-compat',
+                    'proof-command', NULL, 'released', '2026-07-19T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', NULL, '2026-07-19T00:01:00+00:00',
+                    'warm', 0, 1000, NULL
+                )
+                """
+            )
+        self._confirm(
+            ActionKind.SERVICE_RESUME,
+            releaseMaintenanceHold=True,
+            maintenanceHoldActionId=first.action_id,
+        )
+        second = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["reviewer-session"],
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    command_fingerprint, job_id, status, created_at, expires_at,
+                    started_at, completed_at, execution_mode, burst_eligible,
+                    priority_rank, failure_lifecycle_key
+                ) VALUES (
+                    'second-cycle-reservation', 'reviewer-session', 'cpu', 'proof-compat',
+                    'proof-command', NULL, 'pending', '2026-07-19T00:02:00+00:00',
+                    '2099-07-19T00:00:00+00:00', NULL, NULL, 'warm', 0, 1000, NULL
+                )
+                """
+            )
+
+        self.supervision.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@reviewer-session"
+        )
+        with self.assertRaises(CoordinatorError) as retired_scope:
+            self.supervision.require_mutation_allowed(
+                "cargo.consume_cpu_reservation@executor-session"
+            )
+        self.assertEqual("maintenance_hold_active", retired_scope.exception.code)
+        with self.assertRaises(CoordinatorError) as retired_release:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=first.action_id,
+            )
+        self.assertEqual("maintenance_hold_release_mismatch", retired_release.exception.code)
+        with self.assertRaises(CoordinatorError) as active:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=second.action_id,
+            )
+        self.assertEqual("maintenance_proof_reservation_active", active.exception.code)
+
+    def test_restarted_daemon_retires_first_proof_scope_before_second_cycle(self) -> None:
+        """A restart during cycle A must not leak A into a later cycle B."""
+        first = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session"],
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    command_fingerprint, job_id, status, created_at, expires_at,
+                    started_at, completed_at, execution_mode, burst_eligible,
+                    priority_rank, failure_lifecycle_key
+                ) VALUES (
+                    'restart-first-cycle-reservation', 'executor-session', 'cpu', 'proof-compat',
+                    'proof-command', NULL, 'released', '2026-07-19T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', NULL, '2026-07-19T00:01:00+00:00',
+                    'warm', 0, 1000, NULL
+                )
+                """
+            )
+
+        successor = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-successor",
+            process_creation_time="created-successor",
+            maintenance_session_ids=("executor-session",),
+        )
+        successor.initialize(start_reason="recovery.proof_bound_cycle_a")
+        successor.mark_healthy()
+        successor.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
+        )
+        successor_lifecycle = LifecycleService(
+            successor,
+            shutdown=lambda _kind: self.shutdown.set(),
+            poll_seconds=0.01,
+            allow_global_shutdown=True,
+        )
+        self.addCleanup(successor_lifecycle.close)
+        successor_actions = ActionService(
+            self.database,
+            ActionFingerprinter(
+                self.database,
+                self.repo,
+                daemon_instance_id="daemon-successor",
+                supervision=successor,
+            ),
+            ActionExecutor(
+                sessions=self.sessions,
+                leases=None,
+                patches=None,
+                failures=None,
+                workspace_copy=None,
+                workflows=None,
+                lifecycle=successor_lifecycle,
+            ),
+            daemon_instance_id="daemon-successor",
+            mutation_gate=successor.require_mutation_allowed,
+        )
+        successor_context = ActionContext(
+            actor="tray",
+            role=WebControlRole.MAINTAINER,
+            web_session_id=None,
+            bound_session_id=None,
+            daemon_instance_id="daemon-successor",
+        )
+
+        def confirm(kind: ActionKind, **parameters):
+            preview = successor_actions.preview(
+                successor_context,
+                kind.value,
+                {"timeoutSeconds": 5, **parameters},
+            )
+            return successor_actions.confirm(
+                successor_context,
+                preview.action_id,
+                phrase=preview.confirmation_phrase or "",
+                reason=f"test successor {kind.value}",
+            )
+
+        resumed = confirm(
+            ActionKind.SERVICE_RESUME,
+            releaseMaintenanceHold=True,
+            maintenanceHoldActionId=first.action_id,
+        )
+        self.assertEqual("succeeded", resumed.status.value)
+        second = confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["reviewer-session"],
+        )
+
+        successor.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@reviewer-session"
+        )
+        successor.require_mutation_allowed("cargo.run_reserved@reviewer-session")
+        with self.assertRaises(CoordinatorError) as retired_scope:
+            successor.require_mutation_allowed(
+                "cargo.consume_cpu_reservation@executor-session"
+            )
+        self.assertEqual("maintenance_hold_active", retired_scope.exception.code)
+        with self.assertRaises(CoordinatorError) as retired_release:
+            confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=first.action_id,
+            )
+        self.assertEqual("maintenance_hold_release_mismatch", retired_release.exception.code)
+        resumed = confirm(
+            ActionKind.SERVICE_RESUME,
+            releaseMaintenanceHold=True,
+            maintenanceHoldActionId=second.action_id,
+        )
+        self.assertEqual("succeeded", resumed.status.value)
+
+    def test_proof_bound_drain_requires_terminal_reservation_before_explicit_resume(self) -> None:
+        drained = self._confirm(
+            ActionKind.SERVICE_DRAIN,
+            maintenanceSessionIds=["executor-session"],
+        )
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO cargo_lane_reservations(
+                    reservation_id, session_id, lane_scope, compatibility_key,
+                    command_fingerprint, job_id, status, created_at, expires_at,
+                    started_at, completed_at, execution_mode, burst_eligible,
+                    priority_rank, failure_lifecycle_key
+                ) VALUES (
+                    'proof-reservation', 'executor-session', 'cpu', 'proof-compat',
+                    'proof-command', NULL, 'pending', '2026-07-19T00:00:00+00:00',
+                    '2099-07-19T00:00:00+00:00', NULL, NULL, 'warm', 0, 1000, NULL
+                )
+                """
+            )
+
+        successor = SupervisionService(
+            self.database,
+            repository_key="repo",
+            daemon_instance_id="daemon-successor",
+            process_creation_time="created-successor",
+            maintenance_session_ids=("executor-session",),
+        )
+        successor.initialize(start_reason="recovery.proof_bound_drain")
+        successor.mark_healthy()
+        self.assertTrue(successor.snapshot().maintenance_hold)
+        successor.require_mutation_allowed(
+            "cargo.consume_cpu_reservation@executor-session"
+        )
+        successor.require_mutation_allowed("cargo.run_reserved@executor-session")
+        for operation in (
+            "cargo.acquire@reviewer-session",
+            "cargo.reserve_cpu@reviewer-session",
+            "cargo.promote_failure_reservation@reviewer-session",
+            "cargo.reserve_cpu@executor-session",
+            "cargo.reserve_gpu@executor-session",
+            "cargo.recover_expired_reservation@executor-session",
+            "cargo.promote_failure_reservation@executor-session",
+            "cargo.consume_gpu_reservation@executor-session",
+        ):
+            with self.assertRaises(CoordinatorError) as rejected:
+                successor.require_mutation_allowed(operation)
+            self.assertEqual("maintenance_hold_active", rejected.exception.code)
+
+        with self.assertRaises(CoordinatorError) as blocked:
+            self._confirm(
+                ActionKind.SERVICE_RESUME,
+                releaseMaintenanceHold=True,
+                maintenanceHoldActionId=drained.action_id,
+            )
+        self.assertEqual("maintenance_proof_reservation_active", blocked.exception.code)
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                """
+                UPDATE cargo_lane_reservations
+                SET status='released', completed_at='2026-07-19T00:01:00+00:00'
+                WHERE reservation_id='proof-reservation'
+                """
+            )
+        resumed = self._confirm(
+            ActionKind.SERVICE_RESUME,
+            releaseMaintenanceHold=True,
+            maintenanceHoldActionId=drained.action_id,
+        )
+        self.assertEqual("succeeded", resumed.status.value)
         self.assertFalse(self.supervision.snapshot().maintenance_hold)
 
     def test_drain_persists_its_maintenance_session_scope(self) -> None:
@@ -401,6 +1062,18 @@ class SupervisionActionTests(unittest.TestCase):
         successor_snapshot = successor.snapshot()
         self.assertEqual("healthy", successor_snapshot.state.value)
         self.assertFalse(successor_snapshot.maintenance_hold)
+        successor_record = successor_actions.get(
+            ActionContext(
+                actor="tray",
+                role=WebControlRole.MAINTAINER,
+                web_session_id=None,
+                bound_session_id=None,
+                daemon_instance_id="daemon-b",
+            ),
+            rolling.action_id,
+        )
+        self.assertEqual("succeeded", successor_record.status.value)
+        self.assertEqual("daemon-b", successor_record.result["successorInstanceId"])
 
     def test_successor_coalesces_a_recent_rollover_without_a_second_shutdown(self) -> None:
         first = self._confirm(ActionKind.SERVICE_ROLLOVER)
@@ -473,30 +1146,94 @@ class SupervisionActionTests(unittest.TestCase):
             ).fetchone()[0]
         self.assertEqual(1, rollover_count)
 
-    def test_rollover_rejects_a_live_managed_cargo_tree_without_draining(self) -> None:
+    def test_rollover_defers_for_a_live_managed_cargo_tree_without_draining(self) -> None:
         self._insert_cargo_job("running-job", status="running", live_pids=[4242])
-        preview = self.actions.preview(
-            self.context,
-            ActionKind.SERVICE_ROLLOVER.value,
-            {"timeoutSeconds": 5},
-        )
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
 
-        with self.assertRaises(CoordinatorError) as rejected:
-            self.actions.confirm(
-                self.context,
-                preview.action_id,
-                phrase=preview.confirmation_phrase or "",
-                reason="test service.rollover live Cargo rejection",
-            )
-
-        self.assertEqual("lifecycle_rollover_live_cargo", rejected.exception.code)
-        rolling = self.actions.get(self.context, preview.action_id)
-        self.assertEqual("failed", rolling.status.value)
-        self.assertEqual("lifecycle_rollover_live_cargo", rolling.error_code)
+        self.assertEqual("executing", rolling.status.value)
+        self.assertTrue(rolling.result["waitingForCargo"])
+        self.assertEqual("healthy", rolling.result["state"])
         self.assertFalse(self.shutdown.wait(0.1))
         snapshot = self.supervision.snapshot()
         self.assertEqual("healthy", snapshot.state.value)
         self.assertFalse(snapshot.maintenance_hold)
+        with self.database.connect() as connection:
+            intent = connection.execute(
+                "SELECT status, result_json FROM service_lifecycle_intents WHERE action_id=?",
+                (rolling.action_id,),
+            ).fetchone()
+        self.assertEqual("accepted", intent["status"])
+        self.assertTrue(json.loads(intent["result_json"])["waitingForCargo"])
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET process_tree_live_pids_json='[]' WHERE job_id='running-job'"
+            )
+        self.assertTrue(self.shutdown.wait(2))
+        with self.database.connect() as connection:
+            armed = connection.execute(
+                "SELECT status FROM service_lifecycle_intents WHERE action_id=?",
+                (rolling.action_id,),
+            ).fetchone()
+        self.assertEqual("awaiting_restart", armed["status"])
+
+    def test_rollover_records_one_waiting_audit_until_live_cargo_changes(self) -> None:
+        self._insert_cargo_job("running-job", status="running", live_pids=[4242])
+        rolling = self._confirm(ActionKind.SERVICE_ROLLOVER)
+
+        # 轮询重试保持准入开放，相同状态不能淹没操作审计。
+        time.sleep(0.08)
+        with self.database.connect() as connection:
+            waiting_events = connection.execute(
+                """
+                SELECT COUNT(*) FROM events
+                WHERE event_type='lifecycle.rollover_waiting_for_cargo'
+                  AND json_extract(payload_json, '$.actionId')=?
+                """,
+                (rolling.action_id,),
+            ).fetchone()[0]
+
+        self.assertEqual("executing", rolling.status.value)
+        self.assertEqual(1, waiting_events)
+        self.assertFalse(self.shutdown.is_set())
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET process_tree_live_pids_json='[4242, 4343]' "
+                "WHERE job_id='running-job'"
+            )
+        deadline = time.monotonic() + 1
+        while time.monotonic() < deadline:
+            with self.database.connect() as connection:
+                waiting_events = connection.execute(
+                    """
+                    SELECT COUNT(*) FROM events
+                    WHERE event_type='lifecycle.rollover_waiting_for_cargo'
+                      AND json_extract(payload_json, '$.actionId')=?
+                    """,
+                    (rolling.action_id,),
+                ).fetchone()[0]
+            if waiting_events == 2:
+                break
+            time.sleep(0.01)
+        self.assertEqual(2, waiting_events)
+
+        with self.database.transaction() as connection:
+            connection.execute(
+                "UPDATE cargo_jobs SET process_tree_live_pids_json='[4343, 4242]' "
+                "WHERE job_id='running-job'"
+            )
+        time.sleep(0.08)
+        with self.database.connect() as connection:
+            reordered_events = connection.execute(
+                """
+                SELECT COUNT(*) FROM events
+                WHERE event_type='lifecycle.rollover_waiting_for_cargo'
+                  AND json_extract(payload_json, '$.actionId')=?
+                """,
+                (rolling.action_id,),
+            ).fetchone()[0]
+        self.assertEqual(2, reordered_events)
 
     def test_stop_remains_executing_until_critical_sections_drain(self) -> None:
         self.maintenance_active.set()
@@ -694,11 +1431,11 @@ class SupervisionActionTests(unittest.TestCase):
         self.assertEqual("succeeded", resumed.status.value)
         self.assertFalse(self.supervision.snapshot().maintenance_hold)
 
-    def test_drain_is_immediately_terminal_without_stopping_cargo(self) -> None:
+    def test_drain_is_immediately_terminal_and_keeps_admission_held(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN, timeout=1)
 
-        self.assertEqual("healthy", self.supervision.snapshot().state.value)
-        self.assertFalse(self.supervision.snapshot().maintenance_hold)
+        self.assertEqual("draining", self.supervision.snapshot().state.value)
+        self.assertTrue(self.supervision.snapshot().maintenance_hold)
 
         with self.database.connect() as connection:
             intent = connection.execute(
@@ -708,7 +1445,7 @@ class SupervisionActionTests(unittest.TestCase):
         self.assertEqual("succeeded", intent["status"])
         self.assertIsNotNone(intent["completed_at"])
 
-    def test_recovered_legacy_drain_reopens_admission_at_its_deadline(self) -> None:
+    def test_recovered_drain_deadline_cannot_reopen_proof_bound_admission(self) -> None:
         drained = self._confirm(ActionKind.SERVICE_DRAIN, timeout=30)
         with self.database.connect() as connection:
             row = connection.execute(
@@ -742,7 +1479,9 @@ class SupervisionActionTests(unittest.TestCase):
         self.addCleanup(successor.close)
 
         self.assertEqual(1, successor.recover_restart_intents())
-        self.assertEqual("healthy", self.supervision.snapshot().state.value)
+        snapshot = self.supervision.snapshot()
+        self.assertEqual("draining", snapshot.state.value)
+        self.assertTrue(snapshot.maintenance_hold)
 
     def test_second_reversible_lifecycle_is_rejected_before_resume(self) -> None:
         self.maintenance_active.set()
@@ -811,6 +1550,41 @@ class SupervisionActionTests(unittest.TestCase):
             reason="test cleanup of reversible stop",
         )
         self.maintenance_active.clear()
+
+    def test_close_stops_a_local_stop_worker_before_database_cleanup(self) -> None:
+        """Daemon shutdown must not leave a worker holding the local SQLite file."""
+        self.maintenance_active.set()
+        self._confirm(ActionKind.SERVICE_STOP, timeout=5)
+        with self.lifecycle._lock:
+            workers = tuple(self.lifecycle._workers.values())
+        self.assertEqual(1, len(workers))
+
+        self.lifecycle.close()
+
+        self.assertFalse(workers[0].is_alive())
+        self.maintenance_active.clear()
+
+    def test_close_cancels_force_stop_fallback_before_database_cleanup(self) -> None:
+        """A closed daemon must not retain a delayed force-stop callback."""
+        forcing = self._confirm(ActionKind.SERVICE_FORCE_STOP)
+        deadline = time.monotonic() + 2
+        while time.monotonic() < deadline:
+            if self.supervision.snapshot().state is SupervisionState.OFFLINE:
+                break
+            time.sleep(0.01)
+        else:
+            self.fail("force-stop action did not reach terminal offline proof")
+        with self.lifecycle._lock:
+            fallback = self.lifecycle._force_stop_timers[forcing.action_id]
+        original_cancel = fallback.cancel
+        try:
+            with patch.object(fallback, "cancel", wraps=original_cancel) as cancelled:
+                self.lifecycle.close()
+                cancelled.assert_called_once_with()
+            fallback.join(1)
+            self.assertFalse(fallback.is_alive())
+        finally:
+            original_cancel()
 
     def test_resume_reconciles_active_intent_whose_action_is_already_terminal(self) -> None:
         orphan = self.actions.preview(

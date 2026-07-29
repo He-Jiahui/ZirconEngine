@@ -36,6 +36,8 @@ from .snapshots import ObjectStore, SnapshotService
 from .watch import WorkspaceWatcher
 from .cargo_jobs import CargoCompatibility, CargoJobService, CargoLaneKind, TargetPathPolicy
 from .cargo_runner import CargoJobRunner
+from .command_requests import CommandRequestJournal
+from .reserved_starts import ReservedCargoStartService
 from .cleanup import CleanupService, RetentionService
 from .artifact_governance import ArtifactGovernanceService
 from .processes import current_process_identity, process_is_alive
@@ -58,6 +60,7 @@ from .workflows.projections import WorkflowProjectionService
 from .workflows.store import WorkflowStore
 from .workflows.plan_import import TopologyImporter
 from .workflows.milestones import MilestoneWorkflowService
+from .workflows.failure_closeouts import FailureCloseoutWorkflowService
 from .notifications import WeComNotificationService
 from .supervision.lifecycle import LifecycleService
 from .supervision.repository_identity import repository_identity
@@ -278,6 +281,9 @@ class CoordinatorApplication:
             "ai_effort.report",
         }
     )
+    BOUNDED_REQUEST_KEY_COMMANDS = (READ_ONLY_COMMANDS - {"cleanup.plan"}) | frozenset(
+        {"session.heartbeat", "lease.heartbeat", "cargo.heartbeat"}
+    )
     # These commands either own an independent short SQLite transition or do
     # their long work after one.  Holding the generic foreground RLock around
     # them turns a disconnected caller into a five-minute outage for Cargo
@@ -329,6 +335,9 @@ class CoordinatorApplication:
         self.started_at = started_at or utc_text()
         self.database = Database(config.database_path)
         migrate(self.database)
+        self.command_requests = CommandRequestJournal(self.database)
+        self.command_requests.reconcile_interrupted()
+        self.command_requests.prune()
         self.ai_effort = AiEffortService(self.database)
         self.ai_effort.seed_user_baseline()
         self.workflows = WorkflowStore(self.database)
@@ -377,6 +386,11 @@ class CoordinatorApplication:
         )
         if _git_finalize_recovery_pending(self.database):
             self.finalize.recover_stale_mutex()
+        self.artifact_governance = (
+            ArtifactGovernanceService(self.database, roots=config.enabled_target_roots)
+            if config.unmanaged_artifact_sweep_enabled and config.enabled_target_roots
+            else None
+        )
         if config.enabled_target_roots:
             self.cargo_jobs: CargoJobService | None = CargoJobService(
                 self.database,
@@ -407,17 +421,15 @@ class CoordinatorApplication:
                 ),
                 mutation_gate=lambda: self._mutation_lock,
             )
+            self.workspace_copy.set_cargo_materialization_preflight(
+                lambda: self._require_artifact_governance_clean()
+            )
             self.workspace_copy.recover_interrupted_jobs()
         else:
             self.cargo_jobs = None
             self.cargo_runner = None
             self.cleanup = None
             self.workspace_copy = None
-        self.artifact_governance = (
-            ArtifactGovernanceService(self.database, roots=config.enabled_target_roots)
-            if config.unmanaged_artifact_sweep_enabled and config.enabled_target_roots
-            else None
-        )
         self.rollout_audit = RolloutAuditService(
             self.database,
             config.repo_root,
@@ -445,6 +457,24 @@ class CoordinatorApplication:
             self.cargo_jobs.set_reservation_consume_guard(
                 self._require_reservation_consume_guard
             )
+            self.reserved_starts: ReservedCargoStartService | None = ReservedCargoStartService(
+                self.database,
+                self.cargo_jobs,
+                self._require_cargo_runner(),
+                proof_guard=lambda connection, reservation_id, session_id, job_id: (
+                    self.supervision.require_proof_bound_reservation_in_connection(
+                        connection,
+                        reservation_id,
+                        session_id=session_id,
+                        job_id=job_id,
+                    )
+                ),
+                admission_guard=self._require_admission_checkpoint,
+            )
+            self.reserved_starts.reconcile_expired()
+            self.reserved_starts.reconcile_interrupted()
+        else:
+            self.reserved_starts = None
         if config.codex_home is None or config.codex_spool_base is None:
             raise CoordinatorError("codex_config_invalid", "Codex sync roots are unavailable")
         self.codex_discovery = CodexSessionDiscovery(config.codex_home, config.repo_root)
@@ -484,6 +514,18 @@ class CoordinatorApplication:
             leases=self.leases,
             failures=self.failures,
         )
+        self.failure_closeouts = FailureCloseoutWorkflowService(
+            self.database,
+            config.repo_root,
+            self.baselines,
+            self.finalize,
+            self.snapshots,
+            self.failures,
+            self.notifications,
+            sessions=self.sessions,
+            leases=self.leases,
+        )
+        self.failure_closeouts.recover_pending_commits()
         self.milestone_workflows.recover_pending_commits()
         if self.workspace_copy is not None:
             self.workspace_copy.set_completion_hook(
@@ -642,23 +684,33 @@ class CoordinatorApplication:
             "codexSync": codex_sync,
         }
 
-    def command(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    def command(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        request_id: str | None = None,
+    ) -> dict[str, Any]:
+        request_id = request_id or uuid.uuid4().hex
         if name in self.READ_ONLY_COMMANDS:
-            return self._command_unlocked(name, arguments)
+            return self._command_unlocked(name, arguments, request_id=request_id)
         if name in self.NON_BLOCKING_MUTATION_COMMANDS:
             if self.read_only:
-                return self._command_unlocked(name, arguments)
+                return self._command_unlocked(name, arguments, request_id=request_id)
             admission_checkpoint = self.supervision.require_mutation_allowed(
                 self._mutation_operation(name, arguments)
             )
             return self._command_unlocked(
-                name, arguments, admission_checkpoint=admission_checkpoint
+                name,
+                arguments,
+                admission_checkpoint=admission_checkpoint,
+                request_id=request_id,
             )
         if name == "supervision.force_stop_ack":
             with self._mutation_lock:
-                return self._command_unlocked(name, arguments)
+                return self._command_unlocked(name, arguments, request_id=request_id)
         if self.read_only:
-            return self._command_unlocked(name, arguments)
+            return self._command_unlocked(name, arguments, request_id=request_id)
         if name == "legacy.import" and bool(arguments.get("apply")):
             self._require_maintenance_capability(arguments)
         admission_checkpoint = self.supervision.require_mutation_allowed(
@@ -666,8 +718,87 @@ class CoordinatorApplication:
         )
         with self._mutation_lock:
             return self._command_unlocked(
-                name, arguments, admission_checkpoint=admission_checkpoint
+                name,
+                arguments,
+                admission_checkpoint=admission_checkpoint,
+                request_id=request_id,
             )
+
+    def execute_command_request(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        request_id: str,
+    ) -> dict[str, Any]:
+        if name != "cargo.run_reserved":
+            return self.command_requests.execute(
+                request_id,
+                name,
+                arguments,
+                lambda: self.command(name, arguments, request_id=request_id),
+                retention_class=(
+                    "ephemeral" if name in self.BOUNDED_REQUEST_KEY_COMMANDS else "durable"
+                ),
+            )
+        def admit(connection: sqlite3.Connection):
+            if self.read_only:
+                raise CoordinatorError(
+                    "not_on_main",
+                    f"Coordinator mutations require main; current branch is {self.branch}",
+                )
+            session_id, reservation_id, job_id, command = self._reserved_start_arguments(
+                arguments
+            )
+            operation = self._mutation_operation(name, arguments)
+            admission_checkpoint = self.supervision.require_mutation_allowed_in_connection(
+                connection, operation
+            )
+            starts = self._require_reserved_starts()
+            start, created = starts.admit_in_connection(
+                connection,
+                request_id=request_id,
+                reservation_id=reservation_id,
+                session_id=session_id,
+                job_id=job_id,
+                command=command,
+                admission_checkpoint=admission_checkpoint,
+            )
+            return {"start": start}, (lambda: starts.schedule(request_id)) if created else None
+
+        return self.command_requests.execute_transactional(
+            request_id,
+            name,
+            arguments,
+            admit,
+        )
+
+    @staticmethod
+    def _reserved_start_arguments(
+        arguments: dict[str, Any],
+    ) -> tuple[str, str, str, list[str]]:
+        required = {"session_id", "reservation_id", "job_id", "command"}
+        command = arguments.get("command")
+        if (
+            set(arguments) != required
+            or any(
+                not isinstance(arguments.get(field), str) or not arguments[field]
+                for field in ("session_id", "reservation_id", "job_id")
+            )
+            or not isinstance(command, list)
+            or not command
+            or any(not isinstance(part, str) or not part for part in command)
+        ):
+            raise CoordinatorError(
+                "cargo_reservation_run_arguments_invalid",
+                "Reserved Cargo run accepts only session_id, reservation_id, job_id, and command",
+            )
+        return (
+            str(arguments["session_id"]),
+            str(arguments["reservation_id"]),
+            str(arguments["job_id"]),
+            command,
+        )
 
     @staticmethod
     def _mutation_operation(name: str, arguments: dict[str, Any]) -> str:
@@ -798,10 +929,17 @@ class CoordinatorApplication:
         self.supervision.require_mutation_checkpoint(connection, operation, checkpoint)
 
     def _require_reservation_consume_guard(
-        self, connection, reservation_id: str, session_id: str
+        self,
+        connection,
+        reservation_id: str,
+        session_id: str,
+        job_id: str | None,
     ) -> None:
         self.supervision.require_proof_bound_reservation_in_connection(
-            connection, reservation_id, session_id=session_id
+            connection,
+            reservation_id,
+            session_id=session_id,
+            job_id=job_id,
         )
 
     def _command_unlocked(
@@ -810,6 +948,7 @@ class CoordinatorApplication:
         arguments: dict[str, Any],
         *,
         admission_checkpoint: str | None = None,
+        request_id: str | None = None,
     ) -> dict[str, Any]:
         if self.read_only and name not in self.READ_ONLY_COMMANDS:
             raise CoordinatorError(
@@ -1046,6 +1185,90 @@ class CoordinatorApplication:
                 resolved_at=date.fromisoformat(str(arguments["resolved_at"])),
             )
             return {"fixed_artifact": destination.relative_to(self.config.repo_root).as_posix()}
+        if name == "failure.closeout_prepare":
+            prepared = self.failure_closeouts.prepare(
+                session_id=str(arguments["session_id"]),
+                snapshot_id=int(arguments["snapshot_id"]),
+                lifecycle_key=str(arguments["lifecycle_key"]),
+                validation_command=arguments.get("validation_command") or [],
+                validation_job_id=str(arguments["validation_job_id"]),
+                validation_run_id=str(arguments["validation_run_id"]),
+                executor_thread_id=str(arguments["executor_thread_id"]),
+                actor=str(arguments["actor"]),
+                action_id=arguments.get("action_id"),
+            )
+            return {"closeout": asdict(prepared)}
+        if name == "failure.closeout_prepare_combined":
+            prepared = self.failure_closeouts.prepare_combined(
+                session_id=str(arguments["session_id"]),
+                snapshot_id=int(arguments["snapshot_id"]),
+                lifecycle_keys=arguments.get("lifecycle_keys") or [],
+                delivery_records=arguments.get("delivery_records") or [],
+                validation_command=arguments.get("validation_command") or [],
+                validation_job_id=str(arguments["validation_job_id"]),
+                validation_run_id=str(arguments["validation_run_id"]),
+                executor_thread_id=str(arguments["executor_thread_id"]),
+                actor=str(arguments["actor"]),
+                action_id=arguments.get("action_id"),
+            )
+            return {"closeout": asdict(prepared)}
+        if name == "failure.closeout_validate":
+            evidence = self.failure_closeouts.bind_validation(
+                session_id=str(arguments["session_id"]),
+                closeout_id=str(arguments["closeout_id"]),
+                job_id=str(arguments["job_id"]),
+                cargo_run_id=str(arguments["cargo_run_id"]),
+                actor=str(arguments["actor"]),
+                action_id=arguments.get("action_id"),
+            )
+            return {"evidence": asdict(evidence)}
+        if name == "failure.closeout_review":
+            evidence = self.failure_closeouts.record_review(
+                session_id=str(arguments["executor_session_id"]),
+                closeout_id=str(arguments["closeout_id"]),
+                reviewer_session_id=str(arguments["session_id"]),
+                reviewer_thread_id=str(arguments["reviewer_thread_id"]),
+                critical_count=int(arguments["critical_count"]),
+                important_count=int(arguments["important_count"]),
+                moderate_count=int(arguments["moderate_count"]),
+                summary=str(arguments["summary"]),
+                action_id=arguments.get("action_id"),
+            )
+            return {"evidence": asdict(evidence)}
+        if name == "failure.closeout_commit":
+            result = self.failure_closeouts.commit(
+                session_id=str(arguments["session_id"]),
+                closeout_id=str(arguments["closeout_id"]),
+                summary=str(arguments["summary"]),
+                actor=str(arguments["actor"]),
+                action_id=arguments.get("action_id"),
+            )
+            return {"closeout": asdict(result)}
+        if name == "milestone.defer_failure":
+            required = {
+                "session_id",
+                "source_milestone_key",
+                "target_milestone_key",
+                "failure_lifecycle_key",
+                "actor",
+            }
+            if set(arguments) != required or any(
+                not isinstance(arguments.get(field), str) or not arguments[field]
+                for field in required
+            ):
+                raise CoordinatorError(
+                    "milestone_failure_deferral_arguments_invalid",
+                    "Failure deferral requires one executor Session, source, target, lifecycle, and actor",
+                )
+            deferral = self.milestone_workflows.defer_failure(
+                session_id=str(arguments["session_id"]),
+                source_milestone_key=str(arguments["source_milestone_key"]),
+                target_milestone_key=str(arguments["target_milestone_key"]),
+                failure_lifecycle_key=str(arguments["failure_lifecycle_key"]),
+                actor=str(arguments["actor"]),
+                action_id=request_id,
+            )
+            return {"deferral": deferral}
         if name == "cargo.acquire":
             self._require_artifact_governance_clean()
             cargo_jobs = self._require_cargo_jobs()
@@ -1102,6 +1325,22 @@ class CoordinatorApplication:
                     "cargo_cpu_burst_eligibility_invalid",
                     "CPU burst eligibility must be a boolean or omitted for automatic selection",
                 )
+            dependency_lifecycle_key = arguments.get("dependency_lifecycle_key")
+            dependency_fixed_sha256 = arguments.get("dependency_fixed_sha256")
+            if dependency_lifecycle_key is not None and not isinstance(
+                dependency_lifecycle_key, str
+            ):
+                raise CoordinatorError(
+                    "cargo_reservation_dependency_invalid",
+                    "CPU reservation dependency lifecycle key must be text",
+                )
+            if dependency_fixed_sha256 is not None and not isinstance(
+                dependency_fixed_sha256, str
+            ):
+                raise CoordinatorError(
+                    "cargo_reservation_dependency_invalid",
+                    "CPU reservation dependency fixed digest must be text",
+                )
             reservation = self._require_cargo_jobs().reserve_cpu(
                 str(arguments["session_id"]),
                 compatibility=compatibility,
@@ -1109,6 +1348,8 @@ class CoordinatorApplication:
                 command=arguments.get("command") or [],
                 ttl_seconds=int(arguments.get("ttl_seconds", 900)),
                 burst_eligible=burst_eligible,
+                dependency_lifecycle_key=dependency_lifecycle_key,
+                dependency_fixed_sha256=dependency_fixed_sha256,
                 admission_checkpoint=admission_checkpoint,
             )
             return {"reservation": reservation}
@@ -1255,40 +1496,16 @@ class CoordinatorApplication:
             )
             return {"run": run.to_dict()}
         if name == "cargo.run_reserved":
-            required = {"session_id", "reservation_id", "job_id", "command"}
-            command = arguments.get("command")
-            if (
-                set(arguments) != required
-                or any(
-                    not isinstance(arguments.get(field), str) or not arguments[field]
-                    for field in ("session_id", "reservation_id", "job_id")
-                )
-                or not isinstance(command, list)
-                or not command
-                or any(not isinstance(part, str) or not part for part in command)
-            ):
-                raise CoordinatorError(
-                    "cargo_reservation_run_arguments_invalid",
-                    "Reserved Cargo run accepts only session_id, reservation_id, job_id, and command",
-                )
-            environment = self._require_cargo_jobs().reserved_run_environment(
-                str(arguments["reservation_id"]),
-                session_id=str(arguments["session_id"]),
-                job_id=str(arguments["job_id"]),
+            session_id, reservation_id, job_id, command = self._reserved_start_arguments(arguments)
+            start = self._require_reserved_starts().accept(
+                request_id=request_id or uuid.uuid4().hex,
+                reservation_id=reservation_id,
+                session_id=session_id,
+                job_id=job_id,
                 command=command,
+                admission_checkpoint=admission_checkpoint,
             )
-            self.supervision.require_proof_bound_reservation(
-                str(arguments["reservation_id"]),
-                session_id=str(arguments["session_id"]),
-                job_id=str(arguments["job_id"]),
-            )
-            run = self._require_cargo_runner().start(
-                session_id=str(arguments["session_id"]),
-                job_id=str(arguments["job_id"]),
-                command=command,
-                environment=environment,
-            )
-            return {"run": run.to_dict()}
+            return {"start": start}
         if name == "cargo.run_status":
             return {
                 "run": self._require_cargo_runner().status(
@@ -1391,6 +1608,7 @@ class CoordinatorApplication:
             record = self._require_workspace_copy().plan(
                 str(arguments["session_id"]),
                 include_paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                external_sources=tuple(arguments.get("external_sources") or ()),
             )
             return {"copy": record.to_dict()}
         if name == "validation_copy.materialize":
@@ -1398,8 +1616,20 @@ class CoordinatorApplication:
             record = self._require_workspace_copy().materialize_async(
                 str(arguments["session_id"]),
                 include_paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                external_sources=tuple(arguments.get("external_sources") or ()),
             )
             return {"copy": record.to_dict()}
+        if name == "validation_copy.materialize_cargo":
+            record = self._require_workspace_copy().materialize_cargo_async(
+                str(arguments["session_id"]),
+                command=tuple(str(part) for part in arguments.get("command") or ()),
+                overlay_paths=tuple(str(path) for path in arguments.get("paths") or ()),
+                external_sources=tuple(arguments.get("external_sources") or ()),
+            )
+            # Cargo closure planning and materialization can cover the full workspace.
+            # The request acknowledgement is deliberately bounded durable metadata;
+            # callers obtain a full manifest only through the later status endpoint.
+            return {"copy": record.acceptance_dict()}
         if name == "validation_copy.status":
             record = self._require_workspace_copy().status(
                 str(arguments["session_id"]), str(arguments["job_id"])
@@ -1515,6 +1745,14 @@ class CoordinatorApplication:
             )
         return self.cargo_runner
 
+    def _require_reserved_starts(self) -> ReservedCargoStartService:
+        if self.reserved_starts is None:
+            raise CoordinatorError(
+                "target_root_unavailable",
+                "No managed targets root is available for reserved Cargo starts",
+            )
+        return self.reserved_starts
+
     def _record_startup_gpu_lane_audit(self) -> None:
         """Persist GPU leases that predate the latest resume reservation."""
         active = self._require_cargo_jobs().audit_active_gpu_jobs()
@@ -1610,11 +1848,13 @@ class CoordinatorApplication:
         stale: list[str] = []
         archived: list[str] = []
         orphaned: list[str] = []
+        launch_failed: list[str] = []
         legacy_archive_run_id: str | None = None
         retention_plan_id: str | None = None
         cleanup_plan_id: str | None = None
         unmanaged_artifacts_deleted: list[str] = []
         try:
+            self.command_requests.prune()
             legacy_report = self.legacy.report()
             legacy_active_sessions = {
                 note.session_id for note in legacy_report.notes if note.activity_reasons
@@ -1634,6 +1874,8 @@ class CoordinatorApplication:
                     excluded_session_ids=legacy_active_sessions,
                 )
             if self.cargo_jobs is not None:
+                if self.reserved_starts is not None:
+                    launch_failed = list(self.reserved_starts.reconcile_expired())
                 orphaned = [
                     job.job_id for job in self.cargo_jobs.reconcile_orphans()
                 ]
@@ -1714,6 +1956,7 @@ class CoordinatorApplication:
             "stale_sessions": stale,
             "archived_sessions": archived,
             "orphaned_cargo_jobs": orphaned,
+            "launch_failed_requests": launch_failed,
             "legacy_archive_run_id": legacy_archive_run_id,
             "retention_plan_id": retention_plan_id,
             "cleanup_plan_id": cleanup_plan_id,
@@ -1803,6 +2046,24 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
         if self.path == "/health":
             self._write_json(HTTPStatus.OK, self.server.application.health())
             return
+        command_request_prefix = "/command/requests/"
+        if self.path.startswith(command_request_prefix):
+            request_id = self.path[len(command_request_prefix) :]
+            try:
+                result = self.server.application.command_requests.get(request_id)
+                result["repositoryKey"] = self.server.application.repository_identity.key
+                self._write_json(
+                    HTTPStatus.OK,
+                    result,
+                )
+            except CoordinatorError as error:
+                status = (
+                    HTTPStatus.NOT_FOUND
+                    if error.code == "command_request_not_found"
+                    else HTTPStatus.BAD_REQUEST
+                )
+                self._write_json(status, {"error": error.to_dict()})
+            return
         self._write_error(HTTPStatus.NOT_FOUND, "not_found", "Unknown endpoint")
 
     def do_POST(self) -> None:
@@ -1828,7 +2089,15 @@ class CoordinatorRequestHandler(BaseHTTPRequestHandler):
             arguments = payload.get("arguments") or {}
             if not isinstance(arguments, dict):
                 raise ValueError("arguments must be an object")
-            result = self.server.application.command(command, arguments)
+            raw_request_id = payload.get("request_id")
+            if raw_request_id is not None and not isinstance(raw_request_id, str):
+                raise ValueError("request_id must be a string")
+            request_id = raw_request_id or uuid.uuid4().hex
+            result = self.server.application.execute_command_request(
+                command,
+                arguments,
+                request_id=request_id,
+            )
             self._write_json(HTTPStatus.OK, result)
         except (BrokenPipeError, ConnectionAbortedError, ConnectionResetError):
             # The command has already completed or is independently durable.
@@ -2023,7 +2292,13 @@ class RunningCoordinator:
         self.httpd.shutdown()
         self.httpd.server_close()
         self.thread.join(timeout=5)
-        self.maintenance_thread.join(timeout=5)
+        self.maintenance_thread.join(timeout=30)
+        if self.maintenance_thread.is_alive():
+            raise CoordinatorError(
+                "maintenance_stop_timeout",
+                "Coordinator maintenance worker did not terminate before shutdown deadline",
+                details={"timeoutSeconds": 30},
+            )
         self._remove_owned_file(self.config.runtime_path, os.getpid())
         self._remove_owned_file(self.config.lock_path, os.getpid())
 
@@ -2072,14 +2347,18 @@ class RunningCoordinator:
                 observation = application.watcher.prepare_scan()
                 application.watcher.apply_scan(observation)
             except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                if stop_event.is_set():
+                    break
                 with application.database.transaction() as connection:
                     connection.execute(
                         "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
                         (
                             "watch.scan_failed",
                             json.dumps({"error": str(error)}, sort_keys=True),
-                        ),
-                    )
+                            ),
+                        )
+            if stop_event.is_set():
+                break
             if application.cargo_jobs is not None:
                 try:
                     orphaned = application.cargo_jobs.reconcile_orphans()
@@ -2110,6 +2389,8 @@ class RunningCoordinator:
                     application.cleanup.retry_pending_jobs()
                     application.cleanup.evict_idle_pools_under_pressure()
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    if stop_event.is_set():
+                        break
                     with application.database.transaction() as connection:
                         connection.execute(
                             "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
@@ -2118,10 +2399,14 @@ class RunningCoordinator:
                                 json.dumps({"error": str(error)}, sort_keys=True),
                             ),
                         )
+            if stop_event.is_set():
+                break
             if application.artifact_governance is not None:
                 try:
                     application.artifact_governance.cleanup()
                 except Exception as error:  # pragma: no cover - defensive maintenance boundary
+                    if stop_event.is_set():
+                        break
                     with application.database.transaction() as connection:
                         connection.execute(
                             "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
@@ -2130,6 +2415,8 @@ class RunningCoordinator:
                                 json.dumps({"error": str(error)}, sort_keys=True),
                             ),
                         )
+            if stop_event.is_set():
+                break
             if application.workspace_copy is not None:
                 try:
                     recovered_running, recovered_cleanup = (
@@ -2151,6 +2438,8 @@ class RunningCoordinator:
                                 ),
                             )
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    if stop_event.is_set():
+                        break
                     with application.database.transaction() as connection:
                         connection.execute(
                             "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
@@ -2159,6 +2448,8 @@ class RunningCoordinator:
                                 json.dumps({"error": str(error)}, sort_keys=True),
                             ),
                         )
+            if stop_event.is_set():
+                break
             if not application.read_only and time.monotonic() >= next_maintenance:
                 try:
                     application._maintenance_tick(
@@ -2170,6 +2461,8 @@ class RunningCoordinator:
                         }
                     )
                 except Exception as error:  # pragma: no cover - defensive long-lived boundary
+                    if stop_event.is_set():
+                        break
                     with application.database.transaction() as connection:
                         connection.execute(
                             "INSERT INTO events(event_type, payload_json, created_at) VALUES (?, ?, datetime('now'))",
