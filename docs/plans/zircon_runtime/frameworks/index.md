@@ -34,7 +34,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 
 - 迁入记录：[`02/2026-07-09-index-output-records.md`](02/2026-07-09-index-output-records.md)
 
-## 1. 现状评审结论（2026-07-02 实查）
+## 1. 现状评审结论（2026-07-30 current-source successor）
 
 调研口径：`zircon_runtime/src` 全量结构盘点、`zircon_plugins`/`zircon_runtime_interface`/`zircon_app` 插件链路盘点、`dev/` 参考引擎（bevy/Fyrox/godot/UnrealEngine/Graphics/Piccolo）结构对照。
 
@@ -42,29 +42,31 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 
 | 模块 | 职责 | 行数（含测试） |
 |------|------|------|
-| ui | 布局/模板/表面渲染/事件/无障碍 | ~327K |
-| graphics | 渲染内核/材质/GPU 场景 | ~322K |
-| core | 内核脊柱（runtime/framework/manager/math/resource） | ~148K |
-| scene | ECS 世界/层级/序列化 | ~137K |
-| asset | 资产管线/导入/工件缓存 | ~110K |
-| plugin | 插件加载/bridge/扩展注册 | ~64K |
-| script/rhi/rhi_wgpu/dynamic_api/platform/render_graph/animation/input/其余 | — | 合计 ~100K |
+| tests | Runtime 吸收、结构、产品与集成回归 | 250,951 |
+| graphics | 渲染内核/材质/GPU 场景 | 213,938 |
+| ui | 布局/模板/表面渲染/事件/无障碍 | 180,794 |
+| core | 内核脊柱（runtime/framework/manager/math/resource） | 97,373 |
+| asset | 资产管线/导入/工件缓存 | 79,325 |
+| scene | ECS 世界/层级/序列化 | 78,762 |
+| plugin | 插件加载/bridge/扩展注册 | 49,790 |
+| text | 共享 shaping/layout/raster/atlas 服务 | 45,019 |
+| script/rhi/rhi_wgpu/dynamic_api/platform/render_graph/animation/input/其余 | — | 合计 79,213 |
 
-`zircon_runtime` 是**约 120 万行的单 crate**（`rlib` + `cdylib`），是全仓编译时间与增量迭代速度的最大瓶颈；任何一处修改都触发整个 crate 重编。
+`zircon_runtime/src` 的 2026-07-30 原子快照共有 9,188 个 Rust 文件 / 1,075,165 行（含测试），输入 pre/post 指纹同为 `348fe59c72c798e5e64babb5489910f30dbd00a58441ec11c1e176826519339e`；它们仍由同一 `rlib` + `cdylib` package 编译，是全仓编译时间与增量迭代速度的最大瓶颈。该计数只约束这一不可变时点，物理迁移前必须重算。
 
 ### 1.2 主要问题清单
 
 | # | 问题 | 证据 | 承接计划 |
 |---|------|------|---------|
-| P1 | 单 crate 巨石：120 万行单编译单元，无法并行编译、无法按域增量 | `zircon_runtime/src`、`zircon_runtime/Cargo.toml` | 01 |
-| P2 | 模块边界靠纪律而非编译器：`lib.rs` 模块声明顺序敏感（"ui must be declared before asset"）、graphics 35 处直接 `use crate::scene::`、graphics 直接引用 `crate::ui::text::shaper` | `zircon_runtime/src/lib.rs`、`src/graphics/scene/scene_renderer/ui/text.rs` | 01、05 |
+| P1 | 单 crate 巨石：1,075,165 行 current Rust source 仍是单编译单元，无法按域并行/增量编译 | `zircon_runtime/src`、`zircon_runtime/Cargo.toml` | 01 |
+| P2 | 历史声明顺序、graphics→scene 与 graphics→ui 直接边已硬切清零；current crate-DAG 阻断收敛为 `asset→text=2`、`scene→animation=2`、`rhi→rhi_wgpu=1`，另有 source-cubemap projection 两处测试反向构造 concrete Runtime `TaskPool` | `01/baselines/2026-07-30-runtime-domain-dependencies-production-only.json`、`src/core/framework/render/environment/source_cubemap/tests/projection.rs` | 01、05 |
 | P3 | feature 门控不完整：animation/navigation/script/diagnostic_log 及 `core/framework` 的 ai/physics/sound/net 子域无条件编译，server/headless 目标携带无用代码 | `zircon_runtime/src/lib.rs`、`zircon_runtime/Cargo.toml` features 段 | 03 |
 | P4 | 模块生命周期语义偏薄：五态生命周期无 bevy 式 `ready/finish` 异步就绪语义，无明确初始化层级（Kernel→Services→Scene→Editor→Post），模块排序靠 `builtin/runtime_modules` 手工列表 | `src/core/runtime/lifecycle.rs`、`src/builtin/runtime_modules/core_modules.rs` | 02 |
 | P5 | 插件 DX 债务：PLUGIN_ID 等元数据三处重复声明（plugin.toml / capability.rs / dist lib.rs）、新插件需 touch ~11 个文件、无脚手架、manifest 校验只在 Python 审计脚本、加载失败诊断贫弱、native 热重载 save/restore 未实装 | `zircon_plugins/gltf_importer/**`、`zircon_plugins/first_party_runtime_catalog/src/lib.rs` | 04 |
 | P6 | 规范散落且部分不可执行：结构规范分散在 convention 文档 + 技能 + 审计脚本，CI 无 clippy、无依赖方向守卫、无 feature 组合验证 | `.github/workflows/ci.yml`、`docs/plans/engine-code-structure-convention.md` | 06 |
 | P7 | 开发期链接慢：无 bevy_dylib/fyrox-dylib 式 `dynamic_linking` 开发模式 | 对照 `dev/bevy/crates/bevy_dylib`、`dev/Fyrox/fyrox-dylib` | 01 |
 
-同时确认的**健康面**（保持，不推倒）：core 脊柱五分角色清晰、无循环依赖、生产文件全部低于 1000 行门槛（large-file gate 已 clear）、native 插件 ABI v3 有版本化与能力协商、profile 六态与 feature bundle 规则已成文。
+同时确认的**健康面**（保持，不推倒）：core 脊柱角色清晰、生产文件继续受 1000 行门禁约束、native 插件主 ABI v3 与 behavior ABI v4 均有版本化/能力协商、profile 六态与显式 feature preset 单源已成文。M1 不用推倒这些合同，只改变其物理编译 owner。
 
 ## 2. 参考引擎结论（对齐 zr-reference-engine-routing）
 
@@ -92,10 +94,10 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 │                                        builtin 模块组装、curated re-export；对外路径
 │                                        zircon_runtime::* 不变）
 └── zircon_runtime/crates/            ← 内部成员 crate（不发布、无独立稳定性承诺）
-    ├── zr_kernel        ← core/runtime + engine_module：生命周期/调度/描述符（零重依赖）
-    ├── zr_contracts     ← core/framework：纯契约 trait/DTO（按域 feature 门控）
     ├── zr_math / zr_resource
-    ├── zr_platform / zr_input / zr_diagnostics
+    ├── zr_contracts     ← core/framework：纯契约 trait/DTO（按域 feature 门控）
+    ├── zr_kernel        ← core/runtime + engine_module：生命周期/调度/描述符（依赖 math/resource/contracts）
+    ├── zr_diagnostics / zr_foundation / zr_platform / zr_input
     ├── zr_asset / zr_scene
     ├── zr_rhi / zr_rhi_wgpu / zr_render_graph
     ├── zr_graphics
@@ -103,7 +105,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
     └── zr_script / zr_animation / zr_navigation   （全部可选）
 ```
 
-依赖方向自下而上单向（kernel/contracts → 中层 → graphics/ui → 门面），由 Cargo 强制，替代今天靠 `lib.rs` 声明顺序与纪律维持的边界（P2）。这是对收束计划中"runtime 物理吸收为单 crate"实现细节的显式修订：**吸收层语义不变（外部只见 `zircon_runtime`），物理编译单元分层**。修订理由：120 万行单编译单元已实测成为迭代瓶颈，且 bevy/Fyrox/godot/UE 无一例外采用分层编译单元。命名前缀 `zr_` 与最终清单在计划 01 M0 批准后锁定。
+依赖方向自下而上单向，M1 固定为 `zr_math/zr_resource → zr_contracts → zr_kernel → zr_diagnostics`，再进入 foundation/platform/input 与中重域，最后到 graphics/text/ui 和门面；由 Cargo 强制，替代模块内纪律（P2）。这是对收束计划中"runtime 物理吸收为单 crate"实现细节的显式修订：**吸收层语义不变（外部只见 `zircon_runtime`），物理编译单元分层**。2026-07-30 M0 已锁定 `zr_` 命名、crate 清单与物理切片顺序；四份受管 cold/incremental timings 尚未生成，所以 M0 仍未完成。
 
 ### D2：模块生命周期统一为"描述符 + 四阶段 + 初始化层级"
 
@@ -119,7 +121,7 @@ Frameworks 总索引只保留计划集当前现状、架构决策与子计划路
 
 ### D5：跨域接缝全部走契约
 
-graphics↔ui（文本 shaper）、asset↔ui（模板 loader）、graphics↔scene（extract packet）等直接引用改为 `zr_contracts` 契约 + handle/registry。这是 D1 第三阶段拆分的前置。详见计划 05。
+历史 asset→ui、graphics→ui、graphics→scene 生产直接边已硬切为 0；对应共享类型/服务继续由中立 contract + handle/registry 承接，不恢复旧 owner 或 facade shim。current successor 还必须处理 `asset→text`、`scene→animation` 与 `rhi→rhi_wgpu` 三条硬反向边，才可执行 D1 对应物理拆分。详见计划 01 current baseline 与计划 05。
 
 ### D6：规范即守卫
 
@@ -147,7 +149,7 @@ graphics↔ui（文本 shaper）、asset↔ui（模板 loader）、graphics↔sc
 
 - **阶段 0（基线与批准）**：编译时间基线（`cargo build --timings`）、依赖图快照、feature 现状矩阵；批准 D1 命名与 crate 清单。归计划 01 M0 与 06 M0。
 - **阶段 A（内核与开关，单 crate 内完成）**：02 全部 → 03 全部。先把生命周期与 feature 矩阵理顺，拆分时才不必二次返工。
-- **阶段 B（接缝与拆分）**：05 接缝契约化 → 01 Phase 1（kernel/contracts/math/resource）→ Phase 2（rhi/render_graph/platform/input/asset/scene）→ Phase 3（graphics/ui/text/可选域）。每 Phase 硬切换，无兼容桥。
+- **阶段 B（接缝与拆分）**：05 接缝契约化 → 01 Phase 1（math/resource → contracts → kernel → diagnostics）→ Phase 2（foundation → platform/input → asset/scene → rhi/rhi_wgpu/render_graph）→ Phase 3（graphics/text/ui/可选域）。每 Phase 硬切换，无兼容桥。
 - **阶段 C（DX 与守卫收口）**：04 全部；06 守卫全部入 CI。可与阶段 B 后半并行。
 
 ## 5. 全局边界约束（各子计划必须遵守）
