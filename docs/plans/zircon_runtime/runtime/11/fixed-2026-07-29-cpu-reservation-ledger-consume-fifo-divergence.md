@@ -1,6 +1,6 @@
 ---
-handoff_kind: failure
-status: open
+handoff_kind: fixed
+status: fixed
 created_at: 2026-07-29
 summary_slug: cpu-reservation-ledger-consume-fifo-divergence
 origin_plan: docs/plans/zircon_runtime/runtime/11-job-system-task-model.md
@@ -9,14 +9,18 @@ origin_child_dir: docs/plans/zircon_runtime/runtime/11
 fixing_child_dir: docs/plans/zircon_tooling/session_coordinator/01
 plan_link_mode: child_record_only
 related_code:
+  - tools/session_coordinator/cargo_reservations.py
   - tools/session_coordinator/cargo_jobs.py
   - tools/session_coordinator/server.py
   - tools/session_coordinator/supervision/service.py
   - tools/session_coordinator/tests/test_cargo_reservations.py
+  - tools/session_coordinator/tests/test_supervision_actions.py
 tests:
   - one pending warm CPU reservation that is ledger FIFO head consumes into exactly one leased job
   - cargo +1.94.1 check -p zircon_runtime --lib --locked --jobs 1
+resolved_at: 2026-07-29
 ---
+
 
 # Coordinator01: CPU reservation ledger and consume FIFO divergence
 
@@ -53,34 +57,7 @@ The control plane has more than one effective view of warm CPU FIFO eligibility,
 
 ## 修复结果与回传
 
-Open state: `待修复`; Runtime11 keeps reservation `a2a7574c4c41465fb4efdff7ea5cd517` pending and does not claim a Cargo result until Coordinator01 returns a verified FIFO admission fix.
-
-2026-07-29 current-source repair: Coordinator01 now owns CPU FIFO eligibility in
-`cargo_reservations.py`. Stale/TTL/terminal reconciliation, legacy repeat-priority
-yield, warm-lane head selection, warm predecessor selection, and Cargo bind selection
-share the canonical active-status and `(priority_rank, created_at, reservation_id)`
-projection. Every reconciliation CAS writes one row-level audit event and replay does
-not duplicate it. Proof bootstrap accepts only `warm`, freezes `executionMode` in the
-immutable binding, and permits an exact consumed retry only when the original leased
-job id still matches. A `not_fifo_head` error now includes the actual predecessor's
-reservation, Session, status, job, execution mode, priority, and creation identity.
-
-TDD evidence first reproduced all four defects: burst proof acceptance, proof retry
-rejection after the first bind, missing execution-mode identity, and absent
-reconciliation events. The repaired current source then passed:
-
-- focused proof/FIFO/reconciliation set: `4/4`;
-- `tools.session_coordinator.tests.test_cargo_reservations`: `48/48` in `201.362s`;
-- `tools.session_coordinator.tests.test_supervision_actions`: `43/43` in `197.448s`;
-- focused `test_server` proof-handoff wiring: `4/4` in `22.233s`;
-- predecessor-detail RED/green follow-up: `2/2` in `10.869s`;
-- exact six Python source/test paths: `py_compile` and `git diff --check` GREEN;
-- exact six source/test fingerprint: `d07ca14ba5ca3165a32274549d924b133a6deae04eacbf4ffbdaa101c899621a`.
-
-The original Runtime11 reservation `a2a7574c4c41465fb4efdff7ea5cd517`
-had no source manifest and is now expired; Runtime08 reservation
-`04ae7a9e103e4582910137fa29c019f9` is also expired. Neither id is reusable.
-This handoff remains `open` until exact-scope independent re-review, managed atomic
-Coordinator commit, service reload, and the fixed return complete. Runtime11 and
-Runtime08 must create fresh source-manifest-bound rows afterward without reordering
-the still-valid FIFO.
+- 根因：Warm CPU eligibility was projected independently by reconciliation, proof binding, and Cargo consume; proof omitted execution mode, consume retries validated pending state before restoring the exact leased job, and automatic terminalization had no row-level audit.
+- 架构修复：Commit b5dbf49fb566115161dd39542bf278e4f7258127 centralizes active FIFO status/order, freezes warm executionMode in proof identity, makes proof-bound consume idempotent by exact job id, emits one audit event per reconciliation CAS, and returns canonical predecessor identity on not_fifo_head. Controlled rollover action 3f826bd3393a44708175cdfa0a8eead9 loaded successor daemon 2a81c66a88db4a2c9168def47223950b.
+- 验证：Focused TDD 4/4 and predecessor follow-up 2/2; test_cargo_reservations 48/48; test_supervision_actions 43/43; server proof wiring 4/4; py_compile and diff check GREEN; independent exact7 review Ready C0/I0/Moderate0/Minor0 with fingerprint f19a1c0484978105c9715747ddfa28ebf88cc2842353ccb94917e9829578f07d.
+- 回传：Coordinator01 CPU warm FIFO/proof convergence is committed and loaded. Runtime11 a2a757 and Runtime08 04ae7 are expired and non-reusable; owners must enqueue fresh source-manifest-bound rows behind the still-valid FIFO.
