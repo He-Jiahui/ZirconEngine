@@ -1,9 +1,9 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_artifacts
   - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/profiling_hit_routes
   - tools/ui-profile-capture.ps1
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md

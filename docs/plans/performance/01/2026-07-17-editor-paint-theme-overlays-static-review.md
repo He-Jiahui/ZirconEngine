@@ -1,11 +1,11 @@
 ---
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_theme.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_theme/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_theme
   - zircon_editor/src/ui/retained_host/host_contract/paint_workbench.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_workbench
   - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_close_prompt
   - zircon_editor/src/ui/retained_host/host_contract/paint_debug_reflector_overlay.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_diagnostics.rs
 plan_sources:

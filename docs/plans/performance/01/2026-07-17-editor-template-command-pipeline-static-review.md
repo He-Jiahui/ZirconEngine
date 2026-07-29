@@ -2,14 +2,14 @@
 related_code:
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/mod.rs
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_nodes
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/template_node_pipeline_tests
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_commands
   - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion.rs
-  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion/**/*.rs
+  - zircon_editor/src/ui/retained_host/host_contract/paint_template_nodes/render_command_conversion
   - zircon_runtime_interface/src/ui/surface/render/command.rs
   - zircon_runtime_interface/src/ui/surface/render/list.rs
 plan_sources:

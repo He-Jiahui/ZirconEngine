@@ -1,7 +1,7 @@
 ---
 related_code:
-  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion/**/*.rs
-  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder/*.rs
+  - zircon_editor/src/ui/retained_host/ui/pane_data_conversion
+  - zircon_editor/src/ui/retained_host/host_contract/surface_hit_test/template_node/surface_frame_builder
   - zircon_runtime/src/tests/runtime_absorption/structure_convention/test_file_budget/editor_pane_data_conversion.rs
 plan_sources:
   - docs/plans/performance/01-mvp-performance-audit-and-optimization.md
