@@ -1533,11 +1533,16 @@ class CargoJobService:
             (copy_job_id,),
         ).fetchone()
         expected_hash = compatibility.get("source_copy_manifest_hash")
+        materialized_hash = (
+            str(row["input_manifest_hash"]).upper()
+            if row is not None and row["input_manifest_hash"] is not None
+            else None
+        )
         if (
             row is None
             or row["session_id"] != session_id
             or row["status"] != "materialized"
-            or row["input_manifest_hash"] != expected_hash
+            or materialized_hash != expected_hash
         ):
             raise CoordinatorError(
                 reservation_code(lane_scope, "source_copy_invalid"),

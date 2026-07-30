@@ -26,11 +26,11 @@ resolved_at: 2026-07-29
 
 ## 来源执行者
 
-- 来源计划: `docs/plans/zircon_runtime/runtime/11-job-system-task-model.md`
-- 来源执行切片: Runtime11 bounded operation service current-source compile validation
-- 修复责任计划: `docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
-- 交接原因: CPU reservation persistence, FIFO selection, consume admission, and job binding are Coordinator01 control-plane responsibilities. Runtime11 cannot alter foreign reservations or bypass the managed lane.
-- 生命周期键: `cpu-reservation-ledger-consume-fifo-divergence`
+- 来源计划：`docs/plans/zircon_runtime/runtime/11-job-system-task-model.md`
+- 来源执行切片：Runtime11 bounded operation service current-source compile validation
+- 修复责任计划：`docs/plans/zircon_tooling/session_coordinator/01-workflow-control-center-and-tray.md`
+- 交接原因：CPU reservation persistence, FIFO selection, consume admission, and job binding are Coordinator01 control-plane responsibilities. Runtime11 cannot alter foreign reservations or bypass the managed lane.
+- 生命周期键：`cpu-reservation-ledger-consume-fifo-divergence`
 
 ## 失败现象与复现证据
 

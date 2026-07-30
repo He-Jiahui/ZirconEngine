@@ -964,7 +964,7 @@ class CargoReservationTests(unittest.TestCase):
         copied.write_text("copy-stable\n")
         target_root.mkdir(parents=True)
         selected_digest = hashlib.sha256(copied.read_bytes()).hexdigest().upper()
-        copy_manifest_hash = "B" * 64
+        copy_manifest_hash = hashlib.sha256(b"materialized-copy").hexdigest()
         with self.database.transaction() as connection:
             connection.execute(
                 """INSERT INTO validation_copies(
@@ -1012,7 +1012,7 @@ class CargoReservationTests(unittest.TestCase):
                 "WHERE job_id=?",
                 (job.job_id,),
             ).fetchone()
-        self.assertEqual(("copy-a", copy_manifest_hash), tuple(durable))
+        self.assertEqual(("copy-a", copy_manifest_hash.upper()), tuple(durable))
         with mock.patch(
             "tools.session_coordinator.workspace_copy._is_managed_validation_root",
             return_value=True,
@@ -1023,6 +1023,48 @@ class CargoReservationTests(unittest.TestCase):
         with self.assertRaises(CoordinatorError) as referenced:
             copies.cleanup("session-a", copy_root)
         self.assertEqual("validation_copy_referenced", referenced.exception.code)
+
+    def test_reserved_cargo_rejects_a_distinct_validation_copy_hash(self) -> None:
+        relative = "src/full_input.rs"
+        copy_root = self.target_root / "verify/copy-a"
+        source_root = copy_root / "source"
+        target_root = copy_root / "target"
+        copied = source_root / relative
+        copied.parent.mkdir(parents=True)
+        copied.write_text("copy-stable\n")
+        target_root.mkdir(parents=True)
+        selected_digest = hashlib.sha256(copied.read_bytes()).hexdigest().upper()
+        copy_manifest_hash = hashlib.sha256(b"materialized-copy").hexdigest()
+        with self.database.transaction() as connection:
+            connection.execute(
+                """INSERT INTO validation_copies(
+                       job_id, session_id, job_root, source_root, target_root,
+                       head_commit, manifest_json, status, created_at,
+                       external_sources_json, input_manifest_hash
+                   ) VALUES ('copy-a', 'session-a', ?, ?, ?, 'head', ?,
+                             'materialized', 'now', '[]', ?)""",
+                (
+                    str(copy_root),
+                    str(source_root),
+                    str(target_root),
+                    json.dumps([relative]),
+                    copy_manifest_hash,
+                ),
+            )
+        compatibility = self.compatibility(
+            source_manifest={relative: selected_digest},
+            source_copy_job_id="copy-a",
+            source_copy_manifest_hash=hashlib.sha256(b"different-copy").hexdigest(),
+        )
+
+        with self.assertRaises(CoordinatorError) as rejected:
+            self.service.reserve_cpu(
+                "session-a",
+                compatibility=compatibility,
+                command=("cargo", "test", "-p", "zircon_runtime", "--lib"),
+            )
+
+        self.assertEqual("cargo_cpu_reservation_source_copy_invalid", rejected.exception.code)
 
     def test_burst_reservation_rechecks_its_source_manifest_before_start(self) -> None:
         relative_path = "zircon_runtime/src/input/runtime/event_buffer/frame.rs"
